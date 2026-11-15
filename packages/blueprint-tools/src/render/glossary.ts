@@ -6,7 +6,13 @@ import { type Entry, keyOf, oldWordOf } from "../language/glossary.ts";
 const cell = (entry: Entry): string => {
   const olds = Arr.map(entry.replaces, (old) => {
     const word = oldWordOf(old);
-    return word.kind === "uncounted" ? `${word.text} (not counted)` : keyOf(word);
+    if (word.kind === "uncounted") return `${word.text} (not counted)`;
+    if (word.kind === "words" && word.within.length > 0)
+      return `${word.text} (counted only in ${Arr.join(
+        Arr.map(word.within, (path) => `\`${path}\``),
+        ", ",
+      )})`;
+    return keyOf(word);
   });
   return olds.length === 0 ? "(kept)" : Arr.join(olds, ", ");
 };
@@ -53,6 +59,21 @@ export const renderGlossary = (glossary: ReadonlyArray<Entry>): string => {
       "Each is spelled as a word the glossary keeps for another concept, so no count can tell its uses apart.",
       "",
       ...Arr.map(uncounted, (old) => `- \`${old.text}\`, becoming **${old.entry}**: ${old.why}.`),
+      "",
+      "## Where a kept word is not counted",
+      "",
+      "A word the glossary keeps, spelled as another entry's old word, is not counted where this exact code writes it.",
+      "",
+      ...Arr.flatMap(glossary, (entry) =>
+        entry.keptIn === undefined || entry.keptIn.length === 0
+          ? []
+          : [
+              `- **${entry.word}**: ${Arr.join(
+                Arr.map(entry.keptIn, (text) => `\`${text}\``),
+                ", ",
+              )}.`,
+            ],
+      ),
       "",
     ],
     "\n",

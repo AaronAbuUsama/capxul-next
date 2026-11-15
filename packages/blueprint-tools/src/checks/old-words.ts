@@ -20,7 +20,10 @@
 // - Other people's names are not ours: a token starting `@` that is not `@capxul/`, or starting `effect/` or `node:`,
 //   counts nothing, nor a segment that is a name of TypeScript or Effect (`Record`, `ReadonlyRecord`), nor an old word
 //   inside `GitHub` or ERC-4337's `EntryPoint`.
-// - An old word marked `uncounted` (spelled as a word the glossary keeps, `step`, `lane`) is listed, never counted.
+// - An old word marked `uncounted` (spelled as a word the glossary keeps, `step`) is listed, never counted.
+// - An old word with `within` (`lane`, a shard only in packages/runner) is counted only in files under those paths.
+// - An old word spelled as an agreed word is not counted in that entry's `keptIn`, the exact code where the agreed
+//   meaning is written (`claim` in `CompaniesHouseClaimer.claim` is claiming a Safe, not taking sites).
 import * as Arr from "effect/Array";
 import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
@@ -128,11 +131,27 @@ const segmentsOf = (piece: Piece): ReadonlyArray<ReadonlyArray<string>> => {
   );
 };
 
+/** A pattern for `text` standing as exact code, nothing of a name touching it. */
+const exactly = (text: string): RegExp =>
+  new RegExp(`(?<![A-Za-z0-9_-])${Str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")(text)}(?![A-Za-z0-9_-])`, "g");
+
 /** How many times `text` stands in `piece` as exact code, nothing of a name touching it. */
-const codeCount = (piece: Piece, text: string): number => {
-  const escaped = Str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")(text);
-  return every(new RegExp(`(?<![A-Za-z0-9_-])${escaped}(?![A-Za-z0-9_-])`, "g"))(piece.text).length;
-};
+const codeCount = (piece: Piece, text: string): number => every(exactly(text))(piece.text).length;
+
+/** The exact code where an agreed word spelled `text` keeps its own meaning (an entry's `keptIn`). */
+const keptInOf = (glossary: ReadonlyArray<Entry>, text: string): ReadonlyArray<string> =>
+  Arr.flatMap(glossary, (entry) => (entry.word === text ? (entry.keptIn ?? []) : []));
+
+/** `piece` with every one of `kept` blanked out, so nothing in it is counted. */
+const without = (piece: Piece, kept: ReadonlyArray<string>): Piece =>
+  Arr.reduce(kept, piece, (each, text) => ({
+    kind: each.kind,
+    text: Str.replace(exactly(text), " ")(each.text),
+  }));
+
+/** Whether a file at `path` is under one of `within`, none meaning everywhere. */
+const isWithin = (path: string, within: ReadonlyArray<string>): boolean =>
+  within.length === 0 || Arr.some(within, (each) => Str.startsWith(each)(path));
 
 /** Every counted old word's count in one file, by its key. */
 export const countFile = (glossary: ReadonlyArray<Entry>, file: File): Counts => {
@@ -143,13 +162,16 @@ export const countFile = (glossary: ReadonlyArray<Entry>, file: File): Counts =>
     Arr.map(countedOf(glossary), (old) => {
       if (old.kind === "code")
         return [keyOf(old), Arr.reduce(pieces, 0, (sum, piece) => sum + codeCount(piece, old.text))] as const;
+      if (!isWithin(file.path, old.within)) return [keyOf(old), 0] as const;
       const words = wordsOf(old.text);
       const hiding = [
         ...Arr.filter(agreed, (each) => each.length > words.length),
         ...Arr.map(old.except, wordsOf),
         ...OTHERS,
       ];
-      return [keyOf(old), Arr.reduce(segments, 0, (sum, segment) => sum + countIn(segment, words, hiding))] as const;
+      const kept = keptInOf(glossary, old.text);
+      const read = kept.length === 0 ? segments : Arr.flatMap(pieces, (piece) => segmentsOf(without(piece, kept)));
+      return [keyOf(old), Arr.reduce(read, 0, (sum, segment) => sum + countIn(segment, words, hiding))] as const;
     }),
   );
 };
