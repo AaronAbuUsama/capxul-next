@@ -17,7 +17,7 @@ import { unmigrated } from "../src/unmigrated.ts";
 
 // The most findings each rule's unmigrated list may hold in all. The lead sets them from the builder's first list;
 // they may only fall.
-const CEILINGS = { "owned-values": 688, "declared-names": 768, "decoded-rows": 38 };
+const CEILINGS = { "owned-values": 687, "declared-names": 766, "decoded-rows": 38 };
 
 RuleTester.describe = describe;
 RuleTester.it = it;

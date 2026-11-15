@@ -9,6 +9,9 @@ import * as Board from "./operations.ts";
 
 export * from "./operations.ts";
 
+/** Its machines, by name (src/machine.ts): none yet. */
+export const machines = {} as const;
+
 /** Its operations, by name. */
 export const operations = {
   "org.director.list": Board.directorList,

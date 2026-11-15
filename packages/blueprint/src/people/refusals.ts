@@ -3,6 +3,7 @@
 import * as Schema from "effect/Schema";
 import type { ExitCode } from "../errors.ts";
 import { OrgId, PersonId } from "../values.ts";
+import { Invitation } from "./machines.ts";
 import { Email, InvitationId } from "./values.ts";
 
 /**
@@ -54,12 +55,14 @@ export class NotYourInvitation extends Schema.TaggedError<NotYourInvitation, { r
   },
 ) {}
 
-/** The invitation is no longer pending: it was accepted, declined or cancelled, and can no longer be answered. */
+/**
+ * The invitation is closed: its machine (machines.ts) refuses the answer from the state it is in, which `state` names.
+ */
 export class InvitationClosed extends Schema.TaggedError<InvitationClosed, { readonly brand: unique symbol }>()(
   "InvitationClosed",
   {
     invitation: InvitationId,
-    state: Schema.Literals(["accepted", "declined", "cancelled"]),
+    state: Invitation.RefusedState,
   },
 ) {}
 

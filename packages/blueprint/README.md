@@ -14,6 +14,7 @@ import it; it imports neither.
 | `src/<domain>/` | One domain: `world`, `organizations`, `people`, `board`, `documents`, `approvals`, `reports`, `record`. Below. |
 | `src/<domain>/` | One domain: `world`, `organizations`, `people`, `budgets`, `documents`, `approvals`, `reports`, `record`. Below. |
 | `src/operation.ts` | The format: `declare`, `declareOutcomes`, `outcome`, `Budget`, and what the runner reads. |
+| `src/machine.ts` | The machine format: `make`, and what it derives from a declaration. Below, "Machines". |
 | `src/errors.ts` | Every refusal with its command-line exit code, gathered from the files that declare them: each domain's `refusals.ts`, and `src/errors/` for those several domains share (who is calling, a company and its site, `NotImplemented`, which every operation declares, decisions.md entry 33, and `PayloadRejected`, which the caller's own client makes, entry 43). |
 | `src/gather.ts` | How a hub gathers its parts' records into one. |
 | `src/values.ts` | The shared values: names, ids (declared in `src/ids.ts`), instants, money, approvals and their `Subject`, gathered from the domains' `subjects.ts`, the view of a world. |
@@ -34,6 +35,7 @@ A domain's folder, `src/<domain>/`:
 | `domain.ts` | Its door: `operations` (its own, by name), `platformRpcs` and `worldRpcs` (its share of each group, `RpcGroup.make()` when it has none), and `claims`, each operation's. It re-exports `operations.ts`, so the package's door exports it as the domain's namespace (`World`, `Organizations`, ...). |
 | `operations.ts` | Its operations' declarations and events. |
 | `claims.ts` | Its acceptance claims. |
+| `machines.ts` | Its machines (`people`: the invitation's), which `domain.ts` lists in `machines`. Every other domain's `machines` is empty for now. |
 | `refusals.ts` | The refusals only its operations make, each with its exit code (`refusals`, `exitCode`). None in `reports`. |
 | `subjects.ts` | What its approvals authorise, when its operations ask for any: `organizations`, `board` and `documents`. |
 | `subjects.ts` | What its approvals authorise, when its operations ask for any: `organizations`, `budgets` and `documents`. |
@@ -61,6 +63,22 @@ The thin line's twelve, as the journey calls them. A later operation is listed i
 
 Refusals and budgets are in each domain's `claims.md`. The platform group is served by `packages/world`; the world group by a world's
 Core, through its door. Each group's `toLayer` does not compile until every operation in it has a handler.
+
+## Machines
+
+A thing with a lifecycle that callers see and refusals depend on is a machine (docs/roadmap.md, "Lifecycles are
+machines in the blueprint"), declared once in its domain's `machines.ts` with `Machine.make` (`src/machine.ts`): its
+states, its start (the state, the operation that makes it and the event it sends), and its moves, each with the states
+it starts `from`, the state it goes `to`, the operation `by` which it is made, the `event` it sends, and `otherwise`,
+what it does from every other state: `{ refusal }`, a declared refusal, or `"unchanged"`. The type refuses an
+`otherwise` that misses a state or names one in `from`. A machine names its operations, events and refusals by their
+tags, since their declarations import its schemas; `test/machines.test.ts` proves each is declared. From the
+declaration come `State` (the state schema), `refusedStates` and `RefusedState` (the closing refusal's `state` field),
+`step` (what a move does from a state: `Moved`, `Unchanged` or `Refused`; Core moves the thing through it and nothing
+else), `graph` (Effect's `Graph`), `diagram` (rendered into the domain's `claims.md`) and `check(column)` (the SQL
+CHECK constraint, which Core's migrations hold; a change of states is a new migration). The door's `machines` holds
+every machine by name, and the runner's path check reads each thing's events against it. The machines are flat: no
+nested or parallel states, and no guards that run code.
 
 ## Adding an operation
 

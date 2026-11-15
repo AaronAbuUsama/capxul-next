@@ -12,6 +12,9 @@ import * as World from "./operations.ts";
 export * from "./operations.ts";
 export * from "./inventory.ts";
 
+/** Its machines, by name (src/machine.ts): none yet. */
+export const machines = {} as const;
+
 /** Its operations, by name. */
 export const operations = {
   "world.create": World.create,

@@ -17,6 +17,9 @@ export const operations = gather(every, "operations") satisfies { readonly [name
 
 export type OperationName = keyof typeof operations;
 
+/** Every machine (src/machine.ts), by name, domain by domain: each lifecycle callers see and refusals depend on. */
+export const machines = gather(every, "machines");
+
 /**
  * Every name the blueprint declares: operations, refusals, events, outcomes and starting worlds. The lint rule
  * capxul/declared-names refuses each of them written as a string outside the blueprint.
@@ -61,6 +64,7 @@ export {
 } from "./operation.ts";
 export * as Errors from "./errors.ts";
 export * as Values from "./values.ts";
+export * as Machine from "./machine.ts";
 export { holdsFactsOf, startingWorlds, type Step, type StartingWorld } from "./starting-worlds.ts";
 export { MadeCall } from "./starting/facts.ts";
 export * as Chain from "./chain/chain.ts";
