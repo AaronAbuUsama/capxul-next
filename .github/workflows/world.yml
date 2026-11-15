@@ -66,8 +66,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     outputs:
-      # The cluster the run used, for the teardown job: `fleet`, which stays up, or the run's own, which it takes down.
-      cluster: ${{ steps.hub.outputs.stage }}
+      # The hub the run used, for the teardown job: `fleet`, which stays up, or the run's own, which it takes down.
+      hub: ${{ steps.hub.outputs.stage }}
     steps:
       - uses: actions/checkout@v4
       - name: Require the cloud secrets and variables
@@ -118,9 +118,12 @@ jobs:
     if: always() && needs.thin-line.result != 'skipped'
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    # The cloud secrets and variables are the run's, which `thin-line` required already.
     steps:
       - uses: actions/checkout@v4
+      - name: Require the cloud secrets and variables
+        run: >-
+          packages/platform/bin/require.sh CLOUDFLARE_API_TOKEN NEON_API_KEY CLOUDFLARE_ACCOUNT_ID NEON_ORG_ID
+          PLATFORM_DOMAIN
       - uses: ./.github/actions/platform-setup
       - name: Destroy every world the run's operators own
         if: always()
@@ -140,21 +143,20 @@ jobs:
           exit "$status"
       - name: Take down the run's own hub
         if: always()
-        # The cluster `thin-line` chose; when it ended before saying, the name it would have chosen.
+        # The hub `thin-line` chose; when it ended before saying, the name it would have chosen. `fleet` stays up.
         env:
-          CLUSTER: ${{ needs.thin-line.outputs.cluster }}
+          HUB: ${{ needs.thin-line.outputs.hub }}
         run: |
-          cluster="${CLUSTER:-ch-$(printf '%s' '${{ github.run_id }}' | tail -c 7)${{ github.run_attempt }}}"
-          # Only a cluster of the run's own (named ch-...) is taken down.
-          case "$cluster" in ch-*) ;; *) echo "The run used the standing cluster $cluster, which stays up."; exit 0 ;; esac
-          mkdir -p "$RUNNER_TEMP/teardown" && echo "$cluster" >"$RUNNER_TEMP/teardown/cluster.txt"
-          if packages/world/run.sh hub show --hub "$cluster" >/dev/null 2>&1; then
-            packages/world/run.sh hub down --hub "$cluster" || {
-              echo "::error title=Cluster not taken down::$cluster: its take-down failed; its lifetime and the sweep back it up."
+          hub="${HUB:-ch-$(printf '%s' '${{ github.run_id }}' | tail -c 7)${{ github.run_attempt }}}"
+          [ "$hub" = fleet ] && { echo "The run used the standing hub fleet, which stays up."; exit 0; }
+          mkdir -p "$RUNNER_TEMP/teardown" && echo "$hub" >"$RUNNER_TEMP/teardown/hub.txt"
+          if packages/world/run.sh hub show --hub "$hub" >/dev/null 2>&1; then
+            packages/world/run.sh hub down --hub "$hub" || {
+              echo "::error title=Hub not taken down::$hub: its take-down failed; its lifetime and the sweep back it up."
               exit 1
             }
           else
-            echo "No cluster $cluster: nothing to take down."
+            echo "No hub $hub: nothing to take down."
           fi
       - name: Read the accounts for anything of the run's worlds and hub
         if: always()
@@ -170,7 +172,7 @@ jobs:
           def lines(name):
               path = os.path.join(folder, name)
               return [l.strip() for l in open(path)] if os.path.exists(path) else []
-          stages = [w if w.startswith("w-") else "w-" + w for w in lines("worlds.txt") if w] + [c for c in lines("cluster.txt") if c]
+          stages = [w if w.startswith("w-") else "w-" + w for w in lines("worlds.txt") if w] + [h for h in lines("hub.txt") if h]
           held = json.load(open(os.path.join(folder, "inventory.json")))
           names = [n for kind in held.values() if isinstance(kind, dict) for n in kind.get("ofThisStack", kind.get("names", []))]
           left = sorted({n for n in names for s in stages if f"-{s}-" in n.lower() or n.lower().endswith(f"-{s}") or n.endswith(f"/{s}")})

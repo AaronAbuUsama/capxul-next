@@ -10,7 +10,7 @@ import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
 import { madeFromNothing, memoryChainTime } from "../src/site-ops/door.ts";
 import { WARP_STEP_MS, warpSteps } from "../src/site-ops/world.ts";
-import type { KeptSpan } from "../src/telemetry/spans.ts";
+import type { KeptSpan } from "../src/door.ts";
 import { timesOf, WARP_ATTRIBUTES } from "../src/site-ops/warp-times.ts";
 import { fields, ORG, refusal, run, site, START, value, world, type Asked } from "./support/site-ops.ts";
 

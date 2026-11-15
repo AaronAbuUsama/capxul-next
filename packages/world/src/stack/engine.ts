@@ -13,7 +13,7 @@ import * as Redacted from "effect/Redacted";
 import * as Schedule from "effect/Schedule";
 import * as Str from "effect/String";
 import { Core, defaultCore } from "../parts/api/Api.ts";
-import { PrebuiltApi, worldCopy } from "../parts/api/bundle.ts";
+import { PrebuiltCore, worldCopy } from "../parts/api/bundle.ts";
 import { StateUnreadable } from "../common/failures.ts";
 import { STACK } from "./names.ts";
 import { WorldSettings } from "./settings.ts";
@@ -28,15 +28,15 @@ export const deployStage = Effect.fn("world.engine.deploy")(function* (
   settings: Option.Option<WorldSettings>,
 ) {
   const { store } = yield* SharedState;
-  const api = yield* Core;
-  const stack = worldStack(api, openedState(store));
+  const core = yield* Core;
+  const stack = worldStack(core, openedState(store));
   return yield* Effect.gen(function* () {
     // A world's Core is deployed from this process's one build of it, copied for the world (src/parts/api/bundle.ts).
-    const prebuilt = api === defaultCore && Option.isSome(settings) ? yield* worldCopy(stage) : Option.none<string>();
+    const prebuilt = core === defaultCore && Option.isSome(settings) ? yield* worldCopy(stage) : Option.none<string>();
     return yield* Alchemist.plan({ stack, operation: "deploy", stage }).pipe(
       Effect.flatMap(Alchemist.apply),
       Effect.provideService(WorldSettings, settings),
-      Effect.provideService(PrebuiltApi, prebuilt),
+      Effect.provideService(PrebuiltCore, prebuilt),
     );
   }).pipe(Effect.scoped);
 });

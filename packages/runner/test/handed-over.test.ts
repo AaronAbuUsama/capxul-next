@@ -8,8 +8,8 @@ import { butHandedOver, type Inventory } from "../src/world/leftovers.ts";
 
 const NOT_GONE = "the run's worlds are not all gone";
 const held = (worlds: ReadonlyArray<string>): Inventory => ({ workers: [], hyperdrives: [], neonProjects: [], worlds });
-const one = ["capxul-world-w-tpl-2c652e-chain", "capxul-world/w-tpl-2c652e"];
-const journeys = ["capxul-world-w-j1a2b3-chain"];
+const one = ["capxul-core-w-tpl-2c652e-core", "capxul-core/w-tpl-2c652e"];
+const journeys = ["capxul-core-w-j1a2b3-core"];
 
 test("what is left of the worlds handed over to the teardown job is set aside; nothing else is", () => {
   assert.deepEqual(butHandedOver(held(one), ["w-tpl-2c652e"]).worlds, []);
@@ -25,7 +25,7 @@ const ending = (left: Inventory, handedOver?: ReadonlyArray<string>) =>
     owner: "runner",
     startedAt: "2026-11-15T00:00:00.000Z",
     records: [],
-    pathOf: (_each, index) => `run-abc123/${index}.json`,
+    pathOf: (_record, index) => `run-abc123/${index}.json`,
     oneWorld: {
       world: "tpl-2c652e",
       hub: "rh-1",

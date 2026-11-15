@@ -11,7 +11,7 @@ import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import { AfterReset, bundlerAnswers } from "../src/parts/bundler/client.ts";
 import { ENTRY_POINT } from "../src/parts/bundler/Keys.ts";
 
-const world = { bundlerUrl: Redacted.make("https://endpoint.test/world.token/bundler") };
+const world = { bundlerUrl: Redacted.make("https://door.test/world.token/bundler") };
 const OTHER = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789";
 
 /** A bundler that drops the first `drops` connections, then answers with `served`; counts every request. */

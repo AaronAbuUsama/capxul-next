@@ -13,7 +13,7 @@
 // exactly once, a stage it cannot be written into) leaves the deploy to Alchemy's own build, as before.
 import { getCompatibility, getToolingCompatibility } from "@alchemy.run/cloudflare/Workers/Compatibility";
 import { WorkerBundle } from "@alchemy.run/cloudflare/Workers/Sources/Rolldown";
-import { workerProps } from "@capxul/core";
+import { coreProps } from "@capxul/core";
 import * as Arr from "effect/Array";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -26,7 +26,7 @@ import { STACK } from "../../stack/names.ts";
 import { CoreHost } from "./host.ts";
 
 /** The stage the build names in Core's entry, beside the world stack's name; replaced in each world's copy. */
-const PLACEHOLDER = "capxul-api-stage-placeholder-0f3c9a";
+const PLACEHOLDER = "capxul-core-stage-placeholder-0f3c9a";
 /** The stages that can be written into the entry's string as they are: a world's stage names are of these. */
 const WRITABLE = /^[a-z0-9-]+$/;
 
@@ -42,9 +42,9 @@ const textOf = (content: string | Uint8Array) =>
 const countOf = (text: string) => Str.split(text, PLACEHOLDER).length - 1;
 
 /** Builds Core once, with the placeholder stage; none when the build fails or its entry is not as expected. */
-const buildOnce = Effect.fn("world.api.bundle")(
+const buildOnce = Effect.fn("world.core.bundle")(
   function* () {
-    const props = workerProps();
+    const props = coreProps();
     const bundler = yield* WorkerBundle;
     const built = yield* bundler.build({
       id: "Core",
@@ -77,7 +77,7 @@ const buildOnce = Effect.fn("world.api.bundle")(
 const once = buildOnce().pipe(Effect.cached, Effect.runSync);
 
 /** Whether this program's worlds deploy Core's Worker themselves: not when a host runs Core (host.ts). */
-const deploysApi = Effect.gen(function* () {
+const deploysCore = Effect.gen(function* () {
   return Option.isNone(yield* CoreHost);
 });
 
@@ -86,21 +86,21 @@ const deploysApi = Effect.gen(function* () {
  * The build runs on its own: a create that fails meanwhile does not abandon it for the worlds after. Nothing when this
  * program's worlds deploy no Core Worker.
  */
-export const warmApi = Effect.fn("world.api.warm")(function* () {
-  if (yield* deploysApi) yield* once.pipe(Effect.forkDetach);
+export const warmCore = Effect.fn("world.core.warm")(function* () {
+  if (yield* deploysCore) yield* once.pipe(Effect.forkDetach);
 });
 
 /**
  * Writes one world's copy of Core's bundle into a directory that lasts as long as the scope, and answers the path of
  * its entry module; none when there is no shared build, and the deploy builds Core itself.
  */
-export const worldCopy = Effect.fn("world.api.copy")(function* (stage: string) {
-  if (!(yield* deploysApi) || !WRITABLE.test(stage)) return Option.none<string>();
+export const worldCopy = Effect.fn("world.core.copy")(function* (stage: string) {
+  if (!(yield* deploysCore) || !WRITABLE.test(stage)) return Option.none<string>();
   const built = yield* once;
   if (Option.isNone(built)) return Option.none<string>();
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const directory = yield* fs.makeTempDirectoryScoped({ prefix: "capxul-api-" });
+  const directory = yield* fs.makeTempDirectoryScoped({ prefix: "capxul-core-" });
   const [entry, ...rest] = built.value;
   if (entry === undefined) return Option.none<string>();
   yield* fs.writeFileString(path.join(directory, entry.path), Str.replace(PLACEHOLDER, stage)(textOf(entry.content)));
@@ -113,6 +113,6 @@ export const worldCopy = Effect.fn("world.api.copy")(function* (stage: string) {
 });
 
 /** The entry of this deploy's copy of Core's bundle, provided by the deploy (src/stack/engine.ts); none by default. */
-export const PrebuiltApi = Context.Reference<Option.Option<string>>("@capxul/world/parts/api/bundle/PrebuiltApi", {
+export const PrebuiltCore = Context.Reference<Option.Option<string>>("@capxul/world/parts/api/bundle/PrebuiltCore", {
   defaultValue: () => Option.none(),
 });

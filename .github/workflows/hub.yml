@@ -1,23 +1,24 @@
-# Redeploys one cluster by hand, on a GitHub runner, which has the Docker engine an image build needs (an agent's
+# Redeploys one fleet hub by hand, on a GitHub runner, which has the Docker engine an image build needs (an agent's
 # container has none). It is how an image whose inputs changed is built and published, and so how its pin is renewed
 # (packages/world/docs/images.md), and how `fleet` gets a new chain image, Ponder app or bundler.
 #
-# It deploys the cluster as it is in this commit, keeping the cluster's own operator (read with `hub show`) and setting
-# its expiry to now plus `lifetime`. It refuses while the cluster's ledger holds a world, unless `force` is set: a redeploy can replace
+# It deploys the hub as it is in this commit, keeping the hub's own owner (read with `hub show`) and setting its expiry
+# to now plus `lifetime`. It refuses while the hub's ledger holds a world, unless `force` is set: a redeploy can replace
 # the containers those worlds' chains, indexes and bundlers run in. The log of the deploy, the image pins before and
 # after, and every line of the log that names an image are kept as the run's artifact; the re-pin itself is a pull
 # request made from that artifact.
 #
-# Started by hand only, and only by the conductor or Aaron: it changes a cluster every `world` run may be using.
-name: cluster
+# Started by hand only, and only by the conductor or Aaron: it changes a hub every `world` run may be using.
+name: hub
 on:
   workflow_dispatch:
     inputs:
-      cluster:
-        description: The cluster to redeploy, by name
+      hub:
+        description: The cluster to redeploy
+        default: fleet
         required: true
       lifetime:
-        description: How long the cluster may live from now, e.g. "14 days" (at most 30 days)
+        description: How long the cluster may live from now, e.g. "14 days" (at most HUB_MAX_LIFETIME, 30 days)
         required: true
       force:
         description: Redeploy even while worlds are on the cluster
@@ -25,9 +26,9 @@ on:
         default: false
 permissions:
   contents: read
-# One deploy of a cluster at a time.
+# One deploy of a hub at a time.
 concurrency:
-  group: cluster-${{ inputs.cluster }}
+  group: hub-${{ inputs.hub }}
   cancel-in-progress: false
 env:
   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -35,7 +36,7 @@ env:
   CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
   NEON_ORG_ID: ${{ vars.NEON_ORG_ID }}
   PLATFORM_DOMAIN: ${{ vars.PLATFORM_DOMAIN }}
-  CLUSTER: ${{ inputs.cluster }}
+  HUB: ${{ inputs.hub }}
   LIFETIME: ${{ inputs.lifetime }}
   FORCE: ${{ inputs.force }}
 jobs:
@@ -56,48 +57,48 @@ jobs:
           (cd packages/world/ponder && pnpm install --ignore-workspace --frozen-lockfile)
           (cd packages/world/images/alto && pnpm install --ignore-workspace --frozen-lockfile)
       - name: Read the cluster, and refuse while worlds are on it
-        id: cluster
+        id: hub
         run: |
-          mkdir -p "$RUNNER_TEMP/cluster"
-          packages/world/run.sh images >"$RUNNER_TEMP/cluster/images-before.json"
-          if ! packages/world/run.sh hub show --hub "$CLUSTER" >"$RUNNER_TEMP/cluster/show.json"; then
-            echo "::error title=No such cluster::found no live cluster $CLUSTER; this workflow redeploys an existing one"
+          mkdir -p "$RUNNER_TEMP/hub"
+          packages/world/run.sh images >"$RUNNER_TEMP/hub/images-before.json"
+          if ! packages/world/run.sh hub show --hub "$HUB" >"$RUNNER_TEMP/hub/show.json"; then
+            echo "::error title=No such cluster::no live cluster is named $HUB; this workflow redeploys an existing one"
             exit 1
           fi
-          cat "$RUNNER_TEMP/cluster/show.json"
-          operator="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["owner"])' "$RUNNER_TEMP/cluster/show.json")"
-          worlds="$(python3 -c 'import json, sys; print(" ".join(json.load(open(sys.argv[1]))["worlds"]))' "$RUNNER_TEMP/cluster/show.json")"
+          cat "$RUNNER_TEMP/hub/show.json"
+          owner="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["owner"])' "$RUNNER_TEMP/hub/show.json")"
+          worlds="$(python3 -c 'import json, sys; print(" ".join(json.load(open(sys.argv[1]))["worlds"]))' "$RUNNER_TEMP/hub/show.json")"
           if [ -n "$worlds" ] && [ "$FORCE" != "true" ]; then
-            echo "::error title=Worlds on the cluster::$CLUSTER holds worlds: $worlds. Wait for them to go, or start again with force"
+            echo "::error title=Worlds on the cluster::$HUB holds worlds: $worlds. Wait for them to go, or start again with force"
             exit 1
           fi
-          echo "operator=$operator" >>"$GITHUB_OUTPUT"
+          echo "owner=$owner" >>"$GITHUB_OUTPUT"
       - name: Redeploy the cluster
         env:
-          OPERATOR: ${{ steps.cluster.outputs.operator }}
+          OWNER: ${{ steps.hub.outputs.owner }}
         run: |
           set -o pipefail
-          packages/world/run.sh hub up --hub "$CLUSTER" --owner "$OPERATOR" --lifetime "$LIFETIME" 2>&1 | tee "$RUNNER_TEMP/cluster/up.log"
+          packages/world/run.sh hub up --hub "$HUB" --owner "$OWNER" --lifetime "$LIFETIME" 2>&1 | tee "$RUNNER_TEMP/hub/up.log"
       - name: The pins and the digests the deploy named
         if: always()
         run: |
-          packages/world/run.sh images | tee "$RUNNER_TEMP/cluster/images-after.json" || true
+          packages/world/run.sh images | tee "$RUNNER_TEMP/hub/images-after.json" || true
           # The deploy's own lines about each image: "inputs as pinned", "inputs changed", and Alchemy's build, push or
           # registry lines naming a digest. The new pin is the digest named for each image whose inputs changed.
-          grep -E 'capxulworld-(anvil|ponder|alto)|sha256:' "$RUNNER_TEMP/cluster/up.log" >"$RUNNER_TEMP/cluster/digests.txt" || true
+          grep -E 'capxulworld-(anvil|ponder|alto)|sha256:' "$RUNNER_TEMP/hub/up.log" >"$RUNNER_TEMP/hub/digests.txt" || true
           {
-            echo "### Images named by the deploy of $CLUSTER"
+            echo "### Images named by the deploy of $HUB"
             echo '```'
-            cat "$RUNNER_TEMP/cluster/digests.txt"
+            cat "$RUNNER_TEMP/hub/digests.txt"
             echo '```'
             echo "### Pins after (packages/world/src/stack/images.ts)"
             echo '```json'
-            cat "$RUNNER_TEMP/cluster/images-after.json"
+            cat "$RUNNER_TEMP/hub/images-after.json"
             echo '```'
           } >>"$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: cluster-${{ inputs.cluster }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/cluster/
+          name: hub-${{ inputs.hub }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/hub/
           if-no-files-found: warn

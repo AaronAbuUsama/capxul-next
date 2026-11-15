@@ -46,13 +46,13 @@ const connectionString = (env: Record<string, unknown>) =>
 
 // The Postgres driver opens its socket through Node's `net` and `tls`. Exported for a deployer that builds Core's
 // bundle itself (packages/world, src/parts/api/bundle.ts), so it builds from the same entry and compatibility.
-export const workerProps = () => ({ main: import.meta.url, compatibility: { flags: ["nodejs_compat"] } });
+export const coreProps = () => ({ main: import.meta.url, compatibility: { flags: ["nodejs_compat"] } });
 
 export default class Core extends Cloudflare.Worker<Core>()(
   "Core",
   Effect.gen(function* () {
     // Inside the running Worker the stack's files are evaluated again only to name bindings; nothing is read there.
-    if ((yield* Alchemy.ALCHEMY_PHASE) === "runtime") return workerProps();
+    if ((yield* Alchemy.ALCHEMY_PHASE) === "runtime") return coreProps();
     const given = yield* CoreDeployment;
     const deployment = Option.isSome(given) ? given.value : yield* ownDeployment;
     // A bundle the deployer built already is uploaded as it is (src/stack/deployment.ts).
@@ -60,7 +60,7 @@ export default class Core extends Cloudflare.Worker<Core>()(
       onNone: () => ({}),
       onSome: (main) => ({ main, bundle: false }),
     });
-    return { ...workerProps(), ...prebuilt, env: { ...deployment.env, [ENV.database]: deployment.database } };
+    return { ...coreProps(), ...prebuilt, env: { ...deployment.env, [ENV.database]: deployment.database } };
   }),
   Effect.succeed({
     fetch: Effect.gen(function* () {

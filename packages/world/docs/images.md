@@ -31,16 +31,16 @@ In an agent's container the Docker daemon has no route out, so such a deploy bui
 push. `images/publish.sh <repository:tag>...`, with the tags the failed deploy's log names, pushes them through the
 session's proxy with curl; the next deploy then needs no Docker.
 
-### Re-pin, and redeploy the standing cluster, with `cluster.yml`
+### Re-pin, and redeploy the standing cluster, with `hub.yml`
 
-The images are the hub's, not a world's: a world deploys no image, and a `world` run on the standing cluster (fleet)
+The images are the hub's, not a world's: a world deploys no image, and a `world` run on the standing cluster, fleet,
 builds none, so its log names no digest. A stale pin costs time only when a hub is deployed, and an agent's container
 may have no Docker engine at all. So an image whose inputs changed is built and published by redeploying a hub on a
-GitHub runner, with the manual workflow `.github/workflows/cluster.yml` (Actions, "cluster", "Run workflow"; started by the
+GitHub runner, with the manual workflow `.github/workflows/hub.yml` (Actions, "hub", "Run workflow"; started by the
 conductor or Aaron, never by a builder):
 
-1. Give it the cluster (default fleet) and a lifetime from now (e.g. `14 days`). It keeps the cluster's operator, as
-   the world command's show of it reads it, and refuses while the hub's ledger holds a world unless `force` is set, since a redeploy can
+1. Give it the cluster (default fleet) and a lifetime from now (e.g. `14 days`). It keeps the cluster's operator,
+   as the world command's show of it reads it, and refuses while the hub's ledger holds a world unless `force` is set, since a redeploy can
    replace the containers those worlds run in.
 2. It installs `ponder/` and `images/alto/` node_modules, prints `./run.sh images`, brings the cluster up, and keeps
    as the run's artifact the deploy's log (`up.log`), the pins before and after, and every line of the log that names

@@ -7,7 +7,7 @@ import { getCompatibility, getToolingCompatibility } from "@alchemy.run/cloudfla
 import { readPrebuiltWorkerBundle } from "@alchemy.run/cloudflare/Workers/Sources/Prebuilt";
 import { WorkerBundle } from "@alchemy.run/cloudflare/Workers/Sources/Rolldown";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { workerProps } from "@capxul/core";
+import { coreProps } from "@capxul/core";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -28,7 +28,7 @@ test(
         const main = yield* worldCopy(STAGE);
         assert.ok(Option.isSome(main), "the shared build was made");
         const read = yield* readPrebuiltWorkerBundle({ main: main.value });
-        const props = workerProps();
+        const props = coreProps();
         const bundler = yield* WorkerBundle;
         const built = yield* bundler.build({
           id: "Core",
