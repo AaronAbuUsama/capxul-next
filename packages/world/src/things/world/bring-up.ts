@@ -143,7 +143,7 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
     });
     const databaseLane = Effect.gen(function* () {
       // Core's bundle is built (once per process) while the branch is made; the deploy waits for it (bundle.ts).
-      yield* warmCore;
+      yield* warmCore();
       // The branch is made through Neon's API first (src/parts/database/neon.ts); the deploy adopts it by name.
       const made = yield* watch.step(
         "branch",

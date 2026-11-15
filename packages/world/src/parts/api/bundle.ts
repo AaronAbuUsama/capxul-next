@@ -42,27 +42,28 @@ const textOf = (content: string | Uint8Array) =>
 const countOf = (text: string) => Str.split(text, PLACEHOLDER).length - 1;
 
 /** Builds Core once, with the placeholder stage; none when the build fails or its entry is not as expected. */
-const buildOnce = Effect.gen(function* () {
-  const props = coreProps();
-  const bundler = yield* WorkerBundle;
-  const built = yield* bundler.build({
-    id: "Core",
-    main: props.main,
-    compatibility: getToolingCompatibility(getCompatibility(props), props.main),
-    entry: { kind: "effect", exports: {} },
-    stack: { name: STACK, stage: PLACEHOLDER },
-    // The source maps are not uploaded by a prebuilt Worker: not making them saves a part of the build too.
-    extraOptions: { output: { sourcemap: false } },
-  });
-  const files: ReadonlyArray<BuiltFile> = built.files;
-  const [entry, ...rest] = files;
-  if (entry === undefined) return yield* Effect.fail("the build made no modules");
-  if (countOf(textOf(entry.content)) !== 1) return yield* Effect.fail("the stage is not in the entry exactly once");
-  if (Arr.some(rest, (file) => countOf(textOf(file.content)) > 0))
-    return yield* Effect.fail("the stage is in a module other than the entry");
-  yield* Effect.logInfo(`core bundle: built once for this process, ${files.length} modules`);
-  return Option.some(files);
-}).pipe(
+const buildOnce = Effect.fn("world.core.bundle")(
+  function* () {
+    const props = coreProps();
+    const bundler = yield* WorkerBundle;
+    const built = yield* bundler.build({
+      id: "Core",
+      main: props.main,
+      compatibility: getToolingCompatibility(getCompatibility(props), props.main),
+      entry: { kind: "effect", exports: {} },
+      stack: { name: STACK, stage: PLACEHOLDER },
+      // The source maps are not uploaded by a prebuilt Worker: not making them saves a part of the build too.
+      extraOptions: { output: { sourcemap: false } },
+    });
+    const files: ReadonlyArray<BuiltFile> = built.files;
+    const [entry, ...rest] = files;
+    if (entry === undefined) return yield* Effect.fail("the build made no modules");
+    if (countOf(textOf(entry.content)) !== 1) return yield* Effect.fail("the stage is not in the entry exactly once");
+    if (Arr.some(rest, (file) => countOf(textOf(file.content)) > 0))
+      return yield* Effect.fail("the stage is in a module other than the entry");
+    yield* Effect.logInfo(`core bundle: built once for this process, ${files.length} modules`);
+    return Option.some(files);
+  },
   // A defect too (rolldown not loading, say): every world would otherwise fail on the one cached failure.
   Effect.catchCause((cause) =>
     Effect.as(
@@ -70,11 +71,10 @@ const buildOnce = Effect.gen(function* () {
       Option.none<ReadonlyArray<BuiltFile>>(),
     ),
   ),
-  Effect.withSpan("world.core.bundle"),
 );
 
 /** Core's bundle for this process: built by the first world that asks, shared by every world after it. */
-const once = buildOnce.pipe(Effect.cached, Effect.runSync);
+const once = buildOnce().pipe(Effect.cached, Effect.runSync);
 
 /** Whether this program's worlds deploy Core's Worker themselves: not when a host runs Core (host.ts). */
 const deploysCore = Effect.gen(function* () {
@@ -86,9 +86,9 @@ const deploysCore = Effect.gen(function* () {
  * The build runs on its own: a create that fails meanwhile does not abandon it for the worlds after. Nothing when this
  * program's worlds deploy no Core Worker.
  */
-export const warmCore = Effect.flatMap(deploysCore, (deploys) =>
-  deploys ? once.pipe(Effect.forkDetach, Effect.asVoid) : Effect.void,
-);
+export const warmCore = Effect.fn("world.core.warm")(function* () {
+  if (yield* deploysCore) yield* once.pipe(Effect.forkDetach);
+});
 
 /**
  * Writes one world's copy of Core's bundle into a directory that lasts as long as the scope, and answers the path of
