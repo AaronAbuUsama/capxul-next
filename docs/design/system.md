@@ -1,7 +1,7 @@
 # The system map: where everything goes
 
 Status: agreed with Aaron, 15 November 2026, from the explorer "System Map", with its fourteen choices as
-recommended. It holds each package's layout and the line between generated and hand-written code, and it is the rule
+recommended (explorer: https://claude.ai/artifact/8itPtfNv7giHpfJRiCu3Rn, private to Aaron). It holds each package's layout and the line between generated and hand-written code, and it is the rule
 the other sessions follow. The blueprint's layout is part 13 of `blueprint.md`, and the world's is `world.md`; this map
 takes both as given. Nothing has moved yet: the moves are built later, by pull request, in lanes.
 
@@ -86,3 +86,36 @@ pages, as `blueprint.md` part 7 says.
 12. Files that touch the process live in `src/entry/`.
 13. The SDK's surface is thing then verb.
 14. One layout check, in `packages/lint`, holds every package to the table above.
+
+## What is to be built, in order
+
+Nothing in this note is built yet. Each step below is one lane, run as `AGENTS.md` and the threads skill say: a
+🧭 lead on `slice/<lane>`, 🔨 builders with one pull request each into the slice, ✍️ authors for anything that
+judges the builder, and a 🔍 reviewer before the slice goes into `master`. The moves change no behaviour, so every
+journey stays green and `world` must pass at each slice's merge. With no callers yet ("No callers, no
+compatibility"), packages and names are renamed directly, not side by side.
+
+| # | Lane | What | Needs | Who |
+|---|---|---|---|---|
+| 1 | `slice/layout` | The folder-name table and the one layout check in `packages/lint/src/layout/`; lint exempts `src/entry/` and the list of entry files in `.oxlintrc.json` goes; each package's files that are not yet in place go on the check's ratchet list, which may only shrink | — | Lead and builders |
+| 2 | `slice/blueprint` (stage 2b) | `src/generated/verbs.ts` (thing, verb, server); `server` widened to `api`, `world`, `runner`, `sites`, `cli`; `protocol/settings.ts`; `pnpm claims` folded into `pnpm generate`; `BLUEPRINT.domains` moved out of `packages/generate` into the blueprint | Stage 2a on `master` | The blueprint lane's lead |
+| 3 | One lane per package, in parallel | Each package moved into this note's layout, its ratchet entries removed: core becomes `api` (with `generated/handlers.ts`); platform and bench-image become `sites`; `sdk`; `cli`; `runner`; `generate`, `lint`, `blueprint-tools` (`entry/`); frappe-app's modules grouped; contracts' `lib/` becomes `vendor/`; the indexer's one config. Scenarios become `journeys` in a lane of their own, moved by a ✍️ author, since a builder may not change them | 1, and 2 for the generated handler wiring | A lead per lane |
+| 4 | `slice/cli` (item 3.9) | `capxul <thing> <verb>`, `login`, `use`, tables and `--json`, exit 2 for bad input; the SDK's `capxul.<thing>.<verb>`; `cli/generated/commands.md` | 2, and 3 for `cli` and `sdk` | Lead and builders; ✍️ author updates the journeys' calls |
+| 5 | `slice/pipeline-commands` (item 4.9) | The pipeline's verbs declared in the blueprint, their handlers at `things/<thing>/<verb>.ts` in `world`, `runner` and `sites`, the CLI's in-process client; every `run.sh` job a command; the scripts that stay listed on a ratchet with their reasons | 4, item 4.7 | Lead and builders |
+| 6 | `slice/site-contract` | The site and site-template verbs in the blueprint; `sites/service/generated/contract.py` and the world's client generated from them | 2, and 3 for `sites` | Lead and builders |
+| 7 | `slice/frappe-catalogue` | The catalogue in `sites/generated/catalogue/` from the pinned apps' metadata; the generic Frappe verbs and `safe` verbs in the CLI, with the coverage list of what is not exposed | 4 | Lead and builders |
+| 8 | In the climb (part 14) | Each lifecycle's CHECK constraint migration generated, as each thing's lifecycle is declared | 2 | The climb's leads |
+
+## Open questions
+
+1. **Is the CLI's `use` the world's `use` verb?** The world's agreed layout lists a `use` verb. If it is the same
+   act (set the current world), it lives once, in `world`, and `cli/src/things/world/use.ts` is not made. Settled by
+   lane 4's lead, reading `packages/world/src/things/world/use.ts`.
+2. **The CLI's size and start time** once it links the world's, runner's and sites' handler layers (choice 3).
+   Measure it in lane 5. If it is too heavy, the fallback is the hosted account service, which is decision 51's
+   open question and needs Aaron.
+3. **The roadmap does not yet carry this note.** A decision row ("One layout for every package", 15 November 2026)
+   and items for lanes 1, 3, 6 and 7 must be added by whoever keeps the roadmap. Lanes 2, 4, 5 and 8 are already
+   items 3.6, 3.9, 4.9 and the climb.
+4. **The blueprint lane must adopt lane 2's points.** They extend part 13 without changing it. Its lead should
+   confirm before building.
