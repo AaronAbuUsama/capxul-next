@@ -62,12 +62,16 @@ export const collectorStage = (settings: {
     () => (settings.actions ? Option.some(STAGING) : Option.none()),
   );
 
-/** The collector's public route and the run's token, or none: no stage chosen, no collector there, or no state. */
-const collectorTarget = Effect.gen(function* () {
+/**
+ * The collector the settings choose and a token for the run's operator, or none: an endpoint set already, no stage
+ * chosen, no collector there, or no state. A token is never logged.
+ */
+export const collectorFound = Effect.gen(function* () {
   const settings = yield* CollectorSettings;
-  if (Option.isSome(settings.endpoint)) return Option.none<Target>();
+  if (Option.isSome(settings.endpoint))
+    return Option.none<{ readonly url: string; readonly token: Redacted.Redacted }>();
   const stage = collectorStage(settings);
-  if (Option.isNone(stage)) return Option.none<Target>();
+  if (Option.isNone(stage)) return Option.none<{ readonly url: string; readonly token: Redacted.Redacted }>();
   const expires = Math.floor((yield* Clock.currentTimeMillis) / 1000 + Duration.toSeconds(TOKEN_LIFETIME));
   const found = yield* publicCollector(stage.value, settings.operator, expires).pipe(
     Effect.catchCause((cause) =>
@@ -81,14 +85,20 @@ const collectorTarget = Effect.gen(function* () {
   );
   if (Option.isNone(found)) {
     yield* Effect.logInfo(`telemetry: ${stage.value} has no collector, so nothing is exported`);
-    return Option.none<Target>();
+    return Option.none<{ readonly url: string; readonly token: Redacted.Redacted }>();
   }
   yield* Effect.logInfo(`telemetry: exporting to the collector of ${stage.value} as ${settings.operator}`);
-  return Option.some<Target>({
-    baseUrl: found.value.url,
-    headers: { authorization: `Bearer ${Redacted.value(found.value.token)}` },
-  });
-}).pipe(Effect.orElseSucceed(() => Option.none<Target>()));
+  return found;
+}).pipe(Effect.orElseSucceed(() => Option.none<{ readonly url: string; readonly token: Redacted.Redacted }>()));
+
+/** The collector's public route and the run's token as the exporter's target, or none. */
+const collectorTarget = Effect.map(
+  collectorFound,
+  Option.map((found): Target => ({
+    baseUrl: found.url,
+    headers: { authorization: `Bearer ${Redacted.value(found.token)}` },
+  })),
+);
 
 /**
  * The runner's export, wherever the settings or the collector send it; nothing when neither does. It reads the shared
