@@ -56,7 +56,7 @@ test("an old word inside an agreed word, or one its glossary keeps, does not cou
 });
 
 test("an old word written as code counts as that exact text, outside comments", () => {
-  assert.equal(count("a.ts", 'import "./maker.ts"; // maker.ts\nconst m = "remaker.ts";')["`maker.ts`"], 1);
+  assert.equal(count("a.ts", 'load("./maker.ts"); // maker.ts\nconst m = "remaker.ts";')["`maker.ts`"], 1);
 });
 
 test("other people's names do not count", () => {
@@ -93,7 +93,7 @@ test("an old word spelled as a kept word is not counted in that word's `keptIn`"
 
 test("a package's name written as a package counts nothing; the rest of the token and other names still count", () => {
   assert.equal(count("a.ts", 'import x from "@capxul/widget";')["widget"], 0);
-  assert.equal(count("a.ts", 'import { y } from "@capxul/widget/widget";')["widget"], 1);
+  assert.equal(count("a.ts", 'const y = "@capxul/widget/widget";')["widget"], 1);
   assert.equal(count("a.ts", 'import "../../packages/widget/src/x.ts";')["widget"], 0);
   assert.equal(count("README.md", "See `packages/widget/src/x.ts`.\n")["widget"], 0);
   assert.equal(
@@ -104,16 +104,50 @@ test("a package's name written as a package counts nothing; the rest of the toke
   assert.equal(count("a.ts", "const widgetClient = makeWidget(packagesWidget);")["widget"], 3);
 });
 
-test("a deployed resource's name, as a string of exactly that text, does not count", () => {
+test("an entry's exceptions, exact text no writer chooses, do not count; a longer name still does", () => {
   const made: ReadonlyArray<Entry> = [
-    { word: "gizmo", meaning: "A part.", replaces: ["widget"], scope: "internal", deployed: ["widget-db"] },
+    {
+      word: "gizmo",
+      meaning: "A part.",
+      replaces: ["widget"],
+      scope: "internal",
+      exceptions: [
+        { text: "widget-db", why: "deployed" },
+        { text: "widgetPoints", why: "foreign" },
+      ],
+    },
   ];
-  const text = 'Neon.Project("widget-db"); Neon.Project("widget-db-2"); const widgetDb = "x";';
+  const text = 'Neon.Project("widget-db"); m.widgetPoints; m.rejectedWidgetPoints; const widgetDb = 1;';
   assert.equal(countFile(made, { path: "a.ts", text })["widget"], 2);
 });
 
+test("an import or export specifier counts nothing, whoever's file it names", () => {
+  const text = Arr.join(
+    [
+      'import { a } from "../widget.ts";',
+      'import "./widget/setup.ts";',
+      'export * from "./widget.ts";',
+      'export { b } from "@other-widget/x";',
+      'const c = await import("./widget.ts");',
+      'const d = "widget.ts";',
+    ],
+    "\n",
+  );
+  assert.equal(count("a.ts", text)["widget"], 1);
+  assert.equal(count("a.ts", 'import x from "./maker.ts";')["`maker.ts`"], 0);
+});
+
+test("an applied migration and its file name count nothing", () => {
+  assert.equal(isRead("packages/core/migrations/0009_widget_spans.sql"), false);
+  assert.equal(isRead("packages/core/src/queries/widget.sql"), true);
+  assert.equal(count("a.ts", 'const file = "0009_widget_spans.sql"; const widgetSql = 1;')["widget"], 1);
+});
+
+/** The count of `word` in one file, by the blueprint's own glossary. */
+const of = (word: string, text: string): number => countFile(glossary, { path: "a.ts", text })[word] ?? -1;
+
 /** The count of `core` in one file, by the blueprint's own glossary. */
-const real = (text: string): number => countFile(glossary, { path: "a.ts", text })["core"] ?? -1;
+const real = (text: string): number => of("core", text);
 
 test("the blueprint's glossary: packages and deployed names count nothing, a chosen name still counts", () => {
   assert.equal(real('import x from "@capxul/core";'), 0);
@@ -123,6 +157,10 @@ test("the blueprint's glossary: packages and deployed names count nothing, a cho
     0,
   );
   assert.equal(real("const coreClient = 1;"), 1);
+  assert.equal(real('import { x } from "../core.ts";'), 0);
+  assert.equal(of("point", "metric.dataPoints; m.rejectedDataPoints; metric_data_point; data_point;"), 0);
+  assert.equal(of("record", "logs.logRecords; l.rejectedLogRecords; log_record; const stepRecord = 1;"), 1);
+  assert.equal(of("platform", 'run("platform.yml"); yield* Alchemy.Stack("CapxulPlatform");'), 0);
 });
 
 test("counts add up across files", () => {

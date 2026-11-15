@@ -5,7 +5,17 @@
 // which `pnpm words` allows only to fall (roadmap item 3.8). The format is packages/blueprint-tools,
 // src/language/glossary.ts. A plain string among `replaces` is an old word written as words; `code` is one the table
 // writes as code.
-import { code, type Entry, uncounted, words } from "@capxul/blueprint-tools";
+import { code, type Entry, type Exception, uncounted, words } from "@capxul/blueprint-tools";
+
+/** Why a deployed resource's name is not a writer's choice. */
+const DEPLOYED = "a resource already deployed under this name: renaming it replaces the resource";
+/** Why a stack's name is not a writer's choice. */
+const STACK = "an Alchemy stack already deployed under this name: renaming it replaces every resource in it";
+/** Why OpenTelemetry's wire keys are not ours. */
+const OTLP = "OpenTelemetry's OTLP wire format names it, not Capxul";
+
+/** A deployed name, by exact text. */
+const deployed = (text: string): Exception => ({ text, why: DEPLOYED });
 
 /** `step` is kept for a journey's moves, so its other meanings cannot be counted apart from it. */
 const STEP_KEPT = "`step` stays the word for one move of a journey, so a count of it cannot tell this meaning apart";
@@ -17,7 +27,7 @@ export const glossary: ReadonlyArray<Entry> = [
     replaces: ["core"],
     scope: "internal",
     lands: "packages/api",
-    deployed: ["core-db", "core-hyperdrive"],
+    exceptions: [deployed("core-db"), deployed("core-hyperdrive")],
   },
   {
     word: "endpoint",
@@ -25,14 +35,20 @@ export const glossary: ReadonlyArray<Entry> = [
     replaces: ["door", code("CAPXUL_DOOR_URL"), code("--at")],
     scope: "user-facing",
     lands: "--world <name>",
-    deployed: ["Door", "DoorImage", "DoorRecord", "cx-platform-door"],
+    exceptions: [deployed("DoorImage"), deployed("DoorRecord"), deployed("cx-platform-door")],
   },
   {
     word: "account",
     meaning: "Calls outside any world, and where a person's sign-in lives.",
     replaces: ["platform", "at the platform"],
     scope: "user-facing",
-    deployed: ["CapxulPlatform", "cx-platform-bench", "cx-platform-door", "capxul-ci-platform"],
+    exceptions: [
+      { text: "CapxulPlatform", why: STACK },
+      deployed("cx-platform-bench"),
+      deployed("cx-platform-door"),
+      deployed("capxul-ci-platform"),
+      { text: "platform.yml", why: "an existing workflow file, renamed with the package" },
+    ],
   },
   { word: "world", meaning: "One whole, isolated Capxul.", replaces: [], scope: "user-facing" },
   { word: "grade", meaning: "Whether a world is private, shared or real.", replaces: [], scope: "user-facing" },
@@ -60,7 +76,7 @@ export const glossary: ReadonlyArray<Entry> = [
     meaning: "The shared containers worlds run on.",
     replaces: ["hub", "fleet", "fleet hub"],
     scope: "user-facing",
-    deployed: ["CapxulWorldHub"],
+    exceptions: [{ text: "CapxulWorldHub", why: STACK }],
   },
   { word: "gateway", meaning: "The cluster's single address.", replaces: ["hub door"], scope: "internal" },
   {
@@ -93,6 +109,12 @@ export const glossary: ReadonlyArray<Entry> = [
     word: "snapshot",
     meaning: "A saved state of a world; a site's part of it is a site snapshot.",
     replaces: ["point", "backup", "chain snapshot"],
+    exceptions: [
+      { text: "dataPoints", why: OTLP },
+      { text: "rejectedDataPoints", why: OTLP },
+      { text: "metric_data_point", why: OTLP },
+      { text: "data_point", why: OTLP },
+    ],
     scope: "user-facing",
   },
   {
@@ -154,6 +176,11 @@ export const glossary: ReadonlyArray<Entry> = [
     word: "history",
     meaning: "A world's ordered history.",
     replaces: ["record", code("record.export")],
+    exceptions: [
+      { text: "logRecords", why: OTLP },
+      { text: "rejectedLogRecords", why: OTLP },
+      { text: "log_record", why: OTLP },
+    ],
     scope: "user-facing",
   },
   {

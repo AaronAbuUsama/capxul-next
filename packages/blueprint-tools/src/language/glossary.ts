@@ -48,10 +48,16 @@ export interface Entry {
    */
   readonly keptIn?: ReadonlyArray<string>;
   /**
-   * Names of resources already deployed that hold this entry's old words (`core-db`), each exactly as written in a
-   * string: renaming one replaces the resource, so its old words are not counted in a string of exactly that text.
+   * Exact text holding this entry's old words that no writer can choose, each with why: a resource already deployed
+   * (`core-db`, renaming it replaces it), a foreign protocol's key (OTLP's `dataPoints`). Not counted where it stands.
    */
-  readonly deployed?: ReadonlyArray<string>;
+  readonly exceptions?: ReadonlyArray<Exception>;
+}
+
+/** Exact text an entry's old words are not counted in, and why no writer can choose it. */
+export interface Exception {
+  readonly text: string;
+  readonly why: string;
 }
 
 /** An old word written as words; `except` lists longer names that keep it, `within` the only paths it is counted in. */
