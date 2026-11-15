@@ -36,6 +36,7 @@ export const testSiteDoor = (sites: ReadonlyArray<TestSite>) =>
             { onNone: () => ({ site, state: "failed" }), onSome: (found) => ({ site, state: found.state }) },
           ),
         ),
+      remove: () => Effect.void,
       call: (site: string, call: SiteCall) => {
         const method = Str.replace("/api/method/capxul.core_api.", "")(call.path);
         return Option.match(
