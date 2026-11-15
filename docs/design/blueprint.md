@@ -176,14 +176,14 @@ step for the format and the ratchet registry; "Coverage is not a gate" changed i
 | 1 | Purpose and boundary | Option B, part 2 | **Agreed**, 15 November 2026 |
 | — | Account version | Keep it as the "Account identity" decision records it: it changes only when an input of the derivation changes (the salt rule, the Safe factory, its singleton or module, the starting owner), not with the protocol's major version, so a person's Safe address survives releases that do not touch it. Replaces Aaron's first request for a salt versioned to the protocol's major version | **Agreed**, 15 November 2026 |
 | 2 | No drift as checks | The eight layers, each instrumented and budgeted (part 3); coverage option B; measured facts generated from verdict digests; the ratchet registry (part 4) | **Agreed**, 15 November 2026 |
-| 3 | The shape | Part 7 | Proposed |
-| 4 | The pipeline as operations | Declared in the blueprint's pipeline section (part 2), a 10-minute run budget, and lanes of worlds (the speed note's change 7), which changes "One runner, one world" once changes 1 to 6 are measured | Not started |
+| 3 | The shape | Part 7, with its three choices as recommended | **Agreed**, 15 November 2026 |
+| 4 | The pipeline as operations | Part 8 | Proposed |
 | 5 | Telemetry in the blueprint | One telemetry module as `telemetry-in-the-blueprint.md` part 3B describes, with T1 to T8 as agreed | Not started |
 | 6 | The sequence | Part 5 | **Agreed**, 15 November 2026 |
 
 ## 7. The shape: the blueprint, the repository and its docs (decision 3)
 
-**Proposed, not yet agreed.** Once agreed, this section is the rule the docs session follows for every file it moves.
+**Agreed with Aaron, 15 November 2026**, with its three choices as recommended. This section is the rule the docs session follows for every file it moves.
 
 ### Three levels, for every reader
 
@@ -266,3 +266,65 @@ Run records under `packages/*/records/` are frozen from the proof lane's flip (R
   about 250 lines. Every agent loads it on every turn, so its length is paid on every turn.
 - **Decisions:** in their own `docs/decisions.md` (recommended), or kept in the roadmap's table. The roadmap is 54 KB,
   mostly that table.
+
+## 8. The pipeline as operations, and the 10-minute run (decision 4)
+
+**Proposed, not yet agreed.**
+
+### What is declared
+
+The pipeline is the blueprint domain `pipeline`, in the shape of part 7. Operations a door already serves stay in their
+domain (`world.create`, `world.snapshot.save`, `world.snapshot.restore`, `world.show`). Everything else the pipeline
+does becomes a declared operation with no Rpc: its steps, logs, budget and the refusals it can end in.
+
+| Operation | What it is | Its steps (kinds) | Today |
+|---|---|---|---|
+| `run` | One CI or container run, from start to verdict. Its budget is the run's 10 minutes | the operations below | The runner's `oneWorld.timings`, partly spanned |
+| `run.prepare` | Make the run's worlds and get each its starting worlds | deploy, branch, container, restore | Ad hoc spans in the runner and `packages/world` |
+| `world.reset` | Reset a world in place to a snapshot | database, chain, index, clock, site, deploy | `world reset`, spanned by part |
+| `site.claim`, `site.save`, `site.reset` | A world's company sites from the bench's pool | site, poll | The site door's calls, partly spanned |
+| `starting-world.make` | The one generic maker of a starting world from its typed steps (7.2, R11) | the steps' own operations, wait | `packages/runner/src/worlds/*`, by hand |
+| `journey` | One journey: its reset, its steps, its checks | reset, the operations it calls, check | Runner spans |
+| `check.gate`, `check.call`, `check.confirm`, `check.watch` | The layers of part 3 | one step per rung or check | Not spanned |
+| `run.verdict` | Write the verdict, set the check, archive the telemetry (4.5) | chain of writes, upload | Not built |
+| `run.teardown`, `world.sweep` | Destroy what the run made; sweep what expired | deploy, branch, site | Spanned in part |
+| `ratchets.count` | Count every ratchet (part 4) | one step per ratchet | Not built |
+
+Journeys are named in the blueprint too, each with its starting world, so their names are imported wherever they are
+used (the proof names, `capxul.journey`, coverage). Their steps stay the scenario author's, in `packages/scenarios`.
+
+### The 10-minute budget, broken down
+
+Provisional, as every budget is until measured. These are the speed note's projections, not measurements.
+
+| Part | Budget | Today (quiet run) |
+|---|---|---|
+| CI outside the runner | 0.5 min | 0.7 min |
+| `run.prepare`: worlds and starting worlds | 2 min | about 9 min (`make founded` 6 min, starting worlds, saves) |
+| Journeys, the longest lane | 6 min | 20 min of journeys plus 3 min of resets, one after another |
+| `check.confirm` and `run.verdict` | 0.5 min | not built |
+| `run.teardown` | 1 min | about 1 min |
+| **The run** | **10 min** | **36 min** |
+
+### How the run gets there: lanes of worlds
+
+The speed note's changes 1 to 6 bring a quiet run to about 18 minutes and keep one world. The rest needs journeys side
+by side, which "One runner, one world" (14 November 2026) forbids.
+
+- **A. Keep one world.** About 18 minutes is the floor. The 10-minute budget is out of reach.
+- **B. Lanes of worlds, by a ratchet (recommended).** A run splits its journeys across K worlds, one lane each. Each
+  lane makes its world and restores the run's saved starting worlds into it, all lanes at once. K starts at 2 and rises
+  while four measures hold: the hub's admission waits, the site door's 5xx answers, the green rate, and the daily
+  spend. Each lane has its own owner, because the quota journeys fill one owner's 5 worlds. The hub's 24 places hold
+  about three lanes of one run, so `fleet`'s capacity rises, or each run gets its own hub. Projected: the longest lane
+  6 to 7 minutes, the run 10 to 11. It starts only after changes 1 to 6 have landed and the pipeline's operations are
+  instrumented, so K is raised on measured runs.
+- **C. A world per journey, all at once.** The fastest on paper. It multiplies the bench's and the hub's load by the
+  number of journeys at once, so it is not for now.
+
+`founded` kept as a template across runs (the speed note's change 8) is not proposed: after change 1 it is worth about
+a minute, and it changes "Bench templates never change" and the world lifecycle rules.
+
+**What this changes in the roadmap:** "One runner, one world" becomes "One runner, K worlds": a run's journeys run in
+lanes, each lane one world reset in place between its journeys, K raised by the four measures. The speed lane (stage
+3d) builds it.
