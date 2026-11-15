@@ -141,6 +141,7 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
       );
       return funded;
     });
+    const deployDone = yield* Deferred.make<void>();
     const databaseLane = Effect.gen(function* () {
       // Core's bundle is built (once per process) while the branch is made; the deploy waits for it (bundle.ts).
       yield* warmCore();
@@ -177,7 +178,10 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
             );
           }),
         )
-        .pipe(Effect.flatMap((output) => handle(output, { token: doorToken, database: made.connectionUri })));
+        .pipe(
+          Effect.tap(() => Deferred.succeed(deployDone, undefined)),
+          Effect.flatMap((output) => handle(output, { token: doorToken, database: made.connectionUri })),
+        );
       const database = { door: reach.door, database: made.connectionUri };
       // The migrations and the index (once the chain answers) need only the branch; Core waits for the deploy.
       const [world] = yield* Effect.all(
@@ -191,8 +195,12 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
           ),
           watch.step("migrate", migrate(made.connectionUri, spec.migrations ?? CORE_MIGRATIONS)),
           Effect.andThen(Deferred.await(chainUp), explained(database, watch.step("index", indexReady(database)))),
+          // The caller's own work that needs only the deploy (a restore's sites), beside Core's start and the index.
+          spec.onDeployed === undefined
+            ? Effect.void
+            : Effect.andThen(Deferred.await(deployDone), watch.step("site", spec.onDeployed(plan.stage))),
         ],
-        { concurrency: 3 },
+        { concurrency: 4 },
       );
       yield* Effect.logInfo(`world ${plan.stage}: deployed, migrated, the index is ready and Core answers`);
       return world;
