@@ -2,7 +2,7 @@
 // blueprint declares, so none is made by hand in the console. A monitor that fires raises a task; nothing here fails
 // a run, since a budget is a target (part 8). Generated from it, later: Axiom's monitor and dashboard JSON, applied by
 // the platform's deploy.
-import { runRun } from "../things/run/run.ts";
+import { runStart } from "../things/run/start.ts";
 import type { DatasetKey } from "./datasets.ts";
 import type { AttributeKey } from "./envelope.ts";
 import { metrics } from "./metrics.ts";
@@ -39,10 +39,10 @@ export const monitors = {
   runOverTime: {
     name: "capxul.watch.run-over-time",
     reads: "testTraces",
-    over: runRun.name,
+    over: runStart.name,
     by: ["run"],
     when: "a run's span lasts longer than the threshold, in milliseconds",
-    threshold: runRun.budget.ms * REVIEW_FACTOR,
+    threshold: runStart.budget.ms * REVIEW_FACTOR,
     windowMinutes: 24 * 60,
   },
   refusalRate: {

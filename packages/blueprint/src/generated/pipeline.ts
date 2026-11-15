@@ -12,7 +12,7 @@ import * as ClusterUp from "../things/cluster/up.ts";
 import * as JourneyRun from "../things/journey/run.ts";
 import * as RatchetCount from "../things/ratchet/count.ts";
 import * as RunPrepare from "../things/run/prepare.ts";
-import * as RunRun from "../things/run/run.ts";
+import * as RunStart from "../things/run/start.ts";
 import * as RunTeardown from "../things/run/teardown.ts";
 import * as RunVerdict from "../things/run/verdict.ts";
 import * as SiteReset from "../things/site/reset.ts";
@@ -50,7 +50,7 @@ export { clusterUp } from "../things/cluster/up.ts";
 export { journeyRun } from "../things/journey/run.ts";
 export { ratchetCount } from "../things/ratchet/count.ts";
 export { runPrepare } from "../things/run/prepare.ts";
-export { runRun } from "../things/run/run.ts";
+export { runStart } from "../things/run/start.ts";
 export { runTeardown } from "../things/run/teardown.ts";
 export { runVerdict } from "../things/run/verdict.ts";
 export { siteReset } from "../things/site/reset.ts";
@@ -74,7 +74,7 @@ export const work = {
   "journey.run": JourneyRun.journeyRun,
   "ratchet.count": RatchetCount.ratchetCount,
   "run.prepare": RunPrepare.runPrepare,
-  "run.run": RunRun.runRun,
+  "run.start": RunStart.runStart,
   "run.teardown": RunTeardown.runTeardown,
   "run.verdict": RunVerdict.runVerdict,
   "site.reset": SiteReset.siteReset,
