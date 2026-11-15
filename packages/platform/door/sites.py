@@ -103,7 +103,8 @@ def site_of(c, site):
 
 
 def public(entry):
-    return {k: entry.get(k) for k in ("site", "world", "company", "state", "ms", "steps", "error", "claimed_from")}
+    keys = ("site", "world", "company", "state", "ms", "steps", "error", "claimed_from", "made_from")
+    return {k: entry.get(k) for k in keys}
 
 
 def bench(*args, env=None):
@@ -148,6 +149,17 @@ def make_core_user(site, key, secret):
 
 
 def build(site, world, company, key, secret):
+    """Makes the site from the bench's blank (blank.py) when there is one; otherwise from nothing under BENCH_LOCK, and
+    from the blank after all if one was made while this waited for the bench."""
+    import blank
+
+    while not blank.make(site, world, company, key, secret):
+        with BENCH_LOCK:
+            if not blank.usable():
+                return _from_nothing(site, world, company, key, secret)
+
+
+def _from_nothing(site, world, company, key, secret):
     wizard = {"company_name": company, "currency": "USD", "country": "United Kingdom"}
     plan = [
         ("new-site", ["new-site", site, "--mariadb-user-host-login-scope=%", "--db-root-password", DB_ROOT,
@@ -161,22 +173,21 @@ def build(site, world, company, key, secret):
         ("join world", ["--site", site, "execute", "capxul.clock.join_world", "--kwargs", json.dumps({"world": world})]),
     ]
     steps, t0 = [], time.monotonic()
-    with BENCH_LOCK:
-        try:
-            for name, args in plan:
-                if (read_entry(site) or {}).get("state") != "creating":
-                    return
-                _, ms = bench(*args)
-                steps.append({"step": name, "ms": ms})
-                update_entry(site, steps=steps)
-                print(f"door: {site} {name} {ms} ms", flush=True)
-            steps.append({"step": "core user", "ms": make_core_user(site, key, secret)})
-            update_entry(site, state="ready", steps=steps, ms=round((time.monotonic() - t0) * 1000))
-            print(f"door: {site} ready", flush=True)
-        except Exception as e:  # noqa: BLE001 -- a site that could not be made says why; nothing else is told
-            detail = e.detail if isinstance(e, Refused) else repr(e)
-            update_entry(site, state="failed", steps=steps, error=detail[-600:])
-            print(f"door: {site} failed: {detail[-300:]}", flush=True)
+    try:  # BENCH_LOCK is held by build
+        for name, args in plan:
+            if (read_entry(site) or {}).get("state") != "creating":
+                return
+            _, ms = bench(*args)
+            steps.append({"step": name, "ms": ms})
+            update_entry(site, steps=steps)
+            print(f"door: {site} {name} {ms} ms", flush=True)
+        steps.append({"step": "core user", "ms": make_core_user(site, key, secret)})
+        update_entry(site, state="ready", steps=steps, ms=round((time.monotonic() - t0) * 1000))
+        print(f"door: {site} ready", flush=True)
+    except Exception as e:  # noqa: BLE001 -- a site that could not be made says why; nothing else is told
+        detail = e.detail if isinstance(e, Refused) else repr(e)
+        update_entry(site, state="failed", steps=steps, error=detail[-600:])
+        print(f"door: {site} failed: {detail[-300:]}", flush=True)
 
 
 def drop_database(site):
@@ -199,7 +210,7 @@ def _removal_locks(entry):
     `removing` and stops, so its removal waits for that. Any other site's removal is one `bench drop-site` of that site
     alone: it holds the site's own lock and one of FAST's slots, and never waits behind another world's site being made
     (over two minutes, longer than the 100 s a call may take through Cloudflare's edge)."""
-    if entry.get("state") == "creating" and not entry.get("claimed_from"):
+    if entry.get("state") == "creating" and not entry.get("claimed_from") and not entry.get("made_from"):
         return BENCH_LOCK, site_lock(entry["site"])
     return site_lock(entry["site"]), FAST
 

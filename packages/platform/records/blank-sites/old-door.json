@@ -1,0 +1,212 @@
+{
+ "mode": "old",
+ "door": "http://127.0.0.1:18201",
+ "companies": {
+  "wb": {
+   "post_status": 202,
+   "post_ms": 11,
+   "time_to_ready_ms": 13905,
+   "state": "ready",
+   "made_from": null,
+   "door_ms": 13824,
+   "steps": [
+    {
+     "step": "new-site",
+     "ms": 2235
+    },
+    {
+     "step": "install erpnext",
+     "ms": 5021
+    },
+    {
+     "step": "install hrms",
+     "ms": 3387
+    },
+    {
+     "step": "install capxul",
+     "ms": 347
+    },
+    {
+     "step": "setup wizard",
+     "ms": 1702
+    },
+    {
+     "step": "migrate",
+     "ms": 825
+    },
+    {
+     "step": "enable scheduler",
+     "ms": 73
+    },
+    {
+     "step": "join world",
+     "ms": 87
+    },
+    {
+     "step": "core user",
+     "ms": 136
+    }
+   ],
+   "error": null
+  },
+  "wa": {
+   "post_status": 202,
+   "post_ms": 15,
+   "time_to_ready_ms": 27827,
+   "state": "ready",
+   "made_from": null,
+   "door_ms": 27641,
+   "steps": [
+    {
+     "step": "new-site",
+     "ms": 2234
+    },
+    {
+     "step": "install erpnext",
+     "ms": 5019
+    },
+    {
+     "step": "install hrms",
+     "ms": 3389
+    },
+    {
+     "step": "install capxul",
+     "ms": 347
+    },
+    {
+     "step": "setup wizard",
+     "ms": 1702
+    },
+    {
+     "step": "migrate",
+     "ms": 824
+    },
+    {
+     "step": "enable scheduler",
+     "ms": 73
+    },
+    {
+     "step": "join world",
+     "ms": 87
+    },
+    {
+     "step": "core user",
+     "ms": 136
+    }
+   ],
+   "error": null
+  },
+  "wc": {
+   "post_status": 202,
+   "post_ms": 14,
+   "time_to_ready_ms": 41485,
+   "state": "ready",
+   "made_from": null,
+   "door_ms": 41454,
+   "steps": [
+    {
+     "step": "new-site",
+     "ms": 2234
+    },
+    {
+     "step": "install erpnext",
+     "ms": 5018
+    },
+    {
+     "step": "install hrms",
+     "ms": 3388
+    },
+    {
+     "step": "install capxul",
+     "ms": 346
+    },
+    {
+     "step": "setup wizard",
+     "ms": 1700
+    },
+    {
+     "step": "migrate",
+     "ms": 823
+    },
+    {
+     "step": "enable scheduler",
+     "ms": 72
+    },
+    {
+     "step": "join world",
+     "ms": 87
+    },
+    {
+     "step": "core user",
+     "ms": 136
+    }
+   ],
+   "error": null
+  },
+  "wd": {
+   "post_status": 202,
+   "post_ms": 16,
+   "time_to_ready_ms": 55358,
+   "state": "ready",
+   "made_from": null,
+   "door_ms": 55267,
+   "steps": [
+    {
+     "step": "new-site",
+     "ms": 2234
+    },
+    {
+     "step": "install erpnext",
+     "ms": 5019
+    },
+    {
+     "step": "install hrms",
+     "ms": 3386
+    },
+    {
+     "step": "install capxul",
+     "ms": 348
+    },
+    {
+     "step": "setup wizard",
+     "ms": 1699
+    },
+    {
+     "step": "migrate",
+     "ms": 824
+    },
+    {
+     "step": "enable scheduler",
+     "ms": 74
+    },
+    {
+     "step": "join world",
+     "ms": 86
+    },
+    {
+     "step": "core user",
+     "ms": 135
+    }
+   ],
+   "error": null
+  }
+ },
+ "verdict": {
+  "every_company_ready": true,
+  "time_to_ready_ms": [
+   13905,
+   27827,
+   41485,
+   55358
+  ],
+  "slowest_ms": 55358,
+  "mean_ms": 34644,
+  "all_four_ms": 55361,
+  "how": [
+   "nothing",
+   "nothing",
+   "nothing",
+   "nothing"
+  ]
+ }
+}
