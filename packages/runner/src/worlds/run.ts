@@ -266,11 +266,11 @@ export const runInWorlds = (
             Effect.catchCause((cause) => Ref.set(notTakenDown, [`the take-down did not finish: ${describe(cause)}`])),
           );
           return yield* Effect.gen(function* () {
-            // A starting world that could not be made fails the journeys of it, each with why; the rest still run.
-            // The summary names it too, a defect included (a door that answered an error page, say).
+            // A starting world not made fails its journeys, each with why, and the summary names it; the rest run.
+            // `run.prepare`: the one world and its template starting worlds, made and saved before any journey.
             yield* starting
               .prepare(Arr.map(scenarios, (scenario) => scenario.given))
-              .pipe(Effect.catchCause(noteNotMade(timings, notMade)));
+              .pipe(Effect.withSpan(Pipeline.runPrepare.name), Effect.catchCause(noteNotMade(timings, notMade)));
             yield* Ref.set(oneWorld, Option.getOrNull(yield* Effect.option(starting.oneWorld)));
             return yield* Effect.forEach(scenarios, (scenario, index) =>
               runOne(scenario, settings, starting, timings, run, index),
