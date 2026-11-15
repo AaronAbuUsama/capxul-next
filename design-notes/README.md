@@ -8,6 +8,8 @@ outcome lands as roadmap decisions and slices.
 - `agreements-design.md`: the second study, "every on-chain movement settles one sealed Frappe document", agreements
   v2, escrow for counterfactual accounts, privacy model. Aaron found the invoice side clunky and wants to rethink the
   contracts from first principles.
+- `invoice-ledger.md`: the direction Aaron settled on (15 November 2026). Payments as a running total per sealed
+  invoice, three ways money reaches it, thin Agreements, and who signs an invoice. Start here.
 - `parity-inventory.md`: what the old stack (`xelmar-tech/infrastructure`) does, as journeys.
 
 Decisions already recorded in `docs/roadmap.md` on master (14 and 15 November 2026): every payment settles one sealed
