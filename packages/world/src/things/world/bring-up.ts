@@ -90,7 +90,10 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
       "claim",
       Effect.gen(function* () {
         // The site token, minted once the name is held, and the world's first record.
-        const granted = yield* grant(plan.stage, plan.expiresAt, maxSites);
+        const granted = yield* grant(plan.stage, plan.expiresAt, maxSites, {
+          owner: plan.owner,
+          grade: spec.grade ?? "private",
+        });
         const named = Option.match(granted, { onNone: () => "none", onSome: (one) => one.stage });
         yield* recordOutput(plan.stage, recordOf(plan, "creating", named, hub.stage));
         return granted;
@@ -165,6 +168,7 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
           Effect.gen(function* () {
             const settings = {
               owner: plan.owner,
+              grade: spec.grade ?? "private",
               expiresAt: plan.expiresAt,
               forkedFrom: plan.forkedFrom,
               bench,

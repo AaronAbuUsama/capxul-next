@@ -10,6 +10,7 @@ import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
+import * as Redacted from "effect/Redacted";
 import * as Schema from "effect/Schema";
 import * as Scope from "effect/Scope";
 import * as Str from "effect/String";
@@ -22,7 +23,16 @@ import type * as Rpc from "effect/rpc/Rpc";
 import { SPAN_ATTRIBUTES } from "../src/telemetry/attributes.ts";
 import { SpanSink } from "../src/telemetry/sink.ts";
 import type { KeptSpan } from "../src/telemetry/spans.ts";
-import { apiTelemetry, type Held, SERVICE_NAME, transport, type Signal } from "../src/telemetry/export.ts";
+import { ENV } from "../src/env.ts";
+import {
+  apiTelemetry,
+  type Held,
+  requestExport,
+  SERVICE_NAME,
+  TAP_ON,
+  transport,
+  type Signal,
+} from "../src/telemetry/export.ts";
 import { CallTracer, measured } from "../src/telemetry/spans.ts";
 
 // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- a declared Rpc names its middlewares by their own types, which the general `AnyWithProps` a middleware is handed cannot follow
@@ -162,4 +172,35 @@ test("with no CallTracer, a call's spans are made by the tracer around it, and k
     Arr.map(kept, (span) => span.spanId),
     seen,
   );
+});
+
+test("with the tap on and no collector binding, a call answers, and closing its request fails nothing", async () => {
+  // A Core of a world on the local bench: the tap on, no collector bound. Its database cannot be reached here, so the
+  // tap's write fails after the answer, and that is only logged.
+  const env = { [ENV.tap]: TAP_ON, [ENV.revision]: "abc123" };
+  const unreachable = Effect.succeed(Redacted.make("postgresql://nobody:nothing@127.0.0.1:1/none"));
+  const kept: Array<KeptSpan> = [];
+  const sink = SpanSink.of({ keep: (spans) => Effect.sync(() => kept.push(...spans)) });
+  const exit = await Effect.runPromiseExit(
+    Effect.gen(function* () {
+      const exported = yield* requestExport(env, unreachable);
+      assert.ok(Option.isSome(exported), "the tap alone did not build the export");
+      return yield* measured(
+        sink,
+        { colo: Option.none() },
+        { rpc, headers: Headers.empty },
+        Effect.succeed("answer"),
+      ).pipe(Effect.provide(exported.value));
+    }).pipe(Effect.scoped),
+  );
+  assert.ok(Exit.isSuccess(exit), `the request failed: ${Exit.isFailure(exit) ? String(exit.cause) : ""}`);
+  assert.equal(exit.value, "answer");
+  assert.equal(kept.length, 1);
+});
+
+test("with neither tap nor collector, nothing is built and nothing is exported", async () => {
+  const exported = await Effect.runPromise(
+    requestExport({}, Effect.succeed(Redacted.make("postgresql://nobody@127.0.0.1:1/none"))).pipe(Effect.scoped),
+  );
+  assert.ok(Option.isNone(exported));
 });
