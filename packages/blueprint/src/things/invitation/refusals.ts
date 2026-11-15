@@ -2,8 +2,7 @@
 // gathers them all.
 import { refusal } from "@capxul/blueprint-tools";
 import { OrgId, PersonId } from "../../common/values.ts";
-import { Invitation } from "./lifecycle.ts";
-import { Email, InvitationId } from "./values.ts";
+import { ClosedState, Email, InvitationId } from "./values.ts";
 
 /**
  * The caller may not manage the company's people: for now only its founder invites (a person of the world or not), so
@@ -66,7 +65,7 @@ export class InvitationClosed extends refusal<InvitationClosed, { readonly brand
   "InvitationClosed",
   {
     invitation: InvitationId,
-    state: Invitation.RefusedState,
+    state: ClosedState,
   },
   2,
 ) {}

@@ -30,7 +30,7 @@ export const declaredSteps: Unmigrated = {
   "packages/core/src/organizations/site.ts": 5,
   "packages/core/src/organizations/store.ts": 12,
   "packages/core/src/people/answer.ts": 3,
-  "packages/core/src/people/invite.ts": 2,
+  "packages/core/src/people/invite.ts": 1,
   "packages/core/src/people/roster.ts": 1,
   "packages/core/src/people/store.ts": 7,
   "packages/core/src/platform/companies.ts": 1,

@@ -18,10 +18,11 @@ export {
   InvitedRole,
   RefusalRule,
   InvitationState,
+  ClosedState,
   Invitation,
 } from "../things/invitation/values.ts";
 export { MemberInvited, InvitationAccepted, InvitationDeclined } from "../things/invitation/events.ts";
-export { MemberRole, Member } from "../things/member/values.ts";
+export { MemberRole, MemberRefusalRule, Member } from "../things/member/values.ts";
 export { invitationSend } from "../things/invitation/verbs/send.ts";
 export { invitationList } from "../things/invitation/verbs/list.ts";
 export { Accepted, AlreadyAccepted, invitationAccept } from "../things/invitation/verbs/accept.ts";
@@ -34,13 +35,13 @@ export const operations = {
   "invitation.list": InvitationVerbsList.invitationList,
   "invitation.accept": InvitationVerbsAccept.invitationAccept,
   "invitation.decline": InvitationVerbsDecline.invitationDecline,
-  "org.member.list": MemberVerbsList.memberList,
+  "member.list": MemberVerbsList.memberList,
 } as const;
 
 /** Its operations that move no thing with a lifecycle, each with why: each such verb's `stateless`. */
 export const stateless: { readonly [Name in keyof typeof operations]?: string } = {
   "invitation.list": InvitationVerbsList.stateless,
-  "org.member.list": MemberVerbsList.stateless,
+  "member.list": MemberVerbsList.stateless,
 };
 
 /** Its machines, by name: its things' lifecycles. */
@@ -66,5 +67,5 @@ export const claims: { readonly [Name in keyof typeof operations]: ClaimsOf } = 
   "invitation.list": InvitationVerbsList.promises,
   "invitation.accept": InvitationVerbsAccept.promises,
   "invitation.decline": InvitationVerbsDecline.promises,
-  "org.member.list": MemberVerbsList.promises,
+  "member.list": MemberVerbsList.promises,
 };
