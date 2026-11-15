@@ -1,5 +1,5 @@
 {
-  "record": "empty-handlers",
+  "kind": "empty-handlers",
   "step": "1.14",
   "what": "A registered journey run against a Capxul whose every operation fails with NotImplemented, as Core's empty handlers do. It must fail at its first step, on the NotImplemented it is answered, never pass and never die.",
   "outcome": "passed",

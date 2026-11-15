@@ -48,20 +48,16 @@ export const ownerOf = (view: View) =>
     return yield* failWith(`${view.world} is owned by ${view.owner}, neither of the run's operators`);
   });
 
+/** The entries of a world's history from position `from` (null: the first), read as its owner, at `who`'s door. */
+const exported = (from: number | null, who: Who) =>
+  Effect.flatMap(Capxul, (capxul) => capxul["record.export"]({ from, to: null }, whereOf(who)));
+
 /** The whole record of a world, read as its owner: the client's own, or `at` another door. */
-export const recordOf = (who: Who = {}) =>
-  Effect.gen(function* () {
-    const capxul = yield* Capxul;
-    return yield* capxul["record.export"]({ from: null, to: null }, whereOf(who));
-  });
+export const recordOf = (who: Who = {}) => exported(null, who);
 
 /** The record's entries after position `after`, read as the owner. */
 export const entriesAfter = (after: number, who: Who = {}) =>
-  Effect.gen(function* () {
-    const capxul = yield* Capxul;
-    const answer = yield* capxul["record.export"]({ from: after + 1, to: null }, whereOf(who));
-    return answer.entries;
-  });
+  Effect.map(exported(after + 1, who), (answer) => answer.entries);
 
 /** A record's head now. */
 export const headOf = (who: Who = {}) => Effect.map(recordOf(who), (answer) => answer.head);
