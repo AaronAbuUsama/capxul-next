@@ -1,0 +1,35 @@
+// capxul/decoded-rows: a row read from the database is decoded with the blueprint's schemas, never cast to a type
+// written by hand (docs/roadmap.md, "Facts typed twice": stored rows). A `sql<Row>` query only tells the compiler
+// what the row is hoped to be; decoding with a schema checks it. The blueprint and generated files are exempt.
+import type { Context, ESTree } from "@oxlint/plugins";
+import { isGenerated, ratcheted, type Unmigrated } from "./ratchet.ts";
+import { matches, pathOf } from "./where.ts";
+
+const OWNER = "packages/blueprint/**";
+
+const MESSAGE =
+  "a sql<...> query casts its rows to a type written by hand: query without the type argument and decode the rows with the blueprint's schema (Schema.decodeUnknown)";
+
+/** True when the tag is `sql` or ends in `.sql`. */
+const isSql = (tag: ESTree.Node): boolean =>
+  (tag.type === "Identifier" && tag.name === "sql") ||
+  (tag.type === "MemberExpression" &&
+    !tag.computed &&
+    tag.property.type === "Identifier" &&
+    tag.property.name === "sql");
+
+export const decodedRows = (listed: Unmigrated) =>
+  ratcheted(
+    "decoded-rows",
+    "Rows read from the database are decoded with the blueprint's schemas, not cast",
+    listed,
+    (context: Context, found) => {
+      if (matches(OWNER, pathOf(context)) || isGenerated(context)) return null;
+      return {
+        TaggedTemplateExpression: (node: ESTree.TaggedTemplateExpression) => {
+          if (isSql(node.tag) && node.typeArguments !== null && node.typeArguments !== undefined)
+            found({ node, message: MESSAGE });
+        },
+      };
+    },
+  );

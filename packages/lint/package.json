@@ -16,6 +16,7 @@
     "typescript": "catalog:"
   },
   "dependencies": {
+    "@capxul/blueprint": "workspace:*",
     "effect": "catalog:"
   }
 }
