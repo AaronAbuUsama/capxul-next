@@ -1,6 +1,7 @@
 // What the journeys read of a company's books and chain to observe what a step did: the company Safe's ledger lines
 // and closing balance, what is outstanding on an invoice, a world's state as one value to compare before and after.
 import { Site } from "@capxul/blueprint";
+import { Cast } from "../cast.ts";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -8,7 +9,7 @@ import type { Success } from "../client.ts";
 import { usdc } from "../support/chain.ts";
 import { present } from "../support/expect.ts";
 import { isSafeAccount, ledger, linesOf, numberOf, safeBalance } from "../support/site.ts";
-import { fieldOf, headOf, personalSafes, textOf, type View, type Who } from "../support/world.ts";
+import { fieldOf, headOf, ownView, personalSafes, textOf, type View, type Who } from "../support/world.ts";
 
 type Rows = Success<"report.run">["rows"];
 const ROW = Site.ROW_FIELDS;
@@ -35,8 +36,12 @@ export const owedOn = (rows: Rows, invoice: string) =>
 
 /** A world as one value: its record's head, its General Ledger as sam, and the USDC of every Safe it knows. */
 export const stateOf = (world: View, org: string, companySafe: string, who: Who) =>
-  Effect.all({
-    head: headOf(who),
-    books: ledger(org, {}, { ...who, as: "sam" }),
-    safes: Effect.forEach([companySafe, ...personalSafes(world)], (safe) => usdc(world, safe, who)),
-  });
+  Effect.flatMap(Cast, (cast) =>
+    Effect.all({
+      head: headOf(who),
+      books: ledger(org, {}, { ...who, as: cast.sam }),
+      safes: Effect.flatMap(ownView(world), (own) =>
+        Effect.forEach([companySafe, ...personalSafes(own)], (safe) => usdc(world, safe, who)),
+      ),
+    }),
+  );

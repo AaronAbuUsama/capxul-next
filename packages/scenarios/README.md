@@ -21,7 +21,7 @@ const steps = outline({
 });
 
 export const founding = journey(
-  { name: "found Northwind", story: "…", given: startingWorlds.fresh, steps },
+  { name: "found Northwind", key: "found", story: "…", given: startingWorlds.fresh, steps },
   Effect.gen(function* () {
     yield* steps.found.run((op) => op.answers("Founded", NORTHWIND_FOUNDING, { as: "dana" }));
     yield* steps.sign.run((op) => /* op.answers("Collected", …), op.answers("Sent", …) */);
@@ -35,9 +35,9 @@ person of the cast, `{ operator: "second" }` as the second operator, `{ at: view
 `yield* given(startingWorlds.paymentDrafted)` answers a starting point's facts. Reads after the tries (`expect`,
 `same`, `src/support/`) are looks: no operation's checks run on them.
 
-A check judges only what its own call caused (roadmap step 4.11): the world's history by the call's trace
-(`CallTraces`), the chain by the journey's own accounts (`chainUntouched`). With no trace told, the history checks take
-every entry after the head read before the call.
+Journeys run side by side (roadmap step 4.11). Each declares a `key` (`Cast.JOURNEY_KEYS`) and acts as its own people
+in its own company (`yield* Cast`: `{ as: cast.dana }`, `cast.company`, `src/cast.ts`). A check judges only what its own
+call caused: the world's history by the call's traces (`CallTraces`), the chain by the journey's own accounts.
 
 ## Adding a journey or checks
 

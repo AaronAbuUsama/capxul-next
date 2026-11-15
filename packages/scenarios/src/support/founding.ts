@@ -1,22 +1,24 @@
-// Founding Northwind as the starting world `founded` describes it: dana founds it with eli as a Director, threshold
+// Founding Northwind as the starting world `founded` describes it, with the journey's own cast: dana founds it with eli as a Director, threshold
 // 2, members sam and pat, and 1,000 USDC of her capital. And a founding as a person types it, which comes into the
 // contract the way the command line brings it in.
 import { operations } from "@capxul/blueprint";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
+import type { Cast } from "../cast.ts";
 import type { Payload } from "../client.ts";
 
 /** What org.create takes. */
 export type Founding = Payload<"org.create">;
 
-export const NORTHWIND_FOUNDING: Founding = {
-  handle: "northwind",
+/** Northwind's founding as the cast `cast` plays it: its dana founds it with its eli, members its sam and pat. */
+export const foundingFor = (cast: Cast): Founding => ({
+  handle: cast.company,
   profile: { name: "Northwind Trading", country: "NL", bio: null, size: null },
-  directors: ["eli"],
+  directors: [cast.eli],
   threshold: 2,
-  members: ["sam", "pat"],
+  members: [cast.sam, cast.pat],
   capital: { asset: "USDC", amount: "1000" },
-};
+});
 
 /** org.create's payload in its JSON form, as the command line reads it from a person (packages/cli, src/input.ts). */
 const AsTyped = Schema.toCodecJson(operations["org.create"].rpc.payloadSchema);

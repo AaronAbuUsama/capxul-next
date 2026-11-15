@@ -13,6 +13,7 @@ import { findIn, same } from "./expect.ts";
 import {
   entriesOfCall,
   objectOf,
+  ownView,
   personalSafes,
   recordOf,
   textOf,
@@ -76,8 +77,8 @@ export const chainBlock = (who: Who) =>
   });
 
 /**
- * Nothing the call did reached the chain for the world's people or for company `org`: since block `before`, no user
- * operation from a person's Safe or the company's, no company Safe minted for `org`, no budget of its Safe and no hat
+ * Nothing the call did reached the chain for the journey's people (`Cast`; every person of the world's cast when no
+ * journey casts) or for company `org`: since block `before`, no user operation from a person's Safe or the company's, no company Safe minted for `org`, no budget of its Safe and no hat
  * moved to or from any of those Safes. Other journeys' transactions, from accounts of their own, are not the call's.
  */
 export const chainUntouched = (world: View, who: Who, before: number, org: string | null) =>
@@ -89,7 +90,7 @@ export const chainUntouched = (world: View, who: Who, before: number, org: strin
         Arr.filter(logs, (each) => each.block > before),
       );
     const minted = org === null ? [] : yield* companySafesOf(org, who);
-    const safes = [...personalSafes(world), ...Arr.map(minted, (each) => each.safe)];
+    const safes = [...personalSafes(yield* ownView(world)), ...Arr.map(minted, (each) => each.safe)];
     const ours = (address: string) => Arr.some(safes, (safe) => isAddress(safe, address));
     const touched = [
       ...Arr.map(

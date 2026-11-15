@@ -8,6 +8,7 @@ import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import { Capxul, type Success } from "../client.ts";
 import { given } from "../expectation.ts";
+import { Cast } from "../cast.ts";
 import { journey, outline } from "../journey.ts";
 import { onChain, safesOf, seatedBy } from "../support/board.ts";
 import { refusal, same } from "../support/expect.ts";
@@ -48,11 +49,6 @@ const steps = outline({
   ],
 });
 
-const dana = { as: "dana" } as const;
-const eli = { as: "eli" } as const;
-const sam = { as: "sam" } as const;
-const pat = { as: "pat" } as const;
-
 /** A company nobody founded. */
 const NO_ORG = "org_nowhere1";
 
@@ -66,17 +62,23 @@ export const seatSam = journey(
   {
     name: "seat sam on Northwind's Board",
     world: "shared",
+    key: "seat",
     story:
       "dana, Northwind's founder, seats sam as its third Director with her signature alone, so he signs the company Safe and has a user on its site, then makes the Board need all three, and a grant is sent only by sam's signature; everyone who may not is refused.",
     given: startingWorlds.founded,
     steps,
   },
   Effect.gen(function* () {
+    const cast = yield* Cast;
+    const dana = { as: cast.dana } as const;
+    const eli = { as: cast.eli } as const;
+    const sam = { as: cast.sam } as const;
+    const pat = { as: cast.pat } as const;
     const { world, founded } = yield* given(startingWorlds.founded);
     const capxul = yield* Capxul;
     const org = founded.org;
-    const founders = ["dana", "eli"];
-    const three = [...founders, "sam"];
+    const founders = [cast.dana, cast.eli];
+    const three = [...founders, cast.sam];
     const ledger = { org, report: Site.REPORTS.generalLedger, filters: {} };
 
     const before = yield* steps.board.run((op) =>
@@ -85,7 +87,7 @@ export const seatSam = journey(
         yield* same("Northwind's Board as founded", named(listed), [founders, 2]);
         const owned = yield* op.succeeds({ org });
         yield* same("Northwind's Board as the world's owner sees it", owned, listed);
-        yield* op.refused("NotAMember", { org }, { as: "olga" });
+        yield* op.refused("NotAMember", { org }, { as: cast.olga });
         yield* op.refused("OrgNotFound", { org: NO_ORG }, dana);
         return listed;
       }),
@@ -94,20 +96,20 @@ export const seatSam = journey(
     const seat = yield* steps.seat.run((op) =>
       Effect.gen(function* () {
         for (const caller of [sam, eli]) {
-          const refused = yield* op.refused("CannotChangeBoard", { org, person: "sam" }, caller);
+          const refused = yield* op.refused("CannotChangeBoard", { org, person: cast.sam }, caller);
           yield* same("who may not change the Board", refused.person, caller.as);
         }
-        yield* op.refused("NotAMember", { org, person: "olga" }, dana);
-        yield* op.refused("MemberHasNoSafe", { org, person: "pat" }, dana);
-        yield* op.refused("AlreadyADirector", { org, person: "eli" }, dana);
-        yield* op.refused("OrgNotFound", { org: NO_ORG, person: "sam" }, dana);
-        const proposed = yield* op.succeeds({ org, person: "sam" }, dana);
+        yield* op.refused("NotAMember", { org, person: cast.olga }, dana);
+        yield* op.refused("MemberHasNoSafe", { org, person: cast.pat }, dana);
+        yield* op.refused("AlreadyADirector", { org, person: cast.eli }, dana);
+        yield* op.refused("OrgNotFound", { org: NO_ORG, person: cast.sam }, dana);
+        const proposed = yield* op.succeeds({ org, person: cast.sam }, dana);
         yield* same(
           "the seat proposed",
           [proposed.change.person, proposed.change.before, proposed.change.after, proposed.approval.signer],
-          ["sam", { directors: 2, threshold: 2 }, { directors: 3, threshold: 2 }, "dana"],
+          [cast.sam, { directors: 2, threshold: 2 }, { directors: 3, threshold: 2 }, cast.dana],
         );
-        const waiting = yield* op.refused("BoardChangeWaiting", { org, person: "sam" }, dana);
+        const waiting = yield* op.refused("BoardChangeWaiting", { org, person: cast.sam }, dana);
         yield* same("the change waiting", waiting.change, proposed.change.id);
         yield* refusal("report.run as sam while his seat waits", "NoSiteUser", capxul["report.run"](ledger, sam));
         return proposed;
@@ -119,7 +121,7 @@ export const seatSam = journey(
         yield* op.refused("NotYourApproval", yield* sign(seat.approval), eli);
         const sent = yield* op.answers("Sent", yield* sign(seat.approval), dana);
         yield* same("the subject dana's signature sent", sent.subject, { kind: "board_change", id: seat.change.id });
-        const seated = yield* seatedBy(world, sent.transaction, "sam");
+        const seated = yield* seatedBy(world, sent.transaction, cast.sam);
         yield* same("the Director hat sam's Safe now wears", seated.hat, before.directorHat);
         yield* same("the company Safe's owners and threshold", yield* onChain(founded.safe), {
           owners: yield* safesOf(world, three),
@@ -132,7 +134,7 @@ export const seatSam = journey(
         });
         yield* same("Northwind's people once sam is seated", yield* peopleOf(org), [
           ...Arr.map(three, (each) => person(each, "director")),
-          person("pat", "member"),
+          person(cast.pat, "member"),
         ]);
       }),
     );
@@ -156,7 +158,7 @@ export const seatSam = journey(
     const raise = yield* steps.threshold.run((op) =>
       Effect.gen(function* () {
         const refused = yield* op.refused("CannotChangeBoard", { org, threshold: 3 }, sam);
-        yield* same("who may not set the threshold", refused.person, "sam");
+        yield* same("who may not set the threshold", refused.person, cast.sam);
         yield* op.refused("PayloadRejected", { org, threshold: 0 }, dana);
         const high = yield* op.refused("ThresholdTooHigh", { org, threshold: 4 }, dana);
         yield* same("the threshold refused, and the Directors", [high.threshold, high.directors], [4, 3]);
@@ -166,7 +168,7 @@ export const seatSam = journey(
         yield* same(
           "the threshold proposed",
           [proposed.change.before, proposed.change.after, proposed.approval.signer],
-          [{ directors: 3, threshold: 2 }, { directors: 3, threshold: 3 }, "dana"],
+          [{ directors: 3, threshold: 2 }, { directors: 3, threshold: 3 }, cast.dana],
         );
         const waiting = yield* op.refused("BoardChangeWaiting", { org, threshold: 1 }, dana);
         yield* same("the change waiting", waiting.change, proposed.change.id);
@@ -189,11 +191,11 @@ export const seatSam = journey(
 
     const books = yield* steps.propose.run((op) =>
       Effect.gen(function* () {
-        const proposed = yield* op.succeeds({ org, member: "sam", permission: "manage-books", note: null }, dana);
+        const proposed = yield* op.succeeds({ org, member: cast.sam, permission: "manage-books", note: null }, dana);
         yield* same(
           "the Directors asked, and how many must sign",
           [Arr.map(proposed.approvals, (each) => each.signer), proposed.proposal.threshold],
-          [["dana", "eli", "sam"], 3],
+          [[cast.dana, cast.eli, cast.sam], 3],
         );
         return proposed;
       }),
@@ -202,13 +204,13 @@ export const seatSam = journey(
     yield* steps.books.run((op) =>
       Effect.gen(function* () {
         const subject = { kind: "officer_change", id: books.change.id } as const;
-        const first = yield* op.answers("Collected", yield* sign(yield* approvalOf(books.approvals, "dana")), dana);
+        const first = yield* op.answers("Collected", yield* sign(yield* approvalOf(books.approvals, cast.dana)), dana);
         yield* same("the grant after dana", [first.signatures, first.threshold, first.subject], [1, 3, subject]);
-        const second = yield* op.answers("Collected", yield* sign(yield* approvalOf(books.approvals, "eli")), eli);
+        const second = yield* op.answers("Collected", yield* sign(yield* approvalOf(books.approvals, cast.eli)), eli);
         yield* same("the grant after eli", [second.signatures, second.threshold], [2, 3]);
-        const sent = yield* op.answers("Sent", yield* sign(yield* approvalOf(books.approvals, "sam")), sam);
+        const sent = yield* op.answers("Sent", yield* sign(yield* approvalOf(books.approvals, cast.sam)), sam);
         yield* same("the subject sam's signature sent", sent.subject, subject);
-        yield* nowWears(world, sent.transaction, "sam", "manage-books");
+        yield* nowWears(world, sent.transaction, cast.sam, "manage-books");
       }),
     );
   }),

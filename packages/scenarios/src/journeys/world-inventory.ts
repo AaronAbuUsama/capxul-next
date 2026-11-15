@@ -54,6 +54,7 @@ export const worldInventory = journey(
   {
     name: "an operator's inventory",
     world: "own",
+    key: "invent",
     story:
       "An operator at the limit lists their worlds and a world's snapshots; a snapshot another operator's world was restored from cannot be deleted, and one no world needs is deleted and gone.",
     given: startingWorlds.quotaFull,
