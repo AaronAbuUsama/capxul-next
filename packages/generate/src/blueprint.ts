@@ -23,6 +23,7 @@ import {
   somes,
   type Written,
 } from "./blueprint-text.ts";
+import { pipelineHub } from "./pipeline.ts";
 import { BLUEPRINT, type BlueprintDomain } from "./sources.ts";
 
 /** The things' files that make up one domain: its verbs, in order, each found in the layout, and its parts. */
@@ -283,5 +284,6 @@ export const renderBlueprint = (
     { path: at("subjects.ts"), text: subjectsHub(layout) },
     { path: at("values.ts"), text: valuesHub() },
     { path: at("promises.ts"), text: promisesHub() },
+    { path: at("pipeline.ts"), text: pipelineHub(layout) },
   ],
 });
