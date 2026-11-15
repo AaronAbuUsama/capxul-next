@@ -1,6 +1,7 @@
 // The values the operations share: names, ids, times, money, approvals and the view of a world. Each is declared
 // here once (the ids in ids.ts, the approval subjects in their domains) and imported from here wherever it is used.
 import * as Schema from "effect/Schema";
+import * as Board from "./board/subjects.ts";
 import * as Budgets from "./budgets/subjects.ts";
 import * as Documents from "./documents/subjects.ts";
 import { ApprovalId, OrgHandle, OrgId } from "./ids.ts";
@@ -38,7 +39,16 @@ export const Hash = pattern(/^0x[0-9a-f]{64}$/);
 /** A 65-byte secp256k1 signature, as hex. */
 export const Signature = pattern(/^0x[0-9a-f]{130}$/);
 
-export { ApprovalId, BudgetCreationId, ChangeId, OrgHandle, OrgId, PaymentRequestId, ProposalId } from "./ids.ts";
+export {
+  ApprovalId,
+  BoardChangeId,
+  BudgetCreationId,
+  ChangeId,
+  OrgHandle,
+  OrgId,
+  PaymentRequestId,
+  ProposalId,
+} from "./ids.ts";
 
 /** The assets a world's chain carries. */
 export const Asset = Schema.Literals(["USDC"]);
@@ -83,9 +93,14 @@ export const Approval = Schema.Struct({
 /**
  * What an approval authorises, once enough of its kind are signed, named by the id the operation that asked for it
  * answered. Each domain whose operations ask for approvals declares its kinds in `src/<domain>/subjects.ts`: a
- * company's setup and an officer change (organizations), a budget's creation (budgets), a held payment (documents).
+ * company's setup and an officer change (organizations), a change to its Board (board), a budget's creation (budgets), a held payment (documents).
  */
-export const Subject = Schema.Union([...Organizations.subjects, ...Budgets.subjects, ...Documents.subjects]);
+export const Subject = Schema.Union([
+  ...Organizations.subjects,
+  ...Board.subjects,
+  ...Budgets.subjects,
+  ...Documents.subjects,
+]);
 
 /**
  * How a person of the cast signs (decisions.md, 42). Their keys are among the first `accounts` of the public test

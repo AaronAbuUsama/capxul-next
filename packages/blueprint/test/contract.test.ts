@@ -23,6 +23,7 @@ import * as Errors from "../src/errors.ts";
 import { refusalsOf, type EventClass, type Operation } from "../src/operation.ts";
 import * as OrganizationsOps from "../src/organizations/operations.ts";
 import * as PeopleOps from "../src/people/operations.ts";
+import * as BoardOps from "../src/board/operations.ts";
 import * as RecordOps from "../src/record/operations.ts";
 import * as ReportsOps from "../src/reports/operations.ts";
 import * as Chain from "../src/chain/chain.ts";
@@ -116,6 +117,7 @@ const modules = {
   "approvals/operations.ts": ApprovalsOps,
   "reports/operations.ts": ReportsOps,
   "people/operations.ts": PeopleOps,
+  "board/operations.ts": BoardOps,
   "budgets/operations.ts": BudgetsOps,
   "record/operations.ts": RecordOps,
 };

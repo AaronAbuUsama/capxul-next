@@ -35,7 +35,7 @@ const CAST = [
 
 /**
  * Core's groups with every service the people operations need, on the database at `url`, and the world's chain
- * `chain` (none by default: the people operations never reach it).
+ * `chain` (none by default: the people operations never reach it; board and budgets tests hand one in).
  */
 export const core = (url: string, chain: Layer.Layer<WorldChain> = WorldChain.fromEnv({})) =>
   Served.pipe(
