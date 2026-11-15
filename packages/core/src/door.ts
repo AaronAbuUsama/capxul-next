@@ -12,6 +12,7 @@ export { ENV as CORE_ENV } from "./env.ts";
 export { HEALTH_PATH, PROBE_PATH } from "./probe.ts";
 export { SiteDoor, SiteDoorFailed, type SiteAnswer, type SiteCall } from "./site/SiteDoor.ts";
 export { SpanSink, SqlSpanSink } from "./telemetry/sink.ts";
+export { apiTelemetry, SERVICE_NAME, TAP_ON, type ExportOptions } from "./telemetry/export.ts";
 export { Placement, SPAN_ATTRIBUTES, SpanAttributes, type Where } from "./telemetry/attributes.ts";
 export { keepingTracer, outcomeOf, type KeptSpan, type SpanOutcome } from "./telemetry/spans.ts";
 

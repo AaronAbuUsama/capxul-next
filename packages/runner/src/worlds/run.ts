@@ -32,6 +32,7 @@ import { coreLabel, Platform } from "./platform.ts";
 import { sharedStartingWorldsOf, type SharedStartingWorlds } from "../shared/starting.ts";
 import { startingWorldsOf, type StartingWorlds } from "./starting.ts";
 import { destroyAll, destroyStrays, leftOf, takeDownWorlds } from "./teardown.ts";
+import { tapFailures } from "../telemetry/side-by-side.ts";
 
 /** The starting worlds of a run: made in its one world, or restored from a shared world (shared/starting.ts). */
 type Starting = StartingWorlds | SharedStartingWorlds;
@@ -158,6 +159,7 @@ const runOne = (
         ...(used !== undefined && Exit.isFailure(used) ? [`the run did not finish: ${describe(used.cause)}`] : []),
         ...(value !== undefined && Exit.isFailure(value.run) ? [`the run failed: ${describe(value.run.cause)}`] : []),
         ...(value === undefined ? [] : failuresOf(value.calls)),
+        ...tapFailures(value?.tap),
         ...(destroyed ? [] : ["a world's destroy failed"]),
         ...(leftAfter === null || (leftAfter.worlds ?? []).length > 0
           ? ["the accounts still hold some of its worlds"]
@@ -178,7 +180,7 @@ const runOne = (
         ended: value === undefined ? null : endedOf(value.run),
         readiness: got?.readiness ?? null,
         calls: value?.calls ?? [],
-        ...(value === undefined ? {} : { coverage: value.coverage }),
+        ...(value === undefined ? {} : { coverage: value.coverage, tap: value.tap }),
         ...stepsFor({ kind: "journey" }, value?.steps ?? stepsOf(scenario.outline, [], [])),
         making: got?.madeChecked ?? [],
         afterwards: { stage: destroyed ? "destroyed" : "destroy failed", before: leftBefore, after: leftAfter },

@@ -14,14 +14,15 @@ import { unmigrated } from "./unmigrated.ts";
 
 const plugin: Plugin = {
   meta: { name: "capxul" },
+  // In the order AGENTS.md lists them: `pnpm generate` writes that list from these rules' descriptions.
   rules: {
     "blueprint-owns-names": blueprintOwnsNames,
-    "declared-names": declaredNames(blueprintNames, unmigrated["declared-names"]),
-    "decoded-rows": decodedRows(unmigrated["decoded-rows"]),
     "effect-only": effectOnly,
     "import-door": importDoor,
     "no-json-text": noJsonText,
     "owned-values": ownedValues(unmigrated["owned-values"]),
+    "declared-names": declaredNames(blueprintNames, unmigrated["declared-names"]),
+    "decoded-rows": decodedRows(unmigrated["decoded-rows"]),
   },
 };
 

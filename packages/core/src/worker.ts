@@ -8,6 +8,7 @@ import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as SQL from "@alchemy.run/sql/Postgres";
 import { CHAIN_PATH } from "@capxul/blueprint";
 import * as Alchemy from "alchemy";
+import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
@@ -32,6 +33,7 @@ import { CoreDeployment, ownDeployment } from "./stack/deployment.ts";
 import { API_PLACEMENT } from "./stack/region.ts";
 import { coloOf, Placement } from "./telemetry/attributes.ts";
 import { CoreIdentity } from "./telemetry/middleware.ts";
+import { requestExport } from "./telemetry/export.ts";
 import { SqlSpanSink } from "./telemetry/sink.ts";
 
 /** The Hyperdrive binding as the running Worker holds it. */
@@ -44,6 +46,12 @@ const connectionString = (env: Record<string, unknown>) =>
         : "";
     return Redacted.make(text);
   });
+
+/** The code's revision, from the deployer's environment (CI's `GITHUB_SHA`): its exports' `service.version`. */
+const revision = Effect.map(
+  Config.option(Config.String(ENV.revision).pipe(Config.orElse(() => Config.String("GITHUB_SHA")))),
+  Option.match({ onNone: () => ({}), onSome: (text) => ({ [ENV.revision]: text }) }),
+);
 
 // The Postgres driver opens its socket through Node's `net` and `tls`. Every deploy, each world's and staging's, runs
 // next to its database in Europe (D5, src/stack/region.ts).
@@ -60,7 +68,10 @@ export default class Core extends Cloudflare.Worker<Core>()(
     if ((yield* Alchemy.ALCHEMY_PHASE) === "runtime") return props();
     const given = yield* CoreDeployment;
     const deployment = Option.isSome(given) ? given.value : yield* ownDeployment;
-    return { ...props(), env: { ...deployment.env, [ENV.database]: deployment.database } };
+    return {
+      ...props(),
+      env: { ...(yield* revision), ...deployment.env, [ENV.database]: deployment.database },
+    };
   }),
   Effect.succeed({
     fetch: Effect.gen(function* () {
@@ -112,8 +123,16 @@ export default class Core extends Cloudflare.Worker<Core>()(
         // Which Cloudflare data centre runs this request, for every call's span (telemetry/attributes.ts).
         Layer.provide(Layer.succeed(Placement, { colo: coloOf(request.source) })),
       );
+      // Its telemetry's export, when this Core has a collector or a tap, built into the request's scope: it flushes
+      // after the answer has left (src/telemetry/export.ts).
+      const exported = yield* requestExport(env, connectionString(env));
+      const serving = Effect.flatten(serveDoors);
+      const answering = Option.match(exported, {
+        onNone: () => serving,
+        onSome: (context) => Effect.provide(serving, context),
+      });
       // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the Worker's fetch is its entry point: each request gets its own database pool
-      return yield* Effect.flatten(serveDoors).pipe(Effect.provide(served));
+      return yield* answering.pipe(Effect.provide(served));
     }),
   }),
 ) {}

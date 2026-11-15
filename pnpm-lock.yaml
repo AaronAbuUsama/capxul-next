@@ -375,6 +375,9 @@ importers:
       '@capxul/blueprint-tools':
         specifier: workspace:*
         version: link:../blueprint-tools
+      '@capxul/lint':
+        specifier: workspace:*
+        version: link:../lint
       effect:
         specifier: 'catalog:'
         version: 4.1.2
@@ -496,6 +499,9 @@ importers:
       '@capxul/core':
         specifier: workspace:*
         version: link:../core
+      '@capxul/platform':
+        specifier: workspace:*
+        version: link:../platform
       '@capxul/scenarios':
         specifier: workspace:*
         version: link:../scenarios

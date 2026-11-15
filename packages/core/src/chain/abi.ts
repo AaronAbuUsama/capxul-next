@@ -1,6 +1,7 @@
 // The contract functions Core's chain operations call and the logs they read, by the names Core uses for them. Each is
 // the compiled ABI (`@capxul/contracts`, generated from `forge build` by `pnpm generate`), never typed here. viem is used
-// as a pure codec (decisions.md, 34): it encodes and decodes, and every byte reaches the chain through `WorldChain`.
+// as a pure codec (packages/blueprint/docs/decisions.md, entry 34): it encodes and decodes, and every byte reaches the
+// chain through `WorldChain`.
 import { Abi } from "@capxul/contracts";
 
 export const ROLES = Abi.IRoles;
