@@ -407,4 +407,6 @@ the plumbing, and verdict before teardown (the speed lane's lead).
 
 ## 9. Decided
 
-None yet.
+- **D1, the target: under 5 minutes** (Aaron, 15 November 2026, in this thread): "from first principles, I want to
+  get it under 5 minutes if possible ... If we need to reverse some decisions, so be it." The paths to under 5 are
+  put to him again, in full, as the next decision; D2 to D8 wait on that choice.
