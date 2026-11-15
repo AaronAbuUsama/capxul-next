@@ -676,3 +676,40 @@ Frappe where it owns the data".
 
 **`notes.md`:** agreed with Aaron, 15 November 2026, to fold it into decisions 7 and 8 and delete the file in the
 restack.
+
+## 13. The blueprint's layout, locked (15 November 2026)
+
+**Agreed with Aaron, 15 November 2026**, from the explorer "Blueprint Layout" (version 2): this is the layout stage 2a
+moves the package into, and the layout every later piece of work lands in. The toolkit keeps the name
+`blueprint-tools`. Directors are a thing of their own (`director/add`, `director/list`), apart from the board
+(`board/set-threshold`).
+
+**`packages/blueprint`: only facts about Capxul.**
+
+| Path | Holds |
+|---|---|
+| `src/index.ts` | The one file other packages import from (was `src/door.ts`) |
+| `src/things/<thing>/` | One thing: `values.ts`, `events.ts`, `refusals.ts`, `lifecycle.ts` where it has one, and one file per verb, `<verb>.ts`, holding its request and answer, refusals, outcomes, budget, examples and promises |
+| `src/common/` | What several things use: `values.ts`, `ids.ts`, `refusals.ts`, `site.ts` (Capxul's names on a Frappe site), `chain/` (the logs and reads Capxul uses) |
+| `src/starting-points/` | `points.ts`, the named states journeys begin from, and `facts.ts`, what each hands a journey |
+| `src/protocol/` | How a call travels: `paths.ts`, `headers.ts`, `sign-in.ts`, `trace.ts` |
+| `src/generated/` | Indexes written by `pnpm generate` (the things, the refusals, the subjects, the promises, each thing's hub). Never edited |
+| `generated/` | `index.md` (every thing and its verbs) and one page per thing. Never edited |
+| `docs/build-order.md` | One page, until each verb declares what it needs and the page is generated |
+| `README.md` | One screen |
+
+The thirteen things today, from the 26 operations: approval (sign), board (set-threshold), budget (create, show,
+list), clock (warp), company (create), director (add, list), document (create, submit), history (export), invitation
+(send, list, accept, decline; its lifecycle), member (grant, list), report (run), snapshot (save, restore, list,
+delete), world (create, show, list).
+
+**`packages/blueprint-tools`: how the blueprint is written and checked.** `src/language/` (operation, lifecycle,
+promise, starting point, gather), `src/checks/` (the delta check, the formats, the declared names), `src/render/` (the
+pages, run inside `pnpm generate`).
+
+**What 2a does not do.** Operation names, event tags and identifiers keep today's words (`invite.accept`, `org`,
+claims); the glossary's renames run on their own ratchet (item 3.8). No behaviour changes; every journey stays green.
+
+**What keeps it.** A test fails a file under `src/` that does not fit: under `things/<thing>/` only `values.ts`,
+`events.ts`, `refusals.ts`, `lifecycle.ts`, `examples.ts` (until 2b folds it) and verb files; only the folders above at
+`src/`; markdown only in `generated/` and `docs/`.
