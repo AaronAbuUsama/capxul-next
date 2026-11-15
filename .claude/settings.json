@@ -1,0 +1,48 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__claude-code-remote",
+      "mcp__github",
+      "Bash(pnpm:*)",
+      "Bash(git:*)",
+      "Bash(bun:*)",
+      "Bash(node:*)",
+      "Bash(npx:*)",
+      "Bash(python3:*)",
+      "Bash(forge:*)",
+      "Bash(cast:*)",
+      "Bash(anvil:*)",
+      "Bash(foundryup:*)",
+      "Bash(curl:*)",
+      "Bash(jq:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(find:*)",
+      "Bash(wc:*)",
+      "Bash(diff:*)",
+      "Bash(sort:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(packages/runner/run.sh:*)",
+      "Bash(packages/world/run.sh:*)",
+      "Bash(packages/platform/bin/run.sh:*)"
+    ],
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git push --force-with-lease:*)",
+      "Bash(git push origin main:*)",
+      "Bash(git push origin integration/build:*)",
+      "Bash(alchemy nuke:*)",
+      "Bash(bunx alchemy nuke:*)",
+      "Bash(npx alchemy nuke:*)",
+      "Bash(pnpm alchemy nuke:*)",
+      "Bash(pnpm exec alchemy nuke:*)"
+    ]
+  }
+}
