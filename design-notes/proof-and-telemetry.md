@@ -1,0 +1,439 @@
+# Proof and telemetry
+
+Design thread for proof and telemetry, 15 November 2026. This is a design for Aaron to decide on: no code changed and
+no world run. It answers what proof is and where it lives, what each telemetry signal is, how each is emitted and
+where it goes, how cost is measured, and how we move there by "side by side, then flip, then retire". The decisions
+it needs are at the end, each with a recommendation.
+
+Read for it: `AGENTS.md`; `docs/roadmap.md` (decisions "Measurement is part of the contract", "Measurement is
+declared", "Typed once, by check", "Generated, never typed twice"; steps 1.2, 1.13, 4.1 to 4.3); Core's telemetry
+(`packages/core/src/telemetry/`, `migrations/0001_telemetry.sql`); the runner's read-back and checks
+(`packages/runner/src/world/database.ts`, `src/checks/checks.ts`); `packages/status-feed`; `.github/workflows/`;
+the speed thread's note (`design-notes/speed.md` on `design/speed`); Effect 4.1.2's `effect/observability` module;
+and Capxul Classic's telemetry (`xelmar-tech/infrastructure`: `packages/observability`, the backend's collector and
+observation layer, the `prove-it` and observability skills).
+
+## In one page
+
+- **Proof is a verdict, not a record.** A verdict is a small file that says what a trusted run proved: which proof,
+  which commit, passed or failed, the counts, and the digest of the run's full telemetry. Only CI makes one. GitHub
+  is the notary: each verdict names its workflow run, and the run's check on the commit carries the verdict's digest,
+  so anyone can verify a verdict against GitHub and nobody can write one by hand that verifies.
+- **Verdicts live in git, telemetry does not.** Verdicts are kilobytes, immutable and tied to a commit, which is what
+  git is good at: they are appended by CI to an orphan branch `proofs`, never to `master`. The run's detail is
+  telemetry: it goes to a sink, where it can be queried, and a copy of each CI run's telemetry is archived in R2 under
+  the verdict's digest.
+- **One standard pipeline for traces, logs and metrics.** Everything our code runs emits OpenTelemetry (OTLP) through
+  Effect's own exporters, which need no OpenTelemetry SDK and run on Workers. Errors are not a fourth stream: they are
+  a span's status and an exception on it. Where the OTLP goes is configuration, owned by `packages/world`.
+- **Two things that look like telemetry are not.** Declared events stay in the world's database: they are the
+  system's state, written in the same transaction as the change. Product analytics is derived from those declared
+  events, in real worlds only, and goes to its own sink. Cost is not emitted at all: it is pulled from the providers.
+- **A telemetry door, one per platform stage.** Worlds send OTLP to a small Worker over a service binding. The door
+  holds the sink's key, stamps the world and grade onto every span so a world cannot misstate them, and forwards to
+  the sink of its stage. Swapping the sink is a redeploy of one Worker. No world, container or agent holds a sink key.
+- **The runner keeps its per-call checks through a tap.** In test worlds, Core also exports its OTLP into the world's
+  own database (a tap, in OpenTelemetry's own format, not ours), and the runner reads the tap by trace id as it reads
+  `app.spans` today. The generic checks become functions over OpenTelemetry spans and logs, so the same checks can run
+  on the tap during a run and on the sink after a deploy ("deploy, then watch").
+- **Cost is measured daily** from Cloudflare's analytics, Neon's consumption, GitHub's run timings and the agents'
+  own OpenTelemetry, attributed to worlds, runs, journeys and lanes, and checked against the $10 a day cap.
+
+## 1. What is wrong today, restated as requirements
+
+| Today | Requirement |
+|---|---|
+| Run records committed to git: 37 MB in `packages/runner/records` (173 files, 1.8 MB per CI run), noisy diffs, merge conflicts | Run data is not committed. What is committed is small and append-only |
+| A committed file with `"outcome": "passed"` is proof; nothing ties it to a trusted run | A proof can be verified by anyone, from outside the repository, and cannot be made by hand |
+| Container runs committed, CI runs uploaded as artifacts that expire in 90 days | One home for every proof, and one for every run's detail, with a stated retention |
+| Every question is a script over JSON files | Run data is queryable, across runs, by people and agents |
+| Our own span and timing format (`app.spans`, `timing`, `steps`) beside OpenTelemetry's | OpenTelemetry is the format. Ours only where OpenTelemetry has nothing: the verdict |
+| Spans destroyed with the world | History across runs and worlds, with a viewer |
+| Kept: an immutable record of what was proven, tied to a commit; per-call checks, per world, at once, isolated | Kept |
+
+## 2. What proof is
+
+### Options weighed
+
+| Option | Trustworthy? | Lives where | Cost | Verdict |
+|---|---|---|---|---|
+| A. Records in git written by anyone (today) | No: any agent can commit a passing file | Git | Repo bloat | Replace |
+| B. CI check results on a commit | Yes: only a workflow run can set a GitHub Actions check | GitHub, permanent with the commit | Free | The notary, not the store: a check holds a status and a short text, not the detail, and listing them across history is many API calls |
+| C. Signed records (GitHub artifact attestations, Sigstore) | Yes, cryptographically | Attestation API, plus wherever the record is stored | Free on public repositories; on a private repository it needs GitHub Enterprise Cloud | Too much for what it adds over B, and likely unavailable on our plan |
+| D. Records in git produced only by CI | Only if pushes are restricted, which needs repository rulesets (a paid plan on a private repository) or a check like B | Git | Bloat if the records are full | Good for small verdicts, bad for full records |
+
+**Recommended: B and D together, with the detail moved out.** A verdict is small (D), produced only by CI, and
+notarised by its check (B). The detail is telemetry (section 4), archived by digest. Signing (C) is not needed: GitHub
+already vouches for which workflow ran on which commit.
+
+### The verdict
+
+A verdict says, for one proof, what one trusted run showed. Its schema is ours, because OpenTelemetry has no notion
+of "what was proven", and it is declared once, in the runner (it is what the runner concludes), and imported by the
+status feed's tests through a generated JSON Schema.
+
+```
+{
+  "proof": "journeys/thin-line",        // the proof's name, declared (below)
+  "outcome": "passed",                   // passed | failed
+  "commit": "<sha>",                     // the commit the run tested
+  "ref": "refs/pull/261/merge",          // what the workflow was started on
+  "run": { "workflow": ".github/workflows/world.yml", "id": 43611871280, "attempt": 1 },
+  "grade": "private", "world": "w-tpl-9ca547",
+  "startedAt": "...", "endedAt": "...",
+  "counts": { "journeys": 3, "passed": 3, "steps": 27, "checks": 240 },
+  "failed": null,                        // or the journey, step and check that failed, in words
+  "scores": { "explainability": null },  // 4.2, when it lands
+  "telemetry": { "traceIds": ["..."], "archive": "sha256:<digest of the OTLP archive>" }
+}
+```
+
+A verdict is a few kilobytes. It holds what must outlive any sink's retention; everything else is in the telemetry.
+
+### A proof's name
+
+Every proof is named and declared once, with the command that makes it: the thin line's journeys, each journey set,
+a package's proof command (`world` sweep, race, keep; the platform's drift). One table, read by the proving workflow,
+by the status feed and by a test that every `proof:` in the roadmap names a declared proof. The roadmap's Proof
+column then names `proof:<name>` (or `check:<command>`, unchanged), never a file path.
+
+### What makes a verdict trustworthy
+
+A verdict counts only when all of these hold, and the status feed checks each one every hour:
+
+1. It names a workflow run of this repository, made by the GitHub Actions app, from a workflow file declared as a
+   proving workflow.
+2. That run's head commit is the verdict's commit, and the run concluded `success` for a passing verdict.
+3. The run set a check named `proof/<name>` on that commit whose text carries the verdict's digest. Only a workflow
+   can create a GitHub Actions check, so the digest ties this exact file to that run.
+4. The commit is on `master` (an ancestor of its head) when the step is to count as Done.
+
+What this protects against: an agent writing or editing a result; a result from an agent's container passed off as
+CI's; stale evidence. What it does not protect against: a change to the proving workflow or the generic checks
+themselves, which runs in that pull request's own CI. That is a review question, as it is today ("a builder must not
+change the scenarios or the runner's generic checks"). A `CODEOWNERS` entry naming Aaron or the lead for
+`.github/workflows/`, `packages/scenarios/` and `packages/runner/src/checks/` would make the reviewer explicit
+(decision 8).
+
+### Runs from agents' containers
+
+They are evidence for the agent, never proof. They export telemetry like any run (marked `capxul.run.trusted=false`),
+so they can be queried and compared, but they make no verdict. Anything a step needs proven runs in CI: a proving
+workflow, `prove.yml`, started by hand (`workflow_dispatch`) with a declared proof's name, runs that proof's command
+and writes its verdict. Steps 1.6, 1.10, 2.3 and 2.4 were proven from containers; under this design they would have
+been proven by `prove.yml`. That spends Actions minutes, which are capped (decision 3).
+
+## 3. Where proof lives and how it is found
+
+| What | Where | Written by | Retention |
+|---|---|---|---|
+| Verdict | `proofs` branch (orphan, never merged): `verdicts/<yyyy-mm-dd>/<proof>/<run>-<attempt>.json` | CI only, as the last step of a proving job | Forever (kilobytes each) |
+| Notary | The check `proof/<name>` on the commit, with the verdict's digest | The same job | Forever, with the commit |
+| Run detail | The sink (section 5), queried by trace id, run, journey, commit | Core, the runner, the world, as OTLP | The sink's retention (30 days or more) |
+| Archive | R2 bucket `capxul-telemetry-archive`, one OTLP JSON file per CI run, named by its digest | The proving job, from the OTLP the runner and the tap hold | 180 days, by a lifecycle rule (decision 5) |
+| Legacy records | Where they are now (`packages/*/records/`), frozen | Nobody from the flip | Kept: they are the proofs of the steps already Done |
+
+Why an orphan branch and not `master`: verdicts never conflict with product work, never show in a pull request's diff,
+and `master` stays free of bot commits. Why git at all: verdicts are small, immutable, ordered, tied to commits,
+readable offline and greppable, and they outlive any vendor.
+
+**The Proof column and the dashboard.** `status-feed` reads `proofs`, verifies each verdict as above through GitHub's
+API, and works out each step's state: Done when a verified, passing verdict of the proof it names is on a commit on
+`master`; the time it was done is when that commit landed on `master`. A step marked Done with no verified verdict
+shows as Claimed, as today. A `check:` proof stays as it is, and is tightened to "the `gate` check passed on the
+commit where the step landed".
+
+**How we know it is there.** The hourly feed verifies every verdict and reports any that fail verification, by name,
+on the dashboard. A `check:` in CI, `pnpm proofs:check`, fails a pull request whose roadmap names a proof that is not
+declared, or names a file path for a step not already Done.
+
+## 4. The signals
+
+| Signal | What it is | Emitted by | Format | Goes to | Belongs with |
+|---|---|---|---|---|---|
+| **Traces and spans** | What a call did inside, timed: the operation's span, its declared steps (4.1), library spans | Core, the SDK and CLI (caller spans), the runner, the world and platform code | OTLP traces | The stage's telemetry door, then the sink; in test worlds also the tap | Logs and metrics |
+| **Logs** | What a call decided and why, with a declared schema (4.1): the refusal's deciding log, warnings | Effect's `Logger`, inside spans | OTLP logs, carrying the trace and span id | As traces | Traces |
+| **Errors** | A call that failed for a reason nobody declared: a defect, an undeclared failure, an interruption, a timeout | Not emitted separately: the span's status is `ERROR` with an `exception` event (type, message, stack), and an error log | Inside OTLP traces and logs | As traces; error tracking is a view the sink builds | Traces |
+| **Declared events** | The facts the blueprint declares an operation sends (`invitation_declined`): part of the contract and of the world's state | Core, in the same transaction as the change (`app.events`) | The blueprint's event schemas | The world's database, as today. A copy rides on the span as a span event, for correlation | The world's state, not telemetry |
+| **Product analytics** | Who did what, as people and companies, for funnels and retention | Not emitted by handlers: derived from declared events by a forwarder | The analytics tool's own format, made from the blueprint's events | An analytics sink, **real worlds only** | Nothing else; its own pipeline and privacy rules |
+| **Runtime metrics** | Counts and durations over time: calls per operation, durations, refusals, errors | Derived from spans in the sink, or by Effect's `Metric` where a span cannot show it | OTLP metrics | As traces | Traces |
+| **Cost** | Money and usage per world, run, journey, lane and day | Not emitted: pulled from Cloudflare, Neon, GitHub and the agents' telemetry by a daily job | OTLP metrics (`capxul.cost.usd`, `capxul.usage.*`) written by the job | The sink, and a daily summary on the dashboard | Metrics |
+
+### Which belong together
+
+- **Traces, logs, errors and runtime metrics go through one pipeline.** They describe the same calls, are joined by
+  trace and span id, carry the same resource attributes, and are read together when a call is explained (4.2). One
+  exporter per process, one door, one sink per grade. Splitting them, as Classic did when product events went over
+  one path and spans over another, is how its catalog and code drifted.
+- **Declared events do not go through it.** They are what Core promises and the runner checks, they must be exactly
+  once and in the same transaction as the change, and the indexer and future consumers read them. Telemetry may be
+  sampled, delayed or dropped; declared events may not.
+- **Product analytics does not go through it.** It is about people, needs consent and privacy rules the engineering
+  pipeline does not, and only means something in real worlds. Deriving it from declared events means no handler emits
+  a second, hand-typed event: one source, as "Generated, never typed twice" asks. Classic's hand-copied gateway
+  properties and dead catalog entries are what this avoids.
+- **Cost does not come from our code at all.** Only the providers know it.
+
+### Refusals are not errors
+
+A refusal is a declared outcome: the span's status stays unset, with `capxul.outcome=refused` and
+`capxul.refusal=<tag>`, and the deciding log (4.1). Only what nobody declared sets `ERROR`. So the sink's error view
+shows bugs, not people being told no, and an alert on any error in a real world means something. Classic kept the same
+split (expected outcomes apart from exceptions), and it is worth keeping.
+
+### Names and attributes are declared once
+
+Attribute names are facts, so the blueprint owns them (a `telemetry` module beside the operations), and code imports
+them. Where OpenTelemetry's semantic conventions have a name, we use it: `service.name`, `service.version`,
+`deployment.environment.name`, `vcs.ref.head.revision`, `cicd.pipeline.run.id`, `rpc.method`, `db.*`, `exception.*`,
+`cloud.region`. Ours are under `capxul.`:
+
+- on every span, by resource or stamped by the door: `capxul.world`, `capxul.grade`, `capxul.stage`;
+- on the run's spans: `capxul.run`, `capxul.journey`, `capxul.journey.step`, `capxul.run.trusted`;
+- on an operation's span: `capxul.operation`, `capxul.operation.version` (6.1), `capxul.outcome`, `capxul.refusal`,
+  `capxul.caller.role` (5.1), `capxul.budget.ms` (the declared budget, imported, provisional);
+- on a step's span: `capxul.step.kind` (database, site, chain, bundler, wait), so the waits a budget leaves out follow
+  from the record;
+- on Core's operation span: the Cloudflare colo, which the speed thread needs to settle why some runs are twice as
+  slow (`design-notes/speed.md`, change 2).
+
+**Privacy.** No email, name or free text from a person goes into an attribute or a log, in any grade. A person is an
+id. A declared log field marked sensitive in its schema is dropped by the exporter. Real worlds' ids are those real
+Core already holds; nothing is added that could link them to an email (Classic kept hashed emails on some events, which
+can be linked back to a person; we do not).
+
+## 5. How each signal is emitted
+
+### From Effect code (the runner, the world, the platform client, the CLI)
+
+Effect 4.1.2 ships `effect/observability`: `Otlp.layer` exports traces, logs and metrics over OTLP/HTTP through
+Effect's own `HttpClient`, with a shared `Flusher`, and needs no OpenTelemetry SDK, so no non-Effect runtime
+dependency is added. `Effect.fn` spans (4.1's declared steps), RPC spans and `Effect.log*` become OTLP as they are.
+Each process provides the layer once at its entry, from configuration (section 6). Tests provide an in-memory tracer,
+as Core's tests keep spans in memory today.
+
+The runner's own run is a trace: a root span per run, a span per journey and per step, the caller's span per call
+(already joined to Core's by the `traceparent` header the SDK sends), and each check as a span event with what it says
+and whether it passed. The runner's `oneWorld.timings` (world create, starting worlds, resets and their parts) are
+spans of the runner's and the world's code. So the run record becomes a query, and nothing is lost.
+
+### From Core on Cloudflare Workers
+
+- Core provides `Otlp.layer` with its base URL pointing at the telemetry door, reached through a **service binding**:
+  no public route and no credential. It calls the `Flusher` inside `ctx.waitUntil` after the answer is sent, so export adds nothing to the caller's
+  time or to `serverMs`.
+- In test worlds (private and shared), a second exporter writes the same OTLP into the world's database: the **tap**
+  (section 7). In real worlds there is no tap.
+- **Cloudflare's own tracing.** Workers can trace themselves (fetches, subrequests, Durable Objects, CPU and wall
+  time) and export it over OTLP to a destination. It sees what Effect cannot (CPU time, cold starts, an exception that
+  escapes Effect) and nothing of our declared steps. Recommended: turn on Workers Logs and traces for Core and the hub
+  as a second, platform-level view, exported to the same sink, never required by a check. Whether Cloudflare's spans
+  continue the caller's trace id has to be tried before anything relies on it.
+
+### The telemetry door
+
+One Worker per platform stage (`staging`, later `production`), deployed by `packages/platform` with the stage's sink
+key as its secret. It is Effect's `OtlpProxy`, which mounts `/v1/traces`, `/v1/logs` and `/v1/metrics` and forwards
+the body unchanged with the configured headers, plus two things of ours:
+
+- it stamps `capxul.world`, `capxul.grade` and `capxul.stage` from who called it (the service binding says which
+  world's Core it is), overwriting anything the caller sent, so a test world cannot write into a real sink's view as
+  a real world;
+- callers outside Cloudflare (the runner in CI or a container, the CLI, agents' sessions) reach its public route with
+  their operator's platform token, the way they reach the platform today.
+
+Fan-out to a second sink, scrubbing and sampling can be added in the door later without touching any world. Classic
+ran an OpenTelemetry Collector container for this; the door is that, made from a library we already have, on the
+compute we already run.
+
+## 6. How a sink is configured
+
+Where telemetry goes is a fact of "what runs where", so `packages/world` and `packages/platform` own it. Code reads
+only the standard settings (`Otlp.layerFromConfig`: an endpoint, and whether each signal is on).
+
+| Where | Traces, logs, metrics | Tap | Product analytics | Sampling |
+|---|---|---|---|---|
+| Unit tests (rung 5) | In memory | No | No | All |
+| Private world (test) | `staging` door, then the **test sink** | Yes | No | All |
+| Shared world (test) | `staging` door, then the test sink | Yes | No | All |
+| CI | The runner exports to the `staging` door with the run's attributes (`cicd.pipeline.run.id`, commit, ref); the proving job archives the run's OTLP to R2 | As its world | No | All |
+| Agent's container | As CI, marked untrusted | As its world | No | All |
+| Real world | `production` door, then the **real sink**: a separate project or dataset with its own key, never shared with test | No | Yes, derived from declared events | All to start; errors and refusals always kept if sampling comes |
+
+Two sinks, one per grade group, not one sink filtered by a property: Classic's single PostHog project for every
+environment held 76% localhost traffic by its own count, and kept real people's data beside test noise.
+
+### Choosing the sink
+
+The design does not depend on the sink. What a sink must do, in order:
+
+1. Take OTLP traces, logs and metrics over HTTP.
+2. Answer queries by trace id and by attribute, through an API an agent can call, within seconds of ingest.
+3. Keep at least 30 days.
+4. Cost nothing at our volume (a run is a few thousand spans; a busy day is well under a million).
+5. Show a trace waterfall to a person.
+
+PostHog takes OTLP traces, logs and metrics (Classic sent all three to its `/i/v1/` endpoints) and has a query API, so
+it is one candidate; general observability services with free tiers are others. Recommended: a one-day spike that
+exports the same CI run to two candidates and judges them by the list above, with ingest delay and query answers
+measured (decision 4).
+
+## 7. How the runner keeps its per-call checks
+
+The runner needs every call's spans and logs right after the call, from its own world only. A sink cannot give that:
+ingest takes seconds to minutes, a vendor outage would fail the gate, and queries cost. Core cannot push to the
+runner either: the runner has no inbound route, and Cloudflare is never given one into an agent's container.
+
+So in test worlds Core keeps a **tap**: the same OTLP it exports, written into the world's database
+(`telemetry.otlp`: the trace id, the signal, and the OTLP JSON as OpenTelemetry defines it), off the request path in
+`ctx.waitUntil`. The runner reads it by trace id, as it reads `app.spans` now, retrying briefly until the operation's
+span is there. It is per world, at once and isolated, as today, and destroyed with the world, which is right: history
+lives in the sink and the archive.
+
+The generic checks are rewritten as functions over OpenTelemetry spans and logs (name, parent, status, attributes,
+events), decoded from OTLP JSON by one schema at one edge file. Their source is the tap during a run and the sink
+after a deploy, so "deploy, then watch" runs the same checks on what production records. Declared events are still
+read from `app.events`.
+
+Alternatives weighed: Core returning the call's spans in its answer (the operation's span is not finished when the
+answer is encoded, and work in `waitUntil` would be missed); a Durable Object per world as the tap (faster, but one
+more moving part, and the database already gives isolation, transactions and the runner's read path).
+
+## 8. How cost is measured
+
+A daily job (`cost.yml`, and on demand from the dashboard's task) pulls usage, prices it, attributes it and writes it
+to the sink as metrics, with a summary on the dashboard. It replaces nothing of the limits that keep the cap today
+(hub capacity, lifetimes, destroy and sweep); it measures whether they work.
+
+| Source | How | Attributed by |
+|---|---|---|
+| Cloudflare | The GraphQL Analytics API (Workers invocations, CPU and duration by script; Durable Objects; containers; R2 operations and storage) through `api.cloudflare.com`, which the proxy already authenticates; priced from the published price list | Script and object names carry the world (Core's script, the hub's object names); a hub's shared cost is split by its worlds' hours |
+| Neon | The consumption API through `console.neon.tech` (compute seconds, written data and storage, hourly, per branch) | One branch per world |
+| CI minutes | GitHub's run timing for each workflow run (billable milliseconds), read by the proving job at its end and by the daily job | Workflow run, then its journeys by their share of time |
+| Model cost | Claude Code exports its own OpenTelemetry metrics (tokens and cost per session) when its telemetry is turned on; the agents' environment sends it to the door with the session's lane and branch as resource attributes. If agents run on API billing, the Anthropic cost report is the reconciliation, which needs an admin key (decision 6) | Session, lane, branch, pull request |
+
+The job compares each day's total with the $10 cap and raises a task when a day passes 80% of it. A month's figures are
+checked by hand once against the invoices, so the price list stays honest. 4.3's "cost per journey" is a query over
+these metrics.
+
+## 9. What each use of the JSON records becomes
+
+| Use today | Reads today | Becomes |
+|---|---|---|
+| The Proof column | A committed file whose `outcome` is `passed` | `proof:<name>`, made by a verified verdict on `proofs`. Legacy paths stay valid for steps already Done |
+| The dashboard (`status-feed`) | Proof files in git, landing times from git | Verdicts on `proofs`, verified against GitHub; landing times from `master` as now. Adds a daily spend line from the cost job |
+| The runner's per-call checks | `app.spans`, `app.events` | The tap (OTLP) and `app.events` |
+| The speed analysis (`design/speed`) | `summary.json`'s `oneWorld.timings`, each call's `timing` and `steps` | Queries over the sink: durations by operation, step and step kind; reset and make parts from the runner's spans; the colo on Core's span; across all runs, not the ones someone committed. Until the flip, the records stay as they are, so that thread loses nothing |
+| 4.2, the explainability eval | (not built) | A function over one journey's OTLP: every refusal has its deciding log, every span its parent, the share of each call's time in declared steps. The runner computes it from the tap and writes the score into the verdict; it can be recomputed from the archive |
+| 4.3, the build evals | (not built) | Tries to green and breakage and recovery from the verdict ledger (every verdict, passed or failed, per proof and commit, is on `proofs`); speed from the sink; cost from the cost metrics |
+| Debugging a failed run | Download the CI artifact, read the JSON | Open the run's trace in the sink by the trace id in the verdict and in the job's summary; after the sink's retention, the archive |
+
+## 10. How we move there
+
+Side by side, then flip, then retire, as `AGENTS.md` says. Nothing in a slice changes what a journey proves.
+
+**Side by side**
+
+1. **The vocabulary.** The blueprint declares the telemetry attribute names; the runner declares the verdict schema
+   and the table of proofs.
+2. **OTLP out.** Core, the runner, the world and the platform client provide `Otlp.layer`. The telemetry door on
+   `staging`, with the test sink's key (Aaron's credential). Core also writes the tap, beside `app.spans`.
+3. **Parity.** The runner reads both `app.spans` and the tap and a check of the runner's plumbing fails when they
+   disagree for any call; the run record carries both. Every journey stays green.
+4. **Verdicts.** The proving jobs write a verdict, set the `proof/<name>` check, append to `proofs` and archive the
+   OTLP in R2, beside the records they upload today. `prove.yml` for proofs not yet in a workflow. The status feed
+   accepts `proof:<name>` beside paths.
+5. **Cost.** The daily job reports; nothing fails on it.
+
+**Flip** (one pull request, nothing else in it): the runner's checks read only the tap; the runner stops writing run
+records into the repository (it writes them to its temporary directory and the archive); `packages/*/records/` gets
+no new files, checked by `pnpm shape`; the roadmap requires `proof:` or `check:` for any step not already Done; the
+Proof column of steps not yet Done is rewritten to `proof:` names.
+
+**Retire** (a later pull request, once the runs show nothing reads them): Core's `SqlSpanSink` and `app.spans` (a new
+migration drops the table; the applied one is not edited); the runner's JSON record writer for anything the verdict
+and the telemetry now hold; `upload-artifact` in `world.yml`. Optionally, later, the legacy records move to the
+`proofs` branch under `legacy/`; history keeps them either way.
+
+### Effect on the steps in flight
+
+- **Lane B (3.3 to 3.5)** is unaffected. 3.3's rule that declared names are imported covers the new attribute names.
+- **4.1 (declared steps and logs)** goes the right way if, and only if:
+  - its logs go through Effect's `Logger` and are read from the tap, not from a new table of ours (an `app.logs`
+    would be a second own format);
+  - its generic checks are written over OpenTelemetry-shaped spans and logs (an interface in the runner), not over
+    `app.spans`'s columns;
+  - a step's kind is the attribute `capxul.step.kind`, its name the span's name, both imported from the blueprint.
+
+  4.1's declarations and its lint rule need nothing from this design and can start when 3.3 lands. Its run-time
+  checks of logs need the tap (step 4.4 below). I am telling the conductor now.
+
+## 11. What it changes in the roadmap and `AGENTS.md`
+
+**Roadmap, a new decision** "Proof and telemetry" (wording for the pull request once agreed): proof is a verdict made
+only by CI, notarised by GitHub and kept on the `proofs` branch; run detail is OpenTelemetry, sent through a telemetry
+door per stage to one sink per grade group and archived by digest; declared events stay in the world's database;
+product analytics is derived from them in real worlds only; cost is pulled from the providers daily. It amends
+"Measurement is part of the contract" (run data is stored in the sink and archive, not the repository).
+
+**Roadmap, phase 4** keeps 4.1 to 4.3, so the references to them in `AGENTS.md` and phase 5 still hold, and adds:
+
+| Step | What | Needs |
+|---|---|---|
+| 4.4 | Telemetry is OpenTelemetry: Core, the runner, the world and the platform client export OTLP through Effect's exporters; the telemetry door on `staging`; the test sink; the tap in test worlds, read by the runner side by side with `app.spans`, then flipped and `app.spans` retired | 1.2 |
+| 4.5 | Proof is a verdict: the proving workflows write verdicts, notarised by checks, on `proofs`, with the OTLP archived in R2; the status feed verifies them; `prove.yml`; the Proof column uses `proof:` | 4.4 |
+| 4.6 | Cost is measured daily per world, run, journey and lane, against the cap | 4.4 |
+
+and changes 4.1 (logs through Effect's `Logger`, checks over OpenTelemetry spans and logs; its run-time log checks
+need 4.4), 4.2 (scored from the tap, written into the verdict), 4.3 (reads verdicts, the sink and the cost metrics;
+needs 4.5 and 4.6), and the "Steps to the goal" preamble (what a Proof may name). These would be one lane,
+`slice/telemetry`, which can start at once: 4.4 needs only what is Done.
+
+**`AGENTS.md`**:
+
+- "Three sources, one owner for every fact": run records stop being something checks write into the repository.
+  What is proven is owned by **verdicts**, made only by CI and verifiable against GitHub. What happened is
+  **telemetry**, in the sink. "Nobody writes one by hand" becomes checked.
+- "How it is measured": every call's record is its OpenTelemetry trace and logs, with the attributes the blueprint
+  declares; the generic checks run over them, from the tap during a run and from the sink after a deploy; refusals
+  are not errors; cost is measured.
+- The table "Who owns each fact" gains: telemetry attribute names (the blueprint); where telemetry goes
+  (`packages/world` and `packages/platform`); the verdict schema and the proofs (the runner); what is proven
+  (verdicts on `proofs`, replacing "Run records").
+- The ladder's rung 6 names `prove.yml` beside `world.yml`.
+
+## 12. Decisions for Aaron
+
+Each has a recommendation. The first three shape everything else.
+
+1. **Proof is a CI-made verdict, notarised by GitHub, kept on an orphan `proofs` branch**, with the detail in the sink
+   and an archive. Alternatives: verdicts committed to `master` by CI (bot commits on `master`); check runs only, no
+   ledger (no offline history, many API calls to list); signed attestations (likely needs GitHub Enterprise Cloud on a
+   private repository). **Recommend the orphan branch with checks as notary.**
+2. **Runs from containers are never proof.** Every proof runs in CI, by `prove.yml` when no other workflow makes it.
+   **Recommend yes.** The cost is the next question.
+3. **Actions minutes for proving.** Today a slice's journeys run once at its merge and `master` once a day. Proofs a
+   step needs beyond that (a world proof, a platform proof) would run by hand in `prove.yml`, a few per step. **Recommend
+   yes, within the same minutes cap, with the cost job (4.6) reporting them.**
+4. **The sink.** **Recommend a one-day spike of two candidates against the five criteria in section 6, then you
+   choose.** PostHog is one candidate since Classic already sends OTLP to it; the design does not lock it in. I need to
+   know whether you want PostHog in the bake-off, and which accounts you are willing to open (free tiers). Two sinks,
+   test and real, kept apart.
+5. **An R2 archive of every CI run's telemetry**, 180 days, in the platform stack. Pennies a month. **Recommend yes.**
+   Alternative: no archive, and a run's detail is gone after the sink's retention (the verdict stays).
+6. **Model cost.** Do agents run on API billing or on a plan? If API, the Anthropic cost report needs an admin key,
+   which is a credential only you can create. In both cases, turning on Claude Code's own OpenTelemetry in the agents'
+   environment, sent to the door, gives tokens and cost per session. **Recommend turning it on; the admin key only if
+   you want invoices reconciled automatically.**
+7. **Product analytics only in real worlds, derived from declared events.** No handler emits an analytics event of its
+   own. **Recommend yes.** It means no analytics until phase 8, which is when there are people to analyse.
+8. **`CODEOWNERS`** naming you (or the lead) for `.github/workflows/`, `packages/scenarios/` and
+   `packages/runner/src/checks/`, so a change to what judges the work needs a named reviewer. **Recommend yes**; it is
+   the one gap verdicts cannot close.
+9. **The roadmap shape:** keep 4.1 to 4.3, add 4.4 to 4.6, one new lane `slice/telemetry` started now, 4.1's run-time
+   log checks needing 4.4. **Recommend yes.** Alternative: renumber phase 4 in order, which breaks the references to
+   4.1 to 4.3 in `AGENTS.md` and phase 5.
+
+Credentials this needs from you, all by the network proxy or as repository secrets, none in a container: the test
+sink's key (for the `staging` door), later the real sink's (for `production`), and an R2 bucket in the existing
+Cloudflare account under the existing token if its scope allows, otherwise a scope change.
