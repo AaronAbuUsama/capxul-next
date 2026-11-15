@@ -258,6 +258,9 @@ importers:
 
   packages/blueprint:
     dependencies:
+      '@capxul/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       effect:
         specifier: 'catalog:'
         version: 4.1.2
@@ -313,6 +316,9 @@ importers:
       '@capxul/blueprint':
         specifier: workspace:*
         version: link:../blueprint
+      '@capxul/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@effect/sql-pg':
         specifier: 'catalog:'
         version: 4.1.2(effect@4.1.2)
@@ -332,6 +338,28 @@ importers:
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 4.20260702.1
+      '@effect/tsgo':
+        specifier: 'catalog:'
+        version: 0.63.0
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.1
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+
+  packages/generate:
+    dependencies:
+      '@capxul/blueprint':
+        specifier: workspace:*
+        version: link:../blueprint
+      effect:
+        specifier: 'catalog:'
+        version: 4.1.2
+      viem:
+        specifier: 'catalog:'
+        version: 2.55.18(typescript@5.9.3)(zod@3.25.76)
+    devDependencies:
       '@effect/tsgo':
         specifier: 'catalog:'
         version: 0.63.0
@@ -548,6 +576,9 @@ importers:
       '@capxul/blueprint':
         specifier: workspace:*
         version: link:../blueprint
+      '@capxul/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@capxul/core':
         specifier: workspace:*
         version: link:../core

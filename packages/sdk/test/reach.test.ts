@@ -22,7 +22,6 @@ import {
   encodeAbiParameters,
   encodeEventTopics,
   encodeFunctionResult,
-  parseAbi,
   parseAbiParameters,
   type Abi,
   type Hex,
@@ -43,8 +42,8 @@ const TX = hex(`0x${Str.repeat(32)("77")}`);
 const PAYMENT_ID = hex(`0x${Str.repeat(32)("9a")}`);
 const DOCUMENT = hex(`0x${Str.repeat(32)("ef")}`);
 
-const functions: Abi = parseAbi(Rec.values(Chain.FUNCTION_SIGNATURES));
-const events: Abi = parseAbi(Rec.values(Chain.LOG_SIGNATURES));
+const functions: Abi = Rec.values(Chain.FUNCTIONS);
+const events: Abi = Rec.values(Chain.LOG_EVENTS);
 
 const results: Readonly<Record<string, unknown>> = {
   balanceOf: 125_500_000n,
