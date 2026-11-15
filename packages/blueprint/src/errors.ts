@@ -4,6 +4,7 @@
 // nothing secret. A domain's own refusals are in its folder (`src/<domain>/refusals.ts`); those several domains share
 // are in errors/. Each such file declares its refusals with their exit codes; this file lists each file once.
 import * as Approvals from "./approvals/refusals.ts";
+import * as Board from "./board/refusals.ts";
 import * as Documents from "./documents/refusals.ts";
 import * as Caller from "./errors/caller.ts";
 import * as Companies from "./errors/companies.ts";
@@ -21,6 +22,7 @@ export * from "./errors/companies.ts";
 export * from "./world/refusals.ts";
 export * from "./organizations/refusals.ts";
 export * from "./people/refusals.ts";
+export * from "./board/refusals.ts";
 export * from "./budgets/refusals.ts";
 export * from "./documents/refusals.ts";
 export * from "./approvals/refusals.ts";
@@ -34,6 +36,7 @@ const declaring = [
   World,
   Organizations,
   People,
+  Board,
   Budgets,
   Documents,
   Approvals,

@@ -12,6 +12,8 @@ project), and a world's Core slot (`packages/world`, `src/core/Core.ts`), where 
 world's door and the world's bench. What a deploy binds is handed to it as a `Deployment` (`src/stack/deployment.ts`);
 the running Worker reads every fact from its environment per request, by the names in `src/env.ts`.
 
+**Every world handler is built.** Core builds the world group's sixteen (`src/site-ops/`, `src/organizations/`,
+`src/people/` and `src/board/`, below); the platform group's four are `packages/world`'s (`src/platform`, blueprint decisions.md 51), so Core's own
 **Every handler is built.** Core builds the world group's sixteen (`src/site-ops/`, `src/organizations/`,
 `src/people/` and `src/budgets/`, below); the platform group's four are `packages/world`'s (`src/platform`, blueprint decisions.md 51), so Core's own
 platform handlers are empty: each fails with the blueprint's `NotImplemented`, naming itself (entry 33). The server compiles only with one handler per operation: leave a
@@ -23,11 +25,12 @@ domain out of `src/handlers.ts`, or an operation out of its `src/domains/` file,
 | `src/door.ts` | The door: the stack, the two door paths, `serveDoors`, `Served`, `CoreRpcs`, the span types, and `migrations`. |
 | `src/doors.ts` | `serveDoors`: each request to the group its path names, `PLATFORM_PATH` or `WORLD_PATH`. |
 | `src/handlers.ts` | One handler per operation, in its blueprint group, gathered from `src/domains/`. |
-| `src/domains/` | One file per blueprint domain: its handlers, as its share of each group it serves (`platform`, `world`). The world group's come from `src/site-ops/` and `src/organizations/`; the platform group's are empty. |
+| `src/domains/` | One file per blueprint domain: its handlers, as its share of each group it serves (`platform`, `world`). The world group's come from `src/site-ops/`, `src/organizations/`, `src/people/` and `src/board/`; the platform group's are empty. |
 | `src/empty-handlers.ts` | Core's empty-handler mode: every operation of both groups answers `NotImplemented`, whatever is built, made from the groups' own operations. A stage deployed with `CAPXUL_HANDLERS=empty` (`src/env.ts`) serves it, so the scenario author can show every journey fails against handlers that do nothing (`./run.sh scenarios --expect=not-implemented` in packages/runner, roadmap step 1.14). A world's Core never binds it. |
 | `src/site-ops/` | The document, report, clock and record operations (below). `door.ts` is its door. |
 | `src/organizations/`, `src/approvals/`, `src/chain/`, `src/cast/` | The chain operations, org.create, org.member.grant and approval.sign (below). `organizations/handlers.ts` is what `src/domains/` and the Worker use. What a subject's landing means is its domain's (`organizations/landed.ts`, and `approvals/payments.ts` for a payment); `approvals/landed.ts` gathers them by kind. |
 | `src/people/` | The people operations, org.member.invite, invite.list, invite.accept, invite.decline and org.member.list (below). `people/handlers.ts` is what `src/domains/people.ts` uses; `people/roster.ts` is the one reading of who belongs to a company, which org.member.grant's member check reads too. |
+| `src/board/` | The board operations, org.director.list, org.director.add and org.threshold.set (below). `board/handlers.ts` is what `src/domains/board.ts` uses; `board/landed.ts` is what a landed `board_change` means. |
 | `src/budgets/` | The budgets operations, org.budget.create, org.budget.show and org.budget.list (below), and the landing of a `budget_creation`. `budgets/handlers.ts` is what `src/domains/budgets.ts` uses; `budgets/chain.ts` is the one reading of a budget on the chain. |
 | `src/server.ts` | `Served`, the handlers and middlewares of both groups, and `CoreRpcs`, both groups merged for a test in memory. |
 | `src/telemetry/spans.ts` | One span per call, named after the operation, under the trace id of the caller's `traceparent`, with every span beneath it. |
@@ -42,6 +45,7 @@ domain out of `src/handlers.ts`, or an operation out of its `src/domains/` file,
 | `src/failures.ts` | Core's own failures: `SiteDoorFailed` (`unset`, `unreachable`, `refused`). |
 | `src/stack/database.ts` | A stage's database: a Neon project of its own, and Hyperdrive in front of it with its query cache off. |
 | `alchemy.run.ts` | The stack `CapxulCore`. One stage is one Core and its database. |
+| `migrations/` | The `app` schema (named by the rule in "Migrations", below): `app.spans` and `app.events` (0001); `app.clock` and `app.documents` (0002); the world's chain contracts, cast and companies (`app.world`, `app.cast`, `app.companies`, 0003); the people domain's invitations and the members who joined by one (`app.invitations`, `app.members`, `0006_people_invitations.sql`); each change to a company's Board (`app.board_changes`, `0007_board.sql`). Applied by the runner when a stage is created, and by the world when it is made. |
 | `migrations/` | The `app` schema (named by the rule in "Migrations", below): `app.spans` and `app.events` (0001); `app.clock` and `app.documents` (0002); the world's chain contracts, cast and companies (`app.world`, `app.cast`, `app.companies`, 0003); the people domain's invitations and the members who joined by one (`app.invitations`, `app.members`, `0006_people_invitations.sql`); each budget's creation and its name (`app.budget_creations`, `0007_budgets_creations.sql`). Applied by the runner when a stage is created, and by the world when it is made. |
 | `test/server.test.ts` | Core's groups in memory: all twelve answer `NotImplemented` under one span each, kept with the caller's trace id; sign-in refusals. |
 | `test/site-ops-documents.test.ts`, `test/site-ops-world.test.ts` | The five operations served in memory through Core's groups against a stand-in company site (`test/support/site-ops.ts`): what the site is asked, what Core answers, what the record keeps. |
@@ -117,6 +121,26 @@ puts a hat on chain.
 Who belongs is read in one place, `people/roster.ts`: the founding Directors and members of `app.organizations`, then
 `app.members`. `org.member.grant`'s member check reads it, so a person who joined by an invitation can be granted a
 permission like a founding member.
+
+## The board operations (`src/board/`)
+
+The Board cannot change itself: the Signer Gate refuses a company Safe transaction that calls the Safe, and the
+Director hat and the Gate's threshold are administered by the Shareholders' top hat, which the founder's personal Safe
+wears (blueprint `board/order.md`). So a change to the Board is one UserOperation of the founder's own Safe, with one
+approval, the founder's, whose digest is the Safe4337Module's operation hash; `approval.sign` sends it at that first
+signature. Every refusal is checked from Core's records (`app.organizations`, `app.board_changes`) before the chain
+is read.
+
+| Operation | What it does |
+|---|---|
+| `org.director.list` | The company Safe's owners and threshold, read from the chain, each owner named by the Director whose cast Safe it is, in the order Core seated them (the founder first). Its people and the world's owner see it; anyone else is `NotAMember`. |
+| `org.director.add` | The founder only (`CannotChangeBoard`); a member (`NotAMember`) with a Safe (`MemberHasNoSafe`) who is not a Director (`AlreadyADirector`), while no other change waits (`BoardChangeWaiting`). The founder's Safe's MultiSendCallOnly batch: `Hats.changeHatMaxSupply` when every seat of the Director hat is worn, `Hats.mintHat` to the member's Safe, `HatsSignerGate.claimSignerFor`. The threshold stays as the Gate computes it (`min = target`). Records `board_change_proposed`. |
+| `org.threshold.set` | The founder only; at most the Directors (`ThresholdTooHigh`), not the one it has (`ThresholdUnchanged`), while no other change waits. One call of the founder's Safe: `HatsSignerGate.setThresholdConfig({ ABSOLUTE, n, n })`. Records `board_change_proposed`. |
+
+A change waits until it lands or its approval expires, in world time (`app.board_changes`). Its landing updates the
+company's Directors and threshold in `app.organizations`, so `org.member.grant` then asks the new Board, and a seat
+queues the new Director's `grant` of the site's Director hat (`SITE_HATS.director`), as the setup does for each
+founding Director.
 
 ## The chain operations (`src/organizations/`, `src/approvals/`, `src/chain/`)
 

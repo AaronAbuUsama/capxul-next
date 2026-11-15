@@ -14,6 +14,8 @@ export const MULTI_SEND = Abi.IMultiSend;
 export const INSTALLER = Abi.Installer;
 /** The Hats protocol: the functions Capxul calls, its events and its id helper. */
 export const HATS = [...Abi.IHats, ...Abi.IHatsEvents] as const;
+/** The company's Signer Gate (Hats Signer Gate v2): what the wearer of its owner hat, the Shareholders' top hat, calls. */
+export const GATE = Abi.IHatsSignerGate;
 export const SAFE_4337_MODULE = Abi.ISafe4337Module;
 export const ENTRY_POINT = Abi.IEntryPoint;
 export const BUDGETS = Abi.Budgets;
