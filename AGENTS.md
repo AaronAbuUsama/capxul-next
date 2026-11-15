@@ -226,9 +226,11 @@ fails a run.
 ### A new format reaches old work by a ratchet
 
 A new or changed operation uses a new format from the day it lands. Existing declarations are moved to it in the same
-slice where that is cheap; the rest are listed in the format's `unmigrated` list, which a test allows only to shrink,
-and the format's roadmap step closes when the list is empty. New work is born compliant; old work catches up in
-parallel and blocks nothing. Every ratchet is declared once in the blueprint's registry, and `pnpm ratchets` fails a pull
+slice where that is cheap; the rest are listed in the format's `unmigrated` list, which a test allows only to shrink.
+The format's roadmap step closes when the format exists, is proven in full on its named domain, and its ratchet is
+registered and counting today's count; it does not wait for the list to be empty. The ratchet's own lane closes when
+its list is empty (Aaron, 15 November 2026). New work is born compliant; old work catches up in parallel and blocks
+nothing. Every ratchet is declared once in the blueprint's registry, and `pnpm ratchets` fails a pull
 request whose list grew (3.6; `docs/design/blueprint.md`, part 4). A migration changes no behaviour: every journey stays
 green. Generic checks added by such a slice are written by a different agent from the one that migrates Core.
 
