@@ -51,6 +51,9 @@ export const Timing = Schema.Struct({
 });
 export type Timing = typeof Timing.Type;
 
+/** How many times something was sent again: a call's resends while its stage was not routed, a look's retries. */
+const Count = Schema.Finite;
+
 export const CheckedCall = Schema.Struct({
   operation: Schema.String,
   traceId: Schema.String,
@@ -61,7 +64,9 @@ export const CheckedCall = Schema.Struct({
   refusal: Schema.NullOr(Schema.String),
   failure: Schema.NullOr(Schema.String),
   /** Sends repeated during the call because the stage's address was not routed yet. */
-  resent: Schema.Finite,
+  resent: Count,
+  /** For a look (a check's read, marked `Observing`): times the runner sent it again after its transport failed. */
+  retried: Schema.optional(Count),
   timing: Timing,
   /**
    * The declared attributes of the operation's server span: the Cloudflare data centre that ran Core (`cf.colo`) and
@@ -151,6 +156,7 @@ export const checkCall = (call: Call, kept: Kept): CheckedCall => {
     refusal: call.refusal,
     failure: call.failure,
     resent: call.resent,
+    ...(call.retried === undefined ? {} : { retried: call.retried }),
     timing: {
       callerMs: round(call.callerMs),
       serverMs: span === undefined ? null : round(span.duration_ms),
