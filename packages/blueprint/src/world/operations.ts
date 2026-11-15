@@ -10,6 +10,7 @@ import {
   GradeNotOffered,
   NotWorldOwner,
   SnapshotExists,
+  SnapshotInUse,
   SnapshotNotFound,
   WorldExists,
   WorldNotFound,
@@ -146,7 +147,8 @@ export const snapshotSave = declare({
       template: Schema.Boolean,
     },
     success: Snapshot,
-    error: Schema.Union([WorldNotFound, NotWorldOwner, SnapshotExists, NotImplemented]),
+    /** SnapshotInUse: `replace` of a snapshot a live world hangs from, which cannot go while that world lives. */
+    error: Schema.Union([WorldNotFound, NotWorldOwner, SnapshotExists, SnapshotInUse, NotImplemented]),
   }),
   emits: [
     {

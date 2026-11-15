@@ -78,7 +78,7 @@ Old claims not kept:
 ## 3. `world.snapshot.save`
 
 - Served by: the platform group.
-- Refusals: `WorldNotFound`, `NotWorldOwner`, `SnapshotExists`, `NotImplemented`, and `NotSignedIn` from sign-in.
+- Refusals: `WorldNotFound`, `NotWorldOwner`, `SnapshotExists`, `SnapshotInUse`, `NotImplemented`, and `NotSignedIn` from sign-in.
 - Emits: `snapshot_saved`.
 - Budget: 30,000 ms, provisional, excluding waking a parked world. Basis: a Neon branch takes 8 to 10 s (spikes/hosting) and saving the chain 0.8 to 2.1 s (spikes/containers); a site's backup is not measured.
 
