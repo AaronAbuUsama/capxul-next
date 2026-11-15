@@ -3,14 +3,13 @@
 // EntryPoint in eth_supportedEntryPoints, and forwards the call. The chain stops it before the chain is saved.
 //
 // Nothing is saved on stop: alto keeps its mempool in memory, and everything else it needs (its simulation
-// contracts, its executor's nonce, the paymaster's deposit) is on the chain, which is saved.
-//
-// When the chain is rewound in place (a world's reset), alto is kept running: what it holds of the chain as it was,
-// its mempool and its reputation counts, is cleared (`debug_bundler_clearState`), and it reads everything else from
-// the chain again at its next bundle (its executor's nonce is read at every bundle; it watches blocks only while a
-// bundle is pending, from the head it finds then). A new container took 6 to 29 s to answer after each reset
-// (docs/design/run-time.md, option 6f). An alto that will not clear is stopped, as before, and starts on its next call.
+// contracts, its executor's nonce, the paymaster's deposit) is on the chain, which is saved. A world's reset stops it
+// too, before the chain is rewound (src/parts/chain/Chain.ts, `reset`), and it starts again on its next call.
 // alto's debug methods are its own: a call from outside that names one is refused.
+//
+// TODO: a UserOperation in alto's mempool when the world stops is lost. Alto runs with ALTO_SAFE_MODE=false (no
+// ERC-7562 tracing, which anvil's tracer cannot give, and no stake checks), and the paymaster signs nothing: a signed
+// paymaster and ERC-7677's `pm_*` methods would also meet alto's wall clock against the seeded chain's.
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
@@ -32,8 +31,6 @@ const RPC_URL_KEY = "rpcUrl";
 export interface BundlerRecord {
   readonly starts: ReadonlyArray<StartReport & { readonly at: string; readonly readyMs: number }>;
   readonly stops: ReadonlyArray<{ readonly at: string; readonly ms: number }>;
-  /** Each time the chain was rewound under a running alto and alto was kept, its state cleared. */
-  readonly clears?: ReadonlyArray<{ readonly at: string; readonly ms: number }>;
 }
 
 const empty: BundlerRecord = { starts: [], stops: [] };
@@ -60,7 +57,6 @@ const settings = (rpcUrl: string) => ({
 });
 
 const SUPPORTED_ENTRY_POINTS = { jsonrpc: "2.0", id: 1, method: "eth_supportedEntryPoints", params: [] };
-const CLEAR_STATE = { jsonrpc: "2.0", id: 1, method: "debug_bundler_clearState", params: [] };
 /** alto's own debug methods, never forwarded from outside. */
 const DEBUG_METHOD = '"debug_';
 
@@ -133,23 +129,6 @@ export default class Bundler extends Cloudflare.DurableObject<Bundler>()(
           yield* remember((old) => ({ ...old, starts: remembered(old.starts, start) }));
         }).pipe(lock.withPermits(1));
 
-      const stopAlto = Effect.gen(function* () {
-        if (!(yield* running)) return { stopped: false as const };
-        const began = yield* Clock.currentTimeMillis;
-        yield* alto.destroy().pipe(Effect.mapError(failed("stop")));
-        const stop = { at: stamp(began), ms: (yield* Clock.currentTimeMillis) - began };
-        yield* remember((old) => ({ ...old, stops: remembered(old.stops, stop) }));
-        return { stopped: true as const, ...stop };
-      });
-
-      /** alto's answer to `debug_bundler_clearState` is "ok" when it cleared; an alto started without its debug methods refuses. */
-      const clearState = Effect.fn("world.bundler.clearState")(function* () {
-        const text = yield* send(
-          HttpClientRequest.post("http://container/").pipe(HttpClientRequest.bodyJsonUnsafe(CLEAR_STATE)),
-        ).pipe(Effect.orElseSucceed(() => ""));
-        return Str.includes('"result":"ok"')(Str.replaceAll(" ", "")(text));
-      });
-
       return {
         /**
          * One bundler JSON-RPC body in, alto's answer out. Starts alto when it is stopped, against the chain address
@@ -160,23 +139,15 @@ export default class Bundler extends Cloudflare.DurableObject<Bundler>()(
             ? Effect.fail(BundlerFailed.make({ step: "rpc", message: "alto's debug methods are not served" }))
             : begin(rpcUrl).pipe(Effect.andThen(forward(body))),
         /** Stops alto. What it held in memory is gone; everything it needs again is on the chain. */
-        stop: () => stopAlto.pipe(lock.withPermits(1)),
-        /**
-         * The chain was rewound under alto (a world's reset): a running alto is kept and its state cleared, so the
-         * next call needs no start; one that will not clear is stopped, and starts on its next call.
-         */
-        reset: Effect.fn("world.bundler.reset")(function* () {
-          if (!(yield* running)) return { kept: false as const, stopped: false as const };
-          const began = yield* Clock.currentTimeMillis;
-          if (yield* clearState()) {
-            const clear = { at: stamp(began), ms: (yield* Clock.currentTimeMillis) - began };
-            yield* remember((old) => ({ ...old, clears: remembered(old.clears ?? [], clear) }));
-            yield* Effect.logInfo(`alto kept across the chain's reset, its state cleared in ${clear.ms} ms`);
-            return { kept: true as const, ...clear };
-          }
-          yield* Effect.logInfo("alto would not clear its state (no debug methods): stopped, as before");
-          return { kept: false as const, ...(yield* stopAlto) };
-        }, lock.withPermits(1)),
+        stop: () =>
+          Effect.gen(function* () {
+            if (!(yield* running)) return { stopped: false as const };
+            const began = yield* Clock.currentTimeMillis;
+            yield* alto.destroy().pipe(Effect.mapError(failed("stop")));
+            const stop = { at: stamp(began), ms: (yield* Clock.currentTimeMillis) - began };
+            yield* remember((old) => ({ ...old, stops: remembered(old.stops, stop) }));
+            return { stopped: true as const, ...stop };
+          }).pipe(lock.withPermits(1)),
         /** Removes the container and everything this object keeps: the world is being forgotten (src/things/cluster). */
         forget: () =>
           Effect.gen(function* () {

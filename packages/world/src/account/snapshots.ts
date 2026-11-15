@@ -1,9 +1,11 @@
-// world.snapshot.save and world.snapshot.restore, as the platform serves them (decisions.md, 17 to 19, 46 and 51).
-// A snapshot is a branch of the world's database, the chain's whole state saved under the snapshot's name in the
-// world's own bucket, and the platform's row of it; it belongs to its world and goes with it. A restore always makes
-// a new world: its database forks the snapshot's branch, its chain adopts the saved state, and its record continues
-// the snapshot's with its own `world_created`, naming its parent. Its clock is the snapshot's, read by Core, by its
-// sites (each restored with the same clock on the bench) and by its chain, whose next block is mined at that time.
+// world.snapshot.save and world.snapshot.restore, as the platform serves them (packages/blueprint,
+// src/things/snapshot/verbs/save.ts, src/things/snapshot/verbs/restore.ts and src/things/world/values.ts). A snapshot
+// is a branch of the world's database, the chain's whole state saved under the
+// snapshot's name in the world's own bucket, and the platform's row of it; it belongs to its world and goes with it. A
+// restore always makes a new world: its database forks the snapshot's branch, its chain adopts the saved state, and its
+// record continues the snapshot's with its own `world_created`, naming its parent. Its clock is the snapshot's, read by
+// Core, by its sites (each restored with the same clock on the bench) and by its chain, whose next block is mined at
+// that time.
 //
 // A world's company sites are saved with it, on its bench (src/things/site/snapshot.ts): each site's database, backed up under
 // the snapshot's name; a restore makes each again in the new world from its backup, under its own label, and points
@@ -160,7 +162,7 @@ export const restore = Effect.fn("platform.world.snapshot.restore")(function* (p
   const restored = yield* Ref.make<ReadonlyArray<{ readonly site: string; readonly from: string }>>([]);
   const onDeployed =
     snapshot.companies > 0
-      ? Effect.fn("platform.world.snapshot.restore.sites")(
+      ? Effect.fn("account.world.snapshot.restore.sites")(
           function* (target: string) {
             yield* Ref.set(restored, yield* restoreSites(stage, target, bench, payload.snapshot, clock));
           },

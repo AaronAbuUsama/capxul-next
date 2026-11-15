@@ -2,7 +2,7 @@
 // payment is held for sam's signature and the one too large is refused; wrong signatures are refused; sam pays once, a
 // replay sends nothing more, and the books agree with the chain. It acts on its own company only, so it can run beside
 // other journeys in one world. The snapshot round trip of a held payment is a journey of its own (branch-the-books.ts).
-import { Site, startingWorlds } from "@capxul/blueprint";
+import { Site, startingWorlds as begins } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import { Capxul } from "../client.ts";
@@ -43,11 +43,11 @@ export const payBrightside = journey(
     world: "shared",
     story:
       "sam's payment to Brightside is held for his signature, wrong signatures are refused, sam pays once and a replay sends nothing more, and the books agree with the chain.",
-    given: startingWorlds.paymentDrafted,
+    given: begins.paymentDrafted,
     steps,
   },
   Effect.gen(function* () {
-    const facts = yield* given(startingWorlds.paymentDrafted);
+    const facts = yield* given(begins.paymentDrafted);
     const capxul = yield* Capxul;
     const { world, supplier, invoice, payment } = facts;
     const org = facts.founded.org;
