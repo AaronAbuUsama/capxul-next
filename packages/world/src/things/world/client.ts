@@ -123,10 +123,10 @@ export const rpcHex = (world: Door, method: string, params: ReadonlyArray<unknow
     ),
   );
 
-const patient = <A, E, R>(attempt: Effect.Effect<A, E, R>) =>
+const patient = <A, E, R>(attempt: Effect.Effect<A, E, R>, every: Duration.Input = "2 seconds") =>
   attempt.pipe(
     Effect.tapError((error) => Effect.logDebug(`not ready: ${describeFailure(error)}`)),
-    Effect.retry(Schedule.spaced("2 seconds")),
+    Effect.retry(Schedule.spaced(every)),
   );
 
 /**
@@ -182,7 +182,7 @@ export const partStatus = (world: Door, part: "chain" | "index") =>
  * Starts the index and waits until Ponder says its backfill is done. The index's Durable Object tries a refused start
  * again within its patience (src/parts/containers/patience.ts); a start that did not hold is made again from here.
  */
-export const indexReady = (world: Pick<World, "door" | "database">) =>
+export const indexReady = (world: Pick<World, "door" | "database">, every: Duration.Input = "2 seconds") =>
   patient(
     Effect.gen(function* () {
       const status = yield* indexStatus(world);
@@ -198,6 +198,7 @@ export const indexReady = (world: Pick<World, "door" | "database">) =>
         });
       return status.indexed;
     }),
+    every,
   );
 
 const CoreHealth = Schema.Struct({ world: Schema.String });
