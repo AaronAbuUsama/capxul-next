@@ -5,8 +5,7 @@
 This file holds the rules only, each once. Why each rule is the way it is, and the detail behind it, is in two guides:
 [How work flows](docs/guides/how-work-flows.md) and [How a feature is built](docs/guides/how-a-feature-is-built.md).
 The decisions the roadmap recorded are in [docs/decisions.md](docs/decisions.md); a row without a date was agreed on
-13 November 2026. The plan this line follows is
-[docs/roadmap.md](docs/roadmap.md).
+13 November 2026.
 
 ## This branch is `master`: the rebuild line (read this first)
 
@@ -21,16 +20,22 @@ The decisions the roadmap recorded are in [docs/decisions.md](docs/decisions.md)
 
 If your task was written for `main` or `integration/build` and you are on this branch, stop and switch branches.
 
-## One owner for every fact
+The plan this line follows is [docs/roadmap.md](docs/roadmap.md).
 
-Every fact has one owner in code. Everything else that needs it imports it, generates it from it, or is checked
-against it ([docs/decisions.md](docs/decisions.md), "One source for every fact"). Nothing checks this as a whole yet:
-roadmap steps 3.1 and 3.3 add the checks. Which owner holds which fact is in
-[How a feature is built](docs/guides/how-a-feature-is-built.md#who-owns-each-fact).
+## Three sources, one owner for every fact
 
+- **The blueprint** (`packages/blueprint`) says what Capxul does: its operations, refusals, events and starting worlds,
+  as Effect declarations the product imports.
+- **The world** (`packages/world`) says what runs where: the Alchemy stacks that create and destroy a world.
 - **Verdicts** say what is proven: made only by CI, kept on the orphan branch `proofs`, each notarised by a GitHub
   check (roadmap step 4.5). What happened is **telemetry**, in the sink. Until 4.5 lands, run records made by checks and
   scenario runs stand in for verdicts; nobody writes one by hand, and a run from an agent's container is never proof.
+
+Every fact has one owner in code. Everything else that needs it imports it, generates it from it, or is checked
+against it, so two places cannot disagree ([docs/decisions.md](docs/decisions.md), "One source for every fact"). Which owner holds which
+fact, and how it will be checked, is in "Who owns each fact" below; the design behind it is
+[docs/design/blueprint.md](docs/design/blueprint.md). Nothing checks this as a whole yet: roadmap
+steps 3.1 and 3.3 add the checks.
 
 ## Worlds
 
@@ -39,23 +44,17 @@ A world is created, used and destroyed as one unit, with an owner and an expiry.
 
 ## How work flows
 
-Why it works this way: [How work flows](docs/guides/how-work-flows.md).
-
 - Work is done on an integration branch per slice: one effort being climbed (a journey, a step of the roadmap),
   named `slice/<name>` and cut from `master` by the lead. Each piece of work in it is one branch and one pull request
-  into that slice branch, merged by the lead when `check` (rungs 1 to 5, a few minutes) is green.
-- A slice reaches `master` by one pull request from `slice/<name>`, merged only when `check` and `world` (the thin
-  line's journeys in a fresh private world on staging, rung 6) are both green: every journey must still pass, and the
-  slice's own journeys pass or improve.
-- Until the run is fast, only the speed lane's slice runs `world` and other slices land without it
-  ([docs/decisions.md](docs/decisions.md), "Full runs paused until the run is fast"). Otherwise, only pull requests
-  from `slice/<name>` into `master` that are not drafts and change more than documents or records run `world` (a lead
-  keeps its slice's pull request a draft until it is ready to land, 15 November 2026), and `master` runs it once a day
-  ([why](docs/guides/how-work-flows.md#when-world-runs)). Nothing in the repository checks this beyond the workflows'
-  triggers.
+  into that slice branch, merged by the lead when `check` (rungs 1 to 5, a few minutes) is green. A slice reaches
+  `master` by one pull request from `slice/<name>`, merged only when `check` and `world` (the thin line's journeys in a
+  fresh private world on staging, rung 6) are both green: every journey must still pass, and the slice's own journeys
+  pass or improve. Until the run is fast, only the speed lane's slice runs `world` and other slices land without it ([docs/decisions.md](docs/decisions.md), "Full runs paused until the run is fast", Aaron, 15 November 2026). Otherwise, only pull requests from `slice/<name>` into `master` that are not drafts and change more than documents or records run `world` (a lead keeps its slice's pull request a draft until it is ready to land, 15 November 2026),
+  and `master` runs it once a day (Aaron, 14 and 15 November 2026: Actions minutes are spent on the journeys only at a
+  slice's merge, and a run is not repeated under load; [why](docs/guides/how-work-flows.md#when-world-runs)). Nothing in the repository checks this beyond the workflows' triggers.
 - Never push to, merge into or open a pull request against `main` or `integration/build`. Never force-push. Nothing
   checks this; it is on you.
-- A builder must not change the scenarios or the runner's generic checks. It may change
+- A builder must not change the scenarios or the runner's generic checks ([why](docs/guides/how-work-flows.md#slices)). It may change
   everything else it needs, the world and the runner's plumbing included (readiness, caching, connections), and every
   such change shows in its diff. Nothing checks this yet; the reviewer reads the diff.
 - Measure first. Every run record holds every operation's timings, caller and server, with the spans of each step. A
@@ -70,11 +69,11 @@ Why it works this way: [How work flows](docs/guides/how-work-flows.md).
 A **lane** is a chain of roadmap steps, each step needing the one before (the `Needs` column of
 [docs/roadmap.md](docs/roadmap.md), "Steps to the goal"). Each lane is led by one cloud session, its **lead**, on one
 slice branch `slice/<lane>`. One more session, the **conductor**, starts leads and does not write feature code.
-How the roles fit together: [How work flows](docs/guides/how-work-flows.md#lanes-leads-and-the-conductor).
 
 - **The conductor** starts a lane's lead only when every step the lane's first step needs is Done on `master`, and
-  starts lanes whose needs are met at once. It watches the spend and the bench's
-  load, keeps the status dashboard, and archives a lead's session when its lane's last step is Done.
+  starts lanes whose needs are met at once ([why](docs/guides/how-work-flows.md#lanes-leads-and-the-conductor)). It watches the spend and the bench's
+  load, keeps the status dashboard, and archives a lead's session when its lane's last step is Done. Its state is the
+  roadmap and the leads' sessions, so a fresh conductor can take over from them alone.
 - **A lead** is started with one line naming its lane, its steps and its slice branch. It cuts the slice from
   `master`; for each step it has the scenarios and checks written first by another agent, so they fail on empty
   handlers, then has builders open pull requests into the slice; it merges each when `check` is green, opens the slice's
@@ -83,9 +82,11 @@ How the roles fit together: [How work flows](docs/guides/how-work-flows.md#lanes
   `master` into its slice.
 - **A builder** does one piece of work on one branch and one pull request into the slice, and is started by its lead.
 - **Every thread is one type**, titled with its emoji: 🎼 conductor, 🧭 lead, ✍️ author, 🔨 builder, 🔍 reviewer,
-  📐 designer, 🧹 triage, 🕒 keeper, 🖥️ local. The kit is in `.agents/skills/`, written for any agent
-  ([what is in it](docs/guides/how-work-flows.md#the-kit)). `.claude/skills/` and `.claude/agents/reviewer.md` are
-  links to it, so edit the kit only in `.agents/skills/`.
+  📐 designer, 🧹 triage, 🕒 keeper, 🖥️ local. The kit is in `.agents/skills/`, written for any agent: `threads` (the
+  types, and each agent's word for starting, messaging, reading and archiving a thread), `conductor` (the loop, and the
+  rule that a slice reaches `master` only with a 🔍 pass, a fresh `gate` and `world`), `hashtags` (Aaron's
+  `#shortcuts`) and `reviewer` (the 🔍 review). `.claude/skills/` and `.claude/agents/reviewer.md` are links to it, so
+  edit the kit only in `.agents/skills/`.
 - **A Claude Code cloud session never connects to Aaron's computer**
   ([why](docs/guides/how-work-flows.md#aarons-computer)). A conductor on his machine (Amp, Codex, a
   terminal) does that work itself.
@@ -111,8 +112,8 @@ Standing rules from Aaron, for the conductor and every lead (14 and 15 November 
 ## How a feature is built
 
 Agreed with Aaron on 15 November 2026 ([docs/decisions.md](docs/decisions.md), "How a feature is built" and the
-decisions after it). The reasons and the detail are in [How a feature is built](docs/guides/how-a-feature-is-built.md).
-A feature is done when run records prove it and its measures are watched, not
+decisions after it). Why each part is the way it is: [How a feature is built](docs/guides/how-a-feature-is-built.md).
+Everything is about being measurable: a feature is done when run records prove it and its measures are watched, not
 when its code is written. Steps marked with a roadmap step, such as (3.4), are not built yet; until their roadmap step is Done, the reviewer checks
 them by reading the diff.
 
@@ -150,9 +151,25 @@ them by reading the diff.
 
 ### Who owns each fact
 
-Each fact's one owner, and what is generated from it or checked against it, is the table in
-[How a feature is built](docs/guides/how-a-feature-is-built.md#who-owns-each-fact). These rules make "typed once" and
-"measured" checks rather than hopes (3.3, 4.1), each with its ratchet:
+| Fact | Its one owner | Generated from it or checked against it |
+|---|---|---|
+| Operations, payloads, answers, refusals and exit codes, events, claims, starting worlds | The blueprint, in the verb's file under `src/things/<thing>/` | Core's server, the SDK, the CLI, the pages in `packages/blueprint/generated/`, the types of the scenarios' checks |
+| A thing's lifecycle (3.4) | The blueprint, the thing's `lifecycle.ts` | The state schema, the closing refusal's `state` field, the `step` function Core moves state with, the SQL CHECK constraint (in a new migration whenever the states change: an applied migration is never edited), the diagram in the thing's page, the runner's path check, coverage |
+| Who may call an operation (5.1) | The blueprint: roles declared once, `allowed` on each operation | Core's one standing check, the generated refusal steps |
+| An operation's steps and logs (4.1) | The blueprint, the operation's own file (3.6) | The generic checks, the waits a budget leaves out |
+| The pipeline's own work: worlds, resets, sites, starting worlds, journeys, the checks, proofs (3.6) | The blueprint, the domain `pipeline` | The runner's and the world's spans (4.7), the proof names in the roadmap |
+| Telemetry names: the envelope, producers, step kinds, metrics, datasets, monitors (3.6) | The blueprint, `src/telemetry/` | The attribute constants, each process's resource, the datasets and routing `packages/platform` creates, Axiom's monitors and dashboards |
+| Ratchets (3.6) | The blueprint's registry | `pnpm ratchets`, the dashboard's lines |
+| The words for things (3.8) | The blueprint's glossary | Folder, package and command names, the docs, lint |
+| Contract events and functions (3.1) | The compiled contracts in `packages/contracts` (`forge build`; Foundry runs in CI and in the agents' environment) | One generated ABI module, imported by the blueprint, Core and the indexer |
+| Contract addresses on the seeded chain (3.1) | `packages/contracts/deployments/devnet.json` | One generated table, imported by Core and `packages/world` |
+| The seeded chain state (3.2) | The contracts and their deploy script | `packages/contracts/state/core.json`, rebuilt by one command and checked in CI |
+| A person's account (5.2) | The blueprint: grade groups, account version, the email's normalisation, the derivation | The salt Core sends to `claim`; checked against the contract's `safeAddressFor` |
+| Capxul's own names on a company's site (3.1) | The blueprint, `src/common/site.ts` | A generated Python module in `packages/frappe-app` |
+| What runs where, and where telemetry goes | `packages/world`, `packages/platform` | |
+| What is proven | Verdicts on `proofs` (4.5); run records until then | The roadmap's step states |
+
+These rules make "typed once" and "measured" checks rather than hopes (3.3, 4.1), each with its ratchet:
 
 - In the blueprint, a raw schema (`Schema.String`, `Schema.Literals`, `Schema.Number`, ...) appears only in a values
   file, a machine or the telemetry vocabulary (`src/telemetry/`); every field of an operation, event or refusal is a named value. Outside the blueprint, raw schemas
@@ -169,8 +186,8 @@ CI's `pnpm generate:check` fails when generating again would change any file (3.
 ### Changing what works: side by side, then flip, then retire
 
 Until a real caller exists (phase 8), this does not apply: existing operations are reshaped and renamed directly,
-and the journey author updates the journeys in the same lane ([docs/decisions.md](docs/decisions.md), "No callers, no
-compatibility"). From the first real caller:
+and the journey author updates the journeys in the same lane ([docs/decisions.md](docs/decisions.md), "No callers, no compatibility"). From the
+first real caller:
 
 1. **Side by side.** The new behaviour is declared beside the old, as a new version of the operation, or a new move of
    its machine. Its journeys are written first and fail. The old behaviour's journeys stay green throughout.
@@ -185,8 +202,9 @@ new operation name.
 
 ### How it is measured
 
-What a run record holds, and how coverage and the measures are read, is in
-[How a feature is built](docs/guides/how-a-feature-is-built.md#how-it-is-measured).
+Every run record holds, for every call: the operation and its version, the caller, its outcome or refusal, the
+caller's and the server's milliseconds beside its budget, the spans of its declared steps, its logs, and the events
+it sent with what each carried.
 
 The generic checks run on every call of every journey, and judge the builder:
 
@@ -205,22 +223,22 @@ What counts as good, in this order:
    refusal has its deciding log, every span its parent, and the share of each call's time its declared steps account for. The
    score is reported from measured runs first, and its threshold is then set from the data, as budgets are; from then,
    a journey that is correct but not explainable has not passed.
-3. **Better over time** (4.3), once explainability holds
-   ([what is read](docs/guides/how-a-feature-is-built.md#better-over-time)). These are trends to read, not thresholds.
+3. **Better over time** (4.3), once explainability holds: tries to green per unit of work, journeys broken and how fast
+   they recovered, and speed and cost per journey across runs. These are trends to read, not thresholds.
 
-Every newly declared move, refusal and outcome must be reached by a journey before
+Coverage is reported with every run: which moves of each machine, and which refused pairs of a state and an
+operation, some journey step reached. Every newly declared move, refusal and outcome must be reached by a journey before
 its slice merges into `master`; existing declarations sit on ratchet R9's list (3.7). A budget is a target and never
 fails a run.
 
 ### A new format reaches old work by a ratchet
 
-Why: [How a feature is built](docs/guides/how-a-feature-is-built.md#a-new-format-reaches-old-work-by-a-ratchet).
-
 A new or changed operation uses a new format from the day it lands. Existing declarations are moved to it in the same
 slice where that is cheap; the rest are listed in the format's `unmigrated` list, which a test allows only to shrink.
 The format's roadmap step closes when the format exists, is proven in full on its named domain, and its ratchet is
 registered and counting today's count; it does not wait for the list to be empty. The ratchet's own lane closes when
-its list is empty (Aaron, 15 November 2026). Every ratchet is declared once in the blueprint's registry, and `pnpm ratchets` fails a pull
+its list is empty (Aaron, 15 November 2026). New work is born compliant; old work catches up in parallel and blocks
+nothing. Every ratchet is declared once in the blueprint's registry, and `pnpm ratchets` fails a pull
 request whose list grew (3.6; `docs/design/blueprint.md`, part 4). A migration changes no behaviour: every journey stays
 green. Generic checks added by such a slice are written by a different agent from the one that migrates Core.
 
@@ -232,7 +250,8 @@ Run `pnpm check` before you open a pull request. It runs rungs 1 to 5 in order a
 Rung 1, `pnpm shape`, also checks the docs' shape (`packages/lint/src/docs.ts`): what may live under `docs/`, where
 else Markdown may live, that a README fits in 60 lines, that every relative link resolves, and that a design note
 states its status. It also checks that every package has its generated map, `packages/<name>/generated/index.md`
-(`packages/lint/src/maps.ts`).
+(`packages/lint/src/maps.ts`), with the exceptions listed there (`LONG_READMES`, `UNSTATED_NOTES`, `UNMAPPED`), which
+may only shrink.
 
 <!-- generated:gate start -->
 <!-- Written by `pnpm generate` from `GATE` in packages/lint/src/gate.ts; never edit it. -->
