@@ -126,8 +126,8 @@ export const checkCall = (call: Call, kept: Kept): CheckedCall => {
   const [span] = spans.length === 1 ? spans : [];
   const events = Arr.filter(kept.events, (event) => event.trace_id === call.traceId);
   const emitted = checkEvents(call, events);
-  // A call its client rejected never left the caller (packages/blueprint/docs/decisions.md, entry 43): Core must have
-  // kept no span of it at all.
+  // A call its client rejected never left the caller (packages/blueprint, src/common/refusals.ts, `PayloadRejected`):
+  // Core must have kept no span of it at all.
   const unsent = call.outcome === "rejected";
   const checks: ReadonlyArray<Check> = [
     unsent
