@@ -410,3 +410,25 @@ the plumbing, and verdict before teardown (the speed lane's lead).
 - **D1, the target: under 5 minutes** (Aaron, 15 November 2026, in this thread): "from first principles, I want to
   get it under 5 minutes if possible ... If we need to reverse some decisions, so be it." The paths to under 5 are
   put to him again, in full, as the next decision; D2 to D8 wait on that choice.
+- **D7, the world on one machine: declined** (Aaron, 15 November 2026): "we do want to keep it as close as possible
+  to the reality ... we want to have the cloud processes running separately from the machine." His reason beyond
+  proof: longer-lasting staging worlds are coming, with scenarios people are onboarded on and off of across worlds,
+  so the run must exercise the cloud shape those will use. The `world` run stays in the cloud, every time.
+- **D8, one world, every journey side by side, each with its own company and people: agreed** (Aaron, 15 November
+  2026): "having all of the scenarios run side by side is definitely sure". It replaces lanes for the company
+  journeys, so "One runner, K worlds" (agreed earlier the same day) changes to: one shared world per run for the
+  company journeys, each journey building its own company and people in it and checked by the runner to stay inside
+  them; the journeys about worlds (the two quota journeys, the inventory, pay Brightside's snapshot round trip) keep
+  worlds of their own. Section 7 has the work. It also fits the staging worlds to come, where many companies live in
+  one world.
+- **Everything else in the cloud path: go** (Aaron, 15 November 2026): "anything else you can do, crack on with it."
+  That covers options 1 (the world's parts in one place, Core next to its data; which region is the speed lane's,
+  from one measured run), 2 (checks read the run's telemetry instead of polling), 6 (the plumbing), 7 (the verdict
+  before teardown), and moving pay Brightside's snapshot round trip off the critical path (the journey author's call).
+  The agreed order stands: instrumentation first (stage 3b), then the speed lane (3d) builds it, measured by its spans.
+- **Superseded by D8:** D2 (how far lanes go) and D3 (lanes build their starting world in place). **Settled by D7:**
+  D6 (a one-machine tier for pull requests): not now.
+- **Not decided, recommendation unchanged:** D4, keeping starting setups between runs, stays declined. Projected
+  after the work above: about 4.5 to 5.5 minutes (section 7's 5.5 to 6.5, less about 1 minute once pay Brightside's
+  snapshot round trip leaves the critical path). If the measured run is still over 5, D4 is the next lever and goes
+  back to Aaron with the measurements.
