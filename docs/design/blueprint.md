@@ -588,3 +588,28 @@ Phase 3 is Done when 3.1 to 3.7 are Done; phase 4 when 4.1 to 4.8 are.
 - "How it is measured": coverage gates new declarations; budgets are targets with the 1.5× review.
 - The ladder: `pnpm ratchets` and `pnpm delta:check` in rung 5; rung 6 names `prove.yml` beside `world.yml`.
 - The rules-only rewrite of `AGENTS.md` is the docs session's, following part 7; these are changes of fact it carries.
+
+## 12. Things, then verbs; the names; the CLI (15 November 2026)
+
+**Agreed with Aaron, 15 November 2026: the blueprint is organised as things, then verbs.** Capxul is made of things (a
+company, a person, an invitation, a document, an approval, a budget, a payment; and, for building it, a world, a run,
+a journey, a proof). Each thing has a life, and operations are the verbs done to it. The blueprint has one folder per
+thing and one file per verb, the thing's lifecycle, values, events and refusals beside its verbs, and how an outside
+system (Frappe, the chain) serves the thing kept with the thing. The command, the file, the docs page and the trace
+share one shape: `capxul invitation accept` is `invitation/accept.ts`, the page "invitation › accept" and the span
+`invitation.accept`. A new verb is a new file and a new thing a new folder, so new work lands in place without anyone
+deciding where. The machinery that declares and checks the blueprint lives in a separate toolkit package. This amends
+part 7, whose "domain folders" become thing folders; user-facing renames of operations go side by side, by ratchet.
+
+**Decision 7, the names: open.** Aaron asked for options for one unified glossary to choose from. Names become facts
+the blueprint owns in a glossary; folders, commands, docs and lint take their words from it; the rename runs as a
+ratchet. The inventory of today's names (16 words with several meanings, at least 8 things with several words) is the
+starting point.
+
+**Decision 8, the CLI as the one surface: direction agreed with Aaron, 15 November 2026.** The CLI is Capxul's one
+surface and is generated from the blueprint and the built code. The `run.sh` scripts become CLI commands. Every Frappe
+app and function becomes reachable, and a caller can act through their Safe within their authority. The design of
+each is still to come. It amends "One public surface, Frappe where it owns the data".
+
+**`notes.md`:** agreed with Aaron, 15 November 2026, to fold it into decisions 7 and 8 and delete the file in the
+restack.
