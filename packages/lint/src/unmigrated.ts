@@ -4,11 +4,13 @@
 // (a file at zero is removed). packages/lint/test/owned-values.test.ts caps each list's total; lower its CEILINGS
 // with the list. Migrating a file is separate work from the rule that found it.
 import type { Unmigrated } from "./rules/ratchet.ts";
+import { declaredSteps } from "./unmigrated-steps.ts";
 
 export const unmigrated: {
   readonly "owned-values": Unmigrated;
   readonly "declared-names": Unmigrated;
   readonly "decoded-rows": Unmigrated;
+  readonly "declared-steps": Unmigrated;
 } = {
   "owned-values": {
     "packages/blueprint-tools/test/types.ts": 7,
@@ -251,4 +253,5 @@ export const unmigrated: {
     "packages/core/test/support/budgets.ts": 1,
     "packages/core/test/support/people.ts": 2,
   },
+  "declared-steps": declaredSteps,
 };

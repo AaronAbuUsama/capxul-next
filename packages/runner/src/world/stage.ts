@@ -8,6 +8,7 @@
 //   5. Nothing of a stage lives on this machine but Alchemy's local state.
 //   6. Each step has a declared timeout, and how long each took is recorded.
 // Rule 2's expiry is not kept: a stage has an owner but no expiry until `packages/world` gives it one.
+import { Pipeline } from "@capxul/blueprint";
 import { migrations, stack } from "@capxul/core";
 import * as Alchemist from "alchemy/Alchemist";
 import * as Arr from "effect/Array";
@@ -24,6 +25,7 @@ import { bornAsWorld } from "./born.ts";
 import { migrate } from "./database.ts";
 import { inventory, type Accounts, type Inventory } from "./leftovers.ts";
 import { answersSteadily, type Readiness, type WarmUpPolicy } from "./warmup.ts";
+import { stepOptions } from "../telemetry/step.ts";
 
 export interface StageSpec {
   /** The stage's name, `core-<6 hex>`; also the name of the world its Core serves. */
@@ -67,6 +69,12 @@ export interface Lifecycle<A, E> {
 
 type StepName = "create" | "use" | "destroy";
 
+/** The span of a stage's deploy and of its destroy, as the blueprint declares them. */
+const STAGE_SPANS = {
+  create: Pipeline.runPrepare.spans.stage,
+  destroy: Pipeline.runTeardown.spans.stage,
+} as const;
+
 const millis = (took: Duration.Duration) => Math.round(Duration.toMillis(took));
 
 const limited = <A, E, R>(name: StepName, limit: Duration.Duration, effect: Effect.Effect<A, E, R>) =>
@@ -79,7 +87,9 @@ const limited = <A, E, R>(name: StepName, limit: Duration.Duration, effect: Effe
           message: `did not finish within its declared ${Duration.toMillis(limit)} ms`,
         }),
     }),
-    Effect.withSpan(`stage.${name}`),
+    // The run in the stage is spanned by its caller, as the run's root (`run.start`, run.ts and scenario-runs.ts).
+    (spanned) =>
+      name === "use" ? spanned : Effect.withSpan(spanned, STAGE_SPANS[name].name, stepOptions(STAGE_SPANS[name])),
   );
 
 const Output = Schema.Struct({

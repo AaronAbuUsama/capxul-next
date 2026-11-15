@@ -271,10 +271,14 @@ Our lint rules, each tested in `packages/lint/test/rules.test.ts`:
   world) is imported, never written as a string outside the blueprint, except where the compiler checks it (an object's
   key, a computed member, the tag given to `catchTag`, `Match.tag` or `isTagged`).
 - `capxul/decoded-rows`: no `sql<Row>` cast outside the blueprint; rows are decoded with the blueprint's schemas.
+- `capxul/declared-steps`: every effectful function of Core, the world, the platform and the runner (outside its checks)
+  is `Effect.fn` named by a declared step, imported from the blueprint: no string name, and no top-level function
+  returning `Effect.gen(...)` without a span.
 <!-- generated:lint-rules end -->
 
-These three are ratcheted: what each found when it was turned on is on its list in `packages/lint/src/unmigrated.ts`,
-a file with a count that may only fall (`packages/lint/README.md` says how to lower it). New files are never added.
+These four are ratcheted: what each found when it was turned on is on its list in `packages/lint/src/unmigrated.ts`
+(`declared-steps`' in `packages/lint/src/unmigrated-steps.ts`), a file with a count that may only fall
+(`packages/lint/README.md` says how to lower it). New files are never added.
 Each skips generated files: a file whose first line is a comment starting `// Generated`, written by `pnpm generate`
 and never edited.
 
