@@ -13,6 +13,26 @@ the speed thread's note (`design-notes/speed.md` on `design/speed`); Effect 4.1.
 and Capxul Classic's telemetry (`xelmar-tech/infrastructure`: `packages/observability`, the backend's collector and
 observation layer, the `prove-it` and observability skills).
 
+## The plan, as Aaron agreed it (15 November 2026)
+
+1. **Land what is in flight.** Every open slice and work branch lands by its own pull request when green.
+   No new lanes start.
+2. **Blueprint first, in one session with Aaron in the loop.** It finishes the blueprint so Aaron can watch the
+   developer experience and its legibility as they emerge. It covers:
+   - the blueprint's purpose and contents;
+   - its enforcement;
+   - one file per operation;
+   - the telemetry vocabulary;
+   - generated indexes;
+   - the repository's layout;
+   - the roadmap restacked.
+3. **Then ratchet the existing code** into agreement with it, in parallel lanes, changing no behaviour.
+4. **In parallel with 3, instrument the existing code in its own session.** The world package is not redesigned. Its
+   work (world make, reset, snapshot, site claim, starting worlds, journeys) is declared in the blueprint and
+   instrumented to match, so every second of a run is measured before anything is redesigned.
+
+This note is that plan's chapter on proof and telemetry. Section 0 is its chapter on the blueprint.
+
 ## The model
 
 Aaron asked for one cohesive way of doing things, not a list of fixes. This is it. Every signal, cost and proof
