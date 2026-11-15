@@ -5,8 +5,10 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 
 ## `src/`
 
+- [`climb.ts`](../src/climb.ts): The gate's climb (roadmap 4.7): the commands `pnpm check` runs, in order, each in the span the blueprint's pipeline declares for its rung (`Pipeline.checkGate.spans`), under one span of the gate's own work (`check.gate`), stopping at the first that fails, as `pnpm check` always has.
 - [`docs.ts`](../src/docs.ts): The docs' shape (docs/design/blueprint.md, part 7; docs/design/docs.md): what may live under docs/, where else a Markdown file may live, how long a README may be, that every relative link resolves, and that a design note states its status.
 - [`door.ts`](../src/door.ts): What other packages may import of the lint package: the facts it owns that `pnpm generate` writes into the docs.
+- [`gate.entry.ts`](../src/gate.entry.ts): `pnpm check`: the gate's rungs 1 to 5, each command run as a child process with the console passed through, in the span the blueprint declares for its rung (./climb.ts), stopping at the first that fails and exiting with its code, as the chain of `&&` it replaces did.
 - [`gate.ts`](../src/gate.ts): The gate: the rungs `pnpm check` climbs in order, and the proof after them, each with its command and what fails it.
 - [`maps.ts`](../src/maps.ts): Every package has a map, `packages/<name>/generated/index.md`, written by `pnpm generate` (docs/design/docs.md, section 0, item 3): one line per file under its src/ and page under its docs/.
 - [`plugin.ts`](../src/plugin.ts): The capxul oxlint plugin: the repository's own lint rules.
