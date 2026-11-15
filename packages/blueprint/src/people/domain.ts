@@ -5,6 +5,7 @@
 import * as RpcGroup from "effect/rpc/RpcGroup";
 import type { ClaimsOf } from "../claims/claim.ts";
 import * as Claims from "./claims.ts";
+import { Invitation } from "./machines.ts";
 import * as People from "./operations.ts";
 
 export * from "./operations.ts";
@@ -17,6 +18,15 @@ export const operations = {
   "invite.decline": People.inviteDecline,
   "org.member.list": People.memberList,
 } as const;
+
+/** Its operations that move no thing with a lifecycle (src/machine-format.ts), each with why. */
+export const stateless: { readonly [Name in keyof typeof operations]?: string } = {
+  "invite.list": "a read: lists the caller's invitations and changes nothing",
+  "org.member.list": "a read: lists a company's members and changes nothing",
+};
+
+/** Its machines, by name (src/machine.ts): the invitation's lifecycle. */
+export const machines = { invitation: Invitation } as const;
 
 /** What the platform's world service serves of it (`PlatformRpcs`). */
 export const platformRpcs = RpcGroup.make();
