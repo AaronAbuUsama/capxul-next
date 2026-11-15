@@ -142,6 +142,8 @@ Nothing below may stay undecided. `handoff-knock-on-map.md` lists each point and
 
 - **The hat check: decided.** The payer's side checks the hat once, when it receives the invoice, and records the
   result. A hat removed later does not undo an invoice already received (Aaron, 15 November 2026).
-- **The email at claim.** The roadmap already decides the derivation: the same as classic. But classic's claim never
-  puts the email on chain, and `CompaniesHouseClaimer.claim` here takes it as plain text. The spec decides the fix.
+- **The email at claim: decided.** The claim is done exactly as classic does it (Aaron, 15 November 2026): one
+  sponsored operation sent by the email's Safe itself, its deployment with a hashed salt and an owner swap signed by
+  the bootstrap owner, so the email never reaches the chain. `CompaniesHouseClaimer.claim` here takes the email as
+  plain text and must be replaced. This is a fault on `master` today, apart from this design.
 - **Payment kinds**, **measured gas costs**, and **invoices not issued through Capxul** (parked by Aaron).
