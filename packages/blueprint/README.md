@@ -15,6 +15,7 @@ import it; it imports neither.
 | `src/<domain>/` | One domain: `world`, `organizations`, `people`, `budgets`, `documents`, `approvals`, `reports`, `record`. Below. |
 | `src/operation.ts` | The format: `declare`, `declareOutcomes`, `outcome`, `Budget`, and what the runner reads. |
 | `src/machine.ts` | The machine format: `make`, and what it derives from a declaration. Below, "Machines". |
+| `src/delta.ts` | The delta check (step 3.5): every operation has every format in `src/formats.ts` (the registry, with each format's `unmigrated` list, which may only shrink), or is on that list. `pnpm delta:check` runs it through `src/delta.entry.ts`. `src/format.ts` says what a format is; `src/machine-format.ts` is the machine format's check: an operation starts or moves a machine, declaring the outcome from every state each of its moves cannot start from, or its domain's `domain.ts` lists it in `stateless` with a reason. |
 | `src/errors.ts` | Every refusal with its command-line exit code, gathered from the files that declare them: each domain's `refusals.ts`, and `src/errors/` for those several domains share (who is calling, a company and its site, `NotImplemented`, which every operation declares, decisions.md entry 33, and `PayloadRejected`, which the caller's own client makes, entry 43). |
 | `src/gather.ts` | How a hub gathers its parts' records into one. |
 | `src/values.ts` | The shared values: names, ids (declared in `src/ids.ts`), instants, money, approvals and their `Subject`, gathered from the domains' `subjects.ts`, the view of a world. |
