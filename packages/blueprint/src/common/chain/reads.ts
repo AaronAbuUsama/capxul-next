@@ -1,8 +1,15 @@
-// The reads of a world's chain a caller may make through the world's door (decisions.md, 34). Each is declared once,
+// The reads of a world's chain a caller may make through the world's door. Each is declared once,
 // here: what it is asked, what it answers, and the JSON-RPC call and contract function behind it. The SDK serves them
 // over the door's chain JSON-RPC (`CHAIN_PATH`, read-only methods only), so a claim reads the chain itself, never a
 // copy of it that Core keeps. Every address a read takes comes from the world's view (`WorldView.contracts`), from
 // an operation's answer or from a log. A read that gets no answer is a defect, as an unanswered call is.
+//
+// Reads, not an operation (13 November 2026): an operation would put a copy of the chain's state behind Core, the very
+// thing the promises check Core against, and would need its own events, budget, promises and handler; read directly,
+// the chain is the one owner of its state. The SDK decodes the ABI with viem as a pure codec, doing no I/O (that is
+// Effect's HttpClient). For the reads to work, a company Safe's `company` is its org id, a payment is found by the
+// `paymentId` Core answered, a new world's chain mines a block at its clock's start, and an officer hat is known by
+// its details (`OFFICER_HAT_DETAILS`).
 import { Abi } from "@capxul/contracts";
 import * as Arr from "effect/Array";
 import type * as Effect from "effect/Effect";

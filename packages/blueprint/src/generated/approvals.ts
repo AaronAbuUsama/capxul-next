@@ -5,15 +5,15 @@
 // glossary's renames (roadmap item 3.8).
 import * as RpcGroup from "effect/rpc/RpcGroup";
 import type { ClaimsOf } from "../starting-points/points.ts";
-import * as ApprovalSign from "../things/approval/sign.ts";
+import * as ApprovalVerbsSign from "../things/approval/verbs/sign.ts";
 
 export { Collected, Sent } from "../things/approval/values.ts";
 export { ApprovalSigned, ApprovalLanded } from "../things/approval/events.ts";
-export { AlreadySent, sign } from "../things/approval/sign.ts";
+export { AlreadySent, sign } from "../things/approval/verbs/sign.ts";
 
 /** Its operations, by name. */
 export const operations = {
-  "approval.sign": ApprovalSign.sign,
+  "approval.sign": ApprovalVerbsSign.sign,
 } as const;
 
 /** Its operations that move no thing with a lifecycle, each with why: each such verb's `stateless`. */
@@ -26,9 +26,9 @@ export const machines = {} as const;
 export const platformRpcs = RpcGroup.make();
 
 /** What a world's Core serves of it, through the world's door (`WorldRpcs`). */
-export const worldRpcs = RpcGroup.make(ApprovalSign.sign.rpc);
+export const worldRpcs = RpcGroup.make(ApprovalVerbsSign.sign.rpc);
 
 /** The promises of each of its operations: each verb's `promises`. */
 export const claims: { readonly [Name in keyof typeof operations]: ClaimsOf } = {
-  "approval.sign": ApprovalSign.promises,
+  "approval.sign": ApprovalVerbsSign.promises,
 };

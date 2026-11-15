@@ -57,6 +57,7 @@ const NOBODY = "zed";
 export const budgetSam = journey(
   {
     name: "give sam a budget at Northwind",
+    world: "shared",
     story:
       "dana proposes a monthly budget of 1,000 USDC for sam inside Northwind's top budget, dana and eli sign it onto the chain with a hat of its own on sam's Safe, and everyone who belongs reads it as the chain holds it; whoever may not propose, whom a budget may not go to and what does not fit are refused.",
     given: startingWorlds.founded,

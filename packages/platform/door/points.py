@@ -1,5 +1,5 @@
 """Saving a world's sites to a point and resetting them in place to it (roadmap steps 1.16 and 1.17; measured in
-spikes/site-speed, Q4). door.py checks the token; this does the work.
+records/site-speed, Q4). door.py checks the token; this does the work.
 
 A point is, for every ready site of the world, a saved copy of its database inside MariaDB (about 3 s), each table's
 checksum taken from that copy, its files (`public/files`, `private/files`) and its `site_config.json`; and, once for

@@ -7,7 +7,8 @@
 //   idle, save: each call pushes a durable stop forward; while calls arrive the state is saved every SAVE_EVERY
 //   fork, snap, reset: adopt another world's state; save the state under a snapshot's name; rewind to it in place
 //   world: keeps the world's registration, checks each call's token against it (admit), forgets it all
-// The index stops before a save and resumes on a wake; the bundler stops with it. The index's polling is "quiet".
+// The index stops before a save and resumes on a wake; the bundler stops with it, and before a reset rewinds the chain,
+// so a live alto never bundles an operation of the chain as it was into the restored one. The index's polling is "quiet".
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Alchemy from "alchemy";
 import * as Arr from "effect/Array";
@@ -171,7 +172,8 @@ export default class Chain extends Cloudflare.DurableObject<Chain>()(
           if (Predicate.isNull(object))
             return yield* ChainFailed.make({ step: "reset", message: `no chain state saved as ${snapshot}` });
           const dump = yield* object.text().pipe(Effect.mapError(failed("reset")));
-          // alto's nonces and mempool belong to the chain as it was: it starts again on its next call.
+          // alto's nonces and mempool belong to the chain as it was: it is stopped before the rewind, so it cannot
+          // bundle an operation it still holds into the restored chain, and starts again on its next call.
           yield* (yield* bundler).stop().pipe(Effect.mapError(failed("reset")));
           const inPlace = yield* running("reset");
           if (inPlace) {

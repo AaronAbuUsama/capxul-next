@@ -5,7 +5,7 @@ import type { Documents } from "@capxul/blueprint";
 import { docCreate } from "../checks/doc-create.ts";
 import { docSubmit } from "../checks/doc-submit.ts";
 import { foundNorthwind } from "../journeys/found-northwind.ts";
-import { payAndBranch } from "../journeys/pay-and-branch.ts";
+import { payBrightside } from "../journeys/pay-brightside.ts";
 import { at, type Domain } from "../domain.ts";
 
 /** The checks of each of its operations. */
@@ -15,7 +15,7 @@ export const checks: Domain<typeof Documents>["checks"] = {
 };
 
 /** The journeys it leads, in the order they run. */
-export const journeys: Domain<typeof Documents>["journeys"] = [payAndBranch];
+export const journeys: Domain<typeof Documents>["journeys"] = [payBrightside];
 
 /** Where each claim of each of its operations is checked, in claims.md's order. */
 export const coverage: Domain<typeof Documents>["coverage"] = {
@@ -23,12 +23,12 @@ export const coverage: Domain<typeof Documents>["coverage"] = {
     at(["doc.create"], [foundNorthwind, 7], [foundNorthwind, 8]),
     at(["doc.create"], [foundNorthwind, 7]),
     at(["doc.create"], [foundNorthwind, 7]),
-    at(["doc.submit"], [payAndBranch, 2]),
+    at(["doc.submit"], [payBrightside, 2]),
   ],
   "doc.submit": [
-    at(["doc.submit"], [payAndBranch, 2]),
-    at(["doc.submit"], [payAndBranch, 2]),
-    at(["doc.submit"], [payAndBranch, 2]),
-    at(["doc.submit"], [payAndBranch, 2]),
+    at(["doc.submit"], [payBrightside, 2]),
+    at(["doc.submit"], [payBrightside, 2]),
+    at(["doc.submit"], [payBrightside, 2]),
+    at(["doc.submit"], [payBrightside, 2]),
   ],
 };

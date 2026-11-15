@@ -19,6 +19,20 @@ test("every journey has its own name, a story and a run", () => {
   }
 });
 
+test("the journeys about worlds run in worlds of their own, every other in the one shared world", () => {
+  const own = Arr.map(
+    Arr.filter(journeys, (each) => each.world === "own"),
+    (each) => each.name,
+  );
+  assert.deepEqual(Arr.sort(own, Order.String), [
+    "an operator's inventory",
+    "branch the books of a held payment",
+    "two operators and their worlds",
+  ]);
+  for (const each of journeys)
+    assert.ok(each.world === "own" || each.world === "shared", `${each.name}: ${each.world}`);
+});
+
 test("at least the thin line's journeys, each 5 to 10 steps from a starting world the blueprint declares", () => {
   assert.ok(journeys.length >= 2, `${journeys.length} journeys`);
   for (const each of journeys) {

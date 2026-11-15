@@ -1,13 +1,14 @@
 // The blueprint's one door: every operation with its declaration, and the two Rpc groups that serve them, gathered
-// from the generated indexes (src/generated/, written by `pnpm generate` from the thing folders). Nothing in this
-// package imports infrastructure or an implementation; the language its declarations are written in is the toolkit's,
+// from the generated indexes (src/generated/, written by `pnpm generate` from the thing folders); the pipeline's own
+// work, which no Rpc group holds; and the telemetry vocabulary (src/telemetry/). Nothing in this package imports
+// infrastructure or an implementation; the language its declarations are written in is the toolkit's,
 // `@capxul/blueprint-tools`, and re-exported here where callers use it.
 import { gather, namesOf, type Operation } from "@capxul/blueprint-tools";
 import * as Arr from "effect/Array";
 import * as Rec from "effect/Record";
 import * as RpcGroup from "effect/rpc/RpcGroup";
 import { domains } from "./generated/domains.ts";
-import { refusals } from "./generated/refusals.ts";
+import * as Errors from "./generated/refusals.ts";
 import { PlatformSignIn, WorldSignIn } from "./protocol/sign-in.ts";
 import { Telemetry } from "./protocol/trace.ts";
 import { startingWorlds } from "./starting-points/points.ts";
@@ -26,7 +27,7 @@ export const machines = gather(every, "machines");
  * Every name the blueprint declares: operations, refusals, events, outcomes and starting worlds. The lint rule
  * capxul/declared-names refuses each of them written as a string outside the blueprint.
  */
-export const declaredNames: ReadonlySet<string> = namesOf(operations, refusals, startingWorlds);
+export const declaredNames: ReadonlySet<string> = namesOf(operations, Errors.refusals, startingWorlds);
 
 /**
  * Served by the platform's world service (`packages/world`): what must work while a world is parked or before it
@@ -55,8 +56,7 @@ export * from "./protocol/trace.ts";
 export * from "./protocol/headers.ts";
 export * from "./protocol/sign-in.ts";
 export {
-  declare,
-  declareOutcomes,
+  verb,
   eventNamesOf,
   holdsFactsOf,
   isRefusal,
@@ -73,9 +73,33 @@ export * as Errors from "./generated/refusals.ts";
 export * as Values from "./generated/values.ts";
 export { startingWorlds, type Claim, type ClaimsOf, type Step, type StartingWorld } from "./starting-points/points.ts";
 export { MadeCall } from "./starting-points/facts.ts";
+export * as Cast from "./starting-points/cast.ts";
 export * as Chain from "./common/chain/chain.ts";
 export * as Site from "./common/site.ts";
 export { allClaims } from "./generated/promises.ts";
+export { glossary } from "./glossary.ts";
+/** Who may call an operation (roadmap item 5.1): each role, declared once. */
+export { roles } from "./common/values.ts";
+export { ratchets, unmigrated, type Counter, type Ratchet } from "./ratchets.ts";
+
+/**
+ * The refusals no handler decides, so no log is written where they are decided: a payload its operation's schema
+ * rejects (the caller's own client refuses it) and an operation not switched on yet.
+ */
+export const undecided = [Errors.PayloadRejected, Errors.NotImplemented] as const;
+/**
+ * The pipeline's own work (docs/design/blueprint.md, part 8): every verb no door serves, with its spans, logs, budget
+ * and payload. No Rpc group above holds any of it.
+ */
+export * as Pipeline from "./generated/pipeline.ts";
+/** The telemetry vocabulary (docs/design/blueprint.md, part 10), one namespace per file of src/telemetry/. */
+export * as Conventions from "./telemetry/conventions.ts";
+export * as Envelope from "./telemetry/envelope.ts";
+export * as Producers from "./telemetry/producers.ts";
+export * as StepKinds from "./telemetry/step-kinds.ts";
+export * as Metrics from "./telemetry/metrics.ts";
+export * as Datasets from "./telemetry/datasets.ts";
+export * as Watch from "./telemetry/watch.ts";
 export {
   Approvals,
   Board,

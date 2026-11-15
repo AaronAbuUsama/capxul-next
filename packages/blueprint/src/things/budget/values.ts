@@ -10,6 +10,13 @@
 // one asset per calendar period, inside its parent's, and a hat: whoever wears it may spend from it, and from every
 // budget below it. The chain owns every figure of a budget and is its only gate; Core keeps only its name. Declared
 // here once; the domain's operations and refusals import them from here, and its door exports them.
+//
+// The chain as the only gate is Aaron's (14 November 2026): a budget's Cost Center on its company's site, with at
+// most an ERPNext Budget set to Warn, comes in a later unit. A budget's holders are the people of the cast whose Safe
+// wears its hat now, so the top budget, of the Books hat, has none in `founded`. Its creation is known by a `bcr_` id
+// until it lands; which admin hat the new hat sits under, and how many may wear it, are the builder's within the
+// contracts. Not declared, because nothing yet asks for them: closing, reopening and changing a budget, a budget's own
+// refusals for a parent too deep or closed, and spending from it, which settles one sealed document (docs/roadmap.md).
 import * as Schema from "effect/Schema";
 import { Amount, Asset, BudgetCreationId, HatId, OrgId, PersonId } from "../../common/values.ts";
 

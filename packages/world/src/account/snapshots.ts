@@ -1,9 +1,11 @@
-// world.snapshot.save and world.snapshot.restore, as the platform serves them (decisions.md, 17 to 19, 46 and 51).
-// A snapshot is a branch of the world's database, the chain's whole state saved under the snapshot's name in the
-// world's own bucket, and the platform's row of it; it belongs to its world and goes with it. A restore always makes
-// a new world: its database forks the snapshot's branch, its chain adopts the saved state, and its record continues
-// the snapshot's with its own `world_created`, naming its parent. Its clock is the snapshot's, read by Core, by its
-// sites (each restored with the same clock on the bench) and by its chain, whose next block is mined at that time.
+// world.snapshot.save and world.snapshot.restore, as the platform serves them (packages/blueprint,
+// src/things/snapshot/verbs/save.ts, src/things/snapshot/verbs/restore.ts and src/things/world/values.ts). A snapshot
+// is a branch of the world's database, the chain's whole state saved under the
+// snapshot's name in the world's own bucket, and the platform's row of it; it belongs to its world and goes with it. A
+// restore always makes a new world: its database forks the snapshot's branch, its chain adopts the saved state, and its
+// record continues the snapshot's with its own `world_created`, naming its parent. Its clock is the snapshot's, read by
+// Core, by its sites (each restored with the same clock on the bench) and by its chain, whose next block is mined at
+// that time.
 //
 // A world's company sites are saved with it, on its bench (src/things/site/snapshot.ts): each site's database, backed up under
 // the snapshot's name; a restore makes each again in the new world from its backup, under its own label, and points
@@ -16,6 +18,10 @@ import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Random from "effect/Random";
+import * as Ref from "effect/Ref";
+import * as Schema from "effect/Schema";
+import { SiteFailed } from "../common/failures.ts";
+import { describeFailure } from "../common/describe.ts";
 import { create as createWorld } from "../things/world/create.ts";
 import { resumeIndex, stopIndex } from "../parts/chain/controls.ts";
 import { rpcControl, saveChain } from "../things/world/client.ts";
@@ -25,14 +31,13 @@ import { existingRecorded, isTaken, keptOrDestroyed, tried } from "./worlds.ts";
 import { instantOf, readFacts, writeRestored } from "../things/world/store.ts";
 import { tokenOf } from "./operators.ts";
 import { savePoint } from "../things/site/reset.ts";
-import { restoreSites, saveSites } from "../things/site/snapshot.ts";
+import { type BenchClock, restoreSites, saveSites } from "../things/site/snapshot.ts";
 import { nameOf } from "../stack/names.ts";
 import { refusalsOnly } from "./refusals.ts";
 import { keepSnapshot, prepareStore, snapshotOf } from "./store.ts";
 import { emitDeclared, opened, viewOf } from "./view.ts";
 
-/** How long a restore waits for its sites, each made again from its backup one after another on the bench. */
-const SITE_RESTORE = Duration.minutes(8);
+const isSiteFailed = Schema.is(SiteFailed);
 
 type SavePayload = (typeof Blueprint.snapshotSave.rpc.payloadSchema)["Type"];
 type RestorePayload = (typeof Blueprint.snapshotRestore.rpc.payloadSchema)["Type"];
@@ -144,6 +149,28 @@ export const restore = Effect.fn("platform.world.snapshot.restore")(function* (p
     }),
   );
   yield* tried(payload.as);
+  // One clock, from the restore's start: Core's clock reads the snapshot's time at it, the sites' clock entry runs
+  // from it, and the chain's next block is mined at that time brought to now.
+  const restoredAt = yield* Clock.currentTimeMillis;
+  const clock: BenchClock =
+    snapshot.clock_mode === "frozen"
+      ? { frozen_at_ms: snapshot.clock_ms }
+      : { offset_ms: snapshot.clock_ms - restoredAt };
+  // The sites are made again from their backup as soon as the new world's deploy has made its site key and secret,
+  // beside Core's start, the migrations and the index, not after the whole create (docs/design/run-time.md, option
+  // 6a: a restore was the create, 27.5 s, then the sites, 29.6 s, one after the other).
+  const restored = yield* Ref.make<ReadonlyArray<{ readonly site: string; readonly from: string }>>([]);
+  const onDeployed =
+    snapshot.companies > 0
+      ? Effect.fn("account.world.snapshot.restore.sites")(
+          function* (target: string) {
+            yield* Ref.set(restored, yield* restoreSites(stage, target, bench, payload.snapshot, clock));
+          },
+          Effect.mapError((error) =>
+            isSiteFailed(error) ? error : SiteFailed.make({ step: "make", message: describeFailure(error) }),
+          ),
+        )
+      : undefined;
   const made = yield* createWorld({
     name: payload.as,
     owner: operator,
@@ -151,12 +178,12 @@ export const restore = Effect.fn("platform.world.snapshot.restore")(function* (p
     operatorToken: token,
     from: payload.world,
     snapshot: { branch: snapshot.branch_id, name: payload.snapshot },
+    ...(onDeployed === undefined ? {} : { onDeployed }),
   }).pipe(refusalsOnly(isTaken));
   return yield* keptOrDestroyed(
     made.world.stage,
     Effect.gen(function* () {
       const parent = { world: payload.world, snapshot: payload.snapshot, recordSeq: snapshot.record_seq };
-      const restoredAt = yield* Clock.currentTimeMillis;
       yield* writeRestored(made.world.database, {
         mode: snapshot.clock_mode,
         worldMs: snapshot.clock_ms,
@@ -169,26 +196,17 @@ export const restore = Effect.fn("platform.world.snapshot.restore")(function* (p
           ? snapshot.clock_ms
           : snapshot.clock_ms + ((yield* Clock.currentTimeMillis) - restoredAt);
       yield* mineAtWorldTime((method, params) => rpcControl(made.world, method, params), worldNow);
-      if (snapshot.companies > 0) {
-        const clock =
-          snapshot.clock_mode === "frozen"
-            ? { frozen_at_ms: snapshot.clock_ms }
-            : { offset_ms: snapshot.clock_ms - restoredAt };
-        const sites = yield* restoreSites(stage, made.world.stage, bench, payload.snapshot, clock).pipe(
-          Effect.timeout(SITE_RESTORE),
-        );
-        // The new world's companies are the saved world's, at their new sites: Core reaches a company's site by its
-        // name (`app.organizations.site`) and lists it by its address (`app.companies.site_url`).
-        yield* Effect.forEach(sites, (site) =>
-          Effect.andThen(
-            made.world.sql("update app.organizations set site = $2 where site = $1", [site.from, site.site]),
-            made.world.sql("update app.companies set site_url = $2 where site_url = $1", [
-              `https://${site.from}`,
-              `https://${site.site}`,
-            ]),
-          ),
-        );
-      }
+      // The new world's companies are the saved world's, at their new sites: Core reaches a company's site by its
+      // name (`app.organizations.site`) and lists it by its address (`app.companies.site_url`).
+      yield* Effect.forEach(yield* Ref.get(restored), (site) =>
+        Effect.andThen(
+          made.world.sql("update app.organizations set site = $2 where site = $1", [site.from, site.site]),
+          made.world.sql("update app.companies set site_url = $2 where site_url = $1", [
+            `https://${site.from}`,
+            `https://${site.site}`,
+          ]),
+        ),
+      );
       const { view, facts } = yield* viewOf(made.world.stage, { parent });
       const success = { ...view, recordHead: snapshot.record_seq + 1 };
       yield* emitDeclared(

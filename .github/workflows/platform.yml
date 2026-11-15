@@ -20,7 +20,13 @@ on:
         default: deploy
   push:
     branches: [master]
-    paths: ["packages/platform/**", ".github/workflows/platform.yml", ".github/actions/platform-setup/**"]
+    paths:
+      - "packages/platform/**"
+      - "!packages/platform/**/*.md"
+      - "!packages/platform/docs/**"
+      - "!packages/platform/records/**"
+      - ".github/workflows/platform.yml"
+      - ".github/actions/platform-setup/**"
 permissions:
   contents: read
   id-token: write
@@ -44,6 +50,11 @@ jobs:
   deploy:
     if: github.event_name == 'workflow_dispatch' || vars.CAPXUL_CLOUD_READY == 'true'
     runs-on: ubuntu-latest
+    # One user of the staging bench at a time (15 November 2026: a deploy and its shared-world journeys ran during a
+    # slice's world run and broke it). world.yml's thin-line takes the same group.
+    concurrency:
+      group: staging-bench
+      cancel-in-progress: false
     timeout-minutes: 90
     defaults:
       run:
@@ -69,7 +80,15 @@ jobs:
         run: bin/forward.sh open "$PLATFORM_STAGE"
       - name: The platform (CapxulPlatform)
         if: inputs.action != 'plan'
-        run: bin/run.sh deploy --stage "$PLATFORM_STAGE" --yes
+        # The collector's ingest key for the test sink (Axiom), bound to its Worker as a secret. Without it the
+        # collector is deployed but the sink refuses what it forwards, and its counts say so.
+        env:
+          COLLECTOR_SINK_KEY: ${{ secrets.AXIOM_INGEST_TEST }}
+        run: |
+          if [ -z "$COLLECTOR_SINK_KEY" ]; then
+            echo "::warning title=No sink key::AXIOM_INGEST_TEST is not set: the collector cannot forward to the test sink."
+          fi
+          bin/run.sh deploy --stage "$PLATFORM_STAGE" --yes
       - name: Drift check (0 clean, 2 drifted)
         if: inputs.action != 'plan'
         run: |
@@ -95,9 +114,10 @@ jobs:
     if: inputs.action != 'plan'
     runs-on: ubuntu-latest
     timeout-minutes: 90
-    # The shared world's owner is one operator for every run, so its runs go one at a time.
+    # The shared world's owner is one operator for every run, so its runs go one at a time; and one user of the
+    # staging bench at a time (15 November 2026), so this group is shared with the deploy and world.yml's thin-line.
     concurrency:
-      group: world-staging
+      group: staging-bench
       cancel-in-progress: false
     env:
       NEON_API_KEY: ${{ secrets.NEON_API_KEY }}

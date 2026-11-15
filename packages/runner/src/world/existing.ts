@@ -4,8 +4,9 @@
 // its owner's operator token, which the runner reads from the world's state and never prints. The runner neither
 // creates nor destroys the world: its owner does, with `world destroy`.
 //
-// `OtherWorlds` is how the runner reads what Core kept for a call made `at` another world's door (decisions.md, 36):
-// each world keeps its own spans, so such a call's telemetry is read from the world whose Core answers at that door.
+// `OtherWorlds` is how the runner reads what Core kept for a call made `at` another world's door
+// (packages/blueprint, src/protocol/headers.ts): each world keeps its own spans, so such a call's telemetry is read
+// from the world whose Core answers at that door.
 import * as World from "@capxul/world";
 import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";

@@ -15,15 +15,24 @@ const filesUnder = (folder: string): ReadonlyArray<string> =>
     /\.[a-z]+$/.test(path),
   );
 
-/** The files a thing's folder may hold beside its verbs; `examples.ts` until stage 2b folds it into the verbs. */
+/** The files a thing's folder may hold beside its `verbs/`; `examples.ts` until stage 2b folds it into the verbs. */
 const THING_FILES = ["values.ts", "events.ts", "refusals.ts", "lifecycle.ts", "examples.ts"];
 
 /** The fixed files of src/, by folder. `things/` and `generated/` are checked by their own rules. */
 const FIXED: { readonly [folder: string]: ReadonlyArray<string> } = {
-  "": ["index.ts"],
+  "": ["index.ts", "glossary.ts", "ratchets.ts"],
   "common/": ["values.ts", "ids.ts", "refusals.ts", "site.ts", "chain/chain.ts", "chain/logs.ts", "chain/reads.ts"],
-  "starting-points/": ["points.ts", "facts.ts"],
+  "starting-points/": ["points.ts", "facts.ts", "cast.ts"],
   "protocol/": ["paths.ts", "headers.ts", "sign-in.ts", "trace.ts"],
+  "telemetry/": [
+    "conventions.ts",
+    "envelope.ts",
+    "producers.ts",
+    "step-kinds.ts",
+    "metrics.ts",
+    "datasets.ts",
+    "watch.ts",
+  ],
 };
 
 /** Why a file under src/ does not fit the layout, or null when it does. */
@@ -31,11 +40,20 @@ const misfit = (file: string): string | null => {
   const text = (): string => readFileSync(new URL(`src/${file}`, ROOT), "utf8");
   if (Str.startsWith("things/")(file)) {
     const parts = Str.split(file, "/");
-    if (parts.length !== 3) return "a thing is one folder of files, things/<thing>/<file>";
-    const name = parts[2] ?? "";
-    if (Arr.contains(THING_FILES, name)) return null;
+    const name = parts[parts.length - 1] ?? "";
+    if (parts.length === 3)
+      return Arr.contains(THING_FILES, name)
+        ? null
+        : "a thing's folder holds values.ts, events.ts, refusals.ts, lifecycle.ts, examples.ts and verbs/; a verb's file lives in verbs/";
+    if (parts.length !== 4 || parts[2] !== "verbs")
+      return "a thing is things/<thing>/<file> and things/<thing>/verbs/<verb>.ts";
     if (!/^[a-z][a-z-]*\.ts$/.test(name)) return "a verb's file is named by its verb, in lower case";
-    return Str.split(text(), "Rpc.make(").length === 2 ? null : "a verb's file declares exactly one operation";
+    if (Arr.contains(THING_FILES, name)) return "verbs/ holds only verbs; a thing's own files sit beside it";
+    const operations = Str.split(text(), "Rpc.make(").length - 1;
+    const works = Str.split(text(), " = work({").length - 1;
+    return operations + works === 1
+      ? null
+      : "a verb's file declares exactly one operation, or one piece of work no door serves";
   }
   if (Str.startsWith("generated/")(file))
     return /^generated\/[a-z-]+\.ts$/.test(file) && Str.startsWith("// Generated")(text())
@@ -43,7 +61,7 @@ const misfit = (file: string): string | null => {
       : "src/generated/ holds only files `pnpm generate` writes, each saying so in its first line";
   for (const [folder, names] of Rec.toEntries(FIXED))
     if (Str.startsWith(folder)(file) && Arr.contains(names, Str.slice(folder.length)(file))) return null;
-  return "src/ holds index.ts, things/, common/, starting-points/, protocol/ and generated/, each with its own files";
+  return "src/ holds index.ts, glossary.ts, ratchets.ts, things/, common/, starting-points/, protocol/, telemetry/ and generated/, each with its own files";
 };
 
 test("every file under src/ fits the layout", () => {
@@ -66,6 +84,6 @@ test("markdown lives only in generated/ and docs/, besides the README", () => {
 
 test("the layout's own folders are all there", () => {
   const folders = Arr.dedupe(Arr.map(filesUnder("src/"), (file) => Str.split(file, "/")[0] ?? ""));
-  for (const folder of ["index.ts", "things", "common", "starting-points", "protocol", "generated"])
+  for (const folder of ["index.ts", "things", "common", "starting-points", "protocol", "telemetry", "generated"])
     assert.ok(Arr.contains(folders, folder), `src/${folder} is missing`);
 });

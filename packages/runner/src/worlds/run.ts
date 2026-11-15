@@ -28,10 +28,12 @@ import { answersSteadily } from "../world/warmup.ts";
 import type { Stage } from "../world/stage.ts";
 import { noteNotMade, summaryOf } from "./ending.ts";
 import { onHub, type HubUse } from "./hub.ts";
+import { JourneyMaking, type MakingCall } from "./making.ts";
 import { coreLabel, Platform } from "./platform.ts";
 import { sharedStartingWorldsOf, type SharedStartingWorlds } from "../shared/starting.ts";
 import { startingWorldsOf, type StartingWorlds } from "./starting.ts";
 import { destroyAll, destroyStrays, leftOf, takeDownWorlds } from "./teardown.ts";
+import { tapFailures } from "../telemetry/side-by-side.ts";
 
 /** The starting worlds of a run: made in its one world, or restored from a shared world (shared/starting.ts). */
 type Starting = StartingWorlds | SharedStartingWorlds;
@@ -52,7 +54,7 @@ const checked = (calls: ReadonlyArray<Call>) =>
 const work = (scenario: Journey, settings: Settings, starting: Starting, timings: Timings, name: string) =>
   Effect.gen(function* () {
     const platform = yield* Platform;
-    const callsBefore = (yield* starting.made).length;
+    const mine = yield* Ref.make<ReadonlyArray<MakingCall>>([]);
     const [makeTook, making] = yield* Effect.andThen(
       starting.resetFor(scenario.given, scenario.name),
       timings.timed(
@@ -60,8 +62,8 @@ const work = (scenario: Journey, settings: Settings, starting: Starting, timings
         { journey: scenario.name, of: scenario.given.name },
         starting.forScenario(scenario.given),
       ),
-    ).pipe(Effect.exit, Effect.timed);
-    const makingCalls = Arr.map(Arr.drop(yield* starting.made, callsBefore), (each) => each.call);
+    ).pipe(Effect.provideService(JourneyMaking, { calls: mine }), Effect.exit, Effect.timed);
+    const makingCalls = Arr.map(yield* Ref.get(mine), (each) => each.call);
     const madeChecked = yield* Effect.orElseSucceed(checked(makingCalls), () => []);
     if (Exit.isFailure(making))
       return { makeMs: millis(makeTook), making, madeChecked, readiness: null, stage: name, used: undefined };
@@ -158,6 +160,7 @@ const runOne = (
         ...(used !== undefined && Exit.isFailure(used) ? [`the run did not finish: ${describe(used.cause)}`] : []),
         ...(value !== undefined && Exit.isFailure(value.run) ? [`the run failed: ${describe(value.run.cause)}`] : []),
         ...(value === undefined ? [] : failuresOf(value.calls)),
+        ...tapFailures(value?.tap),
         ...(destroyed ? [] : ["a world's destroy failed"]),
         ...(leftAfter === null || (leftAfter.worlds ?? []).length > 0
           ? ["the accounts still hold some of its worlds"]
@@ -178,7 +181,7 @@ const runOne = (
         ended: value === undefined ? null : endedOf(value.run),
         readiness: got?.readiness ?? null,
         calls: value?.calls ?? [],
-        ...(value === undefined ? {} : { coverage: value.coverage }),
+        ...(value === undefined ? {} : { coverage: value.coverage, tap: value.tap }),
         ...stepsFor({ kind: "journey" }, value?.steps ?? stepsOf(scenario.outline, [], [])),
         making: got?.madeChecked ?? [],
         afterwards: { stage: destroyed ? "destroyed" : "destroy failed", before: leftBefore, after: leftAfter },
@@ -224,6 +227,13 @@ const takeDown = (
  * a time; and the run's summary at `<run>/summary.json`. The summary is written however the run ends but by
  * interruption: a starting world that was not made, a run that died, or a take-down that failed, is named in it with
  * why, and its outcome is `failed`.
+ *
+ * Several runners may run at once on one bench and one hub, each in its own world: nothing of one run's is named so
+ * another's could take it. Only a site made from nothing waits, one at a time across the bench (the site door's
+ * `BENCH_LOCK`), about two to three minutes each.
+ * TODO: measure how many runs at once the staging bench (2 vCPU, 8 GiB) holds.
+ * TODO: the snapshots a journey saves in the one world (`m3`, `draft`) stay for the rest of the run; a later journey
+ * that saved the same name would be refused `SnapshotExists`. None does today.
  */
 export const runInWorlds = (
   scenarios: ReadonlyArray<Journey>,
@@ -231,6 +241,8 @@ export const runInWorlds = (
   shared: Option.Option<string> = Option.none(),
 ) =>
   Effect.gen(function* () {
+    // Every journey at once in one shared world (roadmap 4.8) comes in later pull requests; asked for now, it says so.
+    if (settings.shape === "shared") return yield* Effect.die("RUNNER_SHAPE=shared is not built yet (roadmap 4.8)");
     const platform = yield* Platform;
     const startedAt = yield* now;
     const run = yield* freshName("run");
