@@ -7,6 +7,7 @@ import { PlatformRpcs, WorldRpcs } from "@capxul/blueprint";
 import * as Approvals from "./domains/approvals.ts";
 import * as Documents from "./domains/documents.ts";
 import * as Organizations from "./domains/organizations.ts";
+import * as People from "./domains/people.ts";
 import * as Record from "./domains/record.ts";
 import * as Reports from "./domains/reports.ts";
 import * as World from "./domains/world.ts";
@@ -17,6 +18,7 @@ export const PlatformHandlers = PlatformRpcs.toLayer({ ...World.platform });
 /** The world group: everything that acts inside one running world, served through its door. */
 export const WorldHandlers = WorldRpcs.toLayer({
   ...Organizations.world,
+  ...People.world,
   ...Documents.world,
   ...Approvals.world,
   ...Reports.world,

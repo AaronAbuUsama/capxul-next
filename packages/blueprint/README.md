@@ -11,7 +11,7 @@ import it; it imports neither.
 |---|---|
 | `src/door.ts` | The one door: `operations` (every operation, by name), the two Rpc groups, `servedBy`, and `allClaims`, every claim, which the journeys' `coverage.ts` places. It gathers them from the domains and names none. |
 | `src/domains.ts` | Every domain, by its folder: the one list a new domain joins. Its order is the order of `operations` and of each group. |
-| `src/<domain>/` | One domain: `world`, `organizations`, `documents`, `approvals`, `reports`, `record`. Below. |
+| `src/<domain>/` | One domain: `world`, `organizations`, `people`, `documents`, `approvals`, `reports`, `record`. Below. |
 | `src/operation.ts` | The format: `declare`, `declareOutcomes`, `outcome`, `Budget`, and what the runner reads. |
 | `src/errors.ts` | Every refusal with its command-line exit code, gathered from the files that declare them: each domain's `refusals.ts`, and `src/errors/` for those several domains share (who is calling, a company and its site, `NotImplemented`, which every operation declares, decisions.md entry 33, and `PayloadRejected`, which the caller's own client makes, entry 43). |
 | `src/gather.ts` | How a hub gathers its parts' records into one. |

@@ -1,0 +1,25 @@
+{
+  "record": "empty-handlers",
+  "step": "1.14",
+  "what": "A registered journey run against a Capxul whose every operation fails with NotImplemented, as Core's empty handlers do. It must fail at its first step, on the NotImplemented it is answered, never pass and never die.",
+  "outcome": "passed",
+  "result": {
+    "name": "invite olga to Northwind",
+    "given": "founded",
+    "steps": 10,
+    "began": [
+      {
+        "step": 1,
+        "operation": "org.member.list",
+        "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"org.member.list\"}"
+      }
+    ],
+    "calls": [
+      "record.export",
+      "org.member.list"
+    ],
+    "outcome": "failed",
+    "failedWith": "NotImplemented",
+    "detail": "org.member.list answered NotImplemented"
+  }
+}
