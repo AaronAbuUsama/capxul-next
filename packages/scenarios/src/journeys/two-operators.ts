@@ -62,6 +62,7 @@ const everyRecord = { from: null, to: null } as const;
 export const twoOperators = journey(
   {
     name: "two operators and their worlds",
+    world: "own",
     story:
       "An operator at the limit of live worlds is refused another; a second operator opens one, shows it, keeps its record to themselves, saves it and cannot restore it where no restore may be made.",
     given: startingWorlds.quotaFull,
