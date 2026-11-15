@@ -10,13 +10,21 @@ export const worldReset = work({
   does: "Put a world back to a saved snapshot, in place, with one clock.",
   payload: { world: WorldName, to: SnapshotName },
   spans: {
+    // Everything put back but the sites, which go beside it: the index, the database, the chain and the settling.
+    rewind: span("world.reset.rewind", StepKind.restore),
     stopIndex: span("world.reset.index.stop", StepKind.container),
     database: span("world.reset.database", StepKind.branch),
     chain: span("world.reset.chain", StepKind.restore),
+    // The bundler's own state for the chain as it was, cleared or the bundler restarted.
+    bundler: span("world.reset.bundler", StepKind.container),
+    clearBundler: span("world.reset.bundler.clear", StepKind.bundler),
     clock: span("world.reset.clock", StepKind.chain),
     sites: span("world.reset.sites", StepKind.site),
     api: span("world.reset.api", StepKind.deploy),
     resumeIndex: span("world.reset.index.resume", StepKind.container),
+    // The chain mined at the world's time and the clock written, then the index waited for until it caught up.
+    settle: span("world.reset.settle", StepKind.poll),
+    indexReady: span("world.reset.index.ready", StepKind.poll),
     ready: span("world.reset.ready", StepKind.poll),
   },
   logs: {

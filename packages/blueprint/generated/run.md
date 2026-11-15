@@ -33,7 +33,7 @@ time. Its spans and logs judge it once it is instrumented (roadmap item 4.7). It
 Make the run's worlds, one per shard, all at once, and give each the run's starting points.
 
 - Payload: `run`, `shards`.
-- Spans: `run.prepare.worlds` (deploy) → `run.prepare.branches` (branch) → `run.prepare.index` (container) → `run.prepare.restore` (restore).
+- Spans: `run.prepare.worlds` (deploy) → `run.prepare.branches` (branch) → `run.prepare.index` (container) → `run.prepare.restore` (restore) → `run.prepare.save` (compute) → `run.prepare.facts.keep` (database) → `run.prepare.facts.move` (database).
 - Logs: `run.prepare.shard_failed` (run, shard, part).
 - Budget: 120,000 ms, a target, provisional. Basis: docs/design/blueprint.md, part 8: 2 of the run's 10 minutes; a quiet run took about 9 minutes.
 

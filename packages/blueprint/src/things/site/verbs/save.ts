@@ -10,6 +10,8 @@ export const siteSave = work({
   payload: { world: WorldName, snapshot: SnapshotName },
   spans: {
     save: span("site.save.save", StepKind.site),
+    // A world's sites kept on the bench as the site template of a starting point.
+    template: span("site.save.template", StepKind.site),
     ready: span("site.save.ready", StepKind.poll),
   },
   logs: { failed: log("site.save.failed", { world: WorldName, snapshot: SnapshotName, company: OrgHandle }) },

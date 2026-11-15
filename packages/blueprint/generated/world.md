@@ -145,7 +145,7 @@ Move a world's expiry later, to the given minutes from now, within the platform'
 Put a world back to a saved snapshot, in place, with one clock.
 
 - Payload: `world`, `to`.
-- Spans: `world.reset.index.stop` (container) → `world.reset.database` (branch) → `world.reset.chain` (restore) → `world.reset.clock` (chain) → `world.reset.sites` (site) → `world.reset.api` (deploy) → `world.reset.index.resume` (container) → `world.reset.ready` (poll).
+- Spans: `world.reset.rewind` (restore) → `world.reset.index.stop` (container) → `world.reset.database` (branch) → `world.reset.chain` (restore) → `world.reset.bundler` (container) → `world.reset.bundler.clear` (bundler) → `world.reset.clock` (chain) → `world.reset.sites` (site) → `world.reset.api` (deploy) → `world.reset.index.resume` (container) → `world.reset.settle` (poll) → `world.reset.index.ready` (poll) → `world.reset.ready` (poll).
 - Logs: `world.reset.refused` (world, snapshot, reason); `world.reset.part_failed` (world, part).
 - Budget: 15,000 ms, a target, provisional. Basis: docs/design/blueprint.md, part 9: a first guess; a shard's 6 minutes hold its resets and its journeys.
 
