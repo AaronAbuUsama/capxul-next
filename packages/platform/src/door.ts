@@ -1,11 +1,17 @@
 // The platform package's door: what other packages may import. packages/world mints a world's site token here when
 // it creates a world on the shared platform (roadmap step 2.3), and reads where the platform's door and sites answer.
+import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Effect from "effect/Effect";
-import { STACK } from "./names.ts";
+import * as Predicate from "effect/Predicate";
+import * as Redacted from "effect/Redacted";
+import { CLAIM_PROP } from "./collector/caller.ts";
+import { COLLECTOR, STACK } from "./names.ts";
 import { outputsIn, recordedOutputs, secretIn, secretOf, type StateStore } from "./state.ts";
 
 export { Claims, cryptoLayer, fingerprint, mint } from "./token.ts";
-export { namesOf, STACK, STAGING } from "./names.ts";
+export { COLLECTOR, namesOf, STACK, STAGING } from "./names.ts";
+export { CLAIM_PROP } from "./collector/caller.ts";
+export { CollectorClaims, mintClaim } from "./collector/claims.ts";
 export { PlatformOutputs, type StateStore } from "./state.ts";
 
 /** The platform's stack file; the state store is opened through it. */
@@ -28,3 +34,25 @@ export const doorKeyIn = Effect.fn("platform.doorKeyIn")(function* (state: State
   const outputs = yield* platformOutputsIn(state, stage);
   return yield* secretIn(state, STACK, stage, outputs.doorKeyId, "text");
 });
+
+/**
+ * A platform stage's collector key, from a state store the caller holds open: what signs a claim (`mintClaim`), for a
+ * world's Core's binding or an operator's public calls. Dies when the stage has no collector yet.
+ */
+export const collectorKeyIn = Effect.fn("platform.collectorKeyIn")(function* (state: StateStore, stage: string) {
+  const outputs: unknown = yield* state.getOutput({ stack: STACK, stage });
+  const keyId = Predicate.hasProperty(outputs, "collectorKeyId") ? outputs.collectorKeyId : undefined;
+  if (!Predicate.isString(keyId)) return yield* Effect.die(`${STACK}/${stage} has no collector`);
+  return yield* secretIn(state, STACK, stage, keyId, "text");
+});
+
+/**
+ * A world's Core's service binding to a platform stage's collector, carrying the world's claim in its props
+ * (`ctx.props.claim` on the collector's side, which only the deployer sets). For packages/world, when it deploys Core:
+ * `env: { COLLECTOR: yield* collectorBinding(stage, claim) }`. The claim is signed, not secret: it is only accepted
+ * from a binding.
+ */
+export const collectorBinding = (stage: string, claim: Redacted.Redacted) =>
+  Effect.map(Cloudflare.Worker.ref(COLLECTOR, { stack: STACK, stage }), (worker) =>
+    Cloudflare.WorkerEntrypoint(worker, { props: { [CLAIM_PROP]: Redacted.value(claim) } }),
+  );

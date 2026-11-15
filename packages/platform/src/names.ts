@@ -9,6 +9,8 @@
 
 /** The platform's stack: the bench, the tunnel and its connector, and the DNS names. */
 export const STACK = "CapxulPlatform";
+/** The collector's logical id in the platform's stack: a world's Core binds to it with `Worker.ref` by this id. */
+export const COLLECTOR = "Collector";
 /** The bench host's stack on AWS: the machine, its disk, its network and its role. */
 export const HOST_STACK = "CapxulBenchHost";
 /** The stage of the shared platform. */
@@ -35,6 +37,9 @@ export const namesOf = (stage: string, domain: string) => {
     hostname: (label: string) => `${label}.${domain}`,
     /** The DNS name of the site door. */
     doorHost: `${stage}-door.${domain}`,
+    /** The collector's Worker script name, and its public name: telemetry's way in (src/collector/). */
+    collector: `${prefix}-collector`,
+    collectorHost: `${stage}-collector.${domain}`,
     /** The names every company site may take: one level under the domain. */
     siteWildcard: `*.${domain}`,
   };
