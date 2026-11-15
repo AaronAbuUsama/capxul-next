@@ -1,4 +1,4 @@
-// A world's admission to its fleet hub (src/lifecycle/claim.ts): the registry's insert is tried again while the hub is
+// A world's admission to its fleet hub (src/things/registry/reserve.ts): the registry's insert is tried again while the hub is
 // full, under the `admit` step's declared timeout; a refusal of the name or the quota comes at once, full hub or not;
 // and a registry made before rows named their hub is given the column and tried again. The registry here is a
 // stand-in of Neon's SQL endpoint that answers each statement as the test scripts it; the SQL itself is proven
@@ -16,9 +16,9 @@ import * as Str from "effect/String";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
-import { admit, claim } from "../src/lifecycle/claim.ts";
-import { Timeouts } from "../src/lifecycle/spec.ts";
-import { makeStopwatch } from "../src/lifecycle/steps.ts";
+import { admit, claim } from "../src/things/registry/reserve.ts";
+import { Timeouts } from "../src/things/world/values.ts";
+import { makeStopwatch } from "../src/common/stopwatch.ts";
 
 const DATABASE = Redacted.make("postgres://registry:secret@registry.test/neondb");
 const HUB = { stage: "fleet", capacity: 2 };

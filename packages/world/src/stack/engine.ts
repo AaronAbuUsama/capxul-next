@@ -12,11 +12,11 @@ import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
 import * as Schedule from "effect/Schedule";
 import * as Str from "effect/String";
-import { Core, defaultCore } from "../core/Core.ts";
-import { StateUnreadable } from "../failures.ts";
+import { Core, defaultCore } from "../parts/api/Api.ts";
+import { StateUnreadable } from "../common/failures.ts";
 import { STACK } from "./names.ts";
 import { WorldSettings } from "./settings.ts";
-import { openedState, worldStack } from "./stack.ts";
+import { openedState, worldStack } from "../things/world/stage.ts";
 
 /** The stack file, for opening the state store without running the stack's program. */
 const ENTRYPOINT = `${import.meta.dirname}/../../alchemy.run.ts`;

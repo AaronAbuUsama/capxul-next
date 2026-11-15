@@ -1,4 +1,4 @@
-// Bench templates' names and the fingerprint of the code that makes them (src/site/Templates.ts; docs/roadmap.md,
+// Bench templates' names and the fingerprint of the code that makes them (src/things/site-template/sweep.ts; docs/roadmap.md,
 // "Bench templates never change").
 import * as assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -10,7 +10,7 @@ import * as Digest from "effect/crypto/Digest";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Layer from "effect/Layer";
-import { fingerprintOf, templateName } from "../src/site/Templates.ts";
+import { fingerprintOf, templateName } from "../src/things/site-template/sweep.ts";
 
 const services = Layer.merge(NodeServices.layer, Digest.layerWebCrypto);
 const fingerprint = (root: string, apps = "abc") =>

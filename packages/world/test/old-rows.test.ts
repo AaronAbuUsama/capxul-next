@@ -1,7 +1,7 @@
 // Rows written by earlier code still read as the platform reads them (world.show, world.list): each format in
 // test/rows/ is put into a real Postgres with the migrations its world had then, Core's later migrations are applied
-// in name order as `migrate` applies them (src/database/sql.ts), and the platform's own queries and decoding
-// (src/platform/facts.ts) must then read the world. A change to what the platform reads that rows written before it
+// in name order as `migrate` applies them (src/parts/database/sql.ts), and the platform's own queries and decoding
+// (src/things/world/store.ts) must then read the world. A change to what the platform reads that rows written before it
 // cannot meet fails here, unless a new migration moves those rows (AGENTS.md, "Changing what works"). It fails the
 // shared world's renewal otherwise, as it did on 15 November 2026 (platform.yml run 43700976392).
 //
@@ -20,9 +20,9 @@ import * as Order from "effect/Order";
 import * as Redacted from "effect/Redacted";
 import * as Str from "effect/String";
 import * as SqlClient from "effect/sql/SqlClient";
-import { CONTRACTS } from "../src/chain/contracts.ts";
-import { statementsOf } from "../src/database/sql.ts";
-import { CAST, COMPANIES, factsOf, jsonSql, ONE } from "../src/platform/facts.ts";
+import { CONTRACTS } from "../src/parts/chain/contracts.ts";
+import { statementsOf } from "../src/parts/database/sql.ts";
+import { CAST, COMPANIES, factsOf, jsonSql, ONE } from "../src/things/world/store.ts";
 import type { OldRows } from "./rows/old-rows.ts";
 import { shared20261114 } from "./rows/shared-2026-11-14.ts";
 

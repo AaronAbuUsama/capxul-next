@@ -15,8 +15,8 @@ import {
   type StartAttempt,
   type StartReport,
   startPatiently,
-} from "../src/containers/patience.ts";
-import { Timeouts } from "../src/lifecycle/spec.ts";
+} from "../src/parts/containers/patience.ts";
+import { Timeouts } from "../src/things/world/values.ts";
 
 /** What Alchemy fails a start with when Cloudflare cannot place it. */
 const REFUSAL = {

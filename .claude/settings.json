@@ -1,38 +1,24 @@
 {
   "permissions": {
     "allow": [
-      "mcp__claude-code-remote",
-      "mcp__github",
+      "Bash",
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "Agent",
+      "Skill",
+      "WebFetch",
+      "WebSearch",
+      "AskUserQuestion",
+      "TaskStop",
       "Artifact",
       "ArtifactData",
-      "Bash(pnpm:*)",
-      "Bash(git:*)",
-      "Bash(bun:*)",
-      "Bash(node:*)",
-      "Bash(npx:*)",
-      "Bash(python3:*)",
-      "Bash(forge:*)",
-      "Bash(cast:*)",
-      "Bash(anvil:*)",
-      "Bash(foundryup:*)",
-      "Bash(curl:*)",
-      "Bash(jq:*)",
-      "Bash(ls:*)",
-      "Bash(cat:*)",
-      "Bash(head:*)",
-      "Bash(tail:*)",
-      "Bash(grep:*)",
-      "Bash(rg:*)",
-      "Bash(find:*)",
-      "Bash(wc:*)",
-      "Bash(diff:*)",
-      "Bash(sort:*)",
-      "Bash(mkdir:*)",
-      "Bash(cp:*)",
-      "Bash(mv:*)",
-      "Bash(packages/runner/run.sh:*)",
-      "Bash(packages/world/run.sh:*)",
-      "Bash(packages/platform/bin/run.sh:*)"
+      "ArtifactComments",
+      "mcp__claude-code-remote",
+      "mcp__github",
+      "mcp__claude-in-chrome"
     ],
     "deny": [
       "Bash(git push --force:*)",
@@ -44,7 +30,9 @@
       "Bash(bunx alchemy nuke:*)",
       "Bash(npx alchemy nuke:*)",
       "Bash(pnpm alchemy nuke:*)",
-      "Bash(pnpm exec alchemy nuke:*)"
+      "Bash(pnpm exec alchemy nuke:*)",
+      "Bash(git push origin master:*)",
+      "Bash(rm -rf /:*)"
     ]
   }
 }
