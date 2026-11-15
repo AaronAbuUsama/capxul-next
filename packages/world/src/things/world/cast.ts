@@ -47,10 +47,7 @@ const COMPANY = "northwind";
 /** The path of the test mnemonic's accounts, without the account's own index. */
 const ACCOUNTS_PATH = "m/44'/60'/0'/0";
 
-/**
- * The addresses of the test mnemonic's accounts at `indexes`. The mnemonic's seed is worked out once (its key
- * stretching is most of the cost), and each account is derived from the key of their common path.
- */
+/** The test mnemonic's accounts at `indexes`, derived from their common path's key, the seed worked out once. */
 export const signersAt = (indexes: ReadonlyArray<number>) =>
   Effect.suspend(() => {
     const parent = mnemonicToAccount(Values.CAST_KEYS.mnemonic, { path: ACCOUNTS_PATH }).getHdKey();
@@ -149,10 +146,8 @@ const oneByOne = <E, R>(call: Call<E, R>, from: string, send: Send) =>
   );
 
 /**
- * Sends every transaction of one unlocked test account side by side and insists that each succeeded, or fails naming
- * the one that did not. Each is given its nonce, counted from the account's next one, so that none waits for another's
- * receipt: the chain takes them in any order and mines each once the ones before it are in. One the chain refuses for
- * its nonce is sent again on its own, in order, once those before it are mined, rather than failing the world.
+ * Sends one test account's transactions side by side, each with its own nonce, and fails naming any that fails. One
+ * the chain refuses for its nonce is sent again on its own, in order, rather than failing the world.
  */
 export const sendAll = Effect.fn("world.cast.send")(function* <E, R>(
   call: Call<E, R>,
