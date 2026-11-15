@@ -1,5 +1,8 @@
 // The rename ratchet, R15 "Old words" in the blueprint's registry (packages/blueprint/src/ratchets.ts; docs/roadmap.md,
-// item 3.8): how many times each old word of the glossary is still written as a name in code. `pnpm generate` commits
+// item 3.8): how many distinct names in code still hold each old word of the glossary. Counted in distinct names: a
+// lane that uses an existing name adds nothing; only a newly introduced name grows the count (blueprint lead, 15 Nov
+// 2026). A name is a segment as cut below, exactly as written (`doorToken` and `DOOR_TOKEN` are two); an old word
+// written as code is its own one name. `pnpm generate` commits
 // the counts (packages/blueprint/generated/old-words.json), `pnpm words` fails when one grew, and a word whose count
 // reaches zero is done. Pure: it is given the glossary and the files' text; which files are read is ./word-files.ts.
 //
@@ -24,8 +27,21 @@
 // - An old word with `within` (`lane`, a shard only in packages/runner) is counted only in files under those paths.
 // - An old word spelled as an agreed word is not counted in that entry's `keptIn`, the exact code where the agreed
 //   meaning is written (`claim` in `CompaniesHouseClaimer.claim` is claiming a Safe, not taking sites).
+// - Only words a writer can choose today count. A package's name is renamed only with its package, so it counts
+//   nothing where it is written by shape: a package specifier (`@capxul/core`, in an import, a `package.json` or
+//   `--filter @capxul/core`), a path's folder under `packages/` (`packages/core/src`), or a flag running a package
+//   locally (`--core=local`). The rest of the token still counts (`@capxul/core/door` counts `door`). Nor does any
+//   import or export specifier, whoever's file it names (`from "../record.ts"`, `import("@effect/platform-bun")`): a
+//   file is renamed with its package, not by its importer. Nor does an applied migration's file name
+//   (`0009_core_span_attributes.sql`), never renamed; word-files.ts leaves the migrations themselves unread. Nor does
+//   an entry's `exceptions`, exact text no writer chooses (a deployed resource, `core-db`; a foreign protocol's key,
+//   OTLP's `dataPoints`), wherever it stands outside comments and prose, nothing of a name touching it. Nor does a
+//   `package.json` path (`"exports": "./src/door.ts"`, any string starting `./`), a specifier by another name. Nor do
+//   Markdown's lines between `<!-- generated:<name> start -->` and `<!-- generated:<name> end -->`, copies of counted
+//   sources as generated files are.
 import * as Arr from "effect/Array";
 import * as Option from "effect/Option";
+import * as Order from "effect/Order";
 import * as Rec from "effect/Record";
 import * as Str from "effect/String";
 import { type Entry, keyOf, type OldWord, oldWordOf } from "../language/glossary.ts";
@@ -108,9 +124,31 @@ const countIn = (
 /** Whether a token in a string that holds a space is shaped as code. */
 const codeShaped = (token: string): boolean => /[/._@$:-]/.test(token) || /[a-z][A-Z]/.test(token);
 
-/** The segments of a piece's names, each as its words, other people's names left out. */
-const segmentsOf = (piece: Piece): ReadonlyArray<ReadonlyArray<string>> => {
-  const tokens = Arr.map(every(/[A-Za-z0-9_$@./:-]+/g)(piece.text), (token) =>
+/**
+ * A piece's text with every name written by shape that no writer can choose blanked: a package's name until its
+ * package is renamed (`@capxul/core` keeps `@capxul/`, `packages/core/src` keeps `packages//src`, `--core=local`
+ * goes) and an applied migration's file name (`0009_core_span_attributes.sql` goes).
+ */
+const withoutPackageNames = (text: string): string =>
+  Str.replace(
+    /(?<![A-Za-z0-9_$@.-])[0-9]{4}_[A-Za-z0-9_]+\.sql(?![A-Za-z0-9_-])/g,
+    " ",
+  )(
+    Str.replace(
+      /(?<![A-Za-z0-9_$@.-])--[a-z][a-z0-9-]*=local(?![A-Za-z0-9_-])/g,
+      " ",
+    )(Str.replace(/(?<![A-Za-z0-9_$@-])(@capxul|packages)\/[a-z0-9][a-z0-9-]*/g, "$1/")(text)),
+  );
+
+/** One segment of a name: its text as written and its words. */
+interface Segment {
+  readonly text: string;
+  readonly words: ReadonlyArray<string>;
+}
+
+/** The segments of a piece's names, each with its words, other people's names left out. */
+const segmentsOf = (piece: Piece): ReadonlyArray<Segment> => {
+  const tokens = Arr.map(every(/[A-Za-z0-9_$@./:-]+/g)(withoutPackageNames(piece.text)), (token) =>
     Str.replace(/^[.:]+|[.:-]+$/g, "")(token),
   );
   const prose = piece.kind === "string" && /\s/.test(piece.text);
@@ -127,7 +165,7 @@ const segmentsOf = (piece: Piece): ReadonlyArray<ReadonlyArray<string>> => {
       Arr.flatMap(ours, (token) => Str.split(token, /[/.:@$]/)),
       (segment) => segment.length > 0 && !Arr.contains(NOT_OURS, segment),
     ),
-    wordsOf,
+    (text) => ({ text, words: wordsOf(text) }),
   );
 };
 
@@ -135,8 +173,8 @@ const segmentsOf = (piece: Piece): ReadonlyArray<ReadonlyArray<string>> => {
 const exactly = (text: string): RegExp =>
   new RegExp(`(?<![A-Za-z0-9_-])${Str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")(text)}(?![A-Za-z0-9_-])`, "g");
 
-/** How many times `text` stands in `piece` as exact code, nothing of a name touching it. */
-const codeCount = (piece: Piece, text: string): number => every(exactly(text))(piece.text).length;
+/** Whether `text` stands in `piece` as exact code, nothing of a name touching it. */
+const codeStands = (piece: Piece, text: string): boolean => every(exactly(text))(piece.text).length > 0;
 
 /** The exact code where an agreed word spelled `text` keeps its own meaning (an entry's `keptIn`). */
 const keptInOf = (glossary: ReadonlyArray<Entry>, text: string): ReadonlyArray<string> =>
@@ -149,20 +187,55 @@ const without = (piece: Piece, kept: ReadonlyArray<string>): Piece =>
     text: Str.replace(exactly(text), " ")(each.text),
   }));
 
+/** The exact text in which `text` as an old word is not counted: the `exceptions` of each entry that replaces it. */
+const exceptionsOf = (glossary: ReadonlyArray<Entry>, text: string): ReadonlyArray<string> =>
+  Arr.flatMap(glossary, (entry) =>
+    Arr.some(entry.replaces, (old) => oldWordOf(old).text === text)
+      ? Arr.map(entry.exceptions ?? [], (each) => each.text)
+      : [],
+  );
+
+/** What opens an import or export specifier, written just before its string. */
+const SPECIFIER = /(?:\bfrom|\bimport|\bexport\s*\*|\bimport\s*\(|\brequire\s*\()\s*$/;
+
+/** Whether `path` is a package's manifest, whose `./` strings (`exports`, `main`, `types`) are its files' paths. */
+const isManifest = (path: string): boolean => path === "package.json" || Str.endsWith("/package.json")(path);
+
+/** A Markdown file's text without its generated blocks, copies of counted sources. */
+const withoutGenerated = (path: string, text: string): string =>
+  Str.endsWith(".md")(path)
+    ? Str.replace(/<!-- generated:([A-Za-z0-9_-]+) start -->[\s\S]*?<!-- generated:\1 end -->/g, "")(text)
+    : text;
+
+/** `pieces` without the strings that are import or export specifiers, whose names their importer cannot choose. */
+const withoutSpecifiers = (path: string, pieces: ReadonlyArray<Piece>): ReadonlyArray<Piece> =>
+  Arr.filter(
+    pieces,
+    (piece, at) =>
+      !(
+        piece.kind === "string" &&
+        ((isManifest(path) && Str.startsWith("./")(piece.text)) ||
+          (at > 0 && pieces[at - 1]?.kind === "code" && SPECIFIER.test(pieces[at - 1]?.text ?? "")))
+      ),
+  );
+
 /** Whether a file at `path` is under one of `within`, none meaning everywhere. */
 const isWithin = (path: string, within: ReadonlyArray<string>): boolean =>
   within.length === 0 || Arr.some(within, (each) => Str.startsWith(each)(path));
 
-/** Every counted old word's count in one file, by its key. */
-export const countFile = (glossary: ReadonlyArray<Entry>, file: File): Counts => {
-  const pieces = piecesOf(file.path, file.text);
+/** The distinct names holding each counted old word, by its key. */
+export type Names = { readonly [key: string]: ReadonlyArray<string> };
+
+/** The distinct names in one file that hold each counted old word, by its key. */
+export const namesFile = (glossary: ReadonlyArray<Entry>, file: File): Names => {
+  const pieces = withoutSpecifiers(file.path, piecesOf(file.path, withoutGenerated(file.path, file.text)));
   const segments = Arr.flatMap(pieces, segmentsOf);
   const agreed = agreedOf(glossary);
   return Rec.fromEntries(
     Arr.map(countedOf(glossary), (old) => {
       if (old.kind === "code")
-        return [keyOf(old), Arr.reduce(pieces, 0, (sum, piece) => sum + codeCount(piece, old.text))] as const;
-      if (!isWithin(file.path, old.within)) return [keyOf(old), 0] as const;
+        return [keyOf(old), Arr.some(pieces, (piece) => codeStands(piece, old.text)) ? [old.text] : []] as const;
+      if (!isWithin(file.path, old.within)) return [keyOf(old), []] as const;
       const words = wordsOf(old.text);
       const hiding = [
         ...Arr.filter(agreed, (each) => each.length > words.length),
@@ -170,19 +243,45 @@ export const countFile = (glossary: ReadonlyArray<Entry>, file: File): Counts =>
         ...OTHERS,
       ];
       const kept = keptInOf(glossary, old.text);
-      const read = kept.length === 0 ? segments : Arr.flatMap(pieces, (piece) => segmentsOf(without(piece, kept)));
-      return [keyOf(old), Arr.reduce(read, 0, (sum, segment) => sum + countIn(segment, words, hiding))] as const;
+      const skipped = [...kept, ...exceptionsOf(glossary, old.text)];
+      const read =
+        skipped.length === 0 ? segments : Arr.flatMap(pieces, (piece) => segmentsOf(without(piece, skipped)));
+      const holding = Arr.filter(read, (segment) => countIn(segment.words, words, hiding) > 0);
+      return [keyOf(old), Arr.dedupe(Arr.map(holding, (segment) => segment.text))] as const;
     }),
   );
 };
 
-/** Every counted old word's count across `files`, by its key, in the glossary's order. */
+/** How many distinct names in one file hold each counted old word, by its key. */
+export const countFile = (glossary: ReadonlyArray<Entry>, file: File): Counts =>
+  Rec.map(namesFile(glossary, file), (names) => names.length);
+
+/** Each distinct name holding the old word `key` across `files`, with the files it stands in, in name order. */
+export const whereOf = (
+  glossary: ReadonlyArray<Entry>,
+  files: ReadonlyArray<File>,
+  key: string,
+): ReadonlyArray<{ readonly name: string; readonly paths: ReadonlyArray<string> }> => {
+  const found = Arr.flatMap(files, (file) =>
+    Arr.map(namesFile(glossary, file)[key] ?? [], (name) => ({ name, path: file.path })),
+  );
+  const names = Arr.sort(Arr.dedupe(Arr.map(found, (each) => each.name)), Order.String);
+  return Arr.map(names, (name) => ({
+    name,
+    paths: Arr.map(
+      Arr.filter(found, (each) => each.name === name),
+      (each) => each.path,
+    ),
+  }));
+};
+
+/** How many distinct names across `files` hold each counted old word, by its key, in the glossary's order. */
 export const countOldWords = (glossary: ReadonlyArray<Entry>, files: ReadonlyArray<File>): Counts => {
-  const each = Arr.map(files, (file) => countFile(glossary, file));
+  const each = Arr.map(files, (file) => namesFile(glossary, file));
   return Rec.fromEntries(
     Arr.map(countedOf(glossary), (old) => {
       const key = keyOf(old);
-      return [key, Arr.reduce(each, 0, (sum, counts) => sum + (counts[key] ?? 0))] as const;
+      return [key, Arr.dedupe(Arr.flatMap(each, (names) => names[key] ?? [])).length] as const;
     }),
   );
 };
