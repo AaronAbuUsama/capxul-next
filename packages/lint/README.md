@@ -41,3 +41,6 @@ never added to a list: new work is born compliant.
 
 To add a package, add it to `PACKAGES` in `src/shape.ts` with a one-line reason, in the same pull request. To add an
 entry file, add its path to `settings.capxul.entries` with a reason and to the entry override in `.oxlintrc.json`.
+
+`declared-steps` (step 4.1) is ratcheted the same way, its list in `src/unmigrated-steps.ts` and its ceiling in
+`test/rules.test.ts`; its rule's comment says exactly what counts as a function that does work.

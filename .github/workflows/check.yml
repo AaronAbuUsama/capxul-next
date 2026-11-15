@@ -41,23 +41,30 @@ jobs:
             packages/contracts/cache
             ~/.svm
           key: forge-v1.9.0-${{ hashFiles('packages/contracts/foundry.toml', 'packages/contracts/src/**', 'packages/contracts/lib/**', 'packages/contracts/test/mocks/**') }}
-      - run: pnpm shape
-      - run: pnpm format:check
-      - run: pnpm generate:check
-      - run: pnpm seed:check
-      - run: pnpm lint
-      - run: pnpm types
-      - run: pnpm test
-      - run: pnpm delta:check
-      - run: pnpm ratchets
-      # The rename ratchet R15 "Old words" (packages/blueprint/src/ratchets.ts; roadmap item 3.8), gated here, not by
-      # `pnpm ratchets`, which only reports its total: no old word of the glossary may be written more often than its
-      # committed count, nor, on a pull request, than the base branch's, so a count raised by generating again fails.
+      # The gate's telemetry (roadmap 4.7): its run is a trace, each rung a span, sent to the staging collector. This
+      # step alone holds the Cloudflare key, to read the platform's state as world.yml does; it mints this run's
+      # collector token and hands the steps after it only the collector's address and the token, masked
+      # (packages/runner, src/collector-env.entry.ts). It runs only where world.yml gets the key: on pushes to master
+      # and on a slice's pull request; a builder's pull request into a slice exports nothing. A step that cannot find
+      # the collector writes nothing: the gate then exports nothing and is judged all the same.
+      - name: Find the collector
+        if: github.event_name == 'push' || startsWith(github.head_ref, 'slice/')
+        continue-on-error: true
+        env:
+          CI: "true"
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          WORLD_OWNER: ci-gate-${{ github.run_id }}
+        run: node --experimental-strip-types --no-warnings packages/runner/src/collector-env.entry.ts
+      # The rename ratchet R15 "Old words" (packages/blueprint/src/ratchets.ts; roadmap item 3.8) is gated by the climb's
+      # last rung, `pnpm words`: no old word of the glossary may be written more often than its committed count, nor, on
+      # a pull request, than the base branch's (GATE_WORDS_BASE), so a count raised by generating again fails.
       - if: github.event_name == 'pull_request'
         env:
           BASE: ${{ github.base_ref }}
-        run: |
-          git fetch --no-tags --depth=1 origin "+refs/heads/$BASE:refs/remotes/origin/$BASE"
-          pnpm words --base "origin/$BASE"
-      - if: github.event_name != 'pull_request'
-        run: pnpm words
+        run: git fetch --no-tags --depth=1 origin "+refs/heads/$BASE:refs/remotes/origin/$BASE"
+      # Rungs 1 to 5 in order, each a span (packages/lint, src/gate.entry.ts), stopping at the first that fails.
+      - name: pnpm check
+        env:
+          GATE_WORDS_BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
+        run: pnpm check

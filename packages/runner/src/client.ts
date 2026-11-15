@@ -6,7 +6,7 @@
 // command line instead: the `capxul` command that makes the call, run in this process at the same doors, with the
 // same credentials and the same HTTP client (packages/cli, `callVia`). The chain reads, which are not operations and
 // have no command, still go through the SDK.
-import { CHAIN_PATH, Errors, isRefusal, operations, WORLD_PATH, type OperationName } from "@capxul/blueprint";
+import { CHAIN_PATH, Errors, isRefusal, operations, WORLD_PATH, type OperationName, Envelope } from "@capxul/blueprint";
 import * as Cli from "@capxul/cli";
 import { CallTraces, Capxul, type CallOptions, type CapxulClient } from "@capxul/scenarios";
 import * as Sdk from "@capxul/sdk";
@@ -27,6 +27,7 @@ import { RpcClientError } from "effect/rpc/RpcClientError";
 import { describe } from "./failure.ts";
 import { OpenStep } from "./steps.ts";
 import { resendingWhileWarm } from "./world/warmup.ts";
+import { RUN_SPANS, stepOptions } from "./telemetry/step.ts";
 
 /**
  * How a call ended, as the caller saw it: `success`; `refusal`, a typed refusal the operation or sign-in declares;
@@ -122,7 +123,8 @@ const recording = (
       // The call is a trace of its own, so Core's spans join it by `traceparent`; it is linked to the journey's step.
       const open = yield* Effect.serviceOption(OpenStep);
       const step = Option.isSome(open) ? yield* Ref.get(open.value) : Option.none();
-      return yield* Effect.withSpan(sent(name, payload, options), `runner.call ${name}`, {
+      return yield* Effect.withSpan(sent(name, payload, options), RUN_SPANS.call.name, {
+        ...stepOptions(RUN_SPANS.call, { [Envelope.attributes.operation.name]: name }),
         root: true,
         links: Option.isSome(step) ? [{ span: step.value, attributes: {} }] : [],
       });
