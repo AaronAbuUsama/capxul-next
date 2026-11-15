@@ -14,7 +14,8 @@ export type { Counter, Ratchet } from "@capxul/blueprint-tools";
 
 /**
  * Every ratchet: R1 to R14 as agreed on 15 November 2026, R15, the glossary's old words (roadmap item 3.8, #302), and
- * R16, the names that differ from their path (roadmap item 3.10); new ones take the next number.
+ * R16 to R19 (roadmap item 3.10): the names that differ from their path, and the operations not yet in the formats it
+ * added, each counted from today. New ones take the next number.
  */
 export const ratchets: ReadonlyArray<Ratchet> = [
   {
@@ -49,9 +50,10 @@ export const ratchets: ReadonlyArray<Ratchet> = [
   {
     id: "R5",
     name: "Operations not in the full format",
-    holds: "Operations on a format's unmigrated list: missing machine moves, and later allowed, steps, logs, budget.",
-    closes: "3.5, 4.1, 5.1",
-    count: "formats",
+    holds:
+      "Operations on the machine format's unmigrated list: those that start or move no machine, or leave a state's refusal undeclared. Who may call, steps and logs, and promises are R17 to R19.",
+    closes: "3.5",
+    count: "formats:machine",
   },
   {
     id: "R6",
@@ -161,6 +163,30 @@ export const ratchets: ReadonlyArray<Ratchet> = [
       "world.snapshot.restore",
       "world.snapshot.save",
     ],
+  },
+  {
+    id: "R17",
+    name: "Operations without who may call",
+    holds:
+      "Operations on the `allowed` format's unmigrated list: no roles allowed declared, nor the refusal anyone else gets.",
+    closes: "5.1",
+    count: "formats:allowed",
+  },
+  {
+    id: "R18",
+    name: "Operations without declared steps and logs",
+    holds:
+      "Operations on the `spans` or `logs` format's unmigrated list: no declared spans, logs, or log where each refusal is decided.",
+    closes: "4.1",
+    count: "formats:steps",
+  },
+  {
+    id: "R19",
+    name: "Promises that do not name every refusal they decide",
+    holds:
+      "Operations on the `promises` format's unmigrated list: some refusal they decide is named in none of their promises.",
+    closes: "C.1",
+    count: "formats:promises",
   },
 ];
 
