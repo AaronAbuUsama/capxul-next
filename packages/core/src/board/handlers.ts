@@ -1,6 +1,6 @@
 // The handlers of the world group's board operations, as src/domains/board.ts names them: org.director.list,
 // org.director.add and org.threshold.set. Each answers with its outcome or one of its declared refusals; a fault of
-// the database or the chain travels as a defect (packages/blueprint/docs/decisions.md, entry 10), which the runner
+// the database or the chain travels as a defect (packages/blueprint, src/common/refusals.ts), which the runner
 // records as a failed call. They need what org.member.grant needs (`ChainOps.layer`, src/organizations/handlers.ts)
 // beside the database.
 import type { Board } from "@capxul/blueprint";

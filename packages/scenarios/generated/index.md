@@ -79,15 +79,15 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 ## `src/support/`
 
 - [`board.ts`](../src/support/board.ts): Reading a company's Board: looks the board operations' checks and the journey "seat sam on Northwind's Board" share.
-- [`budgets.ts`](../src/support/budgets.ts): Reading a company's budgets on the world's chain through its door (packages/blueprint/docs/decisions.md, entry 34): looks that the budgets operations' checks and the journey "give sam a budget at Northwind" share.
-- [`chain.ts`](../src/support/chain.ts): Reading a world's chain through its door (packages/blueprint/docs/decisions.md, entry 34): balances of the world's USDC, the hats a transaction minted, and the payments the Payments contract sent.
+- [`budgets.ts`](../src/support/budgets.ts): Reading a company's budgets on the world's chain through its door (packages/blueprint, src/common/chain/reads.ts): looks that the budgets operations' checks and the journey "give sam a budget at Northwind" share.
+- [`chain.ts`](../src/support/chain.ts): Reading a world's chain through its door (packages/blueprint, src/common/chain/reads.ts): balances of the world's USDC, the hats a transaction minted, and the payments the Payments contract sent.
 - [`expect.ts`](../src/support/expect.ts): How a scenario reads an answer: the refusal a call must fail with, the kind of success it must answer, and comparisons whose failures say what was seen.
 - [`founding.ts`](../src/support/founding.ts): Founding Northwind as the starting world `founded` describes it: dana founds it with eli as a Director, threshold 2, members sam and pat, and 1,000 USDC of her capital.
 - [`hats.ts`](../src/support/hats.ts): The officer hat a grant's execution minted: read from the transaction its last signature sent, through the door a look at that world goes.
 - [`inventory.ts`](../src/support/inventory.ts): Reading what an operator has on the platform: their worlds and a world's snapshots, as looks.
 - [`people.ts`](../src/support/people.ts): Reading who belongs to a company and the invitations sent: looks that the people operations' checks and the journey "invite olga to Northwind" share.
 - [`record.ts`](../src/support/record.ts): Reading a world's record against the blueprint: every entry names a declared event and carries exactly that event's fields, and the entries a call must have left are what its declaration computes from its payload and answer.
-- [`signing.ts`](../src/support/signing.ts): How a person of the cast signs: with their own key, never in a browser (packages/blueprint/docs/decisions.md, entries 23 and 42).
+- [`signing.ts`](../src/support/signing.ts): How a person of the cast signs: with their own key, never in a browser (packages/blueprint, src/things/approval/values.ts and src/common/values.ts).
 - [`site.ts`](../src/support/site.ts): Reading a company's site through report.run, in the blueprint's vocabulary (`Site`): its General Ledger, Trial Balance and Accounts Payable, and the company Safe's ledger account.
 - [`tags.ts`](../src/support/tags.ts): A declared refusal's or outcome's tag, taken from its class, so a journey names it by import and never writes it as a string (capxul/declared-names).
 - [`wait.ts`](../src/support/wait.ts): Waiting for background work: a site becoming ready, a sent payment posting, a site user appearing.

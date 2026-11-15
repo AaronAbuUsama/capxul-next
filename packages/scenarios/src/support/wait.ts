@@ -1,5 +1,6 @@
 // Waiting for background work: a site becoming ready, a sent payment posting, a site user appearing. A claim that
-// waits polls an operation until it answers differently (packages/blueprint/docs/decisions.md, entry 27). How often and
+// waits polls an operation until it answers differently (packages/blueprint, src/starting-points/points.ts). How often
+// and
 // how long are declared here, once: a wait that runs out fails the scenario with what it waited for.
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";

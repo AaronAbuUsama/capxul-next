@@ -1,5 +1,6 @@
 // A stage's first record entry. A world's record begins with the `world_created` that world.create kept (blueprint
-// packages/blueprint/docs/decisions.md, entry 8), and record.export reads the world's grade and lineage from it. A
+// packages/blueprint, src/things/history/verbs/export.ts), and record.export reads the world's grade and lineage from
+// it. A
 // stage of `CapxulCore` is not made by world.create, so the runner keeps that entry for it once its migrations are
 // applied: a private world, made from nothing, owned by the stage's owner, under a trace of its own (all zeros) that no
 // call of a run ever has.

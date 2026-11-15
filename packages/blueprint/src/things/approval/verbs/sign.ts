@@ -96,6 +96,10 @@ export const sign = verb({
   ],
 });
 
+// It answers when the transaction is in a block, or when the signature is kept short of the threshold: a world's chain
+// mines at once, so the answer can be final; on a public chain (phase 8) confirmation becomes an excluded wait. A
+// replay of a sent signature answers `AlreadySent` and emits nothing.
+
 /** Who serves it: a world's Core, through the world's door (`WorldRpcs`). */
 export const server = "world";
 
@@ -106,6 +110,7 @@ const notHere =
 export const promises: ClaimsOf = {
   operation: sign,
   claims: [
+    // Read where the promise is silent (R9): Brightside's address is the `supplier` fact's `capxul_wallet_address`.
     claim(
       "A signed held payment is sent once, from the signer's Safe, and its Payment Entry posts once.",
       w.paymentHeld,

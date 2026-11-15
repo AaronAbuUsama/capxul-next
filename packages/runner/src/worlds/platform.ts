@@ -1,4 +1,4 @@
-// The platform, served by this process for a run in private worlds (packages/blueprint/docs/decisions.md, entry 51):
+// The platform, served by this process for a run in private worlds (packages/blueprint, src/things/world/values.ts):
 // the blueprint's platform group from packages/world, over HTTP on this machine's loopback, where the Cloudflare and
 // Neon keys are. The scenarios' client calls it as it would call any platform; what it kept of each call is read back
 // through `PlatformKept`. It lives as long as the run, and every world it made is the run's to destroy.

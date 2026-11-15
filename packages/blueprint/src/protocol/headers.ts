@@ -1,5 +1,6 @@
 // What a call carries besides its payload: its credential and the person it acts as, and how the SDK and the
-// journeys' `Capxul` make one call. Declarations only.
+// journeys' `Capxul` make one call. Declarations only. A call carries no idempotency key: the old door's `callId`
+// was never tried and no promise needs one; the documents journey will decide whether retries need it.
 import type { OperatorRole, PersonId } from "../common/values.ts";
 
 /**
@@ -15,8 +16,9 @@ export const CREDENTIAL_HEADER = "authorization";
  * such a call acts as the world's owner. Real worlds use real sign-in, which is not designed yet (roadmap phase 4).
  *
  * Two credentials act as a world's owner at its door: the world's door token, and the token of the operator who owns
- * the world (decisions.md, 36). The second is how a caller reaches a world it has just made or restored, whose door
- * token it was never given. Any other operator's token is not signed in at that door.
+ * the world. The second is how a caller reaches a world it has just made or restored, whose door token it was never
+ * given: a token in `world.create`'s answer would be written into every run record, and the operator is already who
+ * the caller is. Any other operator's token is not signed in at that door.
  */
 export const PERSON_HEADER = "capxul-person";
 

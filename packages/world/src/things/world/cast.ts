@@ -1,4 +1,5 @@
-// A new world's cast and its clock's start on its chain (packages/blueprint/docs/decisions.md, entries 20, 25 and 42).
+// A new world's cast and its clock's start on its chain (packages/blueprint, src/things/world/verbs/create.ts,
+// src/starting-points/cast.ts and src/common/values.ts).
 // Every private and shared world is born with dana, eli, sam and olga, each with a personal Safe claimed through
 // Companies House and funded with 10,000 test USDC from the faucet, and pat, who has not finished signing up and has no
 // Safe. Each signs with one of the public test mnemonic's accounts (the blueprint's `CAST_KEYS`): 4 to 8, clear of the
@@ -132,7 +133,7 @@ export const makeCast = Effect.fn("platform.cast")(function* <E, R>(call: Call<E
 
 /**
  * Mines the world's first block of its own at its start, so the chain's head shows the world's clock
- * (packages/blueprint/docs/decisions.md, entry 34).
+ * (packages/blueprint, src/common/chain/reads.ts).
  */
 export const mineStart = <E, R>(call: Call<E, R>, startMs: number) =>
   Effect.gen(function* () {

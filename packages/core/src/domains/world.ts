@@ -1,5 +1,5 @@
 // Core's handlers of the blueprint's domain "world". Its platform operations are packages/world's (src/platform,
-// packages/blueprint/docs/decisions.md, entry 51), so Core's own are empty: each fails with the blueprint's
+// packages/blueprint, src/things/world/values.ts), so Core's own are empty: each fails with the blueprint's
 // `NotImplemented`, naming itself. Core serves `world.clock.warp` (src/site-ops).
 import { Errors, type OperationName } from "@capxul/blueprint";
 import * as Effect from "effect/Effect";

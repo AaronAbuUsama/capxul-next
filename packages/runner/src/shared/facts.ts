@@ -1,5 +1,6 @@
 // What a shared world keeps of how its starting worlds were made: each one's facts
-// (packages/blueprint/docs/decisions.md, entry 38), as its maker answered them, in a table of the world's own database,
+// (packages/blueprint, src/starting-points/facts.ts), as its maker answered them, in a table of the world's own
+// database,
 // written just before the snapshot of that starting world is saved. So each snapshot carries its own facts and those of
 // the worlds before it, and a world restored from the snapshot holds them too: a run on the shared world, which never
 // made those worlds, hands a journey the facts of the world it was restored from. The facts are the maker's encoded
