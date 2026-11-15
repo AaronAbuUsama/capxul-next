@@ -142,3 +142,11 @@ export class Observations extends Context.Service<
     ) => Effect.Effect<ReadonlyMap<string, Observed>>;
   }
 >()("@capxul/scenarios/client/Observations") {}
+
+/**
+ * Marks the calls a check makes to look at the world: what an operation's checks read before a call (`prepare`) and
+ * every check's own reads (`holds`). A try provides it around those, never around the call under test, so the run can
+ * retry a look whose transport failed without ever sending the call under test twice. The runner takes a call as a
+ * look when this is present and `CallTraces` is not.
+ */
+export class Observing extends Context.Service<Observing, {}>()("@capxul/scenarios/client/Observing") {}

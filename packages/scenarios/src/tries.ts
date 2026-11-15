@@ -18,6 +18,7 @@ import {
   CallTraces,
   Capxul,
   Observations,
+  Observing,
   ThisCall,
   type Observed,
   type CapxulClient,
@@ -131,11 +132,14 @@ const observe = (traces: ReadonlyArray<string>, options: CallOptions) =>
 /** Runs every check of the call traced `trace`, each to its end, and says how each went. */
 const judge = (checks: ReadonlyArray<Check>, call: ThisCall["Service"]) =>
   Effect.forEach(checks, (each) =>
-    Effect.map(Effect.exit(Effect.provideService(each.holds, ThisCall, call)), (exit): CheckOutcome => ({
-      says: each.says,
-      passed: Exit.isSuccess(exit),
-      detail: Exit.isSuccess(exit) ? "" : said(exit.cause),
-    })),
+    Effect.map(
+      Effect.exit(each.holds.pipe(Effect.provideService(ThisCall, call), Effect.provideService(Observing, {}))),
+      (exit): CheckOutcome => ({
+        says: each.says,
+        passed: Exit.isSuccess(exit),
+        detail: Exit.isSuccess(exit) ? "" : said(exit.cause),
+      }),
+    ),
   );
 
 /** One try of `operation` in step `step`. */
@@ -145,7 +149,9 @@ const attempt = (step: number, asked: Asked<OperationName>, expected: Expected, 
     const steps = yield* Steps;
     const journal = yield* Journal;
     const checks = yield* OperationChecks;
-    const prepared = yield* Effect.exit(checksOf(checks, asked.operation).prepare(asked));
+    const prepared = yield* Effect.exit(
+      Effect.provideService(checksOf(checks, asked.operation).prepare(asked), Observing, {}),
+    );
     // The trace of each of the try's attempts, as the client tells it: the checks judge what they all caused.
     const traces = yield* Ref.make<ReadonlyArray<string>>([]);
     const call = callOf(capxul, asked.operation)(asked.payload, asked.options).pipe(
