@@ -59,11 +59,17 @@ export class CompanySites extends Context.Service<
       method: string,
       body: Readonly<Record<string, unknown>>,
     ) => Effect.Effect<unknown, Errors.OrgNotFound | Errors.SiteUnavailable>;
-    /** Calls `method` on every ready site of the world, in order, each with the body `bodyOf` makes for its place. */
-    readonly everySite: (
+    /**
+     * Calls `method` on every ready site of the world, each with the body `bodyOf` makes for its place in the list, up
+     * to `concurrency` sites at once, and hands each site's call to `each`, which runs it (inside a span of its own,
+     * say) and reads its answer. The answers are in the order of the sites.
+     */
+    readonly everySite: <A>(
       method: string,
       bodyOf: (index: number, count: number) => Readonly<Record<string, unknown>>,
-    ) => Effect.Effect<ReadonlyArray<unknown>>;
+      each: (site: string, call: Effect.Effect<unknown, SiteDoorFailed>) => Effect.Effect<A, SiteDoorFailed>,
+      concurrency: number,
+    ) => Effect.Effect<ReadonlyArray<A>>;
   }
 >()("@capxul/core/site-ops/sites/CompanySites") {}
 
@@ -94,10 +100,14 @@ export const CompanySitesLive = Layer.effect(
           if (Arr.some(sites, (one) => one.state === "creating")) return yield* unavailable(org, "creating");
           return yield* Errors.OrgNotFound.make({ org });
         }).pipe(Effect.catchTag("SiteDoorFailed", (failed) => doorFailure(org, failed))),
-      everySite: (method, bodyOf) =>
+      everySite: (method, bodyOf, each, concurrency) =>
         Effect.gen(function* () {
           const ready = Arr.filter((yield* listed).sites, (one) => one.state === "ready");
-          return yield* Effect.forEach(ready, (site, index) => send(site.site, method, bodyOf(index, ready.length)));
+          return yield* Effect.forEach(
+            ready,
+            (site, index) => each(site.site, send(site.site, method, bodyOf(index, ready.length))),
+            { concurrency },
+          );
         }).pipe(
           Effect.catchTag("SiteDoorFailed", (failed) =>
             failed.reason === "unset" ? Effect.succeed([]) : Effect.die(failed),
