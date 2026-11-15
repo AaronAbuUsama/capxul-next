@@ -87,7 +87,11 @@ const counters: { readonly [C in Counter]: (lists: Lists, ratchet: Ratchet) => O
   "own-list": ownList,
   "verbs:examples": (lists) => verbsWithExamplesApart(lists.files),
   "docs:long-or-mapped": (lists, ratchet) => longOrMappedDocs(lists.files, ratchet.unmigrated ?? []),
-  "effect:non-effect": (lists) => nonEffectCode(lists.files),
+  "effect:non-effect": (lists, ratchet) =>
+    nonEffectCode(
+      lists.files,
+      Arr.map(ratchet.accepted ?? [], ({ name }) => name),
+    ),
 };
 
 /** Every ratchet of `registry`, counted from `lists`. */

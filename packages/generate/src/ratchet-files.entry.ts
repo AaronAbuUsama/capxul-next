@@ -69,10 +69,12 @@ const Manifest = Schema.Struct({ dependencies: Schema.optional(Schema.Record(Sch
 /** Each package's runtime dependencies, by its path: every tracked `packages/<name>/package.json`. */
 const dependencies = (): { [pkg: string]: ReadonlyArray<string> } =>
   Rec.fromEntries(
-    Arr.map(Str.split(Str.trim(run("git", ["ls-files", "packages/*/package.json"])), "\n"), (path) => {
+    Arr.flatMap(Str.split(Str.trim(run("git", ["ls-files", "packages/*/package.json"])), "\n"), (path) => {
+      // git's `*` crosses folders: only a package's own manifest, not one of an image inside it.
+      if (!/^packages\/[^/]+\/package\.json$/.test(path)) return [];
       // oxlint-disable-next-line effecttsgo/schema-sync -- read once from the command line: a manifest of another shape stops the run with its reason.
       const manifest = Schema.decodeUnknownSync(Manifest)(JSON.parse(read(path)));
-      return [Str.replace("/package.json", "")(path), Rec.keys(manifest.dependencies ?? {})] as const;
+      return [[Str.replace("/package.json", "")(path), Rec.keys(manifest.dependencies ?? {})] as const];
     }),
   );
 

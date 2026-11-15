@@ -48,6 +48,12 @@ const FROM_EXAMPLES = /from\s+["'][^"']*\/examples\.ts["']/;
 const isEffect = (name: string): boolean =>
   name === "effect" || Str.startsWith("@effect/")(name) || Str.startsWith("@capxul/")(name);
 
+/** A dependency named by an accepted name: the name itself, or under a scope accepted as `<scope>/*`. */
+const isAccepted = (accepted: ReadonlyArray<string>, name: string): boolean =>
+  Arr.some(accepted, (each) =>
+    Str.endsWith("/*")(each) ? Str.startsWith(Str.slice(0, -1)(each))(name) : each === name,
+  );
+
 const lines = (text: string): ReadonlyArray<string> => Str.split(Str.trimEnd(text), "\n");
 
 /** A counter's answer: its count and the items behind it, one each. */
@@ -87,15 +93,18 @@ export const longOrMappedDocs = (files: RepositoryFiles, unfolded: ReadonlyArray
 
 /**
  * R10: effect-only's findings outside the lint's reach (one per finding), and each runtime dependency of a package
- * that is not Effect nor Capxul's own (one per package and dependency). Both counts are the roadmap's, agreed on 13
- * November 2026.
+ * that is not Effect, Capxul's own nor `accepted` (the registry's list beside R10, each with its reason; one per
+ * package and dependency). Both counts are the roadmap's, agreed on 13 November 2026; the accepted list makes the
+ * second one able to empty (blueprint lead, 15 November 2026).
  */
-export const nonEffectCode = (files: RepositoryFiles): Counted => {
+export const nonEffectCode = (files: RepositoryFiles, accepted: ReadonlyArray<string>): Counted => {
   const constructs: ReadonlyArray<string> = Arr.sort(Rec.keys(files.nonEffect), Str.Order);
   const packages: ReadonlyArray<string> = Arr.sort(Rec.keys(files.dependencies), Str.Order);
   const dependencies = Arr.flatMap(packages, (pkg) => {
     const names: ReadonlyArray<string> = Arr.sort(files.dependencies[pkg] ?? [], Str.Order);
-    return Arr.flatMap(names, (name) => (isEffect(name) ? [] : [`dependency: ${pkg}: ${name}`]));
+    return Arr.flatMap(names, (name) =>
+      isEffect(name) || isAccepted(accepted, name) ? [] : [`dependency: ${pkg}: ${name}`],
+    );
   });
   return {
     count: Arr.reduce(constructs, 0, (total, file) => total + (files.nonEffect[file] ?? 0)) + dependencies.length,

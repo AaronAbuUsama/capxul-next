@@ -29,7 +29,17 @@ const R8: Ratchet = {
   count: "docs:long-or-mapped",
   unmigrated: ["packages/a/docs/order.md"],
 };
-const R10: Ratchet = { id: "R10", name: "Effect", holds: "code", closes: "7", count: "effect:non-effect" };
+const R10: Ratchet = {
+  id: "R10",
+  name: "Effect",
+  holds: "code",
+  closes: "7",
+  count: "effect:non-effect",
+  accepted: [
+    { name: "viem", reason: "the chain client" },
+    { name: "@alchemy.run/*", reason: "what runs where" },
+  ],
+};
 
 test("R7 counts each verb that imports its examples from an examples.ts, and no other", () => {
   const verbs = {
@@ -65,21 +75,20 @@ test("R8 counts each long README the docs' shape lists, each file map, and each 
   });
 });
 
-test("R10 counts effect-only's findings and each runtime dependency that is not Effect nor Capxul's own", () => {
+test("R10 counts effect-only's findings and each runtime dependency not Effect, Capxul's own nor accepted", () => {
   const files = {
     nonEffect: { "packages/indexer/src/index.ts": 3, "packages/indexer/ponder.config.ts": 2 },
     dependencies: {
-      "packages/core": ["effect", "@effect/sql-pg", "@capxul/blueprint", "viem", "alchemy"],
+      "packages/core": ["effect", "@effect/sql-pg", "@capxul/blueprint", "viem", "alchemy", "@alchemy.run/neon"],
       "packages/sdk": ["effect"],
     },
   };
   assert.deepEqual(one(R10, files), {
-    count: 7,
+    count: 6,
     items: [
       "construct: packages/indexer/ponder.config.ts: 2",
       "construct: packages/indexer/src/index.ts: 3",
       "dependency: packages/core: alchemy",
-      "dependency: packages/core: viem",
     ],
   });
   assert.deepEqual(one(R10, {}), { count: 0, items: [] });
