@@ -5,6 +5,9 @@
 import type { Counter, Ratchet } from "../language/ratchet.ts";
 import * as Arr from "effect/Array";
 import * as Rec from "effect/Record";
+import { longOrMappedDocs, nonEffectCode, verbsWithExamplesApart, type RepositoryFiles } from "./ratchet-files.ts";
+
+export { NOT_LINTED, type RepositoryFiles } from "./ratchet-files.ts";
 
 /** Where `pnpm generate` writes the counts and the scorecard, from packages/blueprint. */
 export const OUTPUTS = { counts: "generated/ratchets.json", scorecard: "generated/scorecard.md" } as const;
@@ -17,6 +20,8 @@ export interface Lists {
   readonly formats: { readonly [format: string]: ReadonlyArray<string> };
   /** The glossary's old words as generated/old-words.json counts them (old-words.ts): a word, and its count. */
   readonly oldWords: { readonly [word: string]: number };
+  /** The repository's files R7, R8 and R10 are counted from (ratchet-files.ts). */
+  readonly files: RepositoryFiles;
 }
 
 /** One ratchet, counted: its count and the items behind it, or null when it is not yet counted. */
@@ -62,13 +67,13 @@ const oldWordList = (lists: Lists): Omit<Tally, "ratchet"> => ({
   items: Arr.flatMap(Rec.toEntries(lists.oldWords), ([word, n]) => (n > 0 ? [`${word}: ${String(n)}`] : [])),
 });
 
-/** Each counter, by the name the registry gives it. */
 /** A ratchet's own list: its names in all, one item each. */
 const ownList = (_lists: Lists, ratchet: Ratchet): Omit<Tally, "ratchet"> => {
   const items = ratchet.unmigrated ?? [];
   return { count: items.length, items };
 };
 
+/** Each counter, by the name the registry gives it. */
 const counters: { readonly [C in Counter]: (lists: Lists, ratchet: Ratchet) => Omit<Tally, "ratchet"> } = {
   "lint:owned-values": (lists) => lintList(lists, "owned-values"),
   "lint:declared-names": (lists) => lintList(lists, "declared-names"),
@@ -80,6 +85,9 @@ const counters: { readonly [C in Counter]: (lists: Lists, ratchet: Ratchet) => O
   "formats:promises": someFormats(["promises"]),
   "words:old-words": oldWordList,
   "own-list": ownList,
+  "verbs:examples": (lists) => verbsWithExamplesApart(lists.files),
+  "docs:long-or-mapped": (lists, ratchet) => longOrMappedDocs(lists.files, ratchet.unmigrated ?? []),
+  "effect:non-effect": (lists) => nonEffectCode(lists.files),
 };
 
 /** Every ratchet of `registry`, counted from `lists`. */
