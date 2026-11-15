@@ -8,6 +8,7 @@ import * as BunFileSystem from "@effect/platform-bun/BunFileSystem";
 import * as BunPath from "@effect/platform-bun/BunPath";
 import * as BunRuntime from "@effect/platform-bun/BunRuntime";
 import * as BunServices from "@effect/platform-bun/BunServices";
+import { exportFromConfig } from "@capxul/platform";
 import * as World from "@capxul/world";
 import { SharedState } from "@capxul/world";
 import { journeys } from "@capxul/scenarios";
@@ -30,6 +31,8 @@ import { makeOrRenew } from "./shared/make.ts";
 import { timeStartingWorlds } from "./worlds/timing.ts";
 import { runScenarios } from "./scenario-runs.ts";
 import { Settings } from "./settings.ts";
+import { runnerTelemetry } from "./telemetry/export.ts";
+import { RUN_SPANS } from "./timings.ts";
 import { ranAsExpected, type Expectation, type Mode } from "./summary.ts";
 
 const USAGE =
@@ -165,7 +168,9 @@ const theScenarios = (given: Settings, chosen: ReadonlyArray<Plan>) =>
     const summary = inPrivateWorlds
       ? yield* inWorlds(
           settings,
-          runInWorlds(chosenJourneys, settings, onShared ? Option.some(settings.shared) : Option.none()),
+          runInWorlds(chosenJourneys, settings, onShared ? Option.some(settings.shared) : Option.none()).pipe(
+            Effect.withSpan(RUN_SPANS.run, { attributes: { mode: onShared ? "shared world" : "one world" } }),
+          ),
         )
       : yield* runScenarios(chosen, settings, mode, expect);
     for (const line of summary.journeys)
@@ -184,7 +189,10 @@ const theScenarios = (given: Settings, chosen: ReadonlyArray<Plan>) =>
 
 const theStartingWorlds = (settings: Settings) =>
   Effect.gen(function* () {
-    const record = yield* inWorlds(settings, timeStartingWorlds(settings));
+    const record = yield* inWorlds(
+      settings,
+      timeStartingWorlds(settings).pipe(Effect.withSpan(RUN_SPANS.run, { attributes: { mode: "starting worlds" } })),
+    );
     for (const line of record.worlds)
       yield* Effect.log(
         `${line.name} (${line.made}): ${line.outcome} in ${line.ms} ms${line.why === null ? "" : `: ${line.why}`}`,
@@ -211,7 +219,10 @@ const theSharedWorld = (given: Settings) =>
       Option.isSome(there) && there.value.owner === given.owner
         ? { ...given, platformToken: there.value.operatorToken }
         : given;
-    const record = yield* inWorlds(settings, makeOrRenew(settings, journeys));
+    const record = yield* inWorlds(
+      settings,
+      makeOrRenew(settings, journeys).pipe(Effect.withSpan(RUN_SPANS.run, { attributes: { mode: "shared" } })),
+    );
     yield* Effect.log(
       `${record.outcome}: ${record.world} ${record.how}, owned by ${record.owner}, until ${record.expiresAt ?? "?"} on hub ${record.hub.stage}; templates ${Arr.join(record.templates, ", ")} -> ${settings.records}/${record.run}/shared.json${record.failure === null ? "" : `\n${record.failure}`}`,
     );
@@ -251,6 +262,9 @@ program.pipe(
       FetchHttpClient.layer,
       // Read by every fetch from the calling fiber's context, so it is provided to the whole program.
       noFetchTimeout,
+      // OTLP export, as OpenTelemetry's standard settings ask (packages/platform, src/telemetry.ts): the run's trace,
+      // its journeys, steps and parts and the world's own spans go through it; flushed when the run ends.
+      exportFromConfig(runnerTelemetry),
     ),
   ),
   BunRuntime.runMain,

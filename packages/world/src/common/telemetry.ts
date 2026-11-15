@@ -1,23 +1,10 @@
-// The world's OTLP export (roadmap 4.4): the layer its entry (cli/main.ts) provides once, so every span, log and metric it makes is posted
-// over OTLP/HTTP JSON to `baseUrl` (the collector), under a resource naming the producer (`service.name`: "capxul-world", #301's producer)
-// and the code's revision (`service.version`). Effect's `Otlp.layerJson` from `effect/observability`; no OpenTelemetry
-// SDK.
-//
-// STUB. "🔨 the runner, the world and the platform client export OTLP" (PR #317, item 4) replaces the body; until then it exports nothing, so
-// packages/world/test/otlp-export.test.ts fails.
-import type * as Headers from "effect/http/Headers";
-import type * as HttpClient from "effect/http/HttpClient";
-import * as Layer from "effect/Layer";
+// The world's OTLP export (roadmap 4.4): the layer its entry (src/cli/main.ts) provides once, through
+// `exportFromConfig`, so every span, log and metric it makes is posted over OTLP/HTTP JSON to `baseUrl` (the
+// collector), under a resource naming the producer (`service.name`: "capxul-world", #301's producer) and the code's
+// revision (`service.version`). Built by packages/platform's `exportLayer`, the one implementation of every producer's.
+import { exportLayer, PRODUCERS, type ExportLayer, type ExportOptions } from "@capxul/platform";
 
-export interface ExportOptions {
-  /** The collector's base URL: `/v1/traces`, `/v1/logs` and `/v1/metrics` are below it. */
-  readonly baseUrl: string;
-  /** The code's revision, the resource's `service.version`. */
-  readonly revision: string;
-  /** Sent with every export: the operator's platform token, for a caller outside Cloudflare. */
-  readonly headers?: Headers.Input | undefined;
-}
+export type { ExportOptions };
 
-/** Provides The world's OTLP export. */
-export const worldTelemetry = (_options: ExportOptions): Layer.Layer<never, never, HttpClient.HttpClient> =>
-  Layer.empty;
+/** Provides the world's OTLP export. */
+export const worldTelemetry = (options: ExportOptions): ExportLayer => exportLayer(PRODUCERS.world, options);
