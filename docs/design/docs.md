@@ -535,7 +535,8 @@ Landed since the hand-over (15 November 2026, 19:10 UTC):
 
 Still to do:
 
-1. **M4, done 15 November 2026:** the roadmap's decisions table is `docs/decisions.md`, word for word (60 rows), and
+1. **M4, done 15 November 2026, but for the additions waiting on Aaron:** the roadmap's decisions table is
+   `docs/decisions.md`, word for word (59 decisions), and
    the roadmap's section "What was decided on 13 November 2026" points to it, so every citation of "the roadmap's
    decision" by name finds it in one step. "Steps to the goal" is unchanged; `feed.py` still reads its 66 steps.
    `AGENTS.md` and the conductor's skill say decisions are written in `docs/decisions.md`. Waiting on Aaron, through

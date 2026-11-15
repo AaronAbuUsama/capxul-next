@@ -16,7 +16,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 - [`ratchet-files.ts`](../src/checks/ratchet-files.ts): The ratchets counted from the repository's files (roadmap item 3.6): R7, the verbs whose examples still sit in their thing's `examples.ts`; R8, the long READMEs, the hand-written file maps and the docs not yet folded; R10, the non-Effect constructs and runtime dependencies.
 - [`ratchets.ts`](../src/checks/ratchets.ts): The ratchets counted (docs/design/blueprint.md, part 4; roadmap item 3.6): each ratchet of the blueprint's registry (packages/blueprint/src/ratchets.ts) tallied by its counter from the lists that hold it today, compared with the committed counts (packages/blueprint/generated/ratchets.json).
 - [`scorecard.ts`](../src/checks/scorecard.ts): The scorecard (roadmap item 3.11; docs/design/blueprint.md, part 14): every thing of the blueprint against every format and per-thing ratchet, each cell ✓, ✗, "not yet measured", or "—" where it does not apply; and every ratchet's count beneath.
-- [`word-files.ts`](../src/checks/word-files.ts): Which files the count of old words reads (old-words.ts): `packages/`, `AGENTS.md`, `docs/roadmap.md` and `.github/`.
+- [`word-files.ts`](../src/checks/word-files.ts): Which files the count of old words reads (old-words.ts): `packages/`, `AGENTS.md`, `docs/roadmap.md`, `docs/decisions.md` and `.github/`.
 
 ## `src/`
 
