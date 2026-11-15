@@ -57,7 +57,8 @@ export const defaultCore: CoreSlot = Effect.gen(function* () {
   // The world's token on the hub (src/things/cluster/client.ts), handed in by the create.
   const doorToken = settings.doorToken;
   const minted = yield* Alchemy.Random(OPERATOR_TOKEN_ID, { bytes: 24 });
-  // The owner operator's own token when the platform made the world (decisions.md, 36); otherwise the world's own.
+  // The owner operator's own token when the platform made the world (packages/blueprint, src/protocol/headers.ts);
+  // otherwise the world's own.
   const operatorToken = Option.getOrElse(
     Option.map(settings.operatorToken, (token): unknown => token),
     () => minted.text,

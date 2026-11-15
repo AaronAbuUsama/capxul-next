@@ -33,12 +33,9 @@ const load = async (thing: string, file: string): Promise<Readonly<Record<string
   return loaded;
 };
 
-/** The verbs of a thing: every file of its folder but its own. */
+/** The verbs of a thing: every file of its `verbs/` folder, by its path from the thing's folder. */
 const verbsOf = (thing: string): ReadonlyArray<string> =>
-  Arr.filter(
-    readdirSync(join(THINGS, thing)),
-    (file) => !Arr.contains(["values.ts", "events.ts", "refusals.ts", "lifecycle.ts", "examples.ts"], file),
-  );
+  Arr.map(readdirSync(join(THINGS, thing, "verbs")), (file) => `verbs/${file}`);
 
 test("the folders are read: the things this test knows of today are among them", () => {
   const found = thingsWith("refusals.ts");

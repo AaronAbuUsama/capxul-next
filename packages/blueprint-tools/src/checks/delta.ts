@@ -1,12 +1,10 @@
 // The delta check (docs/roadmap.md, "Typed once, by check", step 3.5): every operation has every format that exists
-// (formats.ts), or is on that format's `unmigrated` list, which may only shrink. Pure: `pnpm delta:check` runs it
-// through delta.entry.ts. It takes the operations and the formats as its inputs, the blueprint's own by default, so
-// its tests can run it on made-up ones.
-import { operations } from "../../../blueprint/src/index.ts";
+// (formats.ts), or is on that format's `unmigrated` list, which may only shrink. Pure: `pnpm delta:check` runs it over
+// the blueprint (packages/generate, delta.entry.ts). It takes the operations and the formats as its inputs, so its
+// tests can run it on made-up ones and the blueprint's on its own.
 import * as Arr from "effect/Array";
 import * as Rec from "effect/Record";
 import type { Format } from "./format.ts";
-import { formats } from "./formats.ts";
 
 /** One thing the delta check finds: an operation (or a domain's folder), the format, and why. */
 export interface Finding {
@@ -21,9 +19,6 @@ export interface DeltaInputs {
   /** Every format, by name. */
   readonly formats: { readonly [format: string]: Format };
 }
-
-/** The blueprint's own operations and formats. */
-export const blueprint: DeltaInputs = { operations: Rec.keys(operations), formats };
 
 /** What one format finds over `names`. */
 const checkFormat = (names: ReadonlyArray<string>, format: string, declared: Format): ReadonlyArray<Finding> => {
@@ -50,5 +45,5 @@ const checkFormat = (names: ReadonlyArray<string>, format: string, declared: For
 };
 
 /** Every finding of every format over every operation: nothing when the blueprint's declarations comply. */
-export const deltaCheck = (inputs: DeltaInputs = blueprint): ReadonlyArray<Finding> =>
+export const deltaCheck = (inputs: DeltaInputs): ReadonlyArray<Finding> =>
   Arr.flatMap(Rec.toEntries(inputs.formats), ([name, format]) => checkFormat(inputs.operations, name, format));

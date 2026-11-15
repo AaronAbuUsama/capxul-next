@@ -10,7 +10,7 @@ const closed = { refusal: "InvitationClosed" } as const;
 
 /**
  * An invitation is pending from the moment it is made; its invitee ends it by accepting or declining. Accepting one
- * already accepted changes nothing; anything else from a closed invitation is refused. Cancelling (`org.invite.cancel`)
+ * already accepted changes nothing; anything else from a closed invitation is refused. Cancelling (`invitation.cancel`)
  * comes with that operation, as a new move beside these.
  */
 export const Invitation = Machine.make({
@@ -19,21 +19,21 @@ export const Invitation = Machine.make({
   states: ["pending", "accepted", "declined"],
   start: {
     state: "pending",
-    by: "org.member.invite",
+    by: "invitation.send",
     event: "member_invited",
   },
   moves: {
     accept: {
       from: ["pending"],
       to: "accepted",
-      by: "invite.accept",
+      by: "invitation.accept",
       event: "invitation_accepted",
       otherwise: { accepted: "unchanged", declined: closed },
     },
     decline: {
       from: ["pending"],
       to: "declined",
-      by: "invite.decline",
+      by: "invitation.decline",
       event: "invitation_declined",
       otherwise: { accepted: closed, declined: closed },
     },

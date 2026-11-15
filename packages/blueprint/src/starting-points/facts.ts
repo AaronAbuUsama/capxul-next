@@ -1,4 +1,4 @@
-// The facts each starting world hands a scenario (docs/decisions.md, 38): what the steps that made it answered, which
+// The facts each starting world hands a scenario: what the steps that made it answered, which
 // the scenario could not learn otherwise (an approval's digest, a document's hash, the call that made the world), the
 // operators' names, and every call made in making it. A world's facts are its parent's and its own steps'. The
 // maker of the world keeps them encoded, as JSON values, and a scenario decodes them with `given`. Each world has one

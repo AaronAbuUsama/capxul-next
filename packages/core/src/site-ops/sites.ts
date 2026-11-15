@@ -1,6 +1,7 @@
 // A company's site, as the document, report and clock operations reach it: the Capxul app's `capxul.core_api`
 // methods (packages/frappe-app), called through the world's site door (`SiteDoor`) as the site's own API user. Each
-// call names the company and the person it acts for; the site runs it as that person (decisions.md, 40).
+// call names the company and the person it acts for; the site runs it as that person
+// (packages/blueprint, src/common/site.ts).
 //
 // Which site is the company's: the site door lists the world's sites, and a site that is not the company's answers
 // `org-not-here`, so Core asks each ready site in turn. A world has one site per company, so with one company that is

@@ -25,6 +25,7 @@ import * as Schema from "effect/Schema";
 import * as HttpClient from "effect/http/HttpClient";
 import { RpcClientError } from "effect/rpc/RpcClientError";
 import { describe } from "./failure.ts";
+import { OpenStep } from "./steps.ts";
 import { resendingWhileWarm } from "./world/warmup.ts";
 
 /**
@@ -118,6 +119,16 @@ const recording = (
 ): CapxulClient => {
   const each = (name: OperationName) => (payload: unknown, options?: CallOptions) =>
     Effect.gen(function* () {
+      // The call is a trace of its own, so Core's spans join it by `traceparent`; it is linked to the journey's step.
+      const open = yield* Effect.serviceOption(OpenStep);
+      const step = Option.isSome(open) ? yield* Ref.get(open.value) : Option.none();
+      return yield* Effect.withSpan(sent(name, payload, options), `runner.call ${name}`, {
+        root: true,
+        links: Option.isSome(step) ? [{ span: step.value, attributes: {} }] : [],
+      });
+    });
+  const sent = (name: OperationName, payload: unknown, options?: CallOptions) =>
+    Effect.gen(function* () {
       const span = yield* Effect.orDie(Effect.currentSpan);
       const before = yield* Ref.get(resent);
       const [took, exit] = yield* send(name, payload, options).pipe(Effect.exit, Effect.timed);
@@ -140,7 +151,7 @@ const recording = (
       const traces = yield* Effect.serviceOption(CallTraces);
       if (Option.isSome(traces)) yield* traces.value.heard(span.traceId);
       return yield* exit;
-    }).pipe(Effect.withSpan(`runner.call ${name}`, { root: true }));
+    });
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- one function per operation, built by name from the blueprint's own list, each the recorded call of the operation it is keyed by; the compiler cannot follow the mapping
   const calls = Rec.map(operations, (_operation, name) => each(name)) as unknown as Omit<CapxulClient, "chain">;
   // Chain reads are not operations: no span of Core's, no event, nothing for the generic checks. They pass through.

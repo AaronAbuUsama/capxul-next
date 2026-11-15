@@ -6,14 +6,18 @@
 import { Steps, type StepOutline, type Tried } from "@capxul/scenarios";
 import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
+import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
 import { pipe } from "effect/Function";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
+import type * as Tracer from "effect/Tracer";
 import type { CheckedCall } from "./checks/checks.ts";
 import type { Call } from "./client.ts";
+import { RUN_SPANS } from "./timings.ts";
 
 /** One step as the runner heard it while the journey ran. */
 export interface Heard {
@@ -29,31 +33,63 @@ export interface Heard {
   readonly failure: string | null;
 }
 
-/** `Steps` for one run: every step heard into `heard`, its calls counted from `log`. */
+/**
+ * The span of the step a journey is in, while it is in one, which `hearing` keeps beside `Steps`: each call the
+ * journey makes is linked to it (client.ts).
+ */
+export class OpenStep extends Context.Service<OpenStep, Ref.Ref<Option.Option<Tracer.Span>>>()(
+  "@capxul/runner/steps/OpenStep",
+) {}
+
+/**
+ * `Steps` for one run: every step heard into `heard`, its calls counted from `log`. Each step is also a span of the
+ * journey's (`runner.journey.step`), open from its beginning to its end and failed when the step failed; `OpenStep`
+ * holds it meanwhile.
+ */
 export const hearing = (heard: Ref.Ref<ReadonlyArray<Heard>>, log: Ref.Ref<ReadonlyArray<Call>>) =>
-  Layer.succeed(Steps, {
-    begin: (step, outline) =>
-      Effect.gen(function* () {
-        const from = (yield* Ref.get(log)).length;
-        const startedMs = yield* Clock.currentTimeMillis;
-        yield* Ref.update(heard, (all) => [
-          ...all,
-          { step, outline, from, to: null, startedMs, endedMs: null, tries: [], failure: null },
-        ]);
-      }),
-    tried: (step, tried) =>
-      Ref.update(heard, (all) =>
-        Arr.map(all, (each) => (each.step === step ? { ...each, tries: [...each.tries, tried] } : each)),
-      ),
-    end: (step, failure) =>
-      Effect.gen(function* () {
-        const to = (yield* Ref.get(log)).length;
-        const endedMs = yield* Clock.currentTimeMillis;
-        yield* Ref.update(heard, (all) =>
-          Arr.map(all, (each) => (each.step === step ? { ...each, to, endedMs, failure } : each)),
-        );
-      }),
-  });
+  Layer.effectContext(
+    Effect.gen(function* () {
+      const open = yield* Ref.make<Option.Option<Tracer.Span>>(Option.none());
+      return Context.make(OpenStep, open).pipe(Context.add(Steps, heardSteps(heard, log, open)));
+    }),
+  );
+
+const heardSteps = (
+  heard: Ref.Ref<ReadonlyArray<Heard>>,
+  log: Ref.Ref<ReadonlyArray<Call>>,
+  open: Ref.Ref<Option.Option<Tracer.Span>>,
+): Steps["Service"] => ({
+  begin: (step, outline) =>
+    Effect.gen(function* () {
+      const from = (yield* Ref.get(log)).length;
+      const startedMs = yield* Clock.currentTimeMillis;
+      const span = yield* Effect.makeSpan(RUN_SPANS.step, {
+        attributes: { step, operation: outline.operation, does: outline.does },
+      });
+      yield* Ref.set(open, Option.some(span));
+      yield* Ref.update(heard, (all) => [
+        ...all,
+        { step, outline, from, to: null, startedMs, endedMs: null, tries: [], failure: null },
+      ]);
+    }),
+  tried: (step, tried) =>
+    Ref.update(heard, (all) =>
+      Arr.map(all, (each) => (each.step === step ? { ...each, tries: [...each.tries, tried] } : each)),
+    ),
+  end: (step, failure) =>
+    Effect.gen(function* () {
+      const to = (yield* Ref.get(log)).length;
+      const endedMs = yield* Clock.currentTimeMillis;
+      const span = yield* Ref.getAndSet(open, Option.none());
+      if (Option.isSome(span)) {
+        const endedNanos = yield* Clock.currentTimeNanos;
+        span.value.end(endedNanos, failure === null ? Exit.void : Exit.fail(failure));
+      }
+      yield* Ref.update(heard, (all) =>
+        Arr.map(all, (each) => (each.step === step ? { ...each, to, endedMs, failure } : each)),
+      );
+    }),
+});
 
 const CheckOutcome = Schema.Struct({ says: Schema.String, passed: Schema.Boolean, detail: Schema.String });
 
@@ -70,7 +106,7 @@ const Try = Schema.Struct({
   checks: Schema.Array(CheckOutcome),
 });
 
-export const StepRecord = Schema.Struct({
+export const StepResult = Schema.Struct({
   /** Its place in the journey, from 1. */
   step: Schema.Finite,
   operation: Schema.String,
@@ -88,7 +124,7 @@ export const StepRecord = Schema.Struct({
   /** How long it took, from its beginning to its end. */
   ms: Schema.NullOr(Schema.Finite),
 });
-export type StepRecord = typeof StepRecord.Type;
+export type StepResult = typeof StepResult.Type;
 
 /** The first step that failed, and why. */
 export const FailedStep = Schema.Struct({
@@ -117,7 +153,7 @@ export const stepsOf = (
   outline: ReadonlyArray<StepOutline>,
   heard: ReadonlyArray<Heard>,
   calls: ReadonlyArray<CheckedCall>,
-): ReadonlyArray<StepRecord> =>
+): ReadonlyArray<StepResult> =>
   Arr.map(outline, (step, index) => {
     const found = Arr.findFirst(heard, (each) => each.step === index + 1);
     if (Option.isNone(found))
@@ -149,7 +185,7 @@ export const stepsOf = (
   });
 
 /** The first step that failed, or null when none did. */
-export const failedStepOf = (steps: ReadonlyArray<StepRecord>): FailedStep | null =>
+export const failedStepOf = (steps: ReadonlyArray<StepResult>): FailedStep | null =>
   pipe(
     Arr.findFirst(steps, (step) => step.outcome === "failed"),
     Option.map((step) => ({

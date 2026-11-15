@@ -1,8 +1,9 @@
-// The world's record (blueprint decisions.md, 8): the ordered list of every event emitted in the world, kept as rows
-// of `app.events` (migrations/0001_telemetry.sql), the rows the runner's `events` check reads under each call's trace.
-// An entry's position is its row's place in that order, so the positions run 1 to the head with no gap whatever a
-// failed write burned of the table's identity, and a world made from a snapshot keeps its source's rows with its
-// database. An entry's time is the world's, from its clock.
+// The world's record (packages/blueprint, src/things/history/verbs/export.ts): the ordered list of every event emitted
+// in the
+// world, kept as rows of `app.events` (migrations/0001_telemetry.sql), the rows the runner's `events` check reads under
+// each call's trace. An entry's position is its row's place in that order, so the positions run 1 to the head with no
+// gap whatever a failed write burned of the table's identity, and a world made from a snapshot keeps its source's rows
+// with its database. An entry's time is the world's, from its clock.
 //
 // A successful call records exactly what its declaration computes from its payload and answer
 // (`operation.expected`), so an event cannot carry anything its blueprint declaration does not say.

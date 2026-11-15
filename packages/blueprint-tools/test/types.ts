@@ -2,7 +2,7 @@
 // ever stops catching a `carries` that does not fit its event, its call or its outcome. Never run, only compiled.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, declareOutcomes, outcome, type Budget } from "../src/language/operation.ts";
+import { outcome, verb, type Budget } from "../src/language/operation.ts";
 
 class Thing extends Schema.TaggedClass<Thing, { readonly brand: unique symbol }>()("test_thing", {
   id: Schema.String,
@@ -15,14 +15,14 @@ const budget: Budget = { ms: 1, excludes: [], provisional: true, basis: "a compi
 const single = Rpc.make("test.single", { payload: { id: Schema.String }, success: Schema.Struct({ n: Schema.Int }) });
 const several = Rpc.make("test.several", { payload: { id: Schema.String }, success: Schema.Union([A, B]) });
 
-export const fits = declare({
+export const fits = verb({
   rpc: single,
   emits: [{ event: Thing, carries: ({ payload, success }) => ({ id: payload.id, n: success.n }) }],
   budget,
   examples: [],
 });
 
-export const missing = declare({
+export const missing = verb({
   rpc: single,
   // @ts-expect-error: `n` is missing from what the event carries.
   emits: [{ event: Thing, carries: ({ payload }) => ({ id: payload.id }) }],
@@ -30,7 +30,7 @@ export const missing = declare({
   examples: [],
 });
 
-export const misread = declare({
+export const misread = verb({
   rpc: single,
   // @ts-expect-error: the success has no `id`.
   emits: [{ event: Thing, carries: ({ success }) => ({ id: success.id, n: success.n }) }],
@@ -43,7 +43,7 @@ export const wrongOutcome = outcome(several, "TestA", [
   { event: Thing, carries: ({ success }) => ({ id: "x", n: success.n }) },
 ]);
 
-export const unlisted = declareOutcomes({
+export const unlisted = verb({
   rpc: several,
   // @ts-expect-error: every outcome of the success union must be declared; TestB is not.
   outcomes: { TestA: outcome(several, "TestA", []) },
@@ -51,7 +51,7 @@ export const unlisted = declareOutcomes({
   examples: [],
 });
 
-export const listed = declareOutcomes({
+export const listed = verb({
   rpc: several,
   outcomes: {
     TestA: outcome(several, "TestA", []),

@@ -15,7 +15,8 @@ export const DOC_FILES: Readonly<Record<string, string>> = {
 
 /** The folders under docs/ that hold one Markdown file per page, each with its reason. */
 export const DOC_FOLDERS: Readonly<Record<string, string>> = {
-  "docs/design": "design notes: one per question, each stating its status near the top",
+  "docs/design":
+    "design notes: one per question, each stating its status near the top, and README.md, their list, written by `pnpm generate`",
   "docs/guides": "how-to pages for work across packages, one task each",
 };
 
