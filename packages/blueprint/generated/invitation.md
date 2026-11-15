@@ -117,7 +117,7 @@ stateDiagram-v2
 
 1. The invitee accepts and is a member at once; nothing is signed and nothing reaches the chain or the company's site. *(thin line)*
    - In: `founded`.
-   - Observes: invitation.accept as olga of dana's second invitation, pending, answers Accepted: the invitation accepted and olga a member. The world's history gains one invitation_accepted naming olga and nothing else, and the chain's head is unchanged while the world's clock is frozen. org.member.list then lists olga as a member, and org.member.grant as dana of issue-invoices for olga is proposed, not refused with NotAMember.
+   - Observes: invitation.accept as olga of dana's second invitation, pending, answers Accepted: the invitation accepted and olga a member. The world's history gains one invitation_accepted naming olga and nothing else, and the chain's head is unchanged while the world's clock is frozen. member.list then lists olga as a member, and org.member.grant as dana of issue-invoices for olga is proposed, not refused with NotAMember.
    - Old: none; this claim is new.
 2. Accepting again answers the same, and changes nothing.
    - In: `founded`.
@@ -138,7 +138,7 @@ stateDiagram-v2
 
 1. The invitee declines; the invitation is closed and they do not join. *(thin line)*
    - In: `founded`.
-   - Observes: invitation.decline as olga of dana's invitation answers it declined. The world's history gains one invitation_declined naming neither olga nor her email, and org.member.list as dana does not list her.
+   - Observes: invitation.decline as olga of dana's invitation answers it declined. The world's history gains one invitation_declined naming neither olga nor her email, and member.list as dana does not list her.
    - Old: none; this claim is new.
 2. An invitation that is not the caller's, one no longer pending, and one nobody sent are each refused, and nothing changes.
    - In: `founded`.

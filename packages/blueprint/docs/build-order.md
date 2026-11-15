@@ -53,7 +53,7 @@ members, and the cast.
 
 | # | Operation | Parts it needs | Starting worlds its scenarios need | Why here |
 |---|---|---|---|---|
-| 13 | `org.member.list` | database | `founded` | Reads the board and members `org.create` stored; every other operation here is checked through it. |
+| 13 | `member.list` | database | `founded` | Reads the board and members `org.create` stored; every other operation here is checked through it. |
 | 13 | `invitation.send` | database | `founded` | Needs a founded company, whose founder invites; writes only Core's database. |
 | 14 | `invitation.list` | database | `founded` | Reads what `invitation.send` wrote, by the caller's email in the cast. |
 | 14 | `invitation.decline` | database | `founded` | Ends what `invitation.send` wrote. |
@@ -97,7 +97,7 @@ becomes a shareholders' vote; that comes with equity.
 Director's user reaches the site.
 
 **What the Board is in Core.** `org.member.grant` asks one approval per Director at the Board's threshold, from
-Core's `app.organizations` (`directors`, `threshold`), and `org.member.list` lists the Directors from it. A seat or a
+Core's `app.organizations` (`directors`, `threshold`), and `member.list` lists the Directors from it. A seat or a
 threshold that lands updates them, so a later proposal asks the new Director and needs the new threshold.
 
 **Not here yet.** Removing a Director (`Hats.setHatWearerStatus(directorHat, safe, false, false)`, then

@@ -6,7 +6,7 @@ import { invitationAccept } from "../checks/invite-accept.ts";
 import { invitationDecline } from "../checks/invite-decline.ts";
 import { invitationList } from "../checks/invite-list.ts";
 import { invitationSend } from "../checks/org-member-invite.ts";
-import { orgMemberList } from "../checks/org-member-list.ts";
+import { memberList } from "../checks/org-member-list.ts";
 import { at, type Domain } from "../domain.ts";
 import { inviteOlga } from "../journeys/invite-olga.ts";
 import { noGoingBack } from "../journeys/no-going-back.ts";
@@ -17,7 +17,7 @@ export const checks: Domain<typeof People>["checks"] = {
   "invitation.list": invitationList,
   "invitation.accept": invitationAccept,
   "invitation.decline": invitationDecline,
-  "org.member.list": orgMemberList,
+  "member.list": memberList,
 };
 
 /** The journeys it leads, in the order they run. */
@@ -41,8 +41,5 @@ export const coverage: Domain<typeof People>["coverage"] = {
     at(["invitation.decline"], [inviteOlga, 4]),
     at(["invitation.decline"], [inviteOlga, 4], [noGoingBack, 3]),
   ],
-  "org.member.list": [
-    at(["org.member.list"], [inviteOlga, 1], [inviteOlga, 8]),
-    at(["org.member.list"], [inviteOlga, 1]),
-  ],
+  "member.list": [at(["member.list"], [inviteOlga, 1], [inviteOlga, 8]), at(["member.list"], [inviteOlga, 1])],
 };

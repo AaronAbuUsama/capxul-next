@@ -14,7 +14,7 @@ export const BUILT: ReadonlySet<OperationName> = new Set([
   "invitation.list",
   "invitation.accept",
   "invitation.decline",
-  "org.member.list",
+  "member.list",
   "org.director.list",
   "org.director.add",
   "org.threshold.set",

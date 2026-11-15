@@ -1,4 +1,4 @@
-// Reading a company's budgets on the world's chain through its door (packages/blueprint/docs/decisions.md, entry 34):
+// Reading a company's budgets on the world's chain through its door (packages/blueprint, src/common/chain/reads.ts):
 // looks that the budgets operations' checks and the journey "give sam a budget at Northwind" share. The chain is the
 // only gate on spending, so a budget an operation answers is held against the world's Budgets contract
 // (`contracts.budgets`), never against anything Core keeps. Every read goes to the door, and as the operator, a look at
@@ -114,6 +114,6 @@ export const asChainHolds = (world: View, budget: Budget, who: Who = {}) =>
     }
   });
 
-/** Whether `person` is a Director or a member of `org`, as `org.member.list` answers the world's owner. */
+/** Whether `person` is a Director or a member of `org`, as `member.list` answers the world's owner. */
 export const belongsTo = (org: string, person: string, who: Who = {}) =>
   Effect.map(peopleOf(org, who), (people) => Arr.some(people, (each) => each.person === person));

@@ -56,7 +56,7 @@ today until the glossary's renames (roadmap item 3.8).
 | [invitation](invitation.md) | decline | `invitation.decline` | the world group |
 | [journey](journey.md) | run | `journey.run` | none: work no door serves |
 | [member](member.md) | grant | `org.member.grant` | the world group |
-| [member](member.md) | list | `org.member.list` | the world group |
+| [member](member.md) | list | `member.list` | the world group |
 | [ratchet](ratchet.md) | count | `ratchet.count` | none: work no door serves |
 | [report](report.md) | run | `report.run` | the world group |
 | [run](run.md) | prepare | `run.prepare` | none: work no door serves |
