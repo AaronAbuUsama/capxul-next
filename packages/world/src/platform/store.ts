@@ -132,11 +132,23 @@ export const snapshotOf = (stage: string, snapshot: string) =>
     Effect.mapBoth({ onSuccess: Arr.head, onFailure: failed("snapshot") }),
   );
 
-/** Every snapshot of a world. */
+/** Every snapshot of a world, in the order they were saved (a replaced one where its new save puts it). */
 export const snapshotsOf = (stage: string) =>
   Effect.flatMap(registry, (database) =>
-    query(database, `select ${COLUMNS} from platform.snapshots where stage = $1`, [stage]),
+    query(database, `select ${COLUMNS} from platform.snapshots where stage = $1 order by saved_at, snapshot`, [stage]),
   ).pipe(Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(SnapshotRow))), Effect.mapError(failed("snapshot")));
+
+const Counts = Schema.Array(Schema.Struct({ stage: Schema.String, snapshots: Schema.Int }));
+
+/** How many snapshots each of `stages` keeps; a world that keeps none is not among them. */
+export const snapshotCounts = (stages: ReadonlyArray<string>) =>
+  Effect.flatMap(registry, (database) =>
+    query(
+      database,
+      "select stage, count(*)::int as snapshots from platform.snapshots where stage = any($1) group by stage",
+      [stages],
+    ),
+  ).pipe(Effect.flatMap(Schema.decodeUnknownEffect(Counts)), Effect.mapError(failed("snapshot")));
 
 /** Keeps a snapshot, replacing one of the same name. */
 export const keepSnapshot = (row: SnapshotRow) =>
@@ -157,6 +169,12 @@ export const keepSnapshot = (row: SnapshotRow) =>
         row.migrations,
       ],
     ),
+  ).pipe(Effect.asVoid, Effect.mapError(failed("snapshot")));
+
+/** Forgets one snapshot of a world, once what it saved is gone. */
+export const forgetSnapshot = (stage: string, snapshot: string) =>
+  Effect.flatMap(registry, (database) =>
+    query(database, "delete from platform.snapshots where stage = $1 and snapshot = $2", [stage, snapshot]),
   ).pipe(Effect.asVoid, Effect.mapError(failed("snapshot")));
 
 /** Forgets a world's snapshots, once their branches are gone. */

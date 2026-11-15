@@ -103,6 +103,19 @@ def backup_state(c, snapshot):
         raise Refused(404, "backup-not-found", f"{c['world']} has no backup {snapshot} under way or done") from None
 
 
+def drop_backup(c, snapshot):
+    """Forgets the token's world's backup `snapshot`, once the snapshot is deleted: its folder and its job. A backup
+    that is not there is no failure, so a delete that is asked again answers the same."""
+    folder = _snapshot_dir(c["world"], snapshot)
+    removed = os.path.exists(folder) or os.path.exists(_job_path(c["world"], snapshot))
+    shutil.rmtree(folder, ignore_errors=True)
+    try:
+        os.remove(_job_path(c["world"], snapshot))
+    except FileNotFoundError:
+        pass
+    return {"world": c["world"], "snapshot": snapshot, "removed": removed}
+
+
 def tidy_backups():
     """A backup left `saving` by a door that stopped half-way is not being made any more."""
     for path in glob.glob(f"{BACKUPS}/*/*.job.json"):
