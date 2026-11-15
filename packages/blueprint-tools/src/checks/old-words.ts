@@ -35,7 +35,10 @@
 //   file is renamed with its package, not by its importer. Nor does an applied migration's file name
 //   (`0009_core_span_attributes.sql`), never renamed; word-files.ts leaves the migrations themselves unread. Nor does
 //   an entry's `exceptions`, exact text no writer chooses (a deployed resource, `core-db`; a foreign protocol's key,
-//   OTLP's `dataPoints`), wherever it stands outside comments and prose, nothing of a name touching it.
+//   OTLP's `dataPoints`), wherever it stands outside comments and prose, nothing of a name touching it. Nor does a
+//   `package.json` path (`"exports": "./src/door.ts"`, any string starting `./`), a specifier by another name. Nor do
+//   Markdown's lines between `<!-- generated:<name> start -->` and `<!-- generated:<name> end -->`, copies of counted
+//   sources as generated files are.
 import * as Arr from "effect/Array";
 import * as Option from "effect/Option";
 import * as Order from "effect/Order";
@@ -195,16 +198,24 @@ const exceptionsOf = (glossary: ReadonlyArray<Entry>, text: string): ReadonlyArr
 /** What opens an import or export specifier, written just before its string. */
 const SPECIFIER = /(?:\bfrom|\bimport|\bexport\s*\*|\bimport\s*\(|\brequire\s*\()\s*$/;
 
+/** Whether `path` is a package's manifest, whose `./` strings (`exports`, `main`, `types`) are its files' paths. */
+const isManifest = (path: string): boolean => path === "package.json" || Str.endsWith("/package.json")(path);
+
+/** A Markdown file's text without its generated blocks, copies of counted sources. */
+const withoutGenerated = (path: string, text: string): string =>
+  Str.endsWith(".md")(path)
+    ? Str.replace(/<!-- generated:([A-Za-z0-9_-]+) start -->[\s\S]*?<!-- generated:\1 end -->/g, "")(text)
+    : text;
+
 /** `pieces` without the strings that are import or export specifiers, whose names their importer cannot choose. */
-const withoutSpecifiers = (pieces: ReadonlyArray<Piece>): ReadonlyArray<Piece> =>
+const withoutSpecifiers = (path: string, pieces: ReadonlyArray<Piece>): ReadonlyArray<Piece> =>
   Arr.filter(
     pieces,
     (piece, at) =>
       !(
         piece.kind === "string" &&
-        at > 0 &&
-        pieces[at - 1]?.kind === "code" &&
-        SPECIFIER.test(pieces[at - 1]?.text ?? "")
+        ((isManifest(path) && Str.startsWith("./")(piece.text)) ||
+          (at > 0 && pieces[at - 1]?.kind === "code" && SPECIFIER.test(pieces[at - 1]?.text ?? "")))
       ),
   );
 
@@ -217,7 +228,7 @@ export type Names = { readonly [key: string]: ReadonlyArray<string> };
 
 /** The distinct names in one file that hold each counted old word, by its key. */
 export const namesFile = (glossary: ReadonlyArray<Entry>, file: File): Names => {
-  const pieces = withoutSpecifiers(piecesOf(file.path, file.text));
+  const pieces = withoutSpecifiers(file.path, piecesOf(file.path, withoutGenerated(file.path, file.text)));
   const segments = Arr.flatMap(pieces, segmentsOf);
   const agreed = agreedOf(glossary);
   return Rec.fromEntries(

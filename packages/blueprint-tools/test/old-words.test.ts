@@ -138,6 +138,20 @@ test("an import or export specifier counts nothing, whoever's file it names", ()
   assert.equal(count("a.ts", 'import x from "./maker.ts";')["`maker.ts`"], 0);
 });
 
+test("a package.json path counts nothing, like a specifier; its other strings still do", () => {
+  const text =
+    '{ "exports": "./src/widget.ts", "main": "./widget.js", "types": "./widget.d.ts", "bin": { "widget-cli": "x" } }';
+  assert.equal(count("packages/x/package.json", text)["widget"], 1);
+});
+
+test("Markdown's generated blocks count nothing; code around them still does", () => {
+  const text = Arr.join(
+    ["Run `widgetA`.", "<!-- generated:list start -->", "- `widgetB`, `widgetC`", "<!-- generated:list end -->", ""],
+    "\n",
+  );
+  assert.equal(count("README.md", text)["widget"], 1);
+});
+
 test("an applied migration and its file name count nothing", () => {
   assert.equal(isRead("packages/core/migrations/0009_widget_spans.sql"), false);
   assert.equal(isRead("packages/core/src/queries/widget.sql"), true);
