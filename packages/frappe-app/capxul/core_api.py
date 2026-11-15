@@ -122,7 +122,9 @@ def _draft(doctype, name):
 @frappe.whitelist(methods=["POST"])
 def submit(org, user, doctype, name):
     """Posts an ordinary document. A Payment Entry from the company Safe is not posted: its payment is answered, as the
-    document and its Supplier hold it (decisions.md, 28), and nothing changes until Core asks for the hold."""
+    document and its Supplier hold it (packages/blueprint, src/things/document/verbs/submit.ts), and nothing changes
+    until Core
+    asks for the hold."""
     def action():
         _as_person(org, user)
         _part_on(doctype)

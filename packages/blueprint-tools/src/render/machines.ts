@@ -2,22 +2,15 @@
 // its diagram, generated from the declaration, never typed. Pure: render.ts places it.
 import * as Arr from "effect/Array";
 import * as Rec from "effect/Record";
-import type * as Machine from "../language/lifecycle.ts";
+import * as Machine from "../language/lifecycle.ts";
 
-/** A machine as rendered: what every machine shows. */
-interface Shown {
-  readonly name: string;
-  readonly key: string;
-  readonly states: ReadonlyArray<string>;
-  readonly start: Machine.Start<string>;
-  readonly moves: { readonly [move: string]: Machine.Move };
-  readonly diagram: string;
-}
+/** A machine as rendered: what every machine shows, each declaration by its name. */
+type Shown = Machine.NamedMachine;
 
 const code = (text: string) => `\`${text}\``;
 const codes = (items: ReadonlyArray<string>) => Arr.join(Arr.map(items, code), ", ");
 
-const otherwise = (move: Machine.Move): string =>
+const otherwise = (move: Machine.NamedMove): string =>
   Arr.join(
     Arr.map(
       Rec.toEntries(move.otherwise),
@@ -51,8 +44,8 @@ const machine = (shown: Shown): string =>
   );
 
 /** The section of a thing's page for its lifecycle; none when it has none. */
-export const machinesSection = (machines: { readonly [name: string]: Shown }): ReadonlyArray<string> => {
-  const every = Rec.values(machines);
+export const machinesSection = (machines: { readonly [name: string]: Machine.Declared }): ReadonlyArray<string> => {
+  const every = Arr.map(Rec.values(machines), Machine.named);
   if (every.length === 0) return [];
   return [
     "## Machines",

@@ -1,4 +1,4 @@
-// Core: the Capxul server. A Cloudflare Worker, deployed by Alchemy, that serves every blueprint operation at its
+// The api: the Capxul server. A Cloudflare Worker, deployed by Alchemy, that serves every blueprint operation at its
 // group's door with Effect's Rpc server, reads its world's chain at `CHAIN_PATH`, and keeps every call's spans in its
 // database, reached through Hyperdrive.
 //
@@ -8,6 +8,7 @@ import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as SQL from "@alchemy.run/sql/Postgres";
 import { CHAIN_PATH } from "@capxul/blueprint";
 import * as Alchemy from "alchemy";
+import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
@@ -29,8 +30,10 @@ import { Served, ServedEmpty } from "./server.ts";
 import { siteOpsLive } from "./site-ops/door.ts";
 import { SiteDoor } from "./site/SiteDoor.ts";
 import { CoreDeployment, ownDeployment } from "./stack/deployment.ts";
+import { API_PLACEMENT } from "./stack/region.ts";
 import { coloOf, Placement } from "./telemetry/attributes.ts";
 import { CoreIdentity } from "./telemetry/middleware.ts";
+import { requestExport } from "./telemetry/export.ts";
 import { SqlSpanSink } from "./telemetry/sink.ts";
 
 /** The Hyperdrive binding as the running Worker holds it. */
@@ -44,15 +47,36 @@ const connectionString = (env: Record<string, unknown>) =>
     return Redacted.make(text);
   });
 
-// The Postgres driver opens its socket through Node's `net` and `tls`. Exported for a deployer that builds Core's
-// bundle itself (packages/world, src/parts/api/bundle.ts), so it builds from the same entry and compatibility.
-export const coreProps = () => ({ main: import.meta.url, compatibility: { flags: ["nodejs_compat"] } });
+/** The code's revision, from the deployer's environment (CI's `GITHUB_SHA`): its exports' `service.version`. */
+const revision = Effect.map(
+  Config.option(Config.String(ENV.revision).pipe(Config.orElse(() => Config.String("GITHUB_SHA")))),
+  Option.match({ onNone: () => ({}), onSome: (text) => ({ [ENV.revision]: text }) }),
+);
+
+// The Postgres driver opens its socket through Node's `net` and `tls`. Every deploy, each world's and staging's, runs
+// next to its database in Europe (D5, src/stack/region.ts). Exported for a deployer that builds Core's bundle itself
+// (packages/world, src/parts/api/bundle.ts), so it builds from the same entry, compatibility and placement.
+export const workerProps = () => ({
+  main: import.meta.url,
+  compatibility: { flags: ["nodejs_compat"] },
+  placement: API_PLACEMENT,
+});
+
+/**
+ * Cloudflare's own logs and traces of Core's Worker, exported to the account's Axiom destinations: a second view of the
+ * platform, read by people, never by a check (packages/platform's collector carries Core's own telemetry).
+ */
+const observability = {
+  enabled: true,
+  logs: { enabled: true, invocationLogs: true, destinations: ["axiom-capxul-logs"] },
+  traces: { enabled: true, destinations: ["axiom-capxul-traces"] },
+};
 
 export default class Core extends Cloudflare.Worker<Core>()(
   "Core",
   Effect.gen(function* () {
     // Inside the running Worker the stack's files are evaluated again only to name bindings; nothing is read there.
-    if ((yield* Alchemy.ALCHEMY_PHASE) === "runtime") return coreProps();
+    if ((yield* Alchemy.ALCHEMY_PHASE) === "runtime") return workerProps();
     const given = yield* CoreDeployment;
     const deployment = Option.isSome(given) ? given.value : yield* ownDeployment;
     // A bundle the deployer built already is uploaded as it is (src/stack/deployment.ts).
@@ -60,7 +84,12 @@ export default class Core extends Cloudflare.Worker<Core>()(
       onNone: () => ({}),
       onSome: (main) => ({ main, bundle: false }),
     });
-    return { ...coreProps(), ...prebuilt, env: { ...deployment.env, [ENV.database]: deployment.database } };
+    return {
+      ...workerProps(),
+      ...prebuilt,
+      observability,
+      env: { ...(yield* revision), ...deployment.env, [ENV.database]: deployment.database },
+    };
   }),
   Effect.succeed({
     fetch: Effect.gen(function* () {
@@ -112,8 +141,16 @@ export default class Core extends Cloudflare.Worker<Core>()(
         // Which Cloudflare data centre runs this request, for every call's span (telemetry/attributes.ts).
         Layer.provide(Layer.succeed(Placement, { colo: coloOf(request.source) })),
       );
+      // Its telemetry's export, when this Core has a collector or a tap, built into the request's scope: it flushes
+      // after the answer has left (src/telemetry/export.ts).
+      const exported = yield* requestExport(env, connectionString(env));
+      const serving = Effect.flatten(serveDoors);
+      const answering = Option.match(exported, {
+        onNone: () => serving,
+        onSome: (context) => Effect.provide(serving, context),
+      });
       // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the Worker's fetch is its entry point: each request gets its own database pool
-      return yield* Effect.flatten(serveDoors).pipe(Effect.provide(served));
+      return yield* answering.pipe(Effect.provide(served));
     }),
   }),
 ) {}

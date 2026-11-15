@@ -12,7 +12,9 @@ import { describe, endedOf } from "./failure.ts";
 import { writeRecord } from "./record.ts";
 import { type Plan, use } from "./run.ts";
 import type { Settings } from "./settings.ts";
+import { tapFailures } from "./telemetry/side-by-side.ts";
 import { opened, OtherWorlds, startedNow, worldRecord } from "./world/existing.ts";
+import { RUN_SPANS, stepOptions } from "./telemetry/step.ts";
 
 /**
  * Runs one plan in a world that `world create` made (`--world=<name>`), and returns its run record, which is also on
@@ -46,13 +48,14 @@ export const runInWorld = (plan: Plan, settings: Settings, name: string) =>
       ...(Exit.isFailure(ran) ? [`the run did not finish: ${describe(ran.cause)}`] : []),
       ...(used !== undefined && Exit.isFailure(used.run) ? [`the run failed: ${describe(used.run.cause)}`] : []),
       ...(used === undefined ? [] : failuresOf(used.calls)),
+      ...tapFailures(used?.tap),
     ];
     const record = worldRecord(
       {
         ...base,
         ended: used === undefined ? null : endedOf(used.run),
         calls: used?.calls ?? [],
-        ...(used === undefined ? {} : { coverage: used.coverage }),
+        ...(used === undefined ? {} : { coverage: used.coverage, tap: used.tap }),
         ms: {
           create: Math.round(Duration.toMillis(openTook)),
           run: used?.ms.run ?? null,
@@ -68,5 +71,5 @@ export const runInWorld = (plan: Plan, settings: Settings, name: string) =>
     // the database of any other world a call is made `at` (world/existing.ts).
     // oxlint-disable-next-line effecttsgo/strict-effect-provide -- a run in a world is its own program, handed the shared state it alone needs
     Effect.provide(OtherWorlds.fromSharedState.pipe(Layer.provideMerge(SharedState.layer))),
-    Effect.withSpan("runner.run.world", { attributes: { run: plan.name, world: name } }),
+    Effect.withSpan(RUN_SPANS.run.name, stepOptions(RUN_SPANS.run, { mode: "in world", run: plan.name, world: name })),
   );

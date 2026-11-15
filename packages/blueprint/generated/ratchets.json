@@ -1,0 +1,16 @@
+{
+  "generated": "By `pnpm generate` (packages/generate, src/ratchets.entry.ts): each counted ratchet's count, never raised by generating again. Do not edit.",
+  "counts": {
+    "R1": 667,
+    "R2": 743,
+    "R3": 38,
+    "R5": 13,
+    "R7": 23,
+    "R8": 10,
+    "R10": 63,
+    "R16": 16,
+    "R17": 21,
+    "R18": 21,
+    "R19": 8
+  }
+}

@@ -116,7 +116,7 @@ test("every journey fails at its first step against the empty handlers, on the N
     file: fileOf(result.name),
     text: `${JSON.stringify(
       {
-        record: "empty-handlers",
+        kind: "empty-handlers",
         step: "1.14",
         what: "A registered journey run against a Capxul whose every operation fails with NotImplemented, as Core's empty handlers do. It must fail at its first step, on the NotImplemented it is answered, never pass and never die.",
         outcome: fellAtFirstStep(result) ? "passed" : "failed",
@@ -138,7 +138,7 @@ test("every journey fails at its first step against the empty handlers, on the N
     [],
     "journeys that did not fail at their first step on the empty handlers",
   );
-  const write = "run `pnpm --filter @capxul/scenarios record` to write them";
+  const write = "run `pnpm record` in this package to write them";
   assert.deepEqual(
     Arr.sort(readdirSync(RECORDS), Order.String),
     Arr.sort(files, Order.String),

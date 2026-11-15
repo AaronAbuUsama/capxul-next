@@ -1,5 +1,5 @@
 // How a starting world's maker keeps an answer as a fact: encoded as the blueprint's own schema of the operation encodes
-// it (decisions.md, 38), so `given` decodes it with the same schema.
+// it (packages/blueprint, src/starting-points/facts.ts), so `given` decodes it with the same schema.
 import { operations } from "@capxul/blueprint";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";

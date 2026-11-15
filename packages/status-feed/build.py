@@ -1,7 +1,7 @@
 """Builds the status dashboard's two data files from docs/roadmap.md and master's git history (see feed.py)."""
 import datetime, json, os, re, sys
 
-from feed import Repo, critical_path, steps as read_steps, table, utc
+from feed import Repo, critical_path, ratchets, steps as read_steps, table, utc
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 BRANCH_POINT = "f12a831"  # where master was cut from main
@@ -43,6 +43,9 @@ for entry in filter(None, (e.strip() for e in merges.split("\x1e"))):
     title = body.strip().splitlines()[0] if body.strip() else subject
     items.append({"kind": "change", "id": number.group(1) if number else "", "name": title, "detail": f"pull request {number.group(1)}" if number else "",
                   "state": "Merged", "done": 1, "of": 1, "pct": 100, "path": "", "waits": "", "at": at, "needs": ""})
+
+# The scorecard's ratchets: each one's committed count, and R15's total of old words (roadmap item 3.11).
+items.extend(ratchets(repo))
 
 # Work done so far, hour by hour: the units of every step finished by the end of each of the last 48 hours.
 total = sum(s["of"] for s in steps)

@@ -6,7 +6,16 @@
 // command line instead: the `capxul` command that makes the call, run in this process at the same doors, with the
 // same credentials and the same HTTP client (packages/cli, `callVia`). The chain reads, which are not operations and
 // have no command, still go through the SDK.
-import { CHAIN_PATH, Errors, isRefusal, operations, WORLD_PATH, type OperationName } from "@capxul/blueprint";
+import {
+  CHAIN_PATH,
+  Errors,
+  isRefusal,
+  operations,
+  WORLD_PATH,
+  type OperationName,
+  Envelope,
+  Pipeline,
+} from "@capxul/blueprint";
 import * as Cli from "@capxul/cli";
 import { CallTraces, Capxul, Observing, type CallOptions, type CapxulClient } from "@capxul/scenarios";
 import * as Sdk from "@capxul/sdk";
@@ -26,7 +35,9 @@ import * as HttpClient from "effect/http/HttpClient";
 import { RpcClientError } from "effect/rpc/RpcClientError";
 import { describe } from "./failure.ts";
 import { ObservationRetry } from "./settings.ts";
+import { OpenStep } from "./steps.ts";
 import { resendingWhileWarm } from "./world/warmup.ts";
+import { RUN_SPANS, stepOptions } from "./telemetry/step.ts";
 
 /**
  * How a call ended, as the caller saw it: `success`; `refusal`, a typed refusal the operation or sign-in declares;
@@ -57,7 +68,7 @@ export interface Call {
   readonly callerMs: number;
   /** Sends repeated during the call because the stage's address was not routed yet. */
   readonly resent: number;
-  /** Sends repeated because no answer came back, for an observation read only (`Observing`); absent when none. */
+  /** For a look (`Observing`): times it was sent again after its transport failed; left out for every other call. */
   readonly retried?: number;
   readonly failure: string | null;
 }
@@ -113,38 +124,6 @@ type Send = (
 ) => Effect.Effect<Sdk.Success<OperationName>, Sdk.Refusal<OperationName>>;
 
 /** Every call through `send`, appended to `log`, whatever its outcome, and answered unchanged; `chain` as it is. */
-/**
- * A read a check makes around the step's call (`Observing` present, `CallTraces` absent: never the step's own call),
- * sent again while no answer comes back, at most `tries` times in all, the waits doubling from `backoff`; each resend
- * logged. A decoded answer or refusal is never sent again. Answers the last exit and how many times it was resent.
- */
-const sendObserving = (
-  send: Send,
-  name: OperationName,
-  payload: unknown,
-  options: CallOptions | undefined,
-  observation: ObservationRetry,
-) =>
-  Effect.gen(function* () {
-    const observing =
-      Option.isSome(yield* Effect.serviceOption(Observing)) && Option.isNone(yield* Effect.serviceOption(CallTraces));
-    const tries = observing ? Math.max(1, observation.tries) : 1;
-    const go = (
-      retried: number,
-    ): Effect.Effect<readonly [Exit.Exit<Sdk.Success<OperationName>, Sdk.Refusal<OperationName>>, number]> =>
-      Effect.flatMap(Effect.exit(send(name, payload, options)), (exit) =>
-        retried + 1 < tries && classify(name, exit).outcome === "unanswered"
-          ? Effect.logWarning(
-              `observation ${name}: no answer (try ${retried + 1} of ${tries}), sent again: ${failureOf(exit) ?? ""}`,
-            ).pipe(
-              Effect.andThen(Effect.sleep(Duration.times(observation.backoff, 2 ** retried))),
-              Effect.andThen(go(retried + 1)),
-            )
-          : Effect.succeed([exit, retried] as const),
-      );
-    return yield* go(0);
-  });
-
 const recording = (
   send: Send,
   chain: CapxulClient["chain"],
@@ -152,13 +131,52 @@ const recording = (
   resent: Ref.Ref<number>,
   observation: ObservationRetry,
 ): CapxulClient => {
+  /**
+   * A read a check makes around the step's call (`Observing` present, `CallTraces` absent: never the step's own call),
+   * sent again while no answer comes back, at most `tries` times in all, the waits doubling from `backoff`; each resend
+   * logged. A decoded answer or refusal is never sent again. Answers the last exit and how many times it was resent.
+   */
+  const sendObserving = (name: OperationName, payload: unknown, options: CallOptions | undefined) =>
+    Effect.gen(function* () {
+      const observing =
+        Option.isSome(yield* Effect.serviceOption(Observing)) && Option.isNone(yield* Effect.serviceOption(CallTraces));
+      const tries = observing ? Math.max(1, observation.tries) : 1;
+      type Sent = Exit.Exit<Sdk.Success<OperationName>, Sdk.Refusal<OperationName>>;
+      const next = (retried: number, exit: Sent): Effect.Effect<readonly [Sent, number]> =>
+        retried + 1 < tries && classify(name, exit).outcome === "unanswered"
+          ? Effect.logWarning(
+              `observation ${name}: no answer (try ${retried + 1} of ${tries}), sent again: ${failureOf(exit) ?? ""}`,
+            ).pipe(
+              // One declared span per resend: the backoff, then the send again (journey.run.resend).
+              Effect.andThen(
+                Effect.sleep(Duration.times(observation.backoff, 2 ** retried)).pipe(
+                  Effect.andThen(send(name, payload, options).pipe(Effect.exit)),
+                  Effect.withSpan(Pipeline.journeyRun.spans.resend.name, {
+                    attributes: { operation: name, try: retried + 2 },
+                  }),
+                ),
+              ),
+              Effect.flatMap((again) => next(retried + 1, again)),
+            )
+          : Effect.succeed([exit, retried] as const);
+      return yield* next(0, yield* Effect.exit(send(name, payload, options)));
+    });
   const each = (name: OperationName) => (payload: unknown, options?: CallOptions) =>
+    Effect.gen(function* () {
+      // The call is a trace of its own, so Core's spans join it by `traceparent`; it is linked to the journey's step.
+      const open = yield* Effect.serviceOption(OpenStep);
+      const step = Option.isSome(open) ? yield* Ref.get(open.value) : Option.none();
+      return yield* Effect.withSpan(sent(name, payload, options), RUN_SPANS.call.name, {
+        ...stepOptions(RUN_SPANS.call, { [Envelope.attributes.operation.name]: name }),
+        root: true,
+        links: Option.isSome(step) ? [{ span: step.value, attributes: {} }] : [],
+      });
+    });
+  const sent = (name: OperationName, payload: unknown, options?: CallOptions) =>
     Effect.gen(function* () {
       const span = yield* Effect.orDie(Effect.currentSpan);
       const before = yield* Ref.get(resent);
-      const [took, [exit, retried]] = yield* sendObserving(send, name, payload, options, observation).pipe(
-        Effect.timed,
-      );
+      const [took, [exit, retried]] = yield* sendObserving(name, payload, options).pipe(Effect.timed);
       if (retried > 0) yield* Effect.annotateCurrentSpan("runner.call.retried", retried);
       const call: Call = {
         operation: name,
@@ -180,7 +198,7 @@ const recording = (
       const traces = yield* Effect.serviceOption(CallTraces);
       if (Option.isSome(traces)) yield* traces.value.heard(span.traceId);
       return yield* exit;
-    }).pipe(Effect.withSpan(`runner.call ${name}`, { root: true }));
+    });
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- one function per operation, built by name from the blueprint's own list, each the recorded call of the operation it is keyed by; the compiler cannot follow the mapping
   const calls = Rec.map(operations, (_operation, name) => each(name)) as unknown as Omit<CapxulClient, "chain">;
   // Chain reads are not operations: no span of Core's, no event, nothing for the generic checks. They pass through.

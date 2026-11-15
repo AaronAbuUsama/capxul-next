@@ -1,6 +1,7 @@
 // What the caller decides about a world, handed to the stack as a service around a deploy. A deploy run in-process
 // replaces the config provider with one built from the process environment, so these cannot travel as Config, and
 // nothing is ever written to the process environment.
+import type { Values } from "@capxul/blueprint";
 import * as Alchemy from "alchemy";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -10,6 +11,11 @@ import { WorldSettingsMissing } from "../common/failures.ts";
 
 export interface WorldSettings {
   readonly owner: string;
+  /**
+   * The world's grade. A world of a test grade (`private`, `shared`) gets the tap: its Core writes every OTLP body it
+   * exports into its own database too (packages/core, src/telemetry/export.ts). A `real` world gets none.
+   */
+  readonly grade: typeof Values.Grade.Type;
   /** RFC 3339. Neon deletes the world's branch by itself at this moment; the sweeper deletes the rest. */
   readonly expiresAt: string;
   /** The stage of the world this one is made from; none for a world made from nothing. */
@@ -17,8 +23,8 @@ export interface WorldSettings {
   /** The shared bench the world's company sites are on, and its site token there (src/things/site/bench.ts); none for a world with no bench. */
   readonly bench: Option.Option<BenchGrant>;
   /**
-   * The token of the operator who owns the world, which its Core accepts as the owner's at both doors (decisions.md,
-   * 36). Left out, the world mints one of its own (`operator-token`).
+   * The token of the operator who owns the world, which its Core accepts as the owner's at both doors
+   * (packages/blueprint, src/protocol/headers.ts). Left out, the world mints one of its own (`operator-token`).
    */
   readonly operatorToken: Option.Option<Redacted.Redacted>;
   /** The fleet hub the world's chain, index and bundler live on (src/things/cluster), and the world's door token there. */
@@ -34,12 +40,20 @@ export interface HubGrant {
   readonly doorUrl: string;
 }
 
-/** What a world is given on a bench when it is created: where its site door is, and its token there. */
+/**
+ * What a world is given on a bench when it is created: where its site door is, its token there, and its token at the
+ * same platform stage's collector, where its Core exports its telemetry.
+ */
 export interface BenchGrant {
   /** The platform stage the bench belongs to (packages/platform). */
   readonly stage: string;
   readonly door: string;
   readonly token: Redacted.Redacted;
+  /**
+   * The world's collector token, signed under the stage's collector key for the world's owner, name, grade and expiry
+   * (packages/platform, `mintCollectorToken`); none for the local bench or a stage deployed before its collector.
+   */
+  readonly collector: Option.Option<Redacted.Redacted>;
 }
 
 export const WorldSettings = Context.Reference<Option.Option<WorldSettings>>("capxul/world/WorldSettings", {
@@ -48,6 +62,7 @@ export const WorldSettings = Context.Reference<Option.Option<WorldSettings>>("ca
 
 const blank: WorldSettings = {
   owner: "",
+  grade: "private",
   expiresAt: "",
   forkedFrom: Option.none(),
   bench: Option.none(),

@@ -1,5 +1,0 @@
-# Settings for this spike alone; it is not a package of the repository's workspace (install with --ignore-workspace).
-#
-# Without this, `pnpm <script>` here first runs an install under the repository's pnpm, which refuses the lockfile
-# (its newest packages are younger than the release-age policy allows) and empties node_modules on the way out.
-verifyDepsBeforeRun: false

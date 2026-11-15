@@ -5,27 +5,27 @@
 // glossary's renames (roadmap item 3.8).
 import * as RpcGroup from "effect/rpc/RpcGroup";
 import type { ClaimsOf } from "../starting-points/points.ts";
-import * as BudgetCreate from "../things/budget/create.ts";
-import * as BudgetShow from "../things/budget/show.ts";
-import * as BudgetList from "../things/budget/list.ts";
+import * as BudgetVerbsCreate from "../things/budget/verbs/create.ts";
+import * as BudgetVerbsShow from "../things/budget/verbs/show.ts";
+import * as BudgetVerbsList from "../things/budget/verbs/list.ts";
 
 export { BudgetId, Period, BudgetName, Allowance, Budget } from "../things/budget/values.ts";
 export { BudgetProposed } from "../things/budget/events.ts";
-export { create } from "../things/budget/create.ts";
-export { show } from "../things/budget/show.ts";
-export { list } from "../things/budget/list.ts";
+export { create } from "../things/budget/verbs/create.ts";
+export { show } from "../things/budget/verbs/show.ts";
+export { list } from "../things/budget/verbs/list.ts";
 
 /** Its operations, by name. */
 export const operations = {
-  "org.budget.create": BudgetCreate.create,
-  "org.budget.show": BudgetShow.show,
-  "org.budget.list": BudgetList.list,
+  "org.budget.create": BudgetVerbsCreate.create,
+  "org.budget.show": BudgetVerbsShow.show,
+  "org.budget.list": BudgetVerbsList.list,
 } as const;
 
 /** Its operations that move no thing with a lifecycle, each with why: each such verb's `stateless`. */
 export const stateless: { readonly [Name in keyof typeof operations]?: string } = {
-  "org.budget.show": BudgetShow.stateless,
-  "org.budget.list": BudgetList.stateless,
+  "org.budget.show": BudgetVerbsShow.stateless,
+  "org.budget.list": BudgetVerbsList.stateless,
 };
 
 /** Its machines, by name: its things' lifecycles. */
@@ -35,11 +35,15 @@ export const machines = {} as const;
 export const platformRpcs = RpcGroup.make();
 
 /** What a world's Core serves of it, through the world's door (`WorldRpcs`). */
-export const worldRpcs = RpcGroup.make(BudgetCreate.create.rpc, BudgetShow.show.rpc, BudgetList.list.rpc);
+export const worldRpcs = RpcGroup.make(
+  BudgetVerbsCreate.create.rpc,
+  BudgetVerbsShow.show.rpc,
+  BudgetVerbsList.list.rpc,
+);
 
 /** The promises of each of its operations: each verb's `promises`. */
 export const claims: { readonly [Name in keyof typeof operations]: ClaimsOf } = {
-  "org.budget.create": BudgetCreate.promises,
-  "org.budget.show": BudgetShow.promises,
-  "org.budget.list": BudgetList.promises,
+  "org.budget.create": BudgetVerbsCreate.promises,
+  "org.budget.show": BudgetVerbsShow.promises,
+  "org.budget.list": BudgetVerbsList.promises,
 };

@@ -96,6 +96,7 @@ export const fakeSiteDoor = Effect.gen(function* () {
           { ...seen, [site]: n },
         ];
       }),
+    remove: () => Effect.void,
     call: (site, call) =>
       Effect.as(
         Ref.update(told, (all) => [...all, { site, call }]),

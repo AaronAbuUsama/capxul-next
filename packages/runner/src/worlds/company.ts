@@ -1,26 +1,29 @@
-// The makers of the starting worlds with a company (decisions.md, 26 to 28, 38 to 41; step 1.12): `founded`,
-// `office-holder`, `payment-drafted`, `payment-held` and `paid`, each made by its declaration's steps
-// (packages/blueprint, src/starting-worlds.ts) through the door of the world the steps run in, from the one before.
-// Every answer a step names becomes its fact, encoded as the blueprint encodes it.
+// The makers of the starting worlds with a company (packages/blueprint, src/things/company/verbs/create.ts,
+// src/starting-points/points.ts, src/things/document/verbs/submit.ts, src/starting-points/facts.ts and
+// src/common/site.ts;
+// step 1.12): `founded`, `office-holder`, `payment-drafted`, `payment-held` and `paid`, each made by its declaration's
+// steps (packages/blueprint, src/starting-points/points.ts) through the door of the world the steps run in, from the
+// one before. Every answer a step names becomes its fact, encoded as the blueprint encodes it.
 //
 // Signatures are made with the cast's keys, the blueprint's `CAST_KEYS`, as a person's agent would: the digest an
-// approval names, signed as it is (decisions.md, 23 and 42), with viem (decisions.md, 34). A wait polls an operation
-// until it answers differently (decisions.md, 27).
+// approval names, signed as it is (packages/blueprint, src/things/approval/values.ts and src/common/values.ts), with
+// viem
+// (packages/blueprint, src/common/chain/reads.ts). A wait polls an operation until it answers differently
+// (packages/blueprint, src/starting-points/points.ts; wait.ts).
 import { Site, Values, startingWorlds } from "@capxul/blueprint";
 import { Capxul } from "@capxul/scenarios";
 import * as Arr from "effect/Array";
 import * as Cause from "effect/Cause";
-import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Predicate from "effect/Predicate";
-import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import { mnemonicToAccount } from "viem/accounts";
 import { describe, RunnerFailure } from "../failure.ts";
 import { encodeAnswer } from "./encode.ts";
 import type { Making, Steps } from "./makers.ts";
+import { seenExit, siteReading, until } from "./wait.ts";
 
 const failed = (message: string) => RunnerFailure.make({ step: "starting world", message });
 
@@ -40,7 +43,10 @@ const doorOf = (making: Making) =>
     Effect.mapError(() => failed("a company's starting world is made in a world, and none was made yet")),
   );
 
-/** How `founded` founds Northwind (src/starting-worlds.ts): dana founds it with eli, 2 of 2, sam and pat, 1,000 USDC. */
+/**
+ * How `founded` founds Northwind (packages/blueprint, src/starting-points/points.ts): dana founds it with eli, 2 of 2,
+ * sam and pat, 1,000 USDC.
+ */
 const NORTHWIND = {
   handle: "northwind",
   profile: { name: "Northwind Trading", country: "NL", bio: null, size: null },
@@ -82,16 +88,6 @@ const approvalOf = (approvals: ReadonlyArray<Approval>, signer: string) =>
     Effect.mapError(() => failed(`no approval for ${signer}`)),
   );
 
-/** A wait for background work: one poll every two seconds, for at most ten minutes. */
-const POLL = { schedule: Schedule.spaced(Duration.seconds(2)), times: 300 } as const;
-
-const until = <A, E, R>(what: string, poll: Effect.Effect<A, E, R>, done: (answer: A) => boolean) =>
-  poll.pipe(
-    Effect.filterOrFail(done, () => failed(`waiting for ${what}`)),
-    Effect.retry(POLL),
-    Effect.mapError(() => failed(`waited ten minutes for ${what}`)),
-  );
-
 /** `founded`: dana founds Northwind; dana and eli sign its setup; the world shows its site ready. */
 const founded: Steps = (making) =>
   Effect.gen(function* () {
@@ -105,6 +101,7 @@ const founded: Steps = (making) =>
       "world.show to list northwind's site as ready",
       must("world.show", capxul["world.show"]({ world: own.world })),
       (view) => Arr.some(view.companies, (company) => company.org === made.org && company.site.state === "ready"),
+      siteReading(made.org),
     );
     return {
       facts: {
@@ -154,6 +151,7 @@ const officeHolder: Steps = (making) =>
       "report.run of the General Ledger as sam to stop refusing with NoSiteUser",
       Effect.exit(generalLedger(org, own.door)),
       (exit) => exit._tag === "Success",
+      { seen: seenExit },
     );
     return {
       facts: {
@@ -258,6 +256,7 @@ const paid: Steps = (making) =>
       "report.run's General Ledger to show the Payment Entry",
       must("report.run of the General Ledger as sam", generalLedger(org, own.door)),
       (ledger) => Arr.some(ledger.rows, (row) => row[Site.ROW_FIELDS.voucher] === name),
+      { seen: (ledger) => `a General Ledger of ${ledger.rows.length} rows, none of ${name}` },
     );
     return { facts: { ...making.facts, paidSent: yield* encodeAnswer("approval.sign", sent) }, own };
   });

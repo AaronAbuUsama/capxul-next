@@ -1,7 +1,9 @@
 // A door served in this process, for tests: both blueprint groups over HTTP with JSON, as Core and the platform
 // serve them, each at its own path. Its sign-in accepts one token; every handler either refuses with
 // `NotImplemented`, as Core's empty handlers do, or answers its operation's first blueprint example. It keeps what
-// it saw of each call, so a test can check what the SDK sent. It is not a server of Capxul.
+// it saw of each call (`Calls`), so a test can check what the SDK sent. When asked, it also serves a chain JSON-RPC
+// at `CHAIN_PATH` behind the same token. It is built from the blueprint's groups, so it serves every operation with
+// no change here. It is not a server of Capxul.
 import {
   CHAIN_PATH,
   CREDENTIAL_HEADER,

@@ -1,8 +1,10 @@
-// world.create and world.show, as the platform serves them (decisions.md, 13 to 15, 20 and 25). A new world is this
-// package's create (src/things/world), owned by the calling operator, with its owner's token bound into its Core; then
-// its cast is claimed and funded on its chain, its start block mined, its facts written into its database and its
-// `world_created` into its record. It answers once the world runs. Nothing is made for a refused call: the grade and
-// the clock are refused before the name is claimed, and the registry refuses a taken name or a full quota.
+// world.create and world.show, as the platform serves them (packages/blueprint, src/things/world/verbs/create.ts and
+// src/things/world/refusals.ts
+// and 25). A new world is this package's create (src/things/world), owned by the calling operator, with its owner's
+// token bound into its Core; then its cast is claimed and funded on its chain, its start block mined, its facts written
+// into its database and its `world_created` into its record. It answers once the world runs. Nothing is made for a
+// refused call: the grade and the clock are refused before the name is claimed, and the registry refuses a taken name
+// or a full quota.
 import { CurrentOperator, Errors, type World as Blueprint } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
@@ -108,6 +110,7 @@ export const create = Effect.fn("platform.world.create")(function* (payload: Cre
     owner: operator,
     lifetime: Duration.minutes(payload.lifetimeMinutes),
     operatorToken: yield* ownerToken(operator),
+    grade: payload.grade,
     atSeed: true,
     startAtMs: startMs,
     onChain: (world) =>

@@ -3,7 +3,7 @@
 # ERPNext is here only because the capxul app does not install without it (its custom fields sit on Supplier, Customer,
 # Employee, GL Entry and Payment Entry: `install-app capxul` on Frappe alone ends "Could not find DocType: Supplier").
 # Built by the platform stack (src/bench.ts) with the pins from packages/bench-image/apps.lock.json, which bin/run.sh reads.
-# First built in spikes/bench-clocks; the hosted six-app image is packages/bench-image.
+# First built by the bench clocks spike (packages/frappe-app/records/bench-clocks); the hosted six-app image is packages/bench-image.
 ARG BUILD_IMAGE
 FROM ${BUILD_IMAGE}
 USER frappe

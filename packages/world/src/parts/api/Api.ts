@@ -5,13 +5,26 @@
 //   its world door    the world's token on the hub (src/things/cluster/client.ts) and the owner operator's token (`operator-token`)
 //   its chain         a service binding to the hub's door, whose `/<token>/rpc` is the chain; Core answers only
 //                     the blueprint's reads at CHAIN_PATH
+//   its collector     a service binding to its bench's platform stage's collector, carrying the world's signed
+//                     token (packages/platform); none without a bench or before that stage has a collector
+//   its tap           on in a world of a test grade (`private`, `shared`): every OTLP body Core exports is also kept
+//                     in the world's `telemetry.otlp`; never in a `real` world
 //   its sites         the site door of the world's bench and the world's site token there, and the credential of the
 //                     API user the door makes on each of the world's sites (`site-key`, `site-secret`); none when the
 //                     world has no bench
 //
 // Every token is an Alchemy.Random of the world's stage, kept in the shared state, bound to the Worker as a secret
 // and read back from the state (parts.ts), never an output.
-import { CORE_ENV, CoreDeployment, CoreWorker, migrations } from "@capxul/core";
+//
+// A world is ready once Core answers 200 on CORE_HEALTH; `world.create` waits for ten such answers in a row
+// (src/platform/steady.ts). A caller may fill
+// the slot itself: a host of Core off Cloudflare (host.ts), or its own CoreSlot for one run. That a world made this
+// way answers every blueprint operation at its door is the runner's door check (packages/runner/records/w-c1).
+//
+// TODO: Core's bundle is made once per world, 3 to 4 s of a create that must stay under 20 s; it could be made once
+// per hub.
+import { CORE_ENV, CoreDeployment, CoreWorker, migrations, TAP_ON } from "@capxul/core";
+import { collectorBinding } from "@capxul/platform";
 import * as Alchemy from "alchemy";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -23,7 +36,7 @@ import { HUB_STACK } from "../../things/cluster/values.ts";
 import { nameOf } from "../../stack/names.ts";
 import { worldSettings } from "../../stack/settings.ts";
 import type { CoreSlot } from "../../things/world/stage.ts";
-import { PrebuiltCore } from "./bundle.ts";
+import { PrebuiltApi } from "./bundle.ts";
 import { CoreHost } from "./host.ts";
 
 /** Logical ids of the Core slot's own secrets, as the state store keys them. */
@@ -49,7 +62,8 @@ export const defaultCore: CoreSlot = Effect.gen(function* () {
   // The world's token on the hub (src/things/cluster/client.ts), handed in by the create.
   const doorToken = settings.doorToken;
   const minted = yield* Alchemy.Random(OPERATOR_TOKEN_ID, { bytes: 24 });
-  // The owner operator's own token when the platform made the world (decisions.md, 36); otherwise the world's own.
+  // The owner operator's own token when the platform made the world (packages/blueprint, src/protocol/headers.ts);
+  // otherwise the world's own.
   const operatorToken = Option.getOrElse(
     Option.map(settings.operatorToken, (token): unknown => token),
     () => minted.text,
@@ -65,6 +79,13 @@ export const defaultCore: CoreSlot = Effect.gen(function* () {
       [CORE_ENV.siteSecret]: siteSecret.text,
     }),
   });
+  // The platform stage's collector, through a service binding carrying the world's signed token in its props: Core
+  // exports its telemetry there (packages/core, src/telemetry/export.ts). None without one; Core then exports nothing.
+  const collector = yield* Effect.transposeOption(
+    Option.flatMap(settings.bench, (bench) =>
+      Option.map(bench.collector, (token) => collectorBinding(bench.stage, token)),
+    ),
+  );
   const env = {
     [CORE_ENV.world]: nameOf(stage),
     [CORE_ENV.owner]: settings.owner,
@@ -72,10 +93,13 @@ export const defaultCore: CoreSlot = Effect.gen(function* () {
     [CORE_ENV.platformToken]: operatorToken,
     [CORE_ENV.chain]: door,
     [CORE_ENV.chainToken]: doorToken,
+    // A world of a test grade gets the tap: its Core writes what it exports into `telemetry.otlp` too.
+    ...(settings.grade === "real" ? {} : { [CORE_ENV.tap]: TAP_ON }),
+    ...Option.match(collector, { onNone: () => ({}), onSome: (binding) => ({ [CORE_ENV.collector]: binding }) }),
     ...site,
   };
   // The world's copy of Core's bundle when the deploy made one (bundle.ts); otherwise Alchemy builds Core here.
-  const prebuilt = yield* PrebuiltCore;
+  const prebuilt = yield* PrebuiltApi;
   const core = yield* CoreWorker.pipe(Effect.provideService(CoreDeployment, Option.some({ database, env, prebuilt })));
   return { url: core.url };
 });

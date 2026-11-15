@@ -3,8 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": "./src/door.ts",
   "scripts": {
     "shape": "node --experimental-strip-types --no-warnings src/shape.entry.ts",
+    "gate": "node --experimental-strip-types --no-warnings src/gate.entry.ts",
     "types": "effect-tsgo tsc -p .",
     "test": "node --experimental-strip-types --no-warnings --test test/*.test.ts"
   },
@@ -17,6 +19,7 @@
   },
   "dependencies": {
     "@capxul/blueprint": "workspace:*",
+    "@capxul/platform": "workspace:*",
     "effect": "catalog:"
   }
 }
