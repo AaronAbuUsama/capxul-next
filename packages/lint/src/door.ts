@@ -1,7 +1,8 @@
-// What other packages may import of the lint package: the facts it owns that `pnpm generate` writes into the docs. The packages and their
-// reasons (the root README's map), the gate's rungs (AGENTS.md's table), what each of our lint rules finds (the lists in
-// AGENTS.md and this package's README), the packages with no map yet, and the typed-once rules' unmigrated lists, which `pnpm ratchets`
-// (packages/blueprint-tools, src/checks/) counts as ratchets R1 to R3.
+// What other packages may import of the lint package: the facts it owns that `pnpm generate` writes into the
+// docs. The packages and their reasons (the root README's map), the gate's rungs (AGENTS.md's table), what each of
+// our lint rules finds (the lists in AGENTS.md and this package's README), the packages with no map yet, and the
+// typed-once rules' unmigrated lists, which `pnpm ratchets` (packages/blueprint-tools, src/checks/) counts as
+// ratchets R1 to R3.
 import { description as blueprintOwnsNames } from "./rules/blueprint-owns-names.ts";
 import { description as declaredNames } from "./rules/declared-names.ts";
 import { description as decodedRows } from "./rules/decoded-rows.ts";

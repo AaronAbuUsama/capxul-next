@@ -47,7 +47,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 - [`handlers.ts`](../src/handlers.ts): The handlers of every blueprint operation, gathered from Core's handlers of each blueprint domain (src/domains/, one file per domain, each with its share of the groups it serves).
 - [`probe.ts`](../src/probe.ts): Two small routes of Core that are not the blueprint's operations, declared here and nowhere in the blueprint:  GET /health                        200 {"core": "capxul", "world": <name>}: a world is ready once Core answers it GET /probe/site?path=…[&site=…]    one read of a company site through the site door, as SiteDoor makes it: the proof of roadmap step 1.4 that Core's world door reaches its sites  The probe is signed in as the world's door is (the door token, or the owner's token), reads only (GET, and only ERPNext's resource reads and two whitelisted methods), and answers what the site door and the site said.
 - [`server.ts`](../src/server.ts): What Core serves, apart from where it runs: the handlers and middlewares of both blueprint groups.
-- [`worker.ts`](../src/worker.ts): Core: the Capxul server.
+- [`worker.ts`](../src/worker.ts): The api: the Capxul server.
 
 ## `src/chain/`
 
@@ -122,6 +122,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 
 - [`database.ts`](../src/stack/database.ts): The database of one stage of the stack `CapxulCore`: a Neon project of its own (its default branch is the one database) and the Hyperdrive configuration through which the Worker reaches it.
 - [`deployment.ts`](../src/stack/deployment.ts): What one deploy of Core is given: the Hyperdrive configuration it binds as its database, and the facts it binds into its environment by the names in src/env.ts.
+- [`region.ts`](../src/stack/region.ts): Where the api's data lives, and so where the api runs.
 
 ## `src/telemetry/`
 

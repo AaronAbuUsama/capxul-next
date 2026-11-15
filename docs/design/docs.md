@@ -270,7 +270,7 @@ Each generated output is listed in `OUTPUTS` in `packages/generate/src/sources.t
 | Output | From | Replaces |
 |---|---|---|
 | the package map in `README.md` | `PACKAGES` and `TOP_LEVEL` in `shape.ts` | README "Where things are" |
-| the ladder table in `AGENTS.md` | `LADDER` in `packages/lint/src/ladder.ts`, which now owns the rungs' words (built: they are declared, not read from the root `package.json` scripts) | AGENTS.md's ladder table |
+| the gate's table in `AGENTS.md` | `GATE` in `packages/lint/src/gate.ts`, which now owns the rungs' words (built: they are declared, not read from the root `package.json` scripts) | AGENTS.md's ladder table |
 | the lint-rule list in `packages/lint/README.md` | each rule's `meta.docs` in `packages/lint/src/rules/` | AGENTS.md's list |
 | `packages/blueprint/index.md` and `src/<domain>/index.md` | `domains.ts`, each domain's `operations`, `refusalsOf`, `emits`, `budget`, `allClaims`, `startingWorlds`; later `machines` (3.4), steps (4.1), `allowed` (5.1) | blueprint README's tables, `claims.md` (if decision 3 merges them), every `order.md` |
 | each domain's build order | claims' starting worlds, followed through each starting world's `steps[].operation` and `from`, then sorted | `order.md`; the "parts" column needs a new declaration, which is the blueprint session's call |
