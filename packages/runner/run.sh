@@ -26,6 +26,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 export CI=true
+# The code's revision, on every span this process exports (packages/platform, src/telemetry.ts).
+export CODE_REVISION="${CODE_REVISION:-$(git rev-parse HEAD 2>/dev/null || echo unknown)}"
 export CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN:-proxy-injected}" NEON_API_KEY="${NEON_API_KEY:-proxy-injected}"
 # The shared world (src/shared/) has an owner of its own, `staging`, and a hub of its own, `shared`.
 shared=false

@@ -8,6 +8,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 export CI=true
+# The code's revision, on every span this process exports (packages/platform, src/telemetry.ts).
+export CODE_REVISION="${CODE_REVISION:-$(git rev-parse HEAD 2>/dev/null || echo unknown)}"
 export CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN:-proxy-injected}" NEON_API_KEY="${NEON_API_KEY:-proxy-injected}"
 export CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-$(curl -sS --max-time 20 'https://api.cloudflare.com/client/v4/accounts?per_page=5' | python3 -c "import json,sys; print(json.load(sys.stdin)['result'][0]['id'])")}"
 export NEON_ORG_ID="${NEON_ORG_ID:-$(curl -sS --max-time 20 https://console.neon.tech/api/v2/users/me/organizations | python3 -c "import json,sys; print(json.load(sys.stdin)['organizations'][0]['id'])")}"

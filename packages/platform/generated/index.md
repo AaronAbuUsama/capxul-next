@@ -7,6 +7,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 
 - [`account-resources.md`](../docs/account-resources.md): What lives in the Cloudflare account outside any stage
 - [`capacity.md`](../docs/capacity.md): What one bench can hold
+- [`collector.md`](../docs/collector.md): The collector (roadmap step 4.4)
 - [`site-service.md`](../docs/site-service.md): The site service's API
 - [`site-templates.md`](../docs/site-templates.md): Site templates, the pool, and resetting sites in place
 
@@ -15,6 +16,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 - [`aws.ts`](../src/aws.ts): The bench host on AWS (Aaron, 13 November 2026): one EC2 machine for the shared Frappe bench, on a disk that survives restarts, in a network of its own, with a security group that has no inbound rule.
 - [`bench.ts`](../src/bench.ts): The shared Frappe bench as Docker resources on the platform's host: the bench's image (pinned Frappe and ERPNext plus the capxul app, bench/Containerfile) and the site door layered on it, one network, a persistent volume for MariaDB and one for the sites, and one container per process: MariaDB, Redis, the door (which also writes the bench's common config), web (gunicorn), the background worker and the scheduler.
 - [`code-drift.ts`](../src/code-drift.ts): Which lines of `docker diff` are code changed by hand.
+- [`collector.ts`](../src/collector.ts): The collector (roadmap 4.4; `docs/design/blueprint.md`, part 12): one Worker per platform stage (src/collector/ worker.ts) that takes OTLP/HTTP JSON at `/v1/traces`, `/v1/logs` and `/v1/metrics`, as Effect's `OtlpProxy` does, and forwards each body to the sink with the sink's headers.
 - [`door.ts`](../src/door.ts): The platform package's door: what other packages may import.
 - [`drift-policy.ts`](../src/drift-policy.ts): What the drift check forgives, and what it counts that Alchemy's own scan does not.
 - [`drift.ts`](../src/drift.ts): The platform's drift check: what the pinned Alchemy sees, plus the one thing it cannot.
@@ -27,5 +29,17 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 - [`run-mint.ts`](../src/run-mint.ts): Entry: mints a world's site token under a platform stage's door key and writes it to a file readable only by its owner.
 - [`stage.ts`](../src/stage.ts): The names of the stage being deployed (src/names.ts derives them), read from Alchemy's stack and PLATFORM_DOMAIN.
 - [`state.ts`](../src/state.ts): Reading the platform's own records from the shared state store: a stage's recorded outputs, and one attribute of one of its resources as a secret.
+- [`telemetry.ts`](../src/telemetry.ts): Where a process of ours sends its telemetry (roadmap 4.4): OTLP/HTTP JSON, through Effect's own exporter (`effect/observability`, no OpenTelemetry SDK), to the collector.
 - [`token.ts`](../src/token.ts): A world's site token: `v1.<world>.<quota>.<expires>.<sig>`, where `sig` is HMAC-SHA256 under the platform's door key over everything before it, in hex.
 - [`user-data.ts`](../src/user-data.ts): The bench host's first-boot script (EC2 user data), as a pure function of the data volume's id so a test can read it.
+
+## `src/collector/`
+
+- [`caller.ts`](../src/collector/caller.ts): Who is calling the collector, from the token it carries (grant.ts says what a token is):  - by service binding, a world's Core: its binding's props hold `token`, which only the world's deployer can set (Cloudflare gives a request from the public route empty props).
+- [`counts.ts`](../src/collector/counts.ts): The collector's own counts: for every request it forwarded, how many items (spans, log records, metric data points) the sink kept and how many it refused, sent to the sink's metrics dataset as OTLP metrics of the collector's own, and logged (Workers Logs, exported to Cloudflare's destination).
+- [`forward.ts`](../src/collector/forward.ts): One request to the collector, once its caller is known: stamp every resource with who sent it, forward it to the sink with Effect's OtlpProxy (which adds the sink's headers last, sends nothing of the caller's but the body and its content type, and returns the sink's answer), and say what became of its items.
+- [`key.ts`](../src/collector/key.ts): The collector's signing key: an Alchemy.Random of the platform stage, kept in the shared state and bound to the collector as a secret, never an output.
+- [`otlp-json.ts`](../src/collector/otlp-json.ts): The OTLP JSON body as the collector reads and rewrites it: OTLP/HTTP's JSON encoding of an export request (`resourceSpans`, `resourceLogs` or `resourceMetrics`, each with its resource's attributes).
+- [`stack.ts`](../src/collector/stack.ts): The collector's part of a platform stage: its Worker (worker.ts).
+- [`tokens.ts`](../src/collector/tokens.ts): Who may send telemetry to a stage's collector, and what the collector stamps on what they send: a signed token,  c1.<operator>.<world or ->.<grade or ->.<expires>.<HMAC-SHA256 under the collector key over the rest, in hex>  The collector key is an Alchemy.Random of the platform stage (`CollectorKey-g<n>`), read from the shared state by whoever holds the Cloudflare key, as the site door's key is (src/token.ts).
+- [`worker.ts`](../src/collector/worker.ts): The collector: one Cloudflare Worker per platform stage, the one door every producer's OTLP goes through (docs/design/blueprint.md, the glossary; design-notes/proof-and-telemetry.md, "The telemetry door").
