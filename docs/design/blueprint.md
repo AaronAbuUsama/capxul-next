@@ -601,10 +601,50 @@ share one shape: `capxul invitation accept` is `invitation/accept.ts`, the page 
 deciding where. The machinery that declares and checks the blueprint lives in a separate toolkit package. This amends
 part 7, whose "domain folders" become thing folders; user-facing renames of operations go side by side, by ratchet.
 
-**Decision 7, the names: open.** Aaron asked for options for one unified glossary to choose from. Names become facts
-the blueprint owns in a glossary; folders, commands, docs and lint take their words from it; the rename runs as a
-ratchet. The inventory of today's names (16 words with several meanings, at least 8 things with several words) is the
-starting point.
+**Decision 7, the names: agreed with Aaron, 15 November 2026, every recommendation as offered** (the glossary page
+"Capxul Glossary"). One word, one meaning, owned by a glossary in the blueprint that folders, commands, docs and lint
+take their words from; the rename runs as a ratchet, user-facing names side by side.
+
+| Concept | Today | Becomes |
+|---|---|---|
+| The server that carries out a world's operations | core, Core | **api** (`packages/api`) |
+| The address a world answers at | door, `CAPXUL_DOOR_URL`, `--at` | **endpoint** (the CLI takes `--world <name>`) |
+| Calls outside any world; where a person's sign-in lives | platform (group), "at the platform" | **account** |
+| One whole, isolated Capxul | world | **world** (kept) |
+| Private, shared or real | grade | **grade** (kept) |
+| Test or real | grade group | **realm** |
+| A company's Frappe site | site | **site** (kept; other uses renamed) |
+| A test world's people | cast | **cast** (kept) |
+| Who owns and runs worlds | operator, owner | **operator** (the faucet's account is the **faucet**) |
+| The shared containers worlds run on | hub, fleet, fleet hub | **cluster** |
+| Its single address | the hub's door | **gateway** |
+| What hosts company sites | platform, `packages/platform` | **sites** (`packages/sites`); **bench** stays Frappe's word |
+| The bench service that makes, takes, saves and resets sites | site door | **site service** |
+| The Capxul app's side that accepts signed calls | `door.py` | **site API** |
+| Where telemetry is sent and routed | telemetry door | **collector** |
+| A deployed instance of a stack | stage | **stage** (kept, internal) |
+| A saved state of a world | snapshot, point, backup, chain snapshot | **snapshot** (a site's part: **site snapshot**) |
+| A named state a journey begins from | starting world, template snapshot | **starting point** |
+| A ready copy of a starting point's sites on the bench | template | **site template** |
+| Giving a world sites from the pool | claim | **take** |
+| Holding a world's name | claim | **reserve** |
+| A written story of operations that must pass | journey, scenario | **journey** (`packages/journeys`) |
+| What runs and judges journeys | runner | **runner** (kept); the thing it makes is a **run** |
+| One world of a run's several | lane | **shard** |
+| A sentence an operation guarantees | claim | **promise** |
+| What judges one call or run | check | **check** (only this) |
+| The pass every pull request clears | `pnpm check`, gate, ladder | **gate** (`pnpm gate`; its levels are rungs) |
+| What a CI run proved | run record, proof record, verdict | **verdict** |
+| A world's ordered history | record, `record.export` | **history** |
+| A timed piece of work inside an operation | step (declared) | **span** |
+| One move of a journey | step | **step** (journeys only) |
+| A test world's own telemetry copy | tap | **tap** (kept) |
+| The cluster's list of worlds | ledger | **registry** (ledger stays the invoice ledger) |
+| The file other packages import from | `door.ts` | **`index.ts`** |
+| The blueprint's gathering files | hubs | **generated index** |
+| One line of the roadmap | step | **item** |
+| A chain of roadmap items led by one lead | lane | **lane** (kept) |
+| An integration branch for one effort | slice | **slice** (kept) |
 
 **Decision 8, the CLI as the one surface: direction agreed with Aaron, 15 November 2026.** The CLI is Capxul's one
 surface and is generated from the blueprint and the built code. The `run.sh` scripts become CLI commands. Every Frappe
