@@ -13,14 +13,14 @@ import type * as HttpClient from "effect/http/HttpClient";
 import * as Option from "effect/Option";
 import type * as Redacted from "effect/Redacted";
 import type { Call } from "../client.ts";
-import type { TapRecord } from "../record.ts";
+import type { TapReport } from "../record.ts";
 import type { Kept, SpanRow } from "../world/database.ts";
 import { PlatformKept } from "../worlds/kept.ts";
 import type { FlatSpan } from "./flat.ts";
 import { parity } from "./parity.ts";
 import { tapFor, tapIsOn, WAIT, type Tapped, type Wait } from "./tap.ts";
 
-type CallParity = TapRecord["calls"][number];
+type CallParity = TapReport["calls"][number];
 
 const keptSummary = (row: SpanRow) => ({
   spanId: row.span_id,
@@ -68,12 +68,12 @@ export const sideBySide = (
   calls: ReadonlyArray<Call>,
   kept: Kept,
   wait: Wait = WAIT,
-): Effect.Effect<TapRecord, never, HttpClient.HttpClient> =>
+): Effect.Effect<TapReport, never, HttpClient.HttpClient> =>
   Effect.gen(function* () {
-    const platform = yield* Effect.serviceOption(PlatformKept);
+    const served = yield* Effect.serviceOption(PlatformKept);
     const own = Arr.filter(
       calls,
-      (call) => call.at === null && !(Option.isSome(platform) && servedBy(call.operation) === "platform"),
+      (call) => call.at === null && !(Option.isSome(served) && servedBy(call.operation) === "platform"),
     );
     if (Arr.isReadonlyArrayEmpty(own) || !(yield* tapIsOn(database))) return { state: "absent" as const, calls: [] };
     const waited = Arr.filter(own, (call) => Arr.isReadonlyArrayNonEmpty(spansOf(kept, call)));
@@ -97,14 +97,14 @@ export const sideBySide = (
     };
   }).pipe(
     Effect.timed,
-    Effect.map(([took, record]) => ({ ...record, ms: Math.round(Duration.toMillis(took)) })),
+    Effect.map(([took, report]) => ({ ...report, ms: Math.round(Duration.toMillis(took)) })),
     Effect.catch((failure) =>
       Effect.succeed({ state: "unreadable" as const, reason: failure.message, ms: 0, calls: [] }),
     ),
   );
 
 /** What the tap fails a run with, one line each: nothing while it is absent or agrees. */
-export const tapFailures = (tap: TapRecord | undefined): ReadonlyArray<string> => {
+export const tapFailures = (tap: TapReport | undefined): ReadonlyArray<string> => {
   if (tap === undefined || tap.state === "absent") return [];
   if (tap.state === "unreadable") return [`plumbing: the tap is on but could not be read: ${tap.reason ?? ""}`];
   const disagree = Arr.filter(tap.calls, (call) => !call.agrees);

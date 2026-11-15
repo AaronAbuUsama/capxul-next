@@ -3,7 +3,7 @@
 import * as Arr from "effect/Array";
 import * as Formatter from "effect/Formatter";
 import * as Predicate from "effect/Predicate";
-import type { LogRecord, LogsExport } from "./otlp.ts";
+import type { LogEntry, LogsExport } from "./otlp.ts";
 import { attributesOf, valueOf } from "./flat.ts";
 
 export interface FlatLog {
@@ -24,19 +24,19 @@ export interface FlatLog {
 const textOf = (value: unknown): string => (Predicate.isString(value) ? value : Formatter.format(value));
 
 /** A log's body as text: Effect writes one message as itself and several as an array. */
-export const messageOf = (record: LogRecord): string => {
-  if (record.body === undefined) return "";
-  const value = valueOf(record.body);
+export const messageOf = (entry: LogEntry): string => {
+  if (entry.body === undefined) return "";
+  const value = valueOf(entry.body);
   return Arr.isArray(value) ? Arr.join(Arr.map(value, textOf), " ") : textOf(value);
 };
 
-const flatLog = (record: LogRecord): FlatLog => ({
-  level: record.severityText ?? "",
-  message: messageOf(record),
-  traceId: record.traceId ?? "",
-  spanId: record.spanId === undefined || record.spanId === "" ? null : record.spanId,
-  fields: attributesOf(record.attributes),
-  atMs: Number(BigInt(record.timeUnixNano)) / 1_000_000,
+const flatLog = (entry: LogEntry): FlatLog => ({
+  level: entry.severityText ?? "",
+  message: messageOf(entry),
+  traceId: entry.traceId ?? "",
+  spanId: entry.spanId === undefined || entry.spanId === "" ? null : entry.spanId,
+  fields: attributesOf(entry.attributes),
+  atMs: Number(BigInt(entry.timeUnixNano)) / 1_000_000,
 });
 
 /** Every log of a logs export, flat, in the order the export holds them. */

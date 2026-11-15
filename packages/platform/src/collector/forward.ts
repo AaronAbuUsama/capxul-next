@@ -2,6 +2,7 @@
 // sink with Effect's OtlpProxy (which adds the sink's headers last, sends nothing of the caller's but the body and its
 // content type, and returns the sink's answer), and say what became of its items. src/collector.ts calls it for each
 // caller; this file knows neither Cloudflare nor where the counts go.
+import { Envelope } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -23,6 +24,13 @@ import {
   stringAttribute,
   type StringAttribute,
 } from "./otlp-json.ts";
+
+/** The keys the collector owns on every resource, the envelope's: a caller's value under any of them is dropped. */
+export const STAMPED = {
+  world: Envelope.attributes.world.name,
+  stage: Envelope.attributes.stage.name,
+  grade: Envelope.attributes.grade.name,
+} as const;
 
 /** Who sent the telemetry: what the collector stamps on it. An empty value is dropped and not stamped. */
 export interface Identity {
@@ -91,7 +99,7 @@ export interface Forwarded {
  * Stamps and forwards the request being served, as `signal`, for `identity`. A body that is not OTLP JSON is
  * refused (415 for another content type, 400 for one that does not decode) and not counted: nothing of it is known.
  */
-export const forward = Effect.fn("platform.collector.forward")(function* (
+export const forward = Effect.fn("sites.collector.forward")(function* (
   options: Forwarding,
   signal: Signal,
   identity: Identity,

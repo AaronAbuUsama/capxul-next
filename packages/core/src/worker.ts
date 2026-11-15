@@ -120,12 +120,13 @@ export default class Core extends Cloudflare.Worker<Core>()(
       // Its telemetry's export, when this Core has a collector or a tap, built into the request's scope: it flushes
       // after the answer has left (src/telemetry/export.ts).
       const exported = yield* requestExport(env, connectionString(env));
-      const doors = Option.match(exported, {
-        onNone: () => Effect.flatten(serveDoors),
-        onSome: (context) => Effect.provide(Effect.flatten(serveDoors), context),
+      const serving = Effect.flatten(serveDoors);
+      const answering = Option.match(exported, {
+        onNone: () => serving,
+        onSome: (context) => Effect.provide(serving, context),
       });
       // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the Worker's fetch is its entry point: each request gets its own database pool
-      return yield* doors.pipe(Effect.provide(served));
+      return yield* answering.pipe(Effect.provide(served));
     }),
   }),
 ) {}

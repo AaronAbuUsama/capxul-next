@@ -23,8 +23,12 @@ import * as Tracer from "effect/Tracer";
 import * as Headers from "effect/http/Headers";
 import * as HttpClient from "effect/http/HttpClient";
 import type * as Rpc from "effect/rpc/Rpc";
-import { migrations, SpanSink, type KeptSpan } from "../src/door.ts";
-import { coreTelemetry, type Held, transport, writeTap } from "../src/telemetry/export.ts";
+import { SpanSink } from "../src/telemetry/sink.ts";
+import type { KeptSpan } from "../src/telemetry/spans.ts";
+
+/** Core's migrations, where the package keeps them. */
+const migrations = new URL("../migrations/", import.meta.url);
+import { apiTelemetry, type Held, transport, writeTap } from "../src/telemetry/export.ts";
 import { CallTracer, measured } from "../src/telemetry/spans.ts";
 
 const url = process.env["CAPXUL_TEST_DATABASE"];
@@ -58,7 +62,7 @@ test(
         );
         const scope = yield* Scope.make();
         const built = yield* Layer.buildWithScope(
-          coreTelemetry({ baseUrl: "https://collector", revision: "abc123" }).pipe(
+          apiTelemetry({ baseUrl: "https://collector", revision: "abc123" }).pipe(
             Layer.provide(Layer.succeed(HttpClient.HttpClient, client)),
           ),
           scope,

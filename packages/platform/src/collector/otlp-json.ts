@@ -88,7 +88,7 @@ export const resourceAttributes = (signal: Signal, body: Json): ReadonlyArray<Re
     arrayAt(isJson(entry) ? entry.resource : undefined, "attributes"),
   );
 
-const metricPoints = (metric: unknown): number =>
+const metricSamples = (metric: unknown): number =>
   pipe(
     METRIC_KINDS,
     Arr.map((kind) => arrayAt(isJson(metric) ? metric[kind] : undefined, "dataPoints").length),
@@ -101,7 +101,7 @@ export const countItems = (signal: Signal, body: Json): number => {
   const items = Arr.flatMap(arrayAt(body, shape.resources), (resource) =>
     Arr.flatMap(arrayAt(resource, shape.scopes), (scope) => arrayAt(scope, shape.items)),
   );
-  return signal === "metrics" ? pipe(Arr.map(items, metricPoints), Num.sumAll) : items.length;
+  return signal === "metrics" ? pipe(Arr.map(items, metricSamples), Num.sumAll) : items.length;
 };
 
 /** OTLP's partial success: how many items the sink rejected in an answer it accepted, from its JSON body. */

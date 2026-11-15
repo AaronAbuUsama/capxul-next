@@ -19,8 +19,10 @@ import * as Headers from "effect/http/Headers";
 import * as HttpClient from "effect/http/HttpClient";
 import * as OtlpExporter from "effect/observability/OtlpExporter";
 import type * as Rpc from "effect/rpc/Rpc";
-import { SPAN_ATTRIBUTES, SpanSink, type KeptSpan } from "../src/door.ts";
-import { coreTelemetry, type Held, SERVICE_NAME, transport, type Signal } from "../src/telemetry/export.ts";
+import { SPAN_ATTRIBUTES } from "../src/telemetry/attributes.ts";
+import { SpanSink } from "../src/telemetry/sink.ts";
+import type { KeptSpan } from "../src/telemetry/spans.ts";
+import { apiTelemetry, type Held, SERVICE_NAME, transport, type Signal } from "../src/telemetry/export.ts";
 import { CallTracer, measured } from "../src/telemetry/spans.ts";
 
 // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- a declared Rpc names its middlewares by their own types, which the general `AnyWithProps` a middleware is handed cannot follow
@@ -78,7 +80,7 @@ const run = (caller: Headers.Headers) =>
     const client = transport(Option.none(), Option.some(hold));
     const scope = yield* Scope.make();
     const built = yield* Layer.buildWithScope(
-      coreTelemetry({ baseUrl: "https://collector", revision: "abc123" }).pipe(
+      apiTelemetry({ baseUrl: "https://collector", revision: "abc123" }).pipe(
         Layer.provide(Layer.succeed(HttpClient.HttpClient, client)),
       ),
       scope,
@@ -123,7 +125,7 @@ test("the spans exported are the spans kept: same ids, names, parents and declar
   assert.equal(call.parentSpanId, "b7ad6b7169203331");
 });
 
-test("every export carries Core's service name and the code's revision", async () => {
+test("every export carries the api's service name and the code's revision", async () => {
   const { traces } = await Effect.runPromise(run(Headers.empty));
   assert.ok(traces.length > 0, "no traces were exported");
   const resource = Arr.flatMap(traces, (data) => Arr.flatMap(data.resourceSpans, (each) => each.resource.attributes));

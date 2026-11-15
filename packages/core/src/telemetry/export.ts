@@ -11,6 +11,7 @@
 // The tracer is not made ambient: only `measured` (spans.ts) uses it, as the inner tracer of a call's keeping
 // tracer, so the spans exported are the spans kept, with the same ids, names, parents and attributes, and no others.
 // Logs and metrics are exported as Effect's OTLP logger and metrics make them.
+import { Conventions, Producers } from "@capxul/blueprint";
 import * as SQL from "@alchemy.run/sql/Postgres";
 import * as PgClient from "@effect/sql-pg/PgClient";
 import * as Arr from "effect/Array";
@@ -24,6 +25,7 @@ import * as Str from "effect/String";
 import type * as Redacted from "effect/Redacted";
 import type * as Headers from "effect/http/Headers";
 import * as Tracer from "effect/Tracer";
+import * as OtlpSerialization from "effect/observability/OtlpSerialization";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientError from "effect/http/HttpClientError";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
@@ -36,12 +38,8 @@ import { CallTracer } from "./spans.ts";
 /** The value of `ENV.tap` that turns the tap on. */
 export const TAP_ON = "on";
 
-/**
- * Core's `service.name` on every export: the producer name the blueprint's envelope gives Core (#301,
- * packages/blueprint/src/telemetry/producers.ts on slice/blueprint). It moves to an import from the blueprint when #301
- * reaches master.
- */
-export const SERVICE_NAME = "capxul-api";
+/** Core's `service.name` on every export: the blueprint's producer for it. */
+export const SERVICE_NAME = Producers.producers.api.service;
 
 /** Where the exporters post over the binding: the host is never reached, the bound Worker answers every path. */
 const BINDING_URL = "https://collector";
@@ -145,13 +143,31 @@ export interface ExportOptions {
 }
 
 /**
+ * OTLP JSON with every resource carrying the blueprint's convention version (`Conventions.SCHEMA_URL`), so the sink
+ * shapes what it receives by the version we pinned and not by its own default. Effect's exporters leave it out.
+ */
+export const jsonWithSchema = Layer.effect(
+  OtlpSerialization.OtlpSerialization,
+  Effect.gen(function* () {
+    const json = yield* OtlpSerialization.OtlpSerialization;
+    const schemaUrl = Conventions.SCHEMA_URL;
+    return {
+      traces: (data) => json.traces({ resourceSpans: Arr.map(data.resourceSpans, (each) => ({ ...each, schemaUrl })) }),
+      logs: (data) => json.logs({ resourceLogs: Arr.map(data.resourceLogs, (each) => ({ ...each, schemaUrl })) }),
+      metrics: (data) =>
+        json.metrics({ resourceMetrics: Arr.map(data.resourceMetrics, (each) => ({ ...each, schemaUrl })) }),
+    };
+  }),
+).pipe(Layer.provide(OtlpSerialization.layerJson));
+
+/**
  * Core's OTLP export: Effect's exporters of traces, logs and metrics, posting OTLP/JSON below `baseUrl` through the
  * `HttpClient` it is given, under a resource naming Core (`service.name`) and the code's revision (`service.version`).
  * Nothing is posted before its scope closes: the intervals are longer than any request, and the flush runs as the
  * scope closes. It provides the tracer as Effect's ambient one; the Worker moves it to `CallTracer` (below).
  */
-export const coreTelemetry = (options: ExportOptions) =>
-  Otlp.layerJson({
+export const apiTelemetry = (options: ExportOptions) =>
+  Otlp.layer({
     baseUrl: options.baseUrl,
     headers: options.headers,
     resource: { serviceName: SERVICE_NAME, serviceVersion: options.revision },
@@ -159,7 +175,7 @@ export const coreTelemetry = (options: ExportOptions) =>
     metricsExportInterval: Duration.hours(1),
     tracerExportInterval: Duration.hours(1),
     shutdownTimeout: Duration.seconds(10),
-  });
+  }).pipe(Layer.provide(jsonWithSchema));
 
 /** What the request runs with when it exports: every service of the exporters but the tracer, and `CallTracer`. */
 const exportContext = (built: Context.Context<OtlpExporter.Flusher>) =>
@@ -194,7 +210,7 @@ export const requestExport = (env: Record<string, unknown>, database: Effect.Eff
     const revision = Option.getOrElse(textOf(env[ENV.revision]), () => "unknown");
     const client = transport(collector, hold);
     const built = yield* Layer.build(
-      coreTelemetry({ baseUrl: BINDING_URL, revision }).pipe(
+      apiTelemetry({ baseUrl: BINDING_URL, revision }).pipe(
         Layer.provide(Layer.succeed(HttpClient.HttpClient, client)),
       ),
     );

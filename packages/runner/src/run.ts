@@ -22,10 +22,10 @@ import { withPaths } from "./checks/paths.ts";
 import { capxulFor, type Call, type Target, type Via } from "./client.ts";
 import { describe, endedOf, RunnerFailure } from "./failure.ts";
 import { givenFor, type Handing } from "./given.ts";
-import { stepsFor, viaOf, writeRecord, type Coverage, type RunRecord, type TapRecord } from "./record.ts";
+import { stepsFor, viaOf, writeRecord, type Coverage, type RunRecord, type TapReport } from "./record.ts";
 // The record's parts that worlds/run.ts builds its own record with.
 export { stepsFor, viaOf } from "./record.ts";
-import { hearing, stepsOf, type Heard, type StepRecord } from "./steps.ts";
+import { hearing, stepsOf, type Heard, type StepResult } from "./steps.ts";
 import type { Settings } from "./settings.ts";
 import { sideBySide, tapFailures } from "./telemetry/side-by-side.ts";
 import { telemetryOf } from "./world/database.ts";
@@ -64,8 +64,8 @@ export interface Used {
   readonly calls: ReadonlyArray<CheckedCall>;
   /** What its calls reached of each machine (checks/paths.ts), whose `path` check each call above carries. */
   readonly coverage: Coverage;
-  readonly steps: ReadonlyArray<StepRecord>;
-  readonly tap: TapRecord;
+  readonly steps: ReadonlyArray<StepResult>;
+  readonly tap: TapReport;
   readonly ms: { readonly run: number; readonly checks: number };
 }
 
