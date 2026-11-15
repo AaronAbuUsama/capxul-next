@@ -1,7 +1,7 @@
-diff --git a/packages/world/src/bundler/Alto.ts b/packages/world/src/bundler/Alto.ts
+diff --git a/packages/world/src/parts/bundler/Alto.ts b/packages/world/src/parts/bundler/Alto.ts
 index 56a45062..4be3666c 100644
---- a/packages/world/src/bundler/Alto.ts
-+++ b/packages/world/src/bundler/Alto.ts
+--- a/packages/world/src/parts/bundler/Alto.ts
++++ b/packages/world/src/parts/bundler/Alto.ts
 @@ -7,10 +7,8 @@ import { BUNDLER_IMAGE } from "../stack/names.ts";
  export const ALTO_PORT = 4337;
  
@@ -15,10 +15,10 @@ index 56a45062..4be3666c 100644
    // 1/4 vCPU and 1 GiB, the size it was proven on (records/spike-bundler). alto is a Node process with 237 MB of
    // dependencies; lite (256 MiB) was not tried.
    instanceType: "basic",
-diff --git a/packages/world/src/chain/Anvil.ts b/packages/world/src/chain/Anvil.ts
+diff --git a/packages/world/src/parts/chain/Anvil.ts b/packages/world/src/parts/chain/Anvil.ts
 index 03a081bb..d149ef3d 100644
---- a/packages/world/src/chain/Anvil.ts
-+++ b/packages/world/src/chain/Anvil.ts
+--- a/packages/world/src/parts/chain/Anvil.ts
++++ b/packages/world/src/parts/chain/Anvil.ts
 @@ -19,11 +19,8 @@ export const restoreEntrypoint = [
  ];
  
@@ -33,10 +33,10 @@ index 03a081bb..d149ef3d 100644
    instanceType: "lite",
    maxInstances: 2,
    observability: { logs: { enabled: true } },
-diff --git a/packages/world/src/index/Ponder.ts b/packages/world/src/index/Ponder.ts
+diff --git a/packages/world/src/parts/indexer/Ponder.ts b/packages/world/src/parts/indexer/Ponder.ts
 index 30c036f2..42a0f382 100644
---- a/packages/world/src/index/Ponder.ts
-+++ b/packages/world/src/index/Ponder.ts
+--- a/packages/world/src/parts/indexer/Ponder.ts
++++ b/packages/world/src/parts/indexer/Ponder.ts
 @@ -13,9 +13,8 @@ export class Ponder extends Cloudflare.Container<Ponder>()(
    Effect.gen(function* () {
      const branch = yield* WorldBranch;

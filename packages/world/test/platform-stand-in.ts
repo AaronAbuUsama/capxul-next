@@ -14,11 +14,11 @@ import * as Str from "effect/String";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
-import { CHAIN_ID } from "../src/chain/Anvil.ts";
-import { CONTRACTS } from "../src/chain/contracts.ts";
-import { OPERATOR_TOKEN_ID } from "../src/core/Core.ts";
-import { ADMIN_TOKEN_ID, HUB_STACK } from "../src/hub/names.ts";
-import type { SnapshotRow } from "../src/platform/store.ts";
+import { CHAIN_ID } from "../src/parts/chain/Anvil.ts";
+import { CONTRACTS } from "../src/parts/chain/contracts.ts";
+import { OPERATOR_TOKEN_ID } from "../src/parts/api/Api.ts";
+import { ADMIN_TOKEN_ID, HUB_STACK } from "../src/things/cluster/values.ts";
+import type { SnapshotRow } from "../src/account/store.ts";
 import { SharedState } from "../src/stack/engine.ts";
 import { PLATFORM, STACK } from "../src/stack/names.ts";
 

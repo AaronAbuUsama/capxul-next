@@ -2,7 +2,7 @@ import * as assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
-import { noDurations, renderRecord, RunRecord } from "../src/lifecycle/record.ts";
+import { noDurations, renderRecord, RunRecord } from "../src/common/record.ts";
 import { STEPS } from "../src/stack/names.ts";
 
 const timeouts = {
