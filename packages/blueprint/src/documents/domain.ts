@@ -9,6 +9,9 @@ import * as Documents from "./operations.ts";
 
 export * from "./operations.ts";
 
+/** Its machines, by name (src/machine.ts): none yet. */
+export const machines = {} as const;
+
 /** Its operations, by name. */
 export const operations = {
   "doc.create": Documents.create,

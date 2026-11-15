@@ -8,6 +8,9 @@ import * as Approvals from "./operations.ts";
 
 export * from "./operations.ts";
 
+/** Its machines, by name (src/machine.ts): none yet. */
+export const machines = {} as const;
+
 /** Its operations, by name. */
 export const operations = {
   "approval.sign": Approvals.sign,

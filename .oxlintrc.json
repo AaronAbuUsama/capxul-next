@@ -55,7 +55,8 @@
         "packages/core/src/failures.ts": "Core's own failure in reaching a site through its door: a fault of the infrastructure, mapped to the blueprint's refusals before it reaches a caller",
         "packages/runner/src/record.ts": "a run record is a JSON file on disk, written by the runner and read by the dashboard and the speed climb; its schema is that file's format",
         "packages/runner/src/summary.ts": "a run's summary is the JSON file a step's Proof names; its schema is that file's format",
-        "packages/world/src/lifecycle/record.ts": "run records and proof records are JSON files outside the world; their schemas are those files' format"
+        "packages/world/src/lifecycle/record.ts": "run records and proof records are JSON files outside the world; their schemas are those files' format",
+        "packages/blueprint/src/machine.ts": "the machine format: builds each machine's state schema from the states its declaration names"
       }
     }
   },

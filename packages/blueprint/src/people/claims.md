@@ -14,6 +14,29 @@ are in [claims.md](../../claims.md).
 | `invite.decline` | 2 | 0 | 0 | 2 | 0 |
 | `org.member.list` | 2 | 0 | 0 | 2 | 0 |
 
+## Machines
+
+Declared in `machines.ts` here (the format is `src/machine.ts`). Core moves each thing only through its machine's
+`step`, the database refuses a state the machine does not have, and the runner checks that each thing's events
+form a path through it.
+
+### `invitation`
+
+- States: `pending`, `accepted`, `declined`. Its `invitation` field names it in each event and refusal below.
+- Starts `pending`, made by `org.member.invite`, which sends `member_invited`.
+
+| Move | From | To | Made by | Sends | From any other state |
+|---|---|---|---|---|---|
+| `accept` | `pending` | `accepted` | `invite.accept` | `invitation_accepted` | `accepted`: unchanged; `declined`: refused, `InvitationClosed` |
+| `decline` | `pending` | `declined` | `invite.decline` | `invitation_declined` | `accepted`: refused, `InvitationClosed`; `declined`: refused, `InvitationClosed` |
+
+```mermaid
+stateDiagram-v2
+    [*] --> pending
+    pending --> accepted: accept
+    pending --> declined: decline
+```
+
 ## 1. `org.member.invite`
 
 - Served by: the world group.
