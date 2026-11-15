@@ -451,3 +451,24 @@ decisions and steps of stage 2b, and `notes.md`.
 
 Moves that need nothing but the conductor's word: M1, M3 (with the confirmation), M5, M12, M17, M18 and M23. These
 are rename-safe. If the conductor agrees, they can go before decision 7 without risk of moving anything twice.
+
+## 11. Where the moves stand (15 November 2026, 15:20 UTC)
+
+Merged into `slice/docs`:
+
+- M1 (the docs' shape, `packages/lint/src/docs.ts`), M3, M12, M17, M18 and this note: #284.
+- M8 and M16 (sites, `packages/platform`): #286. M9 and M11 (runner, journeys): #287. M7 (world): #288, merged
+  before `packages/world` passed to the world-layout session; whether it stays is the conductor's call.
+- M10, M13, M14 and M15 (api, frappe-app, SDK, CLI, bench-image, indexer): #289. M25 (root README): #290.
+- M19 to M21 for five spikes (bench-clocks, hosting, pipeline, site-speed, state): #292.
+
+Long READMEs left on the shrinking list: the blueprint's (the blueprint session's), the bundler record note, and
+`spikes/containers` and `spikes/world-speed` (the world-layout session's to graduate).
+
+Waiting on another session:
+
+- M4 (the decisions to `docs/decisions.md`) and M24 (AGENTS.md, the rules only): after the blueprint's stage 2b.
+- M22 (repointing citations of the blueprint's `decisions.md`): after stage 2a.
+- M5 and M6 (generated maps and blocks): after the generator mechanism is agreed with the blueprint session.
+- M23 (the design notes): each from its own thread.
+- Anything in `packages/world`: the world-layout session.
