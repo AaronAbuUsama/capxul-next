@@ -772,6 +772,47 @@ claims); the glossary's renames run on their own ratchet (item 3.8). No behaviou
 `events.ts`, `refusals.ts`, `lifecycle.ts`, `examples.ts` (until 2b folds it) and verb files; only the folders above at
 `src/`; markdown only in `generated/` and `docs/`.
 
+### Amended: what is a command, a refusal or an event is known by its place and its shape (15 November 2026)
+
+**Agreed with Aaron, 15 November 2026** (option 1 of three offered, all three parts together). Aaron's question: which
+of a thing's files turn into a command or an SDK call, and which declare refusals and events, was not obvious from the
+tree, and nothing marked a command, a refusal or an event as special. What was found on `master` at `b55dff4`:
+
+- Every file in a thing's folder that is not a reserved name was a verb, so the tree did not show which files were
+  verbs.
+- The CLI's command and the SDK's call took their name from the string written in `Rpc.make`, not from the file's
+  path: `things/clock/warp.ts` was `capxul world clock warp`, not `capxul clock warp`. In 21 of the 26 verbs the two
+  differed (`invitation/accept.ts` was `invite.accept`, `company/create.ts` was `org.create`), and nothing checked them.
+- A refusal was a plain `Schema.TaggedError` with its exit code in a separate map beside it; an event a plain
+  `Schema.TaggedClass`. Nothing but the file name said what either was.
+
+What changes, all three parts together:
+
+1. **Verbs in their own folder.** A thing is `things/<thing>/` holding `values.ts`, `events.ts`, `refusals.ts`,
+   `lifecycle.ts` where it has one (and `examples.ts` until 2b folds it), and `verbs/<verb>.ts`, one file per verb. The
+   tree reads `clock/verbs/warp.ts`. Nothing else lives in a thing's folder.
+2. **One constructor per kind, each recognised by the toolkit.** `verb(...)` (replacing `declare` and
+   `declareOutcomes`, outcomes an option of it), `refusal(...)` (a tagged error carrying its exit code on its own
+   declaration, so the separate `exitCode` map goes) and `event(...)` (a tagged class). Each marks what it makes, so the
+   layout test and lint know a command, a refusal and an event by their shape. A verb's file declares exactly one
+   `verb` and no refusal or event; a thing's `refusals.ts` only `refusal`s, its `events.ts` only `event`s; shared
+   refusals stay in `src/common/refusals.ts`. Each thing declares its own refusals and events: a refusal belongs to the
+   thing whose verb says no, an event is a move in the thing's life.
+3. **The name comes from the path, and is checked.** A verb's operation is named `<thing>.<verb>` from its path, so the
+   command is `capxul <thing> <verb>`, the SDK call `<thing>.<verb>` and the span `<thing>.<verb>` (part 12, decision
+   8). The name is not typed by hand; a check fails any verb whose name differs from its path. The 21 that differ today
+   are a ratchet list that may only shrink, renamed directly under "no callers, no compatibility" as each thing is
+   climbed (item 3.8's renames, C.1), the journey author updating the journeys in the same lane.
+
+And the reader's view: each thing's generated page opens with four short lists, its commands, its SDK calls, its
+refusals with their exit codes, and its events.
+
+**Where it lands.** In stage 2b's format work on `slice/blueprint` (items 3.6 and 3.10): the constructors are the
+format, the folder move is mechanical and changes no behaviour, the path-name check and its ratchet are registered with
+the others, and 3.9's grammar then reads the path. The layout of part 13 above is amended accordingly; "What keeps it"
+now also fails a verb outside `verbs/`, a file of the wrong kind of declaration, and a name that differs from its path
+and is not on the ratchet's list.
+
 ## 14. Build the system, then climb, then breadth (15 November 2026)
 
 **Agreed with Aaron, 15 November 2026.**
