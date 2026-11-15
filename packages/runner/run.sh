@@ -11,6 +11,9 @@
 #                                 (WORLD_HUB, a fresh one by default, brought up and taken down), reset before each;
 #                                 or, with --expect=not-implemented, each in its own fresh stage of Core deployed with its
 #                                 empty handlers (or all in one, --one-stage), and write their summary
+#   ./run.sh scenarios --via=cli [name...]
+#                                 the same, every operation a journey calls made through the command line (packages/cli):
+#                                 the `capxul` command that makes the call, run in this process (RUNNER_VIA=cli too)
 #   ./run.sh scenarios --core=local [name...]
 #                                 the same, with every world's Core run here in workerd next to a stand-in bench
 #                                 (WORLD_BENCH=<platform stage>, or WORLD_BENCH=local with POOL_SECRETS for
@@ -67,5 +70,5 @@ for arg in "$@"; do [ "$arg" = --expect=not-implemented ] && export CAPXUL_HANDL
 case "${1:-}" in
   alchemy) shift; exec bun node_modules/alchemy/bin/cli.js "$@" ;;
   door|chain|scenarios|starting-worlds|shared) exec bun src/main.ts "$@" ;;
-  *) echo "usage: ./run.sh door | scenarios [--one-stage] [--expect=pass|not-implemented] [--shared] [name...] | shared | alchemy <args...>" >&2; exit 2 ;;
+  *) echo "usage: ./run.sh door | scenarios [--one-stage] [--expect=pass|not-implemented] [--shared] [--via=sdk|cli] [name...] | shared | alchemy <args...>" >&2; exit 2 ;;
 esac

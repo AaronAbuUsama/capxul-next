@@ -1,9 +1,12 @@
-// Renders claims.md from the declarations: the claims, the starting worlds and each operation's refusals, events
-// and budget. Pure: `render.entry.ts` writes the file, and a test compares it with this.
+// Renders the claims from the declarations: claims.md, with what every claim shares and the starting worlds, and one
+// claims.md per domain (src/<domain>/claims.md), with each of its operations' claims, refusals, events and budget, so
+// that a change to one domain renders only its own file. Pure: `render.entry.ts` writes the files, and a test
+// compares each with this.
 import * as Arr from "effect/Array";
 import { pipe } from "effect/Function";
 import * as Rec from "effect/Record";
 import { operations, servedBy, type OperationName } from "../door.ts";
+import { domains, namesOf } from "../domains.ts";
 import { refusalsOf, type Operation } from "../operation.ts";
 import { startingWorlds } from "../starting-worlds.ts";
 import { allClaims } from "./all.ts";
@@ -14,8 +17,8 @@ const list = (items: ReadonlyArray<string>) => (items.length === 0 ? "none" : Ar
 
 const header = `# Acceptance claims of the thin line
 
-Rendered from \`src/<concept>/claims.ts\` and the declarations by \`pnpm claims\`. Do not edit it by hand: a test fails
-when this file and its sources differ.
+Rendered from the declarations by \`pnpm claims\`, with each domain's claims beside its sources, in
+\`src/<domain>/claims.md\`. Do not edit them by hand: a test fails when a file and its sources differ.
 
 Each claim is checked black-box by the journeys (\`packages/scenarios\`; docs/roadmap.md, "Scenarios are journeys"):
 through the door, reading only what the operations answer and what the world's door shows of its chain. No claim has
@@ -86,9 +89,11 @@ const section = (name: OperationName, index: number, of: ClaimsOf): string => {
   return Arr.join(lines, "\n");
 };
 
-const summary = (): string => {
-  const rows = Arr.map(Rec.keys(allClaims), (name) => {
-    const { claims, dropped } = allClaims[name];
+/** Some operations, each with its claims. */
+type Claimed = ReadonlyArray<readonly [OperationName, ClaimsOf]>;
+
+const summary = (claimed: Claimed): string => {
+  const rows = Arr.map(claimed, ([name, { claims, dropped }]) => {
     const by = (kind: string | null) => Arr.filter(claims, (claim) => (claim.origin?.kept ?? null) === kind).length;
     return `| ${code(name)} | ${claims.length} | ${by("word for word")} | ${by("rewritten")} | ${by(null)} | ${dropped.length} |`;
   });
@@ -133,21 +138,55 @@ const worlds = (): string =>
     Arr.join("\n"),
   );
 
-export const renderClaims = (): string =>
+const index = (): string =>
   Arr.join(
     [
       header,
-      "## Count",
-      "",
-      summary(),
-      "",
       "## Starting worlds",
       "",
       "Declared in `src/starting-worlds.ts`. Each is made through the door from the one before it, then either saved as a template that a journey starting from it gets (the runner's one world reset in place to it), or made by its steps for each journey. A journey reads the facts of its world, and of every world it is made from, with `given` (decisions.md, 38).",
       "",
       worlds(),
       "",
-      ...Arr.map(Rec.keys(allClaims), (name, index) => `${section(name, index, allClaims[name])}\n`),
     ],
     "\n",
   );
+
+const ofDomain = (domain: string, claimed: Claimed): string =>
+  Arr.join(
+    [
+      `# Acceptance claims of the domain ${code(domain)}`,
+      "",
+      "Rendered from `claims.ts` here and the declarations by `pnpm claims`. Do not edit it by hand: a test fails when",
+      "this file and its sources differ. What the runner checks on every call, and the starting worlds a claim is in,",
+      "are in [claims.md](../../claims.md).",
+      "",
+      "## Count",
+      "",
+      summary(claimed),
+      "",
+      ...Arr.map(claimed, ([name, of], n) => `${section(name, n, of)}\n`),
+    ],
+    "\n",
+  );
+
+/** One rendered file: its path from the package's root, and its text. */
+export interface Rendered {
+  readonly path: string;
+  readonly text: string;
+}
+
+/** claims.md, then each domain's, in the domains' order. */
+export const renderClaims = (): ReadonlyArray<Rendered> => [
+  { path: "claims.md", text: index() },
+  ...Arr.map(Rec.toEntries(domains), ([folder, domain]) => ({
+    path: `src/${folder}/claims.md`,
+    text: ofDomain(
+      folder,
+      Arr.map(
+        Arr.filter(Rec.keys(operations), (name) => Arr.contains(namesOf(domain), name)),
+        (name) => [name, allClaims[name]] as const,
+      ),
+    ),
+  })),
+];

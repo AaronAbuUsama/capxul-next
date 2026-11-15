@@ -1,24 +1,8 @@
-// The refusals of the contract about who is calling, and worlds and snapshots. Each is declared once, here; ../errors.ts gathers them all.
+// The refusals of the domain "world": worlds, snapshots and a world's clock. Each is declared once, here;
+// ../errors.ts gathers them all.
 import * as Schema from "effect/Schema";
+import type { ExitCode } from "../errors.ts";
 import { Grade, Instant, OperatorName, SnapshotName, WorldName } from "../values.ts";
-
-// Who is calling.
-
-/** No caller could be established: no credential, or one this world or the platform does not know. */
-export class NotSignedIn extends Schema.TaggedError<NotSignedIn, { readonly brand: unique symbol }>()("NotSignedIn", {
-  reason: Schema.Literals(["no_credential", "unknown_caller"]),
-}) {}
-
-/** Only the world's owner may do this; the caller is someone else (another operator, or a person of the world). */
-export class NotWorldOwner extends Schema.TaggedError<NotWorldOwner, { readonly brand: unique symbol }>()(
-  "NotWorldOwner",
-  {
-    world: WorldName,
-    owner: OperatorName,
-  },
-) {}
-
-// Worlds and snapshots.
 
 export class WorldNotFound extends Schema.TaggedError<WorldNotFound, { readonly brand: unique symbol }>()(
   "WorldNotFound",
@@ -86,6 +70,21 @@ export class SnapshotNotFound extends Schema.TaggedError<SnapshotNotFound, { rea
   },
 ) {}
 
+/**
+ * A live world hangs from the snapshot: a world restored from it, or the snapshot's own world once reset to it in
+ * place. That world's database is a branch of the snapshot's, which cannot go while it does, so the snapshot stays
+ * until those worlds are gone. Nothing changes.
+ */
+export class SnapshotInUse extends Schema.TaggedError<SnapshotInUse, { readonly brand: unique symbol }>()(
+  "SnapshotInUse",
+  {
+    world: WorldName,
+    snapshot: SnapshotName,
+    /** The live worlds that hang from it. */
+    worlds: Schema.Array(WorldName),
+  },
+) {}
+
 /** A world made from a snapshot cannot outlive the world the snapshot belongs to. */
 export class ExpiryBeyondSource extends Schema.TaggedError<ExpiryBeyondSource, { readonly brand: unique symbol }>()(
   "ExpiryBeyondSource",
@@ -96,10 +95,28 @@ export class ExpiryBeyondSource extends Schema.TaggedError<ExpiryBeyondSource, {
   },
 ) {}
 
-/** A real world's record is not exported until a rule for its owners' consent exists. */
-export class ExportNotAllowed extends Schema.TaggedError<ExportNotAllowed, { readonly brand: unique symbol }>()(
-  "ExportNotAllowed",
-  {
-    grade: Grade,
-  },
-) {}
+export const refusals = {
+  WorldNotFound,
+  WorldExists,
+  GradeNotOffered,
+  WorldQuotaReached,
+  ClockBeforeSeed,
+  ClockBackwards,
+  SnapshotExists,
+  SnapshotNotFound,
+  SnapshotInUse,
+  ExpiryBeyondSource,
+} as const;
+
+export const exitCode: { readonly [Tag in keyof typeof refusals]: ExitCode } = {
+  WorldNotFound: 2,
+  WorldExists: 2,
+  GradeNotOffered: 4,
+  WorldQuotaReached: 6,
+  ClockBeforeSeed: 2,
+  ClockBackwards: 2,
+  SnapshotExists: 2,
+  SnapshotNotFound: 2,
+  SnapshotInUse: 2,
+  ExpiryBeyondSource: 2,
+};

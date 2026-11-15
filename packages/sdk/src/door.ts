@@ -1,6 +1,6 @@
 // The SDK's door: a typed client of every blueprint operation, derived from the blueprint, and how it reaches the
 // platform and a world's door. `TestDoor` serves the blueprint's groups in this process, for tests.
-export { callByName, layer, make, platformClient, spanName, traceparent, worldClient } from "./client.ts";
+export { callByName, checkPayload, layer, make, platformClient, spanName, traceparent, worldClient } from "./client.ts";
 export {
   isOperationName,
   isPlatformName,

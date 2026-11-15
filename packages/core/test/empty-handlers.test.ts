@@ -2,7 +2,15 @@
 // naming itself, under one span, whatever is built. What a stage deployed with CAPXUL_HANDLERS=empty serves.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { CREDENTIAL_HEADER, Errors, operations, servedBy, type OperationName } from "@capxul/blueprint";
+import {
+  CREDENTIAL_HEADER,
+  Errors,
+  operations,
+  PlatformRpcs,
+  servedBy,
+  WorldRpcs,
+  type OperationName,
+} from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
@@ -48,7 +56,7 @@ const call = (name: OperationName) =>
 
 test("in empty-handler mode every operation answers NotImplemented, naming itself, under one span", async () => {
   const names: ReadonlyArray<OperationName> = Rec.keys(operations);
-  assert.equal(names.length, 12);
+  assert.equal(names.length, PlatformRpcs.requests.size + WorldRpcs.requests.size);
   for (const name of names) {
     const { exit, kept } = await Effect.runPromise(call(name));
     const error = Exit.isFailure(exit) ? exit.cause.pipe(Cause.findErrorOption, Option.getOrUndefined) : undefined;

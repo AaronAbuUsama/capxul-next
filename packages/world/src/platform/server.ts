@@ -1,5 +1,6 @@
-// The platform's door: the blueprint's platform group (world.create, world.show, world.snapshot.save and
-// world.snapshot.restore), served over HTTP with Effect's Rpc server at `PLATFORM_PATH` by whatever process runs it
+// The platform's door: the blueprint's platform group (world.create, world.show, world.snapshot.save,
+// world.snapshot.restore, and an operator's inventory: world.list, world.snapshot.list and world.snapshot.delete),
+// served over HTTP with Effect's Rpc server at `PLATFORM_PATH` by whatever process runs it
 // where the Cloudflare and Neon keys are (decisions.md, 51): the runner, in-process, or `world platform serve`. Its
 // sign-in and its spans are Core's own middlewares; its spans are kept in the platform's store (store.ts), and each
 // call's events in the record of the world it acted on.
@@ -16,6 +17,7 @@ import * as RpcServer from "effect/rpc/RpcServer";
 import { query } from "../database/sql.ts";
 import { registry } from "../lifecycle/claim.ts";
 import { create, show } from "./create.ts";
+import { list, snapshotDelete, snapshotList } from "./inventory.ts";
 import { PlatformIdentity } from "./operators.ts";
 import { save, restore } from "./snapshots.ts";
 import { keptOf, PlatformSpanSink, prepareStore } from "./store.ts";
@@ -27,6 +29,9 @@ export const PlatformHandlers = PlatformRpcs.toLayer({
   "world.show": show,
   "world.snapshot.save": save,
   "world.snapshot.restore": restore,
+  "world.list": list,
+  "world.snapshot.list": snapshotList,
+  "world.snapshot.delete": snapshotDelete,
 });
 
 const sink = Layer.unwrap(

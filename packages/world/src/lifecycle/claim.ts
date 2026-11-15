@@ -77,6 +77,12 @@ export const claims = (database: Redacted.Redacted) =>
     Effect.flatMap(Schema.decodeUnknownEffect(Claims)),
   );
 
+/** Every name `owner` holds, by name: what counts against their quota, an expired world not yet swept included. */
+export const claimsOf = (database: Redacted.Redacted, owner: string) =>
+  query(database, `select ${COLUMNS} from worlds where owner = $1 order by name`, [owner]).pipe(
+    Effect.flatMap(Schema.decodeUnknownEffect(Claims)),
+  );
+
 const claimOf = (database: Redacted.Redacted, world: string) =>
   query(database, `select ${COLUMNS} from worlds where name = $1`, [world]).pipe(
     Effect.flatMap(Schema.decodeUnknownEffect(Claims)),

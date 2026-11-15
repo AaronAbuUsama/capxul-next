@@ -6,7 +6,19 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { ChainOps } from "../../src/organizations/handlers.ts";
 
 /** The operations whose handlers are built: they answer for real, so they are left out of the NotImplemented checks. */
-export const BUILT: ReadonlySet<OperationName> = new Set(["org.create", "org.member.grant", "approval.sign"]);
+export const BUILT: ReadonlySet<OperationName> = new Set([
+  "org.create",
+  "org.member.grant",
+  "approval.sign",
+  "org.member.invite",
+  "invite.list",
+  "invite.accept",
+  "invite.decline",
+  "org.member.list",
+  "org.budget.create",
+  "org.budget.show",
+  "org.budget.list",
+]);
 
 /** No database: a test in memory never calls a built handler far enough to reach it. */
 // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- a client that is never called; a built handler that reached it would die, which the tests do not do.

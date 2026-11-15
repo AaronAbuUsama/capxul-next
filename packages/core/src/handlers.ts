@@ -1,32 +1,29 @@
-// The handlers of every blueprint operation. THEY ARE EMPTY: each fails with the blueprint's `NotImplemented`,
-// naming its operation, so the server compiles, deploys and answers every call with a typed refusal
-// (packages/blueprint/decisions.md, entry 33). The builder of each operation replaces its line.
+// The handlers of every blueprint operation, gathered from Core's handlers of each blueprint domain (src/domains/,
+// one file per domain, each with its share of the groups it serves). A new domain is one import here and one entry in
+// each group it serves.
 //
-// `toLayer` takes exactly one handler per operation of its group: delete a line and this file no longer compiles.
-import { Errors, PlatformRpcs, WorldRpcs, type OperationName } from "@capxul/blueprint";
-import * as Effect from "effect/Effect";
-import { approvalSignHandler, orgCreateHandler, orgMemberGrantHandler } from "./organizations/handlers.ts";
-import { siteOps } from "./site-ops/door.ts";
+// `toLayer` takes exactly one handler per operation of its group: leave a domain out and this file no longer compiles.
+import { PlatformRpcs, WorldRpcs } from "@capxul/blueprint";
+import * as Approvals from "./domains/approvals.ts";
+import * as Budgets from "./domains/budgets.ts";
+import * as Documents from "./domains/documents.ts";
+import * as Organizations from "./domains/organizations.ts";
+import * as People from "./domains/people.ts";
+import * as Record from "./domains/record.ts";
+import * as Reports from "./domains/reports.ts";
+import * as World from "./domains/world.ts";
 
-/** The answer of an operation that has no implementation yet. */
-const unbuilt = (operation: OperationName) => () => Effect.fail(Errors.NotImplemented.make({ operation }));
-
-/** The platform group: what `packages/world` will serve once it lands. Core serves it until then. */
-export const PlatformHandlers = PlatformRpcs.toLayer({
-  "world.create": unbuilt("world.create"),
-  "world.show": unbuilt("world.show"),
-  "world.snapshot.save": unbuilt("world.snapshot.save"),
-  "world.snapshot.restore": unbuilt("world.snapshot.restore"),
-});
+/** The platform group: what `packages/world` serves. Core serves it, empty, until its platform door goes. */
+export const PlatformHandlers = PlatformRpcs.toLayer({ ...World.platform });
 
 /** The world group: everything that acts inside one running world, served through its door. */
 export const WorldHandlers = WorldRpcs.toLayer({
-  "org.create": orgCreateHandler,
-  "org.member.grant": orgMemberGrantHandler,
-  "doc.create": siteOps["doc.create"],
-  "doc.submit": siteOps["doc.submit"],
-  "approval.sign": approvalSignHandler,
-  "report.run": siteOps["report.run"],
-  "world.clock.warp": siteOps["world.clock.warp"],
-  "record.export": siteOps["record.export"],
+  ...Organizations.world,
+  ...People.world,
+  ...Budgets.world,
+  ...Documents.world,
+  ...Approvals.world,
+  ...Reports.world,
+  ...World.world,
+  ...Record.world,
 });

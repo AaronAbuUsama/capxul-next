@@ -1,0 +1,25 @@
+{
+  "record": "empty-handlers",
+  "step": "1.14",
+  "what": "A registered journey run against a Capxul whose every operation fails with NotImplemented, as Core's empty handlers do. It must fail at its first step, on the NotImplemented it is answered, never pass and never die.",
+  "outcome": "passed",
+  "result": {
+    "name": "two operators and their worlds",
+    "given": "quota-full",
+    "steps": 8,
+    "began": [
+      {
+        "step": 1,
+        "operation": "world.create",
+        "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"world.create\"}"
+      }
+    ],
+    "calls": [
+      "world.show",
+      "world.create"
+    ],
+    "outcome": "failed",
+    "failedWith": "NotImplemented",
+    "detail": "world.create answered NotImplemented"
+  }
+}

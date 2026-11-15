@@ -7,7 +7,12 @@
 // A check reads the world through the same client as the step (`Capxul`): those reads are looks, not steps. The runner
 // applies its generic checks (events, spans, timings) to them as to every call, but no operation's checks run on a
 // look, so checks never check themselves.
+//
+// Every operation's checks reach a step's tries through `OperationChecks`, which the registry provides (registry.ts):
+// a journey's file imports no operation's checks, so a domain's file (domains/) can list both its checks and its
+// journeys.
 import type { CallOptions, OperationName } from "@capxul/blueprint";
+import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import type { Capxul, Failure, Given, Payload, Refusal, Success } from "../client.ts";
 import type { ExpectationFailed } from "../expectation.ts";
@@ -82,3 +87,11 @@ export const checks = <N extends OperationName, B>(set: CheckSet<N, B>): Checks<
 
 /** A check: `says` holds when `holds` succeeds. */
 export const check = (says: string, holds: Effect.Effect<void, Failed, Looks>): Check => ({ says, holds });
+
+/** Every operation's checks, by name: one set each, and the compiler holds that every operation has its set. */
+export type AllChecks = { readonly [N in OperationName]: Checks<N> };
+
+/** Every operation's checks, as a step's tries run them on each call. The registry provides them (registry.ts). */
+export class OperationChecks extends Context.Service<OperationChecks, AllChecks>()(
+  "@capxul/scenarios/checks/format/OperationChecks",
+) {}

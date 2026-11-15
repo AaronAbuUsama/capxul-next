@@ -2,22 +2,29 @@
 // at its first step, on that refusal, and none passes or dies (roadmap step 1.14; the deployed run is the runner's).
 // Each journey runs against a Capxul whose every function fails so, and is handed its starting world's example facts.
 //
-// The record of this, records/empty-handlers.json, is written by this test: `pnpm --filter @capxul/scenarios
-// record` writes it, and every other run fails when the committed file differs from what the run finds, so it is
-// never edited by hand.
+// The record of this is one file per journey, records/empty-handlers/<journey>.json, so two slices that each add a
+// journey write different files. This test writes them: `pnpm --filter @capxul/scenarios record` writes every one and
+// removes any no registered journey has, and every other run fails when the folder differs from what the run finds,
+// so they are never edited by hand.
 import { strict as assert } from "node:assert";
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { test } from "node:test";
-import { Errors, type OperationName } from "@capxul/blueprint";
+import { Errors, operations, type OperationName } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
+import * as Order from "effect/Order";
 import * as Random from "effect/Random";
+import * as Rec from "effect/Record";
 import * as Str from "effect/String";
 import { Capxul, Given, journeys, Steps, type CapxulClient, type Journey } from "../src/door.ts";
 
-const RECORD = new URL("../records/empty-handlers.json", import.meta.url);
+const RECORDS = new URL("../records/empty-handlers/", import.meta.url);
+
+/** A journey's record file: its name in lower case, each run of other characters a dash. */
+const fileOf = (name: string): string =>
+  `${Arr.join(Arr.filter(Str.split(Str.toLowerCase(name), /[^a-z0-9]+/), Str.isNonEmpty), "-")}.json`;
 
 const ZERO = "0x0000000000000000000000000000000000000000";
 
@@ -29,6 +36,7 @@ const emptyChain: CapxulClient["chain"] = {
   hat: () => Effect.succeed({ details: "", maxSupply: 0, supply: 0, active: false }),
   wears: () => Effect.succeed(false),
   companySafeFor: () => Effect.succeed(ZERO),
+  budget: () => Effect.succeed(null),
   transaction: ({ transaction }) =>
     Effect.succeed({ transaction, block: 0, from: ZERO, to: null, status: "reverted" as const, logs: [] }),
   logs: () => Effect.succeed([]),
@@ -42,18 +50,7 @@ const emptyHandlers = (calls: Array<string>): CapxulClient => {
       Effect.fail(Errors.NotImplemented.make({ operation })),
     );
   return {
-    "world.create": empty("world.create"),
-    "world.show": empty("world.show"),
-    "world.snapshot.save": empty("world.snapshot.save"),
-    "world.snapshot.restore": empty("world.snapshot.restore"),
-    "org.create": empty("org.create"),
-    "org.member.grant": empty("org.member.grant"),
-    "doc.create": empty("doc.create"),
-    "doc.submit": empty("doc.submit"),
-    "approval.sign": empty("approval.sign"),
-    "report.run": empty("report.run"),
-    "world.clock.warp": empty("world.clock.warp"),
-    "record.export": empty("record.export"),
+    ...Rec.map(operations, (_, operation) => empty(operation)),
     chain: emptyChain,
   };
 };
@@ -115,24 +112,42 @@ test("every journey fails at its first step against the empty handlers, on the N
   const results: Array<Result> = [];
   for (const each of journeys) results.push(await run(each));
   const wrong = Arr.filter(results, (result) => !fellAtFirstStep(result));
-  const record = {
-    record: "empty-handlers",
-    step: "1.14",
-    what: "Every registered journey run against a Capxul whose every operation fails with NotImplemented, as Core's empty handlers do. Each must fail at its first step, on the NotImplemented it is answered, never pass and never die.",
-    outcome: wrong.length === 0 ? "passed" : "failed",
-    journeys: results.length,
-    results,
-  };
-  const text = `${JSON.stringify(record, null, 2)}\n`;
-  if (process.env["CAPXUL_WRITE_RECORD"] === "1") writeFileSync(RECORD, text);
+  const records = Arr.map(results, (result) => ({
+    file: fileOf(result.name),
+    text: `${JSON.stringify(
+      {
+        record: "empty-handlers",
+        step: "1.14",
+        what: "A registered journey run against a Capxul whose every operation fails with NotImplemented, as Core's empty handlers do. It must fail at its first step, on the NotImplemented it is answered, never pass and never die.",
+        outcome: fellAtFirstStep(result) ? "passed" : "failed",
+        result,
+      },
+      null,
+      2,
+    )}\n`,
+  }));
+  const files = Arr.map(records, (each) => each.file);
+  assert.deepEqual(Arr.dedupe(files), files, "two journeys' names make one record file");
+  if (process.env["CAPXUL_WRITE_RECORD"] === "1") {
+    mkdirSync(RECORDS, { recursive: true });
+    for (const stale of readdirSync(RECORDS)) if (!Arr.contains(files, stale)) rmSync(new URL(stale, RECORDS));
+    for (const each of records) writeFileSync(new URL(each.file, RECORDS), each.text);
+  }
   assert.deepEqual(
     Arr.map(wrong, (result) => `${result.name}: ${result.outcome} ${result.detail}`),
     [],
     "journeys that did not fail at their first step on the empty handlers",
   );
-  assert.equal(
-    readFileSync(RECORD, "utf8"),
-    text,
-    "records/empty-handlers.json differs from this run; run `pnpm --filter @capxul/scenarios record` to write it",
+  const write = "run `pnpm --filter @capxul/scenarios record` to write them";
+  assert.deepEqual(
+    Arr.sort(readdirSync(RECORDS), Order.String),
+    Arr.sort(files, Order.String),
+    `records/empty-handlers/ holds a record of no registered journey, or lacks one; ${write}`,
   );
+  for (const each of records)
+    assert.equal(
+      readFileSync(new URL(each.file, RECORDS), "utf8"),
+      each.text,
+      `records/empty-handlers/${each.file} differs from this run; ${write}`,
+    );
 });

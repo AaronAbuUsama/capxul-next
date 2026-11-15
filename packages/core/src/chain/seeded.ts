@@ -69,6 +69,7 @@ export const chainContracts: typeof Values.ChainContracts.Type = {
   usdc: SEEDED.usdc,
   hats: SEEDED.hats,
   payments: SEEDED.payments,
+  budgets: SEEDED.budgets,
   entryPoint: SEEDED.entryPoint,
   companySafeMinter: SEEDED.companySafeMinter,
   companiesHouse: SEEDED.companiesHouse,
