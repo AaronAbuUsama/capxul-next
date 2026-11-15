@@ -3,11 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "pnpm shape && pnpm format:check && pnpm lint && pnpm types && pnpm test",
+    "check": "pnpm shape && pnpm format:check && pnpm lint && pnpm types && pnpm test && pnpm delta:check",
     "shape": "pnpm --filter @capxul/lint shape",
     "format": "oxfmt -c packages/lint/oxfmt.json 'packages/**/*.{ts,tsx,mts,js,mjs}' '!packages/indexer/**' '!packages/contracts/**'",
     "format:check": "oxfmt -c packages/lint/oxfmt.json --check 'packages/**/*.{ts,tsx,mts,js,mjs}' '!packages/indexer/**' '!packages/contracts/**'",
     "lint": "effect-tsgo oxlint",
+    "delta:check": "pnpm --filter @capxul/blueprint delta:check",
     "types": "pnpm -r --if-present run types",
     "test": "pnpm -r --filter '!@capxul/contracts' --if-present run test && pnpm frappe:test && pnpm door:test && pnpm status:test",
     "frappe:test": "python3 -m unittest discover -s packages/frappe-app/tests",

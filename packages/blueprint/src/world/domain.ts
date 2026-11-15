@@ -27,6 +27,13 @@ export const operations = {
   "world.snapshot.delete": Inventory.snapshotDelete,
 } as const;
 
+/** Its operations that move no thing with a lifecycle (src/machine-format.ts), each with why. */
+export const stateless: { readonly [Name in keyof typeof operations]?: string } = {
+  "world.show": "a read: shows one world and changes nothing",
+  "world.list": "a read: lists the caller's worlds and changes nothing",
+  "world.snapshot.list": "a read: lists a world's snapshots and changes nothing",
+};
+
 /** What the platform's world service serves of it (`PlatformRpcs`). */
 export const platformRpcs = RpcGroup.make(
   World.create.rpc,
