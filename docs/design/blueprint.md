@@ -154,14 +154,21 @@ behaviour: every journey stays green.
 |---|---|---|---|
 | 0. Design | Decisions 2 to 6 agreed and written here | — | This session, with Aaron |
 | 1. Land what is in flight | #262 (3.3 to 3.5), lane A's 3.2, the speed lane's two changes | — | The conductor |
-| 2. The format, `slice/blueprint` | The one-file-per-operation format holding every part; the cycle removed so machines import their operations and events; the telemetry module; the pipeline section, its operations declared (not yet instrumented); the ratchet registry and `pnpm ratchets`, every ratchet registered with today's count; the generated indexes; one domain (`people`, which already has its machine) moved in full as the proof; journeys and checks written first by another agent; the roadmap, `AGENTS.md` and this restack landed in the same work | 0, 1 | A lead on `slice/blueprint` |
-| 3a. Ratchet lanes | One lane per group of domains, moving operations into the format (R5, R7), machines (R4), names and schemas (R1 to R3), docs (R8). No behaviour change; every journey stays green | 2 | Leads, in parallel |
+| 2a. The move, `slice/blueprint` | Every file of `packages/blueprint` moved at once into part 7's layout, in one mechanical pull request with no change of behaviour: the language in `src/format/`, `src/telemetry/`, the checks' code in `src/pipeline/`, one folder per product domain with `values.ts`, `events.ts`, `refusals.ts` and `machines.ts` split out, the hand-written hubs generated into `src/generated/`, `door.ts` the only entry; the package's markdown folded as part 7 says; a one-screen README with a generated index; a check that fails anything later landing outside the layout. Every journey stays green. The full move table is shown to Aaron before it is built | 0, 1 | A lead on `slice/blueprint` |
+| 2b. The format, `slice/blueprint` | The one-file-per-operation format holding every part; the cycle removed so machines import their operations and events; the telemetry module; the pipeline section, its operations declared (not yet instrumented); the ratchet registry and `pnpm ratchets`, every ratchet registered with today's count; the generated indexes; one domain (`people`, which already has its machine) moved in full as the proof; journeys and checks written first by another agent; the roadmap, `AGENTS.md` and this restack landed in the same work | 2a | A lead on `slice/blueprint` |
+| 3a. Ratchet lanes | One lane per group of domains, moving operations into their own files inside folders already right since 2a, into the format (R5, R7), machines (R4), names and schemas (R1 to R3), docs (R8). No behaviour change; every journey stays green | 2 | Leads, in parallel |
 | 3b. Instrumentation lane, `slice/telemetry` | 4.4 (OTLP out, the door, the tap side by side with `app.spans`, then flipped), the pipeline's work instrumented to its declarations (R6 for the world and runner), the gate's rungs as spans, 4.1's lint rule | 2 (4.4's door can start at 1) | One lead |
 | 3c. Proof lane | 4.5 (verdicts on `proofs`, `prove.yml`, the Proof column by name, R12) and 4.6 (cost) | 3b's 4.4 | One lead |
 | 3d. Speed | The speed note's changes 3 to 6, then lanes of worlds if decision 4 allows, measured by 3b's spans | 3b | One lead |
 | 4. Accounts pilot (5.1, 5.2) | The first feature born in the new format, through the whole loop | 2, 4.1's lint rule | One lead |
 | 5. Invoice ledger (6.1, 6.2) | Side by side, flip, retire | 4 | One lead |
 | 6. Breadth (7.1 to 7.3) | Journeys ported in waves; R4 and R11 to zero | 2, 3a under way | Leads |
+
+**Stage 2 split in two, 15 November 2026** (Aaron, through the conductor): moving only `people` while the rest waited
+for the ratchet lanes would have left the package more mixed for a while, so the whole reshape lands first, on its own
+(2a), and everything after it follows the new layout (2b, 3a). Everything inside `packages/blueprint`, its README and
+markdown included, belongs to the blueprint session; the docs session owns the rest of the repository's docs and follows
+part 7.
 
 **Roadmap changes this brings, to be landed in stage 2:** new decisions for parts 2, 3 and 4 and for decisions 3 to 5;
 phase 4 gains 4.4 to 4.6 as `proof-and-telemetry.md` §11 proposes; 4.1 rewritten for the telemetry model (F8); a new
