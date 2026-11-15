@@ -65,7 +65,7 @@
         "packages/world/src/common/record.ts": "run records and proof records are JSON files outside the world; their schemas are those files' format",
         "packages/world/src/things/world/handle.ts": "a deployed world's stack outputs as Alchemy stores them: the format of a file outside the world, read back as it was written",
         "packages/core/src/telemetry/attributes.ts": "the attributes of a kept span as OpenTelemetry and effect/sql set them: an outside format, decoded where it is read",
-        "packages/blueprint-tools/src/language/lifecycle.ts": "the machine format: builds each machine's state schema from the states its declaration names",
+        "packages/blueprint-tools/test/machine-types.ts": "the machine format's compile-time checks: a made-up door's state schemas, as a thing's values file declares them, never the blueprint's",
         "packages/platform/src/collector/otlp-json.ts": "OTLP/HTTP's JSON encoding, an outside format, decoded only to stamp each resource and count its items",
         "packages/platform/src/collector/tokens.ts": "a collector token's text is the platform's own format, as the site token's is (src/token.ts): its expiry is Unix seconds",
         "packages/runner/src/telemetry/otlp.ts": "OTLP JSON as OpenTelemetry defines it and Effect's OtlpSerialization writes it: an outside format, decoded where the runner reads the tap and the sink"

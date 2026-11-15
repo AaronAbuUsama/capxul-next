@@ -1,6 +1,6 @@
 // invitation.list, invitation.accept and invitation.decline: the person who signs in with an invitation's email lists it and
 // answers it. Accepting makes them a member at once (src/people/roster.ts); declining closes it. What an answer does
-// from the state the invitation is in is its machine's (the blueprint's people/machines.ts): each answer is a move
+// from the state the invitation is in is its machine's (the blueprint's things/invitation/lifecycle.ts): each answer is a move
 // made through `step`, which moves it, leaves it unchanged (accepting one already accepted answers the same), or names
 // the refusal and the state it refuses from.
 import { Errors, machines, People } from "@capxul/blueprint";
@@ -55,12 +55,12 @@ const theirs = (answer: Answer, id: string) =>
 const closed = (
   answer: Answer,
   invitation: string,
-  stepped: { readonly refusal: Errors.InvitationClosed["_tag"]; readonly state: Closed },
+  stepped: { readonly refusal: typeof Errors.InvitationClosed; readonly state: Closed },
 ) =>
   refuse(
     answer.refusals.InvitationClosed,
     { invitation, rule: "closed", state: stepped.state },
-    Errors.refusals[stepped.refusal].make({ invitation, state: stepped.state }),
+    stepped.refusal.make({ invitation, state: stepped.state }),
   );
 
 export const invitationList = Effect.gen(function* () {
@@ -86,7 +86,7 @@ export const invitationAccept = (asked: Answering) =>
           yield* Store.answer(invitation.id, { from: invitation.state, to: stepped.to }, now.timestampMs);
           yield* Store.join({ org: invitation.org, person, invitation: invitation.id, joinedMs: now.timestampMs });
           const accepted = People.Accepted.make({ invitation: { ...invitation, state: stepped.to }, member });
-          yield* emitDeclared(Invitation.moves.accept.by, asked, accepted);
+          yield* emitDeclared(Invitation.moves.accept.by.rpc._tag, asked, accepted);
           return accepted;
         }).pipe(Effect.withSpan(Accept.spans.write.name));
       }),
@@ -105,7 +105,7 @@ export const invitationDecline = (asked: Answering) =>
           const now = yield* worldNow;
           yield* Store.answer(invitation.id, { from: invitation.state, to: stepped.to }, now.timestampMs);
           const declined: Store.Invitation = { ...invitation, state: stepped.to };
-          yield* emitDeclared(Invitation.moves.decline.by, asked, declined);
+          yield* emitDeclared(Invitation.moves.decline.by.rpc._tag, asked, declined);
           return declined;
         }).pipe(Effect.withSpan(Decline.spans.write.name));
       }),
