@@ -10,9 +10,9 @@ import * as Option from "effect/Option";
 import { expect } from "../expectation.ts";
 import { same } from "../support/expect.ts";
 import {
+  chainBlock,
   chainUntouched,
   founderOf,
-  frozenHead,
   invitationsOf,
   peopleOf,
   personWith,
@@ -24,7 +24,8 @@ import { check, checks, type Asked, type Check } from "./format.ts";
 type Asking = Asked<"org.member.invite">;
 
 interface Read extends Before {
-  readonly chain: number | null;
+  /** The chain's latest block before the call. */
+  readonly chain: number;
 }
 
 const refusedFor = (before: Read, also: ReadonlyArray<Check>) => [
@@ -49,7 +50,7 @@ export const orgMemberInvite = checks<"org.member.invite", Read>({
   before: (asked) =>
     Effect.gen(function* () {
       const base = yield* worldBefore(asked.options);
-      return { ...base, chain: yield* frozenHead(base.world, base.where) };
+      return { ...base, chain: yield* chainBlock(base.where) };
     }),
   success: (asked, invited, before) => [
     check(
@@ -75,7 +76,10 @@ export const orgMemberInvite = checks<"org.member.invite", Read>({
         before.where,
       ),
     ),
-    check("nothing is written to the chain", chainUntouched(before.world, before.where, before.chain)),
+    check(
+      "nothing is written to the chain",
+      chainUntouched(before.world, before.where, before.chain, asked.payload.org),
+    ),
     check(
       "its invitee, when a person of the world, lists it pending",
       inviteeLists(asked, before, invited.id, "pending"),
