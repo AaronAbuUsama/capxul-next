@@ -128,7 +128,7 @@ behaviour: every journey stays green.
 | R5 | Operations not in the full format | Operations on the machine format's `unmigrated` list: no machine started or moved, or a state's refusal left undeclared (who may call, steps and logs, and promises are R17 to R19, from item 3.10) | 13 operations | 3.5 |
 | R6 | Undeclared spans | Effectful functions of our own code without a declared step: Core, the world, the platform client, the runner's plumbing (176 span names) | Not counted yet | 4.1 |
 | R7 | Operations not in one file | Operations still split across `operations.ts`, `refusals.ts`, `claims.ts`, `subjects.ts`, `order.md` | Every operation | Decision 3 |
-| R8 | Long or hand-mapped docs | READMEs over one screen (60 lines); hand-written file maps; `decisions.md`, `gaps.md`, `order.md` not folded | Core, runner, platform, world READMEs (222 to 607 lines) | Decision 3 |
+| R8 | Long or hand-mapped docs | READMEs over one screen (60 lines); hand-written file maps; docs not yet folded (`build-order.md`; `decisions.md` and `gaps.md` were folded by #375) | Core, runner, platform, world READMEs (222 to 607 lines) | Decision 3 |
 | R9 | Unreached declarations | Declared moves, refusals and outcomes no journey reaches | Coverage report | If option B |
 | R10 | Non-Effect code | Non-Effect constructs outside entry files; non-Effect runtime dependencies (the two counts agreed on 13 November 2026) | Counted by lint | Phase 7 |
 | R11 | Untyped starting worlds | Starting-world steps in prose, payloads retyped in the runner | 7 starting worlds | 7.2 |
