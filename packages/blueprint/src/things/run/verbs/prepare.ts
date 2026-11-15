@@ -13,6 +13,19 @@ export const runPrepare = work({
     branches: span("run.prepare.branches", StepKind.branch),
     index: span("run.prepare.index", StepKind.container),
     restore: span("run.prepare.restore", StepKind.restore),
+    // The API's Worker bundle, built once on the runner's own machine.
+    bundle: span("run.prepare.bundle", StepKind.compute),
+    // A stage deployed, and the row that says its world was created written.
+    stage: span("run.prepare.stage", StepKind.deploy),
+    stageBorn: span("run.prepare.stage.born", StepKind.database),
+    // The API's migrations applied to a stage's database.
+    migrate: span("run.prepare.migrate", StepKind.database),
+    // A made starting point saved as a snapshot of its world, by a call of the snapshot's save.
+    save: span("run.prepare.save", StepKind.compute),
+    // The facts a made starting point leaves, kept in its world's database for the journeys that start from it.
+    keepFacts: span("run.prepare.facts.keep", StepKind.database),
+    // The facts a kept world holds, moved to the format the blueprint decodes now.
+    moveFacts: span("run.prepare.facts.move", StepKind.database),
   },
   logs: { shardFailed: log("run.prepare.shard_failed", { run: RunId, shard: Shard, part: PreparePart }) },
   budget: {

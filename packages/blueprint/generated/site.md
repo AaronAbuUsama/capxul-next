@@ -42,7 +42,7 @@ Put each of a world's company sites back to its site snapshot.
 Save each of a world's company sites as a site snapshot, under the world's snapshot's name.
 
 - Payload: `world`, `snapshot`.
-- Spans: `site.save.save` (site) → `site.save.ready` (poll).
+- Spans: `site.save.save` (site) → `site.save.template` (site) → `site.save.template.keep` (site) → `site.save.ready` (poll).
 - Logs: `site.save.failed` (world, snapshot, company).
 - Budget: 30,000 ms, a target, provisional. Basis: one backup per company site; a first guess.
 
@@ -51,6 +51,6 @@ Save each of a world's company sites as a site snapshot, under the world's snaps
 Give a world its companies' sites from the bench's pool, each a ready copy of its starting point's site template.
 
 - Payload: `world`, `point`.
-- Spans: `site.take.take` (site) → `site.take.ready` (poll).
+- Spans: `site.take.list` (site) → `site.take.take` (site) → `site.take.ready` (poll).
 - Logs: `site.take.refused` (world, reason).
 - Budget: 20,000 ms, a target, provisional. Basis: a site from the pool is already up; a first guess.

@@ -11,6 +11,7 @@ export const siteTake = work({
   does: "Give a world its companies' sites from the bench's pool, each a ready copy of its starting point's site template.",
   payload: { world: WorldName, point: StartingPointName },
   spans: {
+    list: span("site.take.list", StepKind.site),
     take: span("site.take.take", StepKind.site),
     ready: span("site.take.ready", StepKind.poll),
   },
