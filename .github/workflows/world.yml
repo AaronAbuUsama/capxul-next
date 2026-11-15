@@ -11,7 +11,7 @@
 #
 # The bench is reached through its Cloudflare Tunnel: Core on Cloudflare calls the sites and this job calls the site
 # door at their public names under PLATFORM_DOMAIN, and the door's address and key are read from the shared state with
-# the Cloudflare key (packages/world, src/site/Bench.ts). So the job needs no AWS.
+# the Cloudflare key (packages/world, src/things/site/bench.ts). So the job needs no AWS.
 #
 # Gated: on a pull request or master's daily run it runs only once the repository variable CAPXUL_CLOUD_READY is
 # `true`, which packages/platform/bootstrap sets last, after the Cloudflare and Neon keys are repository secrets.
@@ -34,7 +34,7 @@ permissions:
   contents: read
 # Runs of different branches share the staging bench at once (docs/roadmap.md, "Bench templates never change"): a
 # run's bench templates are named by its starting world, its code and its own world (packages/world,
-# src/site/Templates.ts), never changed and never dropped by a run, and the sweep below removes them by age. So no run
+# src/things/site-template/sweep.ts), never changed and never dropped by a run, and the sweep below removes them by age. So no run
 # takes another's. Runs of one branch still go one at a time, a newer one waiting and replacing an older waiting one.
 concurrency:
   group: world-${{ github.ref }}

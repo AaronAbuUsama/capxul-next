@@ -4,7 +4,7 @@
 // Each one a journey starts from is saved there as a snapshot of its own name, and a world with a company also keeps
 // its sites as a bench template (with a pool of ready copies), so a reset whose point lost its sites claims them
 // instead of building them. The template is named by the starting world, the code that made it (`CODE`) and the one
-// world, whose company facts it holds (packages/world, src/site/Templates.ts): no other run asks for it, the bench
+// world, whose company facts it holds (packages/world, src/things/site-template/sweep.ts): no other run asks for it, the bench
 // never changes it, and no run drops it; the sweep removes it by age (docs/roadmap.md, "Bench templates never
 // change"). Before each journey the world is reset in place to its starting world's snapshot (`resetFor`), and a
 // starting world made "by its steps" (`quota-full`, `with-snapshot`, `restored`) is then made from there. Every call
@@ -28,15 +28,21 @@ const PACKAGES = `${import.meta.dirname}/../../..`;
 
 /**
  * The code that makes a starting world's sites, fingerprinted into its template's name: the starting worlds' definitions
- * (the blueprint), Core, which founds the company and writes it to its site, the world, and these makers. The bench's
- * apps are read from its door.
+ * (the blueprint, and the language its toolkit declares them in), Core, which founds the company and writes it to its
+ * site, the world, and these makers. The bench's apps are read from its door.
  *
  * TODO: the template worlds are made once per run, not once per change to this code, so every run
  * pays for them: a bench template holds its run's world's company facts (its org id, the Safe minted under it). And a
  * company a journey founds (`org.create` from `fresh`) still builds its site from nothing, about two minutes, since the
  * bench pools templates of starting worlds, not of a bare company site.
  */
-export const CODE = ["blueprint/src", "core/src", "world/src", "runner/src/worlds"] as const;
+export const CODE = [
+  "blueprint/src",
+  "blueprint-tools/src/language",
+  "core/src",
+  "world/src",
+  "runner/src/worlds",
+] as const;
 
 const fromNothing = (world: StartingWorld) => world.from === null || world.from === startingWorlds.nothing;
 

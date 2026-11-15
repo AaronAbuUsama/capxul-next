@@ -40,7 +40,7 @@ export const OUTPUTS = {
   },
   site: {
     path: "packages/frappe-app/capxul/generated/site.py",
-    from: "packages/blueprint/src/documents/site.ts",
+    from: "packages/blueprint/src/common/site.ts",
   },
   sitePackage: {
     path: "packages/frappe-app/capxul/generated/__init__.py",
@@ -81,3 +81,79 @@ export const TEST_MNEMONIC = "test test test test test test test test test test 
 
 /** Anvil's first test account: the account a world's faucet sends from (packages/world, src/parts/chain/faucet.ts). */
 export const FIRST_ACCOUNT = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+
+/** One of today's domains of the blueprint, whose module is the package's namespace of the same name. */
+export interface BlueprintDomain {
+  /** The namespace the blueprint's door exports it as, such as `People`. */
+  readonly namespace: string;
+  /** Its verbs, `thing/verb`, in the order of its `operations` (and so of the door's `operations`). */
+  readonly verbs: ReadonlyArray<string>;
+  /** Its verbs in the order of the two Rpc groups, when that differs from `verbs`. */
+  readonly groups?: ReadonlyArray<string>;
+  /** The thing files whose names its namespace exports (`thing/values`, `thing/events`), and its lifecycles. */
+  readonly parts: ReadonlyArray<string>;
+}
+
+/**
+ * The blueprint's generated indexes (packages/blueprint/src/generated/), written from its thing folders. Today's
+ * domains group the things into the namespaces the package exports (`People`, `World`, ...), each in the order its
+ * operations had before the things were split out (15 November 2026); the glossary's renames (roadmap item 3.8)
+ * retire them. A verb no domain lists, or a listed verb that is not there, stops `pnpm generate`.
+ */
+export const BLUEPRINT: { readonly root: string; readonly domains: { readonly [name: string]: BlueprintDomain } } = {
+  root: "packages/blueprint",
+  domains: {
+    organizations: {
+      namespace: "Organizations",
+      verbs: ["company/create", "member/grant"],
+      parts: ["company/values", "company/events", "member/events"],
+    },
+    people: {
+      namespace: "People",
+      verbs: ["invitation/send", "invitation/list", "invitation/accept", "invitation/decline", "member/list"],
+      parts: ["invitation/values", "invitation/events", "member/values", "invitation/lifecycle"],
+    },
+    board: {
+      namespace: "Board",
+      verbs: ["director/list", "director/add", "board/set-threshold"],
+      parts: ["board/values", "board/events"],
+    },
+    budgets: {
+      namespace: "Budgets",
+      verbs: ["budget/create", "budget/show", "budget/list"],
+      parts: ["budget/values", "budget/events"],
+    },
+    documents: {
+      namespace: "Documents",
+      verbs: ["document/create", "document/submit"],
+      parts: ["document/values", "document/events"],
+    },
+    approvals: { namespace: "Approvals", verbs: ["approval/sign"], parts: ["approval/values", "approval/events"] },
+    reports: { namespace: "Reports", verbs: ["report/run"], parts: [] },
+    world: {
+      namespace: "World",
+      verbs: [
+        "world/create",
+        "clock/warp",
+        "snapshot/save",
+        "snapshot/restore",
+        "world/show",
+        "world/list",
+        "snapshot/list",
+        "snapshot/delete",
+      ],
+      groups: [
+        "world/create",
+        "world/show",
+        "snapshot/save",
+        "snapshot/restore",
+        "world/list",
+        "snapshot/list",
+        "snapshot/delete",
+        "clock/warp",
+      ],
+      parts: ["world/values", "world/events", "clock/events", "snapshot/values", "snapshot/events"],
+    },
+    record: { namespace: "Record", verbs: ["history/export"], parts: [] },
+  },
+};

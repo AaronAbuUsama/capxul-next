@@ -176,6 +176,61 @@ step for the format and the ratchet registry; "Coverage is not a gate" changed i
 "run records" become verdicts and telemetry (F6); "Who owns each fact" names one file per operation; the ladder gains
 `pnpm ratchets` and `pnpm delta:check`; the ratchet rule names the registry.
 
+### Where it stands (15 November 2026, evening)
+
+Written at the hand-over from the Claude blueprint thread, so an agent that never saw that thread can continue from
+this section and the parts it names.
+
+**Landed on `master`.** The design and every decision in this file: parts 1 to 14 (#275 the restack, #281 things then
+verbs, the glossary and the CLI, #283 the climb and "no callers, no compatibility"), part 15 the triage backlog and
+the declined speed option (#306, this pull request).
+
+**On `slice/blueprint`, not yet on `master`.** Stage 2a, the move into part 13's layout (#282 the layout record, #291
+the move: `src/things/<thing>/<verb>.ts`, `src/common/`, `src/starting-points/`, `src/protocol/`, `src/generated/`, the
+new package `packages/blueprint-tools`, `src/index.ts` as the entry). Its pull request into `master` is **#295**: it passed the 🔍 reviewer, and `gate` and `thin-line` on head
+`adcb697`. `master` then moved (the world-layout slice and others), so `master` was merged into `slice/blueprint` again
+at `77f94ff` (one conflict, `packages/generate/src/main.ts`, resolved by keeping both: the blueprint's generated indexes
+and the world's generated map; `pnpm check` passes locally), and `gate` and `thin-line` were re-running on that head
+at hand-over. To land it: confirm both green on the head that includes the current `master`, check #295 is not
+conflicting, merge. If `master` moved again, merge it into the slice first and wait once more.
+
+**Open pull requests into `slice/blueprint`** (each green on its own; held only so that #295's head did not move under
+its journey run and review; merge each after #295 lands, then merge `master` into the slice again):
+
+| PR | Branch | What | Note |
+|---|---|---|---|
+| #299 | `work/ratchets` | The ratchet registry (`packages/blueprint/src/ratchets.ts`, R1 to R14), `pnpm ratchets` in `gate`, the generated scorecard `packages/blueprint/generated/scorecard.md` (items 3.6 part, 3.11) | R13 deliberately not counted (every new verb starts provisional) |
+| #301 | `work/telemetry-pipeline` | `packages/blueprint/src/telemetry/` (conventions pinned 1.37.0, envelope, producers, step kinds, metrics, datasets, monitors) and the pipeline's things as "work no door serves" (`blueprint-tools/src/language/work.ts`) | Follow-up below |
+| #302 | `work/glossary` | `packages/blueprint/src/glossary.ts`, the generated glossary page, the old-words count `pnpm words` in `gate` (item 3.8, first part) | Follow-up below |
+
+**Next steps of stage 2, in order.**
+
+1. Land #295, then #299, #301 and #302 into the slice (resolve their conflicts with each other in the generated files
+   and `packages/generate/src/sources.ts` by regenerating).
+2. A small follow-up into the slice, decided by the lead within the agreed decisions:
+   - add the step kind `compute` for work done in-process (gate rungs, call checks, ratchet counting), and use it where
+     #301 used `container`;
+   - rename the pipeline verb `run.run` to `run.start`, matching the CLI `capxul run start`;
+   - add a glossary entry `claim`: claiming a person's Safe (it stays "claim"; part 12's promise row says so), so the
+     old-word count of `claim` covers only the renamed meanings;
+   - count `lane` only in `packages/runner` (where it means a shard); leave `step` to R6;
+   - fix the old blueprint paths in `docs/roadmap.md` (the "Facts typed twice" table and items 3.3 to 3.5).
+3. Fold `packages/blueprint/docs/decisions.md` and `gaps.md` (moved unchanged by #291): each decision becomes a comment
+   on the declaration it explains, a roadmap decision, or is dropped when superseded; gaps go to ratchet R9.
+4. Stage 2b and item 3.10: every format in the toolkit, proven end to end on the invitation (lifecycle, who may call,
+   spans and logs, budget, promises, telemetry names). Remove the toolkit's relative import of the blueprint
+   (`blueprint-tools` reads `../../../blueprint/src/index.ts` to avoid a package cycle) by having the blueprint pass
+   itself to the checks; write the pages inside `pnpm generate`; drop the hand-written domain table in
+   `packages/generate/src/sources.ts` once the renames of 3.8 land.
+5. Items 3.7 (the coverage gate) and 3.9 (the CLI's grammar), then the slice into `master`, then the climb (phase C).
+
+**Open decisions.** None waits on Aaron in this design. Within the climb, each thing's states are agreed with Aaron as
+they are declared where today's lists disagree or were never written: the site's "unreachable", the approval's states.
+The two roadmap candidates of part 15 (a world-time lint rule; the site joining the trace) go to Aaron at the next
+restack.
+
+**Backlog.** Part 15 (14 ideas from the triage, each with its source pull request).
+
 ## 6. Decisions still open, with recommendations
 
 | # | Decision | Recommendation | State |
@@ -337,6 +392,9 @@ by side, which "One runner, one world" (14 November 2026) forbids.
 
 `founded` kept as a template across runs (the speed note's change 8) is not proposed: after change 1 it is worth about
 a minute, and it changes "Bench templates never change" and the world lifecycle rules.
+
+**Declined by Aaron, 15 November 2026:** keeping `founded` across runs (the speed note's change 8): "no to keeping
+founded". "Bench templates never change" stands as it is.
 
 **What this changes in the roadmap:** "One runner, one world" becomes "One runner, K worlds": a run's journeys run in
 lanes, each lane one world reset in place between its journeys, K raised by the four measures. The speed lane (stage
@@ -745,3 +803,45 @@ exists (phase 8), existing operations are reshaped and renamed directly, with no
 author updates the journeys in the same lane. The aim is to cut over as quickly as possible: work merges fast into its
 slice, and a slice reaches `master` only when every check passes (`gate` and `world`). "Side by side, then flip, then
 retire" applies again from the first real caller.
+
+## 15. Backlog: ideas routed from the pull-request triage (15 November 2026)
+
+Routed by the conductor from the triage of the old wave-0 pull requests (`docs/design/pr-triage.md` on branch
+`design/pr-triage`, draft #285), so that none is lost when those pull requests close. Nothing here is built yet; each is
+placed where it fits, in the glossary's words.
+
+**Blueprint candidates** (each lands with its thing in the climb, C.1, or as a later delta):
+
+| # | Idea | Thing | Source |
+|---|---|---|---|
+| 1 | `approval.show` and `approval.decline`, with the event `approval_declined`: moves of the approval's lifecycle | approval | #166 |
+| 2 | `approval.sign` never sends twice: after a lost answer, the send is found by its expected hash and answers `Sent` or `AlreadySent`; a bundler rejection is a declared refusal, `BundlerRefused` | approval | #127, #140 |
+| 3 | A company approval ends by what used its Safe nonce (executed, failed, rejected or replaced), and the remaining approvals are withdrawn | approval (its lifecycle) | #106 |
+| 4 | `world.clock.warp`'s refusals `WarpFollowerFailed` and `WarpInProgress`, and warping stops at the api's own due times | clock | #176 |
+| 5 | `IndexBehind`: a read from the index answers "not yet" until the index reaches the asked block; it needs a `wait` span | common (chain reads) | #170 |
+
+**Parity journeys** (the journey author writes them when their things are climbed or built):
+
+| # | Journey | Source |
+|---|---|---|
+| 6 | J17 outside money: a Movement with a Memo keyed by its receipt ordinal, robust to reorganisations | #124, #172, #163 |
+| 7 | J23 scheduled payments: paid on its day exactly once, refused `NotDue` before it (streaming pay stays dropped) | #128, #98 |
+| 8 | J6 annotate: `activity.annotate`, checked against the site's chart, refusal `AccountNotInChart` | #94 |
+| 9 | J21 redelivered exactly once: a fault control for test worlds, as a pipeline operation | #102 |
+
+**Roadmap candidates** (brought to Aaron when the restack next opens):
+
+| # | Idea | Source |
+|---|---|---|
+| 10 | A world-time-only lint rule (no host time where world time is meant), with a ratchet | #151, #167 |
+| 11 | The site joins the trace through a W3C `traceparent`, its format generated from the blueprint's `TraceId` | #148 |
+
+**Fixes for the sites lane** (recorded here; not the blueprint's to build):
+
+| # | Fix | Source |
+|---|---|---|
+| 12 | The site service resumes a `removing` site after a restart | #229 |
+| 13 | `SiteDoor.clock` answers asynchronously, so it does not hit 524 on a busy bench | triage |
+| 14 | The CLI's world create and snapshot restore exceed Node fetch's 300 s limit (decision 8's CLI work covers it) | triage |
+
+#145 (general escrow) stays open as the reference for the escrow revisit.
