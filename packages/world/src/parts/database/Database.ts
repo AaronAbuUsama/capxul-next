@@ -1,7 +1,7 @@
 // A world's one database: its own copy-on-write branch of the Neon project the platform stage owns (made through
-// Neon's API, src/parts/database/neon.ts), and the Hyperdrive configuration through which the world's Core reaches it.
+// Neon's API, src/parts/database/neon.ts), and the Hyperdrive configuration through which the world's api reaches it.
 import * as Cloudflare from "@alchemy.run/cloudflare";
-import { DATABASE_REGION } from "@capxul/core";
+import { DATABASE_REGION } from "../api/health.ts";
 import * as Neon from "@alchemy.run/neon";
 import * as Alchemy from "alchemy";
 import * as Config from "effect/Config";
@@ -20,7 +20,7 @@ export const WorldsProject = Effect.gen(function* () {
   const { stage } = yield* Alchemy.Stack;
   if (stage !== PLATFORM) return yield* Neon.Project.ref(PROJECT_ID, { stage: PLATFORM });
   const orgId = yield* Config.String("NEON_ORG_ID");
-  // Neon's free plan keeps at most 6 hours of history; Alchemy's default asks for 24. Core's region, where its Worker
+  // Neon's free plan keeps at most 6 hours of history; Alchemy's default asks for 24. the api's region, where its Worker
   // is placed (D5).
   return yield* Neon.Project(PROJECT_ID, { region: DATABASE_REGION, orgId, historyRetentionSeconds: 21600 });
 });
@@ -35,7 +35,7 @@ export const Registry = Effect.gen(function* () {
 });
 
 /**
- * Cloudflare's pooled way in to the world's branch. A Core Worker binds this; it never sees the connection string. The
+ * Cloudflare's pooled way in to the world's branch. An api Worker binds this; it never sees the connection string. The
  * branch itself is made by the world's create through Neon's API (src/parts/database/neon.ts), not by the stack: Alchemy's
  * Neon provider looks at a new branch every 5 s, which cost 6 to 9 s of every create. Its take-down deletes it.
  */

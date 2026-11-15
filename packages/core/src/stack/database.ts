@@ -1,6 +1,6 @@
 // The database of one stage of the stack `CapxulCore`: a Neon project of its own (its default branch is the one
 // database) and the Hyperdrive configuration through which the Worker reaches it. Declared here so the stack and the
-// Worker name the same resources. When `packages/world` lands, a world's Core binds the world's database instead.
+// Worker name the same resources. When `packages/world` lands, a world's api binds the world's database instead.
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Neon from "@alchemy.run/neon";
 import * as Alchemy from "alchemy";

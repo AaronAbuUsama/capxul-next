@@ -7,7 +7,7 @@ export { CoreRpcs, Served, ServedEmpty } from "./server.ts";
 export { CoreIdentity, PlatformSignInLive, TelemetryLive } from "./telemetry/middleware.ts";
 export { default as CoreWorker } from "./worker.ts";
 export { CoreDeployment, type Deployment } from "./stack/deployment.ts";
-export { CORE_PLACEMENT, DATABASE_REGION } from "./stack/region.ts";
+export { API_PLACEMENT, DATABASE_REGION } from "./stack/region.ts";
 export { ENV as CORE_ENV } from "./env.ts";
 export { HEALTH_PATH, PROBE_PATH } from "./probe.ts";
 export { SiteDoor, SiteDoorFailed, type SiteAnswer, type SiteCall } from "./site/SiteDoor.ts";
@@ -15,7 +15,7 @@ export { SpanSink, SqlSpanSink } from "./telemetry/sink.ts";
 export { Placement, SPAN_ATTRIBUTES, SpanAttributes, type Where } from "./telemetry/attributes.ts";
 export { keepingTracer, outcomeOf, type KeptSpan, type SpanOutcome } from "./telemetry/spans.ts";
 
-/** Core's Worker module, as Alchemy bundles it: what a local Core (packages/runner, `--core=local`) builds too. */
+/** The api's Worker module, as Alchemy bundles it: what a local api (packages/runner, `--core=local`) builds too. */
 export const CORE_WORKER_MAIN = `${import.meta.dirname}/worker.ts`;
 
 /** The `.sql` files applied to a stage's database when it is created, in name order. */

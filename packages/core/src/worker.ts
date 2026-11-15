@@ -1,4 +1,4 @@
-// Core: the Capxul server. A Cloudflare Worker, deployed by Alchemy, that serves every blueprint operation at its
+// The api: the Capxul server. A Cloudflare Worker, deployed by Alchemy, that serves every blueprint operation at its
 // group's door with Effect's Rpc server, reads its world's chain at `CHAIN_PATH`, and keeps every call's spans in its
 // database, reached through Hyperdrive.
 //
@@ -29,7 +29,7 @@ import { Served, ServedEmpty } from "./server.ts";
 import { siteOpsLive } from "./site-ops/door.ts";
 import { SiteDoor } from "./site/SiteDoor.ts";
 import { CoreDeployment, ownDeployment } from "./stack/deployment.ts";
-import { CORE_PLACEMENT } from "./stack/region.ts";
+import { API_PLACEMENT } from "./stack/region.ts";
 import { coloOf, Placement } from "./telemetry/attributes.ts";
 import { CoreIdentity } from "./telemetry/middleware.ts";
 import { SqlSpanSink } from "./telemetry/sink.ts";
@@ -50,7 +50,7 @@ const connectionString = (env: Record<string, unknown>) =>
 const props = () => ({
   main: import.meta.url,
   compatibility: { flags: ["nodejs_compat"] },
-  placement: CORE_PLACEMENT,
+  placement: API_PLACEMENT,
 });
 
 export default class Core extends Cloudflare.Worker<Core>()(
