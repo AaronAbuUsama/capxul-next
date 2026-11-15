@@ -92,6 +92,16 @@ test("an old word spelled as a kept word is not counted in that word's `keptIn`"
   assert.equal(countFile(made, { path: "a.ts", text })["claim"], 2);
 });
 
+test("a `keptIn` excuses only the whole name, never a longer name it starts", () => {
+  const made: ReadonlyArray<Entry> = [
+    { word: "take", meaning: "A move.", replaces: ["claim"], scope: "internal" },
+    { word: "claim", meaning: "A Safe's.", replaces: [], scope: "internal", keptIn: ["capxul.claim"] },
+  ];
+  assert.equal(countFile(made, { path: "a.ts", text: 'emit("capxul.claim"); emit(capxul.claim);' })["claim"], 0);
+  assert.equal(countFile(made, { path: "a.ts", text: 'emit("capxul.claim.devnet");' })["claim"], 1);
+  assert.equal(countFile(made, { path: "a.ts", text: "emit(capxul.claims);" })["claim"], 1);
+});
+
 test("a package's name written as a package counts nothing; the rest of the token and other names still count", () => {
   assert.equal(count("a.ts", 'import x from "@capxul/widget";')["widget"], 0);
   assert.equal(count("a.ts", 'const y = "@capxul/widget/widget";')["widget"], 1);

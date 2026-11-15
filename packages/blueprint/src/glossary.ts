@@ -180,6 +180,7 @@ export const glossary: ReadonlyArray<Entry> = [
       { text: "logRecords", why: OTLP },
       { text: "rejectedLogRecords", why: OTLP },
       { text: "log_record", why: OTLP },
+      deployed("DoorRecord"),
     ],
     scope: "user-facing",
   },
