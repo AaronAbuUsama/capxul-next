@@ -59,6 +59,7 @@ export {
   words,
   type Code,
   type Entry,
+  type Exception,
   type OldWord,
   type Scope,
   type Uncounted,

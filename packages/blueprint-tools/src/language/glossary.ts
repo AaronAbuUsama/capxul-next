@@ -47,6 +47,17 @@ export interface Entry {
    * (`CompaniesHouseClaimer.claim` is claiming a Safe, not taking sites): that old word is not counted there.
    */
   readonly keptIn?: ReadonlyArray<string>;
+  /**
+   * Exact text holding this entry's old words that no writer can choose, each with why: a resource already deployed
+   * (`core-db`, renaming it replaces it), a foreign protocol's key (OTLP's `dataPoints`). Not counted where it stands.
+   */
+  readonly exceptions?: ReadonlyArray<Exception>;
+}
+
+/** Exact text an entry's old words are not counted in, and why no writer can choose it. */
+export interface Exception {
+  readonly text: string;
+  readonly why: string;
 }
 
 /** An old word written as words; `except` lists longer names that keep it, `within` the only paths it is counted in. */
