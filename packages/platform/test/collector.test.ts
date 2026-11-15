@@ -1,8 +1,5 @@
 // The collector's own work (src/collector.ts; roadmap 4.4): it stamps who called it on every resource, refuses a
 // public call without a valid platform token, and forwards the body to the sink with the sink's headers.
-//
-// Every test here fails until the collector builder's pull request (branch `work/telemetry-collector`; PR #317,
-// item 3) replaces the stub, which answers 501 and forwards nothing; that pull request makes each a plain test.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import * as Arr from "effect/Array";
@@ -14,7 +11,7 @@ import * as Str from "effect/String";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import { type Caller, type Identity, makeCollector, type Signal } from "../src/collector.ts";
 import { KEYS } from "./support/envelope.ts";
-import { capturing, failsUntilBuilt, type Posted } from "./support/otlp-endpoint.ts";
+import { capturing, type Posted } from "./support/otlp-endpoint.ts";
 
 const SINK = "https://sink.test";
 const HEADERS = {
@@ -128,75 +125,54 @@ const stamped = (identity: Identity) => ({
 const ACCEPTED = "the collector did not accept the call";
 const REFUSED = "the collector did not refuse the call with 401";
 
-/** Runs `body`, which must fail with `expected` while the collector is a stub. */
-const failsWith = async <E>(expected: string, body: Effect.Effect<void, E>) => {
-  const reason = await body.pipe(failsUntilBuilt, Effect.runPromise);
-  assert.ok(Str.includes(expected)(reason), reason);
-};
-
 for (const signal of ["traces", "logs", "metrics"] as const) {
   test(`${signal}: a bound caller's identity is stamped on every resource, whatever the body says`, () =>
-    failsWith(
-      ACCEPTED,
-      Effect.gen(function* () {
-        const { status, posted } = yield* call(signal, { _tag: "Bound", identity: BOUND });
-        assert.equal(status, 200, ACCEPTED);
-        assert.equal(posted.length, 1, "the collector did not forward the body once");
-        const [lied, silent] = stampsOf(signal, posted[0]!);
-        assert.deepEqual({ ...lied }, { ...stamped(BOUND), "service.name": "core" });
-        assert.deepEqual({ ...silent }, stamped(BOUND));
-      }),
-    ));
+    Effect.gen(function* () {
+      const { status, posted } = yield* call(signal, { _tag: "Bound", identity: BOUND });
+      assert.equal(status, 200, ACCEPTED);
+      assert.equal(posted.length, 1, "the collector did not forward the body once");
+      const [lied, silent] = stampsOf(signal, posted[0]!);
+      assert.deepEqual({ ...lied }, { ...stamped(BOUND), "service.name": "core" });
+      assert.deepEqual({ ...silent }, stamped(BOUND));
+    }).pipe(Effect.runPromise));
 }
 
 test("a public call with no token is refused, and nothing is forwarded", () =>
-  failsWith(
-    REFUSED,
-    Effect.gen(function* () {
-      const { status, posted } = yield* call("traces", { _tag: "Public" });
-      assert.equal(status, 401, REFUSED);
-      assert.equal(posted.length, 0, "a refused call was forwarded");
-    }),
-  ));
+  Effect.gen(function* () {
+    const { status, posted } = yield* call("traces", { _tag: "Public" });
+    assert.equal(status, 401, REFUSED);
+    assert.equal(posted.length, 0, "a refused call was forwarded");
+  }).pipe(Effect.runPromise));
 
 test("a public call with a token that is not a platform token is refused, and nothing is forwarded", () =>
-  failsWith(
-    REFUSED,
-    Effect.gen(function* () {
-      const { status, posted } = yield* call("logs", { _tag: "Public" }, "platform-token-forged");
-      assert.equal(status, 401, REFUSED);
-      assert.equal(posted.length, 0, "a refused call was forwarded");
-    }),
-  ));
+  Effect.gen(function* () {
+    const { status, posted } = yield* call("logs", { _tag: "Public" }, "platform-token-forged");
+    assert.equal(status, 401, REFUSED);
+    assert.equal(posted.length, 0, "a refused call was forwarded");
+  }).pipe(Effect.runPromise));
 
 test("a public call with a valid platform token is stamped with whom the token names", () =>
-  failsWith(
-    ACCEPTED,
-    Effect.gen(function* () {
-      const { status, posted } = yield* call("metrics", { _tag: "Public" }, GOOD_TOKEN);
-      assert.equal(status, 200, ACCEPTED);
-      assert.equal(posted.length, 1, "the collector did not forward the body once");
-      for (const stamps of stampsOf("metrics", posted[0]!))
-        assert.deepEqual(
-          { [KEYS.world]: stamps[KEYS.world], [KEYS.grade]: stamps[KEYS.grade], [KEYS.stage]: stamps[KEYS.stage] },
-          stamped(OPERATOR),
-        );
-    }),
-  ));
+  Effect.gen(function* () {
+    const { status, posted } = yield* call("metrics", { _tag: "Public" }, GOOD_TOKEN);
+    assert.equal(status, 200, ACCEPTED);
+    assert.equal(posted.length, 1, "the collector did not forward the body once");
+    for (const stamps of stampsOf("metrics", posted[0]!))
+      assert.deepEqual(
+        { [KEYS.world]: stamps[KEYS.world], [KEYS.grade]: stamps[KEYS.grade], [KEYS.stage]: stamps[KEYS.stage] },
+        stamped(OPERATOR),
+      );
+  }).pipe(Effect.runPromise));
 
 for (const signal of ["traces", "logs", "metrics"] as const) {
   test(`${signal}: the body is forwarded to the sink's /v1/${signal} with the sink's headers, not the caller's`, () =>
-    failsWith(
-      ACCEPTED,
-      Effect.gen(function* () {
-        const { status, posted } = yield* call(signal, { _tag: "Public" }, GOOD_TOKEN);
-        assert.equal(status, 200, ACCEPTED);
-        assert.equal(posted.length, 1, "the collector did not forward the body once");
-        const forwarded = posted[0]!;
-        assert.equal(forwarded.url, `${SINK}/v1/${signal}`);
-        assert.equal(forwarded.headers["authorization"], HEADERS[signal].authorization);
-        assert.equal(forwarded.headers["x-axiom-dataset"], HEADERS[signal]["x-axiom-dataset"]);
-        assert.ok(!Str.includes(GOOD_TOKEN)(forwarded.body), "the caller's token reached the sink");
-      }),
-    ));
+    Effect.gen(function* () {
+      const { status, posted } = yield* call(signal, { _tag: "Public" }, GOOD_TOKEN);
+      assert.equal(status, 200, ACCEPTED);
+      assert.equal(posted.length, 1, "the collector did not forward the body once");
+      const forwarded = posted[0]!;
+      assert.equal(forwarded.url, `${SINK}/v1/${signal}`);
+      assert.equal(forwarded.headers["authorization"], HEADERS[signal].authorization);
+      assert.equal(forwarded.headers["x-axiom-dataset"], HEADERS[signal]["x-axiom-dataset"]);
+      assert.ok(!Str.includes(GOOD_TOKEN)(forwarded.body), "the caller's token reached the sink");
+    }).pipe(Effect.runPromise));
 }
