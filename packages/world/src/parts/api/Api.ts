@@ -5,13 +5,15 @@
 //   its world door    the world's token on the hub (src/things/cluster/client.ts) and the owner operator's token (`operator-token`)
 //   its chain         a service binding to the hub's door, whose `/<token>/rpc` is the chain; Core answers only
 //                     the blueprint's reads at CHAIN_PATH
+//   its tap           on in a world of a test grade (`private`, `shared`): every OTLP body Core exports is also kept
+//                     in the world's `telemetry.otlp`; never in a `real` world
 //   its sites         the site door of the world's bench and the world's site token there, and the credential of the
 //                     API user the door makes on each of the world's sites (`site-key`, `site-secret`); none when the
 //                     world has no bench
 //
 // Every token is an Alchemy.Random of the world's stage, kept in the shared state, bound to the Worker as a secret
 // and read back from the state (parts.ts), never an output.
-import { CORE_ENV, CoreDeployment, CoreWorker, migrations } from "@capxul/core";
+import { CORE_ENV, CoreDeployment, CoreWorker, migrations, TAP_ON } from "@capxul/core";
 import * as Alchemy from "alchemy";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -71,6 +73,8 @@ export const defaultCore: CoreSlot = Effect.gen(function* () {
     [CORE_ENV.platformToken]: operatorToken,
     [CORE_ENV.chain]: door,
     [CORE_ENV.chainToken]: doorToken,
+    // A world of a test grade gets the tap: its Core writes what it exports into `telemetry.otlp` too.
+    ...(settings.grade === "real" ? {} : { [CORE_ENV.tap]: TAP_ON }),
     ...site,
   };
   const core = yield* CoreWorker.pipe(Effect.provideService(CoreDeployment, Option.some({ database, env })));

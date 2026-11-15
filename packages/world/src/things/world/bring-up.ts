@@ -161,6 +161,7 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
           Effect.gen(function* () {
             const settings = {
               owner: plan.owner,
+              grade: spec.grade ?? "private",
               expiresAt: plan.expiresAt,
               forkedFrom: plan.forkedFrom,
               bench,

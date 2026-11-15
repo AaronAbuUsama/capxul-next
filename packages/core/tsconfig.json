@@ -9,7 +9,8 @@
         // and SQL only under effect/rpc, effect/http and effect/sql, marked unstable, with no stable replacement. The
         // catalog's exact pin of effect is the guard, as in packages/blueprint.
         // `@effect/sql-pg` is the same SQL at the Postgres driver: Core's chain operations need its `json` for jsonb.
-        "allowedUnstableApis": ["effect/rpc", "effect/http", "effect/sql", "@effect/sql-pg"]
+        // `effect/observability` is Effect's own OTLP export (src/telemetry/export.ts), likewise only unstable.
+        "allowedUnstableApis": ["effect/rpc", "effect/http", "effect/sql", "@effect/sql-pg", "effect/observability"]
       }
     ]
   },
