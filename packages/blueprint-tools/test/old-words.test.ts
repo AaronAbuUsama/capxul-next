@@ -46,7 +46,7 @@ test("prose in a string does not count; a name in it does", () => {
 });
 
 test("in Markdown only code counts", () => {
-  const text = "The widget is here.\n\nRun `make widget`:\n\n```sh\nwidget --fast\n```\n";
+  const text = "The widget is here.\n\nRun `make widget`:\n\n```sh\nmyWidget --fast\n```\n";
   assert.equal(count("README.md", text)["widget"], 2);
 });
 
@@ -88,7 +88,8 @@ test("an old word spelled as a kept word is not counted in that word's `keptIn`"
     { word: "claim", meaning: "A Safe's.", replaces: [], scope: "internal", keptIn: ["Claimer.claim", "x.claim"] },
   ];
   const text = 'call("Claimer.claim"); call("x.claim.y"); const claim = take; const claims = myClaimer.claim;';
-  assert.equal(countFile(made, { path: "a.ts", text })["claim"], 3);
+  // `claim` (in `x.claim.y` and as a constant) and `claims`: two distinct names.
+  assert.equal(countFile(made, { path: "a.ts", text })["claim"], 2);
 });
 
 test("a package's name written as a package counts nothing; the rest of the token and other names still count", () => {
@@ -163,10 +164,23 @@ test("the blueprint's glossary: packages and deployed names count nothing, a cho
   assert.equal(of("platform", 'run("platform.yml"); yield* Alchemy.Stack("CapxulPlatform");'), 0);
 });
 
+test("counted in distinct names: a repeated use adds nothing, a new name adds one, a rename lowers", () => {
+  const base = [{ path: "a.ts", text: "const widgetToken = 1; useWidget(widgetToken);" }];
+  assert.equal(countOldWords(GLOSSARY, base)["widget"], 2);
+  const repeated = [...base, { path: "b.ts", text: "useWidget(widgetToken); useWidget(widgetToken);" }];
+  assert.equal(countOldWords(GLOSSARY, repeated)["widget"], 2);
+  const added = [...base, { path: "b.ts", text: "const widgetKey = 2;" }];
+  assert.equal(countOldWords(GLOSSARY, added)["widget"], 3);
+  const renamed = [{ path: "a.ts", text: "const gizmoToken = 1; useWidget(gizmoToken);" }];
+  assert.equal(countOldWords(GLOSSARY, renamed)["widget"], 1);
+  assert.equal(count("a.ts", 'import "x"; load("./maker.ts"); load("./maker.ts");')["`maker.ts`"], 1);
+});
+
 test("counts add up across files", () => {
   const files = [
     { path: "a.ts", text: "const widget = 1;" },
     { path: "b.ts", text: "const widgets = 2; // widget" },
+    { path: "c.ts", text: "const widgets = 3;" },
   ];
   assert.equal(countOldWords(GLOSSARY, files)["widget"], 2);
 });
