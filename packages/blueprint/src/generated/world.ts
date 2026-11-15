@@ -5,46 +5,46 @@
 // glossary's renames (roadmap item 3.8).
 import * as RpcGroup from "effect/rpc/RpcGroup";
 import type { ClaimsOf } from "../starting-points/points.ts";
-import * as WorldCreate from "../things/world/create.ts";
-import * as ClockWarp from "../things/clock/warp.ts";
-import * as SnapshotSave from "../things/snapshot/save.ts";
-import * as SnapshotRestore from "../things/snapshot/restore.ts";
-import * as WorldShow from "../things/world/show.ts";
-import * as WorldList from "../things/world/list.ts";
-import * as SnapshotList from "../things/snapshot/list.ts";
-import * as SnapshotDelete from "../things/snapshot/delete.ts";
+import * as WorldVerbsCreate from "../things/world/verbs/create.ts";
+import * as ClockVerbsWarp from "../things/clock/verbs/warp.ts";
+import * as SnapshotVerbsSave from "../things/snapshot/verbs/save.ts";
+import * as SnapshotVerbsRestore from "../things/snapshot/verbs/restore.ts";
+import * as WorldVerbsShow from "../things/world/verbs/show.ts";
+import * as WorldVerbsList from "../things/world/verbs/list.ts";
+import * as SnapshotVerbsList from "../things/snapshot/verbs/list.ts";
+import * as SnapshotVerbsDelete from "../things/snapshot/verbs/delete.ts";
 
 export { WORLD_LIMITS } from "../things/world/values.ts";
 export { WorldCreated } from "../things/world/events.ts";
 export { ClockWarped } from "../things/clock/events.ts";
 export { Snapshot } from "../things/snapshot/values.ts";
 export { SnapshotSaved, SnapshotDeleted } from "../things/snapshot/events.ts";
-export { create } from "../things/world/create.ts";
-export { clockWarp } from "../things/clock/warp.ts";
-export { snapshotSave } from "../things/snapshot/save.ts";
-export { snapshotRestore } from "../things/snapshot/restore.ts";
-export { show } from "../things/world/show.ts";
-export { ListedWorld, list } from "../things/world/list.ts";
-export { ListedSnapshot, snapshotList } from "../things/snapshot/list.ts";
-export { snapshotDelete } from "../things/snapshot/delete.ts";
+export { create } from "../things/world/verbs/create.ts";
+export { clockWarp } from "../things/clock/verbs/warp.ts";
+export { snapshotSave } from "../things/snapshot/verbs/save.ts";
+export { snapshotRestore } from "../things/snapshot/verbs/restore.ts";
+export { show } from "../things/world/verbs/show.ts";
+export { ListedWorld, list } from "../things/world/verbs/list.ts";
+export { ListedSnapshot, snapshotList } from "../things/snapshot/verbs/list.ts";
+export { snapshotDelete } from "../things/snapshot/verbs/delete.ts";
 
 /** Its operations, by name. */
 export const operations = {
-  "world.create": WorldCreate.create,
-  "world.clock.warp": ClockWarp.clockWarp,
-  "world.snapshot.save": SnapshotSave.snapshotSave,
-  "world.snapshot.restore": SnapshotRestore.snapshotRestore,
-  "world.show": WorldShow.show,
-  "world.list": WorldList.list,
-  "world.snapshot.list": SnapshotList.snapshotList,
-  "world.snapshot.delete": SnapshotDelete.snapshotDelete,
+  "world.create": WorldVerbsCreate.create,
+  "world.clock.warp": ClockVerbsWarp.clockWarp,
+  "world.snapshot.save": SnapshotVerbsSave.snapshotSave,
+  "world.snapshot.restore": SnapshotVerbsRestore.snapshotRestore,
+  "world.show": WorldVerbsShow.show,
+  "world.list": WorldVerbsList.list,
+  "world.snapshot.list": SnapshotVerbsList.snapshotList,
+  "world.snapshot.delete": SnapshotVerbsDelete.snapshotDelete,
 } as const;
 
 /** Its operations that move no thing with a lifecycle, each with why: each such verb's `stateless`. */
 export const stateless: { readonly [Name in keyof typeof operations]?: string } = {
-  "world.show": WorldShow.stateless,
-  "world.list": WorldList.stateless,
-  "world.snapshot.list": SnapshotList.stateless,
+  "world.show": WorldVerbsShow.stateless,
+  "world.list": WorldVerbsList.stateless,
+  "world.snapshot.list": SnapshotVerbsList.stateless,
 };
 
 /** Its machines, by name: its things' lifecycles. */
@@ -52,26 +52,26 @@ export const machines = {} as const;
 
 /** What the platform's world service serves of it (`PlatformRpcs`). */
 export const platformRpcs = RpcGroup.make(
-  WorldCreate.create.rpc,
-  WorldShow.show.rpc,
-  SnapshotSave.snapshotSave.rpc,
-  SnapshotRestore.snapshotRestore.rpc,
-  WorldList.list.rpc,
-  SnapshotList.snapshotList.rpc,
-  SnapshotDelete.snapshotDelete.rpc,
+  WorldVerbsCreate.create.rpc,
+  WorldVerbsShow.show.rpc,
+  SnapshotVerbsSave.snapshotSave.rpc,
+  SnapshotVerbsRestore.snapshotRestore.rpc,
+  WorldVerbsList.list.rpc,
+  SnapshotVerbsList.snapshotList.rpc,
+  SnapshotVerbsDelete.snapshotDelete.rpc,
 );
 
 /** What a world's Core serves of it, through the world's door (`WorldRpcs`). */
-export const worldRpcs = RpcGroup.make(ClockWarp.clockWarp.rpc);
+export const worldRpcs = RpcGroup.make(ClockVerbsWarp.clockWarp.rpc);
 
 /** The promises of each of its operations: each verb's `promises`. */
 export const claims: { readonly [Name in keyof typeof operations]: ClaimsOf } = {
-  "world.create": WorldCreate.promises,
-  "world.clock.warp": ClockWarp.promises,
-  "world.snapshot.save": SnapshotSave.promises,
-  "world.snapshot.restore": SnapshotRestore.promises,
-  "world.show": WorldShow.promises,
-  "world.list": WorldList.promises,
-  "world.snapshot.list": SnapshotList.promises,
-  "world.snapshot.delete": SnapshotDelete.promises,
+  "world.create": WorldVerbsCreate.promises,
+  "world.clock.warp": ClockVerbsWarp.promises,
+  "world.snapshot.save": SnapshotVerbsSave.promises,
+  "world.snapshot.restore": SnapshotVerbsRestore.promises,
+  "world.show": WorldVerbsShow.promises,
+  "world.list": WorldVerbsList.promises,
+  "world.snapshot.list": SnapshotVerbsList.promises,
+  "world.snapshot.delete": SnapshotVerbsDelete.promises,
 };

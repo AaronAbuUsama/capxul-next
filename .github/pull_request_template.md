@@ -1,14 +1,15 @@
 <!--
-One piece of work, one pull request into master. Never into main or integration/build.
-Never paste a token, key or password. CI says whether it is ready; the lead merges it.
+One piece of work, one pull request into its slice, `slice/<name>`. A slice reaches master by its own pull request.
+Never into main or integration/build. Never paste a token, key or password. The gate says whether it is ready; the lead
+merges it.
 -->
 ## What changed
 
 <!-- One or two sentences. -->
 
-## Proof
+## What was run
 
-<!-- The commands you ran and what they printed: `pnpm check`, and a scenario run if the change has one. -->
+<!-- What you ran and what it printed: the gate (`pnpm check`), and a journey run if the change has one. -->
 
 ## Needs Aaron
 

@@ -1,5 +1,5 @@
 // How the bench's MariaDB is started: its character set, and caches sized for many sites instead of MariaDB's
-// defaults. Measured on the stand-in bench (spikes/site-speed, "Findings on the way"): a site of Frappe, ERPNext, HRMS
+// defaults. Measured on the stand-in bench (records/site-speed, "Findings on the way"): a site of Frappe, ERPNext, HRMS
 // and capxul has 926 tables, while MariaDB 11.8 keeps 400 table definitions and 421 open tables by default, so
 // with a few sites the caches churn (Opened_table_definitions stood at 212,838 after the spike), every query of a
 // site that was idle for a minute opens its tables' definitions again, and a table's UPDATE_TIME, which a reset in
@@ -7,7 +7,7 @@
 import * as Arr from "effect/Array";
 import * as Rec from "effect/Record";
 
-/** Tables of one site, measured (spikes/site-speed, Q2), with room for the apps' next migrations. */
+/** Tables of one site, measured (records/site-speed, Q2), with room for the apps' next migrations. */
 export const TABLES_PER_SITE = 1000;
 
 /** How many sites' tables stay defined at once: the sites a bench of the planned size serves busily together. */
@@ -28,7 +28,7 @@ export const MARIADB_SETTINGS = {
   // files limit is lower, and InnoDB's own open files follow it.
   "table-open-cache": String((TABLES_PER_SITE * SITES_KEPT) / 2),
   // 1 GiB of the host's 8 for InnoDB's pages, against the default 128 MiB: about ten sites' data (110 MiB each on
-  // disk) stays in memory; with the bench's other processes at about 1 GiB at 30 sites (spikes/site-speed, Q6) the
+  // disk) stays in memory; with the bench's other processes at about 1 GiB at 30 sites (records/site-speed, Q6) the
   // host keeps more than 5 GiB free.
   "innodb-buffer-pool-size": "1G",
 } as const;

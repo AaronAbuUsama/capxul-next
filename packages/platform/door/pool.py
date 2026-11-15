@@ -1,5 +1,5 @@
 """Company sites from a pool (roadmap step 1.17; decision "Sites from a pool", 14 November 2026; measured in
-spikes/site-speed, Q3a and Q3b). door.py checks the tokens; this does the work. The templates themselves, how they are
+records/site-speed, Q3a and Q3b). door.py checks the tokens; this does the work. The templates themselves, how they are
 named, made once and removed by age, are templates.py's.
 
 The pool keeps POOL_SIZE ready copies of each template site under `<REGISTRY>/pool/<template>/<label>/<id>/`: a copy

@@ -10,7 +10,7 @@ import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
 import { madeFromNothing, memoryChainTime } from "../src/site-ops/door.ts";
 import { WARP_STEP_MS, warpSteps } from "../src/site-ops/world.ts";
-import type { KeptSpan } from "../src/door.ts";
+import type { KeptSpan } from "../src/telemetry/spans.ts";
 import { timesOf, WARP_ATTRIBUTES } from "../src/site-ops/warp-times.ts";
 import { fields, ORG, refusal, run, site, START, value, world, type Asked } from "./support/site-ops.ts";
 
@@ -72,7 +72,7 @@ test("a long warp moves the sites in stretches of at most 14 days, the clock wri
         record: [madeFromNothing("town", "ci", START)],
         sites: [site("a-town.w", ORG, asked, { warp }), site("b-town.w", "org_b00001", asked, { warp })],
       });
-      // 180 days took 147.8 s on one site in one call (spikes/site-speed), past the site door's 120 s.
+      // 180 days took 147.8 s on one site in one call (packages/platform/records/site-speed), past the site door's 120 s.
       const days = 180;
       const warped = value(yield* call("world.clock.warp", { target: { _tag: "by", seconds: days * 24 * 3600 } }));
       assert.equal(warped.sites, 2);

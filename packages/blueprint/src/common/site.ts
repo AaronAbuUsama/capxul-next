@@ -1,7 +1,8 @@
-// The vocabulary of a company's site, declared here once (decisions.md, 40): the doctypes, field names, reports,
-// filters and row fields the claims and the starting worlds name, and the documents the starting worlds make. The
-// operations type a document's fields and a report's filters and rows as JSON values (decisions.md, 30); the names
-// inside them are ERPNext's own and the Capxul app's (packages/frappe-app), as each entry says.
+// The vocabulary of a company's site, declared here once (it lived in the journeys' support code until 13 November
+// 2026, which now re-exports it): the doctypes, field names, reports, filters and row fields the claims and the
+// starting worlds name, and the documents the starting worlds make. The operations type a document's fields and a
+// report's filters and rows as JSON values (`Fields`, src/common/values.ts); the names inside them are ERPNext's own
+// and the Capxul app's (packages/frappe-app), as each entry says.
 import type { Fields } from "./values.ts";
 
 type FieldValues = typeof Fields.Type;
@@ -65,8 +66,9 @@ export const ROW_FIELDS = {
 export const SAFE_ACCOUNT_PREFIX = "Capxul Safe";
 
 /**
- * The site's daily job: the Capxul app's `capxul.clock.daily` (packages/frappe-app/capxul/hooks.py), whose
- * Scheduled Job Type Frappe names by the method's last two parts. A warp runs it once for every day it passes.
+ * The site's daily job, the one `world.clock.warp` runs: the Capxul app's `capxul.clock.daily`
+ * (packages/frappe-app/capxul/hooks.py). The pinned Frappe names a new Scheduled Job Type by a hash, not by its
+ * method, so the Capxul app names this one `clock.daily` itself. A warp runs it once for every day it passes.
  */
 export const DAILY_JOB = { method: "capxul.clock.daily", jobType: "clock.daily" } as const;
 
