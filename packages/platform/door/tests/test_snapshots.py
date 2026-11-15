@@ -2,6 +2,7 @@
 then reads saving, saved with its sites, or failed with why; a door that restarts mid-way leaves it failed."""
 
 import json
+import os
 import threading
 import unittest
 from unittest.mock import patch
@@ -62,6 +63,17 @@ class BackgroundBackupTest(unittest.TestCase):
         state = snapshots.backup_state(CLAIMS, "s4")
         self.assertEqual(state["state"], "failed")
         self.assertIn("restarted", state["error"])
+
+    def test_a_dropped_backup_is_gone_and_dropping_it_again_answers_the_same(self):
+        snapshots._write_job(WORLD, "s5", {"state": "saved", "sites": []})
+        os.makedirs(f"{snapshots._snapshot_dir(WORLD, 's5')}/acme", exist_ok=True)
+        self.assertTrue(snapshots.drop_backup(CLAIMS, "s5")["removed"])
+        self.assertFalse(os.path.exists(snapshots._snapshot_dir(WORLD, "s5")))
+        with self.assertRaises(Refused):
+            snapshots.backup_state(CLAIMS, "s5")
+        self.assertEqual(snapshots.drop_backup(CLAIMS, "s5"), {"world": WORLD, "snapshot": "s5", "removed": False})
+        with self.assertRaises(Refused):
+            snapshots.drop_backup(CLAIMS, "../x")
 
     def test_an_invalid_snapshot_name_is_refused(self):
         with patch.object(snapshots, "entries_of", return_value=READY):

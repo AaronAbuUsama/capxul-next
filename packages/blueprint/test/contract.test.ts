@@ -30,6 +30,7 @@ import { namesOf } from "../src/domains.ts";
 import { startingWorlds, type StartingWorld } from "../src/starting-worlds.ts";
 import * as Telemetry from "../src/telemetry.ts";
 import * as Values from "../src/values.ts";
+import * as WorldInventory from "../src/world/inventory.ts";
 import * as WorldOps from "../src/world/operations.ts";
 
 const names: ReadonlyArray<OperationName> = Rec.keys(operations);
@@ -109,6 +110,7 @@ const modules = {
   "values.ts": Values,
   "telemetry.ts": Telemetry,
   "world/operations.ts": WorldOps,
+  "world/inventory.ts": WorldInventory,
   "organizations/operations.ts": OrganizationsOps,
   "documents/operations.ts": DocumentsOps,
   "approvals/operations.ts": ApprovalsOps,

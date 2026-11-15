@@ -1,0 +1,6610 @@
+{
+  "kind": "journeys",
+  "run": "run-7c74ef",
+  "what": "The registered journeys run through the runner in one world, made on a fleet hub by the platform this process serves, its starting worlds made in it once and saved, and the world reset in place to each journey's starting world before the journey. Passed when every registered journey was in the run, every journey's run record passed (every step as it expected, every operation check and every generic check on every call), and every world the run made, the one world included, was destroyed with nothing of it left in the accounts.",
+  "mode": "one world",
+  "expect": "pass",
+  "owner": "local-w1a",
+  "startedAt": "2026-11-15T04:02:58.219Z",
+  "outcome": "passed",
+  "failure": null,
+  "count": {
+    "journeys": 5,
+    "registered": 5,
+    "asExpected": 5,
+    "claims": 73
+  },
+  "journeys": [
+    {
+      "name": "two operators and their worlds",
+      "given": "quota-full",
+      "stage": "run-7c74ef-1",
+      "record": "run-7c74ef/two-operators-and-their-worlds.json",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "succeeded",
+        "tag": null,
+        "detail": null
+      },
+      "failedStep": null,
+      "steps": [
+        {
+          "step": 1,
+          "operation": "world.create",
+          "outcome": "passed",
+          "checks": 2,
+          "checksHeld": 2
+        },
+        {
+          "step": 2,
+          "operation": "world.create",
+          "outcome": "passed",
+          "checks": 4,
+          "checksHeld": 4
+        },
+        {
+          "step": 3,
+          "operation": "world.create",
+          "outcome": "passed",
+          "checks": 8,
+          "checksHeld": 8
+        },
+        {
+          "step": 4,
+          "operation": "world.show",
+          "outcome": "passed",
+          "checks": 7,
+          "checksHeld": 7
+        },
+        {
+          "step": 5,
+          "operation": "record.export",
+          "outcome": "passed",
+          "checks": 10,
+          "checksHeld": 10
+        },
+        {
+          "step": 6,
+          "operation": "world.clock.warp",
+          "outcome": "passed",
+          "checks": 3,
+          "checksHeld": 3
+        },
+        {
+          "step": 7,
+          "operation": "world.snapshot.save",
+          "outcome": "passed",
+          "checks": 19,
+          "checksHeld": 19
+        },
+        {
+          "step": 8,
+          "operation": "world.snapshot.restore",
+          "outcome": "passed",
+          "checks": 7,
+          "checksHeld": 7
+        }
+      ],
+      "calls": [
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 187.223,
+          "serverMs": 74.892,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.create",
+          "outcome": "refusal",
+          "refusal": "WorldQuotaReached",
+          "callerMs": 887.661,
+          "serverMs": 773.959,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 181.013,
+          "serverMs": 67.679,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 179.877,
+          "serverMs": 68.496,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.create",
+          "outcome": "refusal",
+          "refusal": "GradeNotOffered",
+          "callerMs": 113.843,
+          "serverMs": 0.335,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 187.223,
+          "serverMs": 72.175,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 182.706,
+          "serverMs": 65.931,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.create",
+          "outcome": "refusal",
+          "refusal": "ClockBeforeSeed",
+          "callerMs": 115.491,
+          "serverMs": 0.646,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 180.99,
+          "serverMs": 67.664,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 176.9,
+          "serverMs": 65.138,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.create",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 22190.191,
+          "serverMs": 22022.946,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1757.357,
+          "serverMs": 1641.185,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1080.492,
+          "serverMs": 922,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1121.359,
+          "serverMs": 997.176,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.create",
+          "outcome": "refusal",
+          "refusal": "WorldExists",
+          "callerMs": 703.475,
+          "serverMs": 587.967,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 978.164,
+          "serverMs": 865.288,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 957.156,
+          "serverMs": 843.503,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 455.583,
+          "serverMs": 304,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1413.859,
+          "serverMs": 1300.082,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 470.367,
+          "serverMs": 307,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 172.684,
+          "serverMs": 62.009,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 412.983,
+          "serverMs": 275,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotWorldOwner",
+          "callerMs": 139.94,
+          "serverMs": 0,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1164.095,
+          "serverMs": 1051.059,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 439.606,
+          "serverMs": 303,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotWorldOwner",
+          "callerMs": 172.611,
+          "serverMs": 0,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 906.586,
+          "serverMs": 793.327,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 379.561,
+          "serverMs": 242,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotWorldOwner",
+          "callerMs": 176.335,
+          "serverMs": 0,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 933.648,
+          "serverMs": 819.387,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 380.555,
+          "serverMs": 248,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotWorldOwner",
+          "callerMs": 143.379,
+          "serverMs": 0,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1188.559,
+          "serverMs": 1075.375,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 402.375,
+          "serverMs": 271,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "refusal",
+          "refusal": "NotWorldOwner",
+          "callerMs": 133.593,
+          "serverMs": 0,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 936.002,
+          "serverMs": 823.014,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 382.7,
+          "serverMs": 250,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 381.55,
+          "serverMs": 253,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 920.96,
+          "serverMs": 806.441,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.clock.warp",
+          "outcome": "refusal",
+          "refusal": "NotWorldOwner",
+          "callerMs": 137.381,
+          "serverMs": 0,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 933.036,
+          "serverMs": 819.401,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 385.717,
+          "serverMs": 248,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 909.337,
+          "serverMs": 796.217,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 374.683,
+          "serverMs": 243,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.save",
+          "outcome": "refusal",
+          "refusal": "NotWorldOwner",
+          "callerMs": 812.308,
+          "serverMs": 697.058,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 377.632,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 229.62,
+          "serverMs": 55.405,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.save",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 173.462,
+          "serverMs": 62.364,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1241.358,
+          "serverMs": 1128.755,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 386.951,
+          "serverMs": 251,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.save",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 10014.68,
+          "serverMs": 9889.947,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 377.354,
+          "serverMs": 248,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 976.173,
+          "serverMs": 861.892,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 981.464,
+          "serverMs": 867.48,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 380.149,
+          "serverMs": 246,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.save",
+          "outcome": "refusal",
+          "refusal": "SnapshotExists",
+          "callerMs": 1316.878,
+          "serverMs": 1201.329,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 375.6,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 959.046,
+          "serverMs": 838.249,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 371.861,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.save",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 10420.093,
+          "serverMs": 10291.638,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 378.513,
+          "serverMs": 250,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1070.483,
+          "serverMs": 951.266,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1035.485,
+          "serverMs": 923.715,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 405.507,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.save",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 10753.473,
+          "serverMs": 10628.682,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 379.85,
+          "serverMs": 252,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 944.723,
+          "serverMs": 832.722,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 957.573,
+          "serverMs": 844.937,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 374.159,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 197.285,
+          "serverMs": 66.855,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.restore",
+          "outcome": "refusal",
+          "refusal": "SnapshotNotFound",
+          "callerMs": 1258.864,
+          "serverMs": 1132.517,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 172.318,
+          "serverMs": 60.565,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 910.178,
+          "serverMs": 795.828,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 381.147,
+          "serverMs": 250,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 915.237,
+          "serverMs": 802.941,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.restore",
+          "outcome": "refusal",
+          "refusal": "WorldExists",
+          "callerMs": 2509.852,
+          "serverMs": 2382.031,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 934.405,
+          "serverMs": 816.901,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 935.494,
+          "serverMs": 822.584,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 378.93,
+          "serverMs": 246,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 186.763,
+          "serverMs": 73.129,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.restore",
+          "outcome": "refusal",
+          "refusal": "ExpiryBeyondSource",
+          "callerMs": 1399.982,
+          "serverMs": 1279.71,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 189.093,
+          "serverMs": 72.231,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 933.036,
+          "serverMs": 820.379,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 414.66,
+          "serverMs": 253,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 171.758,
+          "serverMs": 59.656,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.restore",
+          "outcome": "refusal",
+          "refusal": "WorldQuotaReached",
+          "callerMs": 2553.172,
+          "serverMs": 2431.345,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 180.802,
+          "serverMs": 67.81,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "an operator's inventory",
+      "given": "quota-full",
+      "stage": "run-7c74ef-2",
+      "record": "run-7c74ef/an-operator-s-inventory.json",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "succeeded",
+        "tag": null,
+        "detail": null
+      },
+      "failedStep": null,
+      "steps": [
+        {
+          "step": 1,
+          "operation": "world.list",
+          "outcome": "passed",
+          "checks": 8,
+          "checksHeld": 8
+        },
+        {
+          "step": 2,
+          "operation": "world.snapshot.save",
+          "outcome": "passed",
+          "checks": 8,
+          "checksHeld": 8
+        },
+        {
+          "step": 3,
+          "operation": "world.snapshot.restore",
+          "outcome": "passed",
+          "checks": 6,
+          "checksHeld": 6
+        },
+        {
+          "step": 4,
+          "operation": "world.snapshot.list",
+          "outcome": "passed",
+          "checks": 8,
+          "checksHeld": 8
+        },
+        {
+          "step": 5,
+          "operation": "world.snapshot.delete",
+          "outcome": "passed",
+          "checks": 11,
+          "checksHeld": 11
+        },
+        {
+          "step": 6,
+          "operation": "world.snapshot.delete",
+          "outcome": "passed",
+          "checks": 7,
+          "checksHeld": 7
+        },
+        {
+          "step": 7,
+          "operation": "world.show",
+          "outcome": "passed",
+          "checks": 6,
+          "checksHeld": 6
+        },
+        {
+          "step": 8,
+          "operation": "world.list",
+          "outcome": "passed",
+          "checks": 8,
+          "checksHeld": 8
+        }
+      ],
+      "calls": [
+        {
+          "operation": "world.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 3444.545,
+          "serverMs": 3318.222,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1181.751,
+          "serverMs": 1066.17,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 913.126,
+          "serverMs": 800.388,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 954.41,
+          "serverMs": 809.876,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 926.335,
+          "serverMs": 813.905,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 918.082,
+          "serverMs": 802.705,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1286.662,
+          "serverMs": 1172.829,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1175.853,
+          "serverMs": 1062.837,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1340.207,
+          "serverMs": 1227.584,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1283.908,
+          "serverMs": 1170.098,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1311.517,
+          "serverMs": 1195.823,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 915.577,
+          "serverMs": 782.268,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 948.296,
+          "serverMs": 835.658,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 485.975,
+          "serverMs": 291,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.save",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 9117.447,
+          "serverMs": 8994.49,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 455.571,
+          "serverMs": 283,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 930.816,
+          "serverMs": 819.841,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 950.843,
+          "serverMs": 839.587,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 407.769,
+          "serverMs": 246,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.save",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 9846.251,
+          "serverMs": 9726.207,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 432.104,
+          "serverMs": 293,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 914.071,
+          "serverMs": 801.123,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 952.855,
+          "serverMs": 815.972,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 393.383,
+          "serverMs": 246,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 175.201,
+          "serverMs": 54.858,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.restore",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 21800.635,
+          "serverMs": 21638.417,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1133.759,
+          "serverMs": 942,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1386.095,
+          "serverMs": 1269.76,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 384.085,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1090.773,
+          "serverMs": 974.939,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 416.555,
+          "serverMs": 268,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1467.397,
+          "serverMs": 1354.436,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1318.751,
+          "serverMs": 1203.981,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 987.618,
+          "serverMs": 869.957,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 391.043,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 994.567,
+          "serverMs": 882.059,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 389.953,
+          "serverMs": 246,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1359.752,
+          "serverMs": 1233.93,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "refusal",
+          "refusal": "NotWorldOwner",
+          "callerMs": 233.778,
+          "serverMs": 122.082,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 430.174,
+          "serverMs": 291,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 167.095,
+          "serverMs": 55.136,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 168.011,
+          "serverMs": 58.056,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 942.563,
+          "serverMs": 829.107,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 383.807,
+          "serverMs": 246,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1207.514,
+          "serverMs": 1094.358,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.delete",
+          "outcome": "refusal",
+          "refusal": "SnapshotInUse",
+          "callerMs": 1296.638,
+          "serverMs": 1179.124,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 400.969,
+          "serverMs": 248,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1216.956,
+          "serverMs": 1105.595,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 939.441,
+          "serverMs": 823.318,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 417.308,
+          "serverMs": 267,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1219.208,
+          "serverMs": 1108.024,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.delete",
+          "outcome": "refusal",
+          "refusal": "SnapshotNotFound",
+          "callerMs": 680.801,
+          "serverMs": 569.082,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 388.478,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1187.594,
+          "serverMs": 1074.939,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 933.847,
+          "serverMs": 822.242,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 410.72,
+          "serverMs": 252,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1186.692,
+          "serverMs": 1075.463,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.delete",
+          "outcome": "refusal",
+          "refusal": "NotWorldOwner",
+          "callerMs": 236.904,
+          "serverMs": 126.168,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 383.267,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1216.283,
+          "serverMs": 1104.412,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 169.283,
+          "serverMs": 55.986,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.delete",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 176.901,
+          "serverMs": 60.208,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 925.982,
+          "serverMs": 811.372,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 419.477,
+          "serverMs": 270,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1171.941,
+          "serverMs": 1054.678,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.delete",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 3107.347,
+          "serverMs": 2983.186,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 419.668,
+          "serverMs": 279,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1226.879,
+          "serverMs": 1110.158,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 939.033,
+          "serverMs": 826.713,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 934.026,
+          "serverMs": 822.973,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 385.637,
+          "serverMs": 249,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1252.864,
+          "serverMs": 1139.381,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.delete",
+          "outcome": "refusal",
+          "refusal": "SnapshotNotFound",
+          "callerMs": 790.129,
+          "serverMs": 674.947,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 420.79,
+          "serverMs": 269,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1182.093,
+          "serverMs": 1071.145,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 951.178,
+          "serverMs": 832.962,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 441.784,
+          "serverMs": 302,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 922.23,
+          "serverMs": 810.157,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 392.643,
+          "serverMs": 254,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1401.131,
+          "serverMs": 1289.978,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 918.807,
+          "serverMs": 806.756,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1140.853,
+          "serverMs": 1028.26,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 2160.617,
+          "serverMs": 2038.531,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 933.075,
+          "serverMs": 821.161,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 915.694,
+          "serverMs": 804.498,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 906.406,
+          "serverMs": 795.47,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 891.855,
+          "serverMs": 779.829,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 939.739,
+          "serverMs": 817.077,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1219.01,
+          "serverMs": 1106.266,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1219.734,
+          "serverMs": 1108.93,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1211.733,
+          "serverMs": 1100.313,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1258.589,
+          "serverMs": 1145.659,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1276.57,
+          "serverMs": 1165.105,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "found Northwind and give sam the books",
+      "given": "fresh",
+      "stage": "w-tpl-ce503c",
+      "record": "run-7c74ef/found-northwind-and-give-sam-the-books.json",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "succeeded",
+        "tag": null,
+        "detail": null
+      },
+      "failedStep": null,
+      "steps": [
+        {
+          "step": 1,
+          "operation": "org.create",
+          "outcome": "passed",
+          "checks": 19,
+          "checksHeld": 19
+        },
+        {
+          "step": 2,
+          "operation": "org.create",
+          "outcome": "passed",
+          "checks": 17,
+          "checksHeld": 17
+        },
+        {
+          "step": 3,
+          "operation": "approval.sign",
+          "outcome": "passed",
+          "checks": 6,
+          "checksHeld": 6
+        },
+        {
+          "step": 4,
+          "operation": "world.show",
+          "outcome": "passed",
+          "checks": 3,
+          "checksHeld": 3
+        },
+        {
+          "step": 5,
+          "operation": "org.member.grant",
+          "outcome": "passed",
+          "checks": 18,
+          "checksHeld": 18
+        },
+        {
+          "step": 6,
+          "operation": "approval.sign",
+          "outcome": "passed",
+          "checks": 6,
+          "checksHeld": 6
+        },
+        {
+          "step": 7,
+          "operation": "doc.create",
+          "outcome": "passed",
+          "checks": 10,
+          "checksHeld": 10
+        },
+        {
+          "step": 8,
+          "operation": "report.run",
+          "outcome": "passed",
+          "checks": 9,
+          "checksHeld": 9
+        },
+        {
+          "step": 9,
+          "operation": "org.member.grant",
+          "outcome": "passed",
+          "checks": 5,
+          "checksHeld": 5
+        },
+        {
+          "step": 10,
+          "operation": "approval.sign",
+          "outcome": "passed",
+          "checks": 6,
+          "checksHeld": 6
+        }
+      ],
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 507.596,
+          "serverMs": 328,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1252.848,
+          "serverMs": 1135.433,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.create",
+          "outcome": "refusal",
+          "refusal": "FounderNotReady",
+          "callerMs": 289.463,
+          "serverMs": 137,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 383.033,
+          "serverMs": 252,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 970.907,
+          "serverMs": 853.473,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 406.005,
+          "serverMs": 280,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 930.742,
+          "serverMs": 816.03,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.create",
+          "outcome": "refusal",
+          "refusal": "PersonNotFound",
+          "callerMs": 424.108,
+          "serverMs": 291,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 380.326,
+          "serverMs": 248,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 961.958,
+          "serverMs": 846.788,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 368.216,
+          "serverMs": 243,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 904.813,
+          "serverMs": 792.162,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.create",
+          "outcome": "refusal",
+          "refusal": "PersonNotFound",
+          "callerMs": 587.625,
+          "serverMs": 447,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 376.582,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 930.518,
+          "serverMs": 819.237,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 385.5,
+          "serverMs": 254,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 965.442,
+          "serverMs": 849.719,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.create",
+          "outcome": "refusal",
+          "refusal": "InsufficientBalance",
+          "callerMs": 1113.596,
+          "serverMs": 979,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 371.3,
+          "serverMs": 246,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 954.673,
+          "serverMs": 843.938,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 378.859,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 921.372,
+          "serverMs": 809.944,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.create",
+          "outcome": "rejected",
+          "refusal": "PayloadRejected",
+          "callerMs": 1.936,
+          "serverMs": null,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 377.545,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 934.688,
+          "serverMs": 820.39,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 454.185,
+          "serverMs": 308,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 953.208,
+          "serverMs": 820.141,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.create",
+          "outcome": "rejected",
+          "refusal": "PayloadRejected",
+          "callerMs": 0.493,
+          "serverMs": null,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 393.472,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1005.448,
+          "serverMs": 894.201,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 400.944,
+          "serverMs": 262,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 924.356,
+          "serverMs": 812.132,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.create",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 4943.279,
+          "serverMs": 4782,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1533.45,
+          "serverMs": 1420.857,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 364.415,
+          "serverMs": 241,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1326.868,
+          "serverMs": 1214.724,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.create",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 379.319,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 372.495,
+          "serverMs": 246,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1564.631,
+          "serverMs": 1452.739,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 376.581,
+          "serverMs": 249,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1456.439,
+          "serverMs": 1345.092,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.create",
+          "outcome": "refusal",
+          "refusal": "FoundingChanged",
+          "callerMs": 296.857,
+          "serverMs": 166,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 383.583,
+          "serverMs": 253,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1311.745,
+          "serverMs": 1199.073,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 368.241,
+          "serverMs": 244,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1347.85,
+          "serverMs": 1233.261,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.create",
+          "outcome": "refusal",
+          "refusal": "HandleTaken",
+          "callerMs": 294.882,
+          "serverMs": 165,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 376.005,
+          "serverMs": 250,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1301.516,
+          "serverMs": 1190.671,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 374.591,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1276.417,
+          "serverMs": 1163.316,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.create",
+          "outcome": "refusal",
+          "refusal": "SetupUnfinished",
+          "callerMs": 631.779,
+          "serverMs": 500,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 380.529,
+          "serverMs": 251,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1318.875,
+          "serverMs": 1206.882,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 384.75,
+          "serverMs": 250,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1309.889,
+          "serverMs": 1197.763,
+          "checksPassed": true
+        },
+        {
+          "operation": "approval.sign",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 884.145,
+          "serverMs": 749,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 379.355,
+          "serverMs": 250,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 384.483,
+          "serverMs": 249,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1311.594,
+          "serverMs": 1199.402,
+          "checksPassed": true
+        },
+        {
+          "operation": "approval.sign",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 3714.514,
+          "serverMs": 3576,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 400.187,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1299.616,
+          "serverMs": 1187.248,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1334.544,
+          "serverMs": 1222.116,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1481.381,
+          "serverMs": 1367.064,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1324.623,
+          "serverMs": 1210.844,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1313.305,
+          "serverMs": 1199.75,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1437.244,
+          "serverMs": 1324.304,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1319.947,
+          "serverMs": 1205.752,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1351.369,
+          "serverMs": 1234.509,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1309.672,
+          "serverMs": 1196.594,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1370.455,
+          "serverMs": 1256.779,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1351.934,
+          "serverMs": 1238.834,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1550.112,
+          "serverMs": 1432.4,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1421.005,
+          "serverMs": 1307.765,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1400.756,
+          "serverMs": 1288.434,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1380.643,
+          "serverMs": 1268.139,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1400.202,
+          "serverMs": 1283.192,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1415.43,
+          "serverMs": 1299.5,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1452.615,
+          "serverMs": 1339.768,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1396.263,
+          "serverMs": 1278.075,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1445.904,
+          "serverMs": 1326.825,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1436.161,
+          "serverMs": 1318.708,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1387.546,
+          "serverMs": 1274.15,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1415.446,
+          "serverMs": 1303.414,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1369.715,
+          "serverMs": 1256.425,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1352.196,
+          "serverMs": 1239.632,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1419.457,
+          "serverMs": 1306.642,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1392.068,
+          "serverMs": 1279.176,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1375.432,
+          "serverMs": 1262.65,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1399.551,
+          "serverMs": 1284.332,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1452.267,
+          "serverMs": 1337.782,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1365.245,
+          "serverMs": 1251.419,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1400.356,
+          "serverMs": 1286.477,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1437.434,
+          "serverMs": 1324.405,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1401.265,
+          "serverMs": 1286.193,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1463.793,
+          "serverMs": 1349.723,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1387.701,
+          "serverMs": 1270.431,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1401.813,
+          "serverMs": 1279.768,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1441.465,
+          "serverMs": 1322.578,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1331.737,
+          "serverMs": 1218.591,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1299.67,
+          "serverMs": 1186.282,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 2104.978,
+          "serverMs": 1928.824,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1654.936,
+          "serverMs": 1537.199,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1317.685,
+          "serverMs": 1204.897,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1318.33,
+          "serverMs": 1199.2,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1309.316,
+          "serverMs": 1196.261,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1304.285,
+          "serverMs": 1190.404,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1347.208,
+          "serverMs": 1231.617,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1335.623,
+          "serverMs": 1202.55,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1291.491,
+          "serverMs": 1178.076,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1301.337,
+          "serverMs": 1187.018,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1341.409,
+          "serverMs": 1226.913,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1300.875,
+          "serverMs": 1187.268,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1320.541,
+          "serverMs": 1207.251,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1619.885,
+          "serverMs": 1506.965,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1318.974,
+          "serverMs": 1205.864,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1415.616,
+          "serverMs": 1300.787,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1611.561,
+          "serverMs": 1496.104,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1408.593,
+          "serverMs": 1258.019,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1567.442,
+          "serverMs": 1433.007,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1651.869,
+          "serverMs": 1536.339,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1389.012,
+          "serverMs": 1272.738,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1337.113,
+          "serverMs": 1220.956,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1376.725,
+          "serverMs": 1261.583,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1698.935,
+          "serverMs": 1516.799,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1333.071,
+          "serverMs": 1216.892,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1336.057,
+          "serverMs": 1211.245,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1459.502,
+          "serverMs": 1328.413,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1421.547,
+          "serverMs": 1305.836,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1418.412,
+          "serverMs": 1304.892,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1577.2,
+          "serverMs": 1461.754,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1409.291,
+          "serverMs": 1286.474,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1397.88,
+          "serverMs": 1282.755,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1424.68,
+          "serverMs": 1310.953,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1381.423,
+          "serverMs": 1267.552,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1379.279,
+          "serverMs": 1265.408,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1384.188,
+          "serverMs": 1271.19,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1389.024,
+          "serverMs": 1275.492,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1493.216,
+          "serverMs": 1377.998,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 5590.012,
+          "serverMs": 5475.414,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 385.278,
+          "serverMs": 248,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 372.046,
+          "serverMs": 244,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 374.268,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1224.08,
+          "serverMs": 1093.989,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.grant",
+          "outcome": "refusal",
+          "refusal": "NotADirector",
+          "callerMs": 212.65,
+          "serverMs": 85,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 371.227,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 390.656,
+          "serverMs": 251,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1226.121,
+          "serverMs": 1113.631,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.grant",
+          "outcome": "refusal",
+          "refusal": "NotAMember",
+          "callerMs": 316.842,
+          "serverMs": 169,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 391.117,
+          "serverMs": 241,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 412.429,
+          "serverMs": 266,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1640.506,
+          "serverMs": 1527.913,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.grant",
+          "outcome": "refusal",
+          "refusal": "MemberHasNoSafe",
+          "callerMs": 376.537,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 368.909,
+          "serverMs": 244,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 378.369,
+          "serverMs": 251,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1234.69,
+          "serverMs": 1121.601,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.grant",
+          "outcome": "refusal",
+          "refusal": "MemberHasNoSafe",
+          "callerMs": 378.316,
+          "serverMs": 251,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 372.165,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 366.515,
+          "serverMs": 244,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1221.075,
+          "serverMs": 1107.575,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.grant",
+          "outcome": "refusal",
+          "refusal": "MemberHasNoSafe",
+          "callerMs": 374.657,
+          "serverMs": 249,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 383.111,
+          "serverMs": 254,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 370.862,
+          "serverMs": 244,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1208.289,
+          "serverMs": 1094.693,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.grant",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 2220.458,
+          "serverMs": 2078,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 372.758,
+          "serverMs": 248,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 385.085,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1239.716,
+          "serverMs": 1127.136,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.grant",
+          "outcome": "refusal",
+          "refusal": "ChangeWaiting",
+          "callerMs": 626.826,
+          "serverMs": 499,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 376.518,
+          "serverMs": 249,
+          "checksPassed": true
+        },
+        {
+          "operation": "doc.create",
+          "outcome": "refusal",
+          "refusal": "NoSiteUser",
+          "callerMs": 405.317,
+          "serverMs": 271,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 376.847,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1196.705,
+          "serverMs": 1083.201,
+          "checksPassed": true
+        },
+        {
+          "operation": "approval.sign",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 874.498,
+          "serverMs": 744,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 401.77,
+          "serverMs": 265,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 410.389,
+          "serverMs": 267,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1255.002,
+          "serverMs": 1139.058,
+          "checksPassed": true
+        },
+        {
+          "operation": "approval.sign",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 4938.476,
+          "serverMs": 4796,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 384.159,
+          "serverMs": 241,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 379.499,
+          "serverMs": 249,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1192.228,
+          "serverMs": 1076.653,
+          "checksPassed": true
+        },
+        {
+          "operation": "doc.create",
+          "outcome": "refusal",
+          "refusal": "NoSiteUser",
+          "callerMs": 399.448,
+          "serverMs": 273,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 376.688,
+          "serverMs": 249,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 393.527,
+          "serverMs": 251,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1204.719,
+          "serverMs": 1091.594,
+          "checksPassed": true
+        },
+        {
+          "operation": "doc.create",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 808.811,
+          "serverMs": 663,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 395.518,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 524.985,
+          "serverMs": 249,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1845.626,
+          "serverMs": 1724.688,
+          "checksPassed": true
+        },
+        {
+          "operation": "doc.create",
+          "outcome": "refusal",
+          "refusal": "SiteRefused",
+          "callerMs": 415.52,
+          "serverMs": 284,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 374.245,
+          "serverMs": 244,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 386.711,
+          "serverMs": 251,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1260.776,
+          "serverMs": 1148.701,
+          "checksPassed": true
+        },
+        {
+          "operation": "doc.create",
+          "outcome": "refusal",
+          "refusal": "SiteRefused",
+          "callerMs": 727.612,
+          "serverMs": 317,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 391.035,
+          "serverMs": 244,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 378.012,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1487.255,
+          "serverMs": 1371.563,
+          "checksPassed": true
+        },
+        {
+          "operation": "report.run",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 419.105,
+          "serverMs": 290,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 406.648,
+          "serverMs": 252,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 424.164,
+          "serverMs": 241,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1443.25,
+          "serverMs": 1328.145,
+          "checksPassed": true
+        },
+        {
+          "operation": "report.run",
+          "outcome": "refusal",
+          "refusal": "NoSiteUser",
+          "callerMs": 425.165,
+          "serverMs": 267,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 388.562,
+          "serverMs": 258,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 382.603,
+          "serverMs": 253,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1175.559,
+          "serverMs": 1063.396,
+          "checksPassed": true
+        },
+        {
+          "operation": "report.run",
+          "outcome": "refusal",
+          "refusal": "SiteRefused",
+          "callerMs": 460.105,
+          "serverMs": 325,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 405.112,
+          "serverMs": 272,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 372.955,
+          "serverMs": 246,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1198.096,
+          "serverMs": 1085.116,
+          "checksPassed": true
+        },
+        {
+          "operation": "report.run",
+          "outcome": "refusal",
+          "refusal": "SiteRefused",
+          "callerMs": 421.893,
+          "serverMs": 275,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 365.36,
+          "serverMs": 242,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 392.194,
+          "serverMs": 263,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1278.729,
+          "serverMs": 1166.596,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.grant",
+          "outcome": "refusal",
+          "refusal": "AlreadyHeld",
+          "callerMs": 647.045,
+          "serverMs": 519,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 393.842,
+          "serverMs": 249,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 434.879,
+          "serverMs": 267,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1261.307,
+          "serverMs": 1149.949,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.grant",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 2043.017,
+          "serverMs": 1906,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 371.199,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 376.199,
+          "serverMs": 248,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1151.329,
+          "serverMs": 1039.461,
+          "checksPassed": true
+        },
+        {
+          "operation": "approval.sign",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 881.057,
+          "serverMs": 748,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 384.977,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 402.923,
+          "serverMs": 251,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1198.984,
+          "serverMs": 1086.791,
+          "checksPassed": true
+        },
+        {
+          "operation": "approval.sign",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 7767.474,
+          "serverMs": 7618,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 407.854,
+          "serverMs": 252,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "invite olga to Northwind",
+      "given": "founded",
+      "stage": "w-tpl-ce503c",
+      "record": "run-7c74ef/invite-olga-to-northwind.json",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "succeeded",
+        "tag": null,
+        "detail": null
+      },
+      "failedStep": null,
+      "steps": [
+        {
+          "step": 1,
+          "operation": "org.member.list",
+          "outcome": "passed",
+          "checks": 14,
+          "checksHeld": 14
+        },
+        {
+          "step": 2,
+          "operation": "org.member.invite",
+          "outcome": "passed",
+          "checks": 26,
+          "checksHeld": 26
+        },
+        {
+          "step": 3,
+          "operation": "invite.list",
+          "outcome": "passed",
+          "checks": 6,
+          "checksHeld": 6
+        },
+        {
+          "step": 4,
+          "operation": "invite.decline",
+          "outcome": "passed",
+          "checks": 11,
+          "checksHeld": 11
+        },
+        {
+          "step": 5,
+          "operation": "org.member.invite",
+          "outcome": "passed",
+          "checks": 4,
+          "checksHeld": 4
+        },
+        {
+          "step": 6,
+          "operation": "invite.accept",
+          "outcome": "passed",
+          "checks": 16,
+          "checksHeld": 16
+        },
+        {
+          "step": 7,
+          "operation": "invite.list",
+          "outcome": "passed",
+          "checks": 3,
+          "checksHeld": 3
+        },
+        {
+          "step": 8,
+          "operation": "org.member.list",
+          "outcome": "passed",
+          "checks": 10,
+          "checksHeld": 10
+        },
+        {
+          "step": 9,
+          "operation": "org.member.invite",
+          "outcome": "passed",
+          "checks": 3,
+          "checksHeld": 3
+        },
+        {
+          "step": 10,
+          "operation": "org.member.grant",
+          "outcome": "passed",
+          "checks": 3,
+          "checksHeld": 3
+        }
+      ],
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 468.098,
+          "serverMs": 318,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1454.394,
+          "serverMs": 1333.752,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 672.245,
+          "serverMs": 538,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 408.842,
+          "serverMs": 279,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 408.645,
+          "serverMs": 275,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1171.901,
+          "serverMs": 1056.207,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 622.925,
+          "serverMs": 492,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 370.083,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 401.876,
+          "serverMs": 269,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1166.672,
+          "serverMs": 1050.919,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.list",
+          "outcome": "refusal",
+          "refusal": "NotAMember",
+          "callerMs": 322.376,
+          "serverMs": 183,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 374.638,
+          "serverMs": 249,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 374.565,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1132.691,
+          "serverMs": 1012.1,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.list",
+          "outcome": "refusal",
+          "refusal": "OrgNotFound",
+          "callerMs": 215.828,
+          "serverMs": 86,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 372.782,
+          "serverMs": 246,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 380.453,
+          "serverMs": 254,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1148.363,
+          "serverMs": 1034.417,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.invite",
+          "outcome": "refusal",
+          "refusal": "CannotManagePeople",
+          "callerMs": 247.454,
+          "serverMs": 113,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 651.168,
+          "serverMs": 498,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 391.326,
+          "serverMs": 250,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 371.022,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1155.343,
+          "serverMs": 1041.054,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.invite",
+          "outcome": "refusal",
+          "refusal": "CannotManagePeople",
+          "callerMs": 205.833,
+          "serverMs": 82,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 624.074,
+          "serverMs": 495,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 395.801,
+          "serverMs": 266,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 378.93,
+          "serverMs": 251,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1134.949,
+          "serverMs": 1021.456,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.invite",
+          "outcome": "refusal",
+          "refusal": "AlreadyAMember",
+          "callerMs": 379.15,
+          "serverMs": 250,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 618.162,
+          "serverMs": 488,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 378.659,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 382.445,
+          "serverMs": 250,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1155.331,
+          "serverMs": 1041.118,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.invite",
+          "outcome": "refusal",
+          "refusal": "AlreadyAMember",
+          "callerMs": 376.057,
+          "serverMs": 250,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 619.771,
+          "serverMs": 493,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 415.644,
+          "serverMs": 270,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 387.23,
+          "serverMs": 248,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1184.122,
+          "serverMs": 1066.336,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.invite",
+          "outcome": "refusal",
+          "refusal": "OrgNotFound",
+          "callerMs": 229.26,
+          "serverMs": 94,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 389.31,
+          "serverMs": 249,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 387.687,
+          "serverMs": 252,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1148.632,
+          "serverMs": 1031.464,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.invite",
+          "outcome": "rejected",
+          "refusal": "PayloadRejected",
+          "callerMs": 0.563,
+          "serverMs": null,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 370.555,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1131.491,
+          "serverMs": 1017.832,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.invite",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 971.718,
+          "serverMs": 837,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 374.311,
+          "serverMs": 244,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 302.181,
+          "serverMs": 174,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 394.439,
+          "serverMs": 263,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1119.491,
+          "serverMs": 1005.663,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.invite",
+          "outcome": "refusal",
+          "refusal": "AlreadyInvited",
+          "callerMs": 458.067,
+          "serverMs": 330,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 294.5,
+          "serverMs": 166,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 378.579,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 370.01,
+          "serverMs": 246,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1245.602,
+          "serverMs": 1131.482,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.invite",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 862.185,
+          "serverMs": 731,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 365.509,
+          "serverMs": 239,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 371.32,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1142.811,
+          "serverMs": 1023.652,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 297.568,
+          "serverMs": 166,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 406.793,
+          "serverMs": 271,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 375.865,
+          "serverMs": 250,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1143.541,
+          "serverMs": 1029.444,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 294.585,
+          "serverMs": 168,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 370.851,
+          "serverMs": 246,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 376.63,
+          "serverMs": 249,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1159.837,
+          "serverMs": 1037.931,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 292.996,
+          "serverMs": 166,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.decline",
+          "outcome": "refusal",
+          "refusal": "NotYourInvitation",
+          "callerMs": 453.664,
+          "serverMs": 322,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 383.784,
+          "serverMs": 254,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 380.603,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1132.701,
+          "serverMs": 1017.524,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 289.585,
+          "serverMs": 164,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.decline",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 788.901,
+          "serverMs": 656,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 373.825,
+          "serverMs": 246,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 661.278,
+          "serverMs": 528,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 398.37,
+          "serverMs": 268,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1159.267,
+          "serverMs": 1036.527,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 291.555,
+          "serverMs": 167,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.decline",
+          "outcome": "refusal",
+          "refusal": "InvitationClosed",
+          "callerMs": 455.118,
+          "serverMs": 323,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 377.977,
+          "serverMs": 250,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 382.294,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1135.783,
+          "serverMs": 1021.961,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 328.198,
+          "serverMs": 183,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.decline",
+          "outcome": "refusal",
+          "refusal": "InvitationNotFound",
+          "callerMs": 459.507,
+          "serverMs": 331,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 368.856,
+          "serverMs": 241,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 609.335,
+          "serverMs": 484,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 378.916,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1191.526,
+          "serverMs": 1077.014,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.invite",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 948.625,
+          "serverMs": 816,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 370.079,
+          "serverMs": 244,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 297.516,
+          "serverMs": 167,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 373.92,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1123.81,
+          "serverMs": 1010.437,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 293.953,
+          "serverMs": 168,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.accept",
+          "outcome": "refusal",
+          "refusal": "InvitationClosed",
+          "callerMs": 459.306,
+          "serverMs": 330,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 377.721,
+          "serverMs": 249,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 386.738,
+          "serverMs": 251,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1200.901,
+          "serverMs": 1088.087,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 298.314,
+          "serverMs": 169,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.accept",
+          "outcome": "refusal",
+          "refusal": "InvitationNotFound",
+          "callerMs": 457.932,
+          "serverMs": 330,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 375.902,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 375.621,
+          "serverMs": 249,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1158.523,
+          "serverMs": 1043.111,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 288.991,
+          "serverMs": 162,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.accept",
+          "outcome": "refusal",
+          "refusal": "NotYourInvitation",
+          "callerMs": 455.682,
+          "serverMs": 329,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 371.238,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 392.832,
+          "serverMs": 259,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1154.356,
+          "serverMs": 1040.121,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 314.81,
+          "serverMs": 179,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.accept",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 864.489,
+          "serverMs": 730,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 714.571,
+          "serverMs": 582,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 376.281,
+          "serverMs": 249,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 372.751,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1332.237,
+          "serverMs": 1218.988,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 293.625,
+          "serverMs": 167,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.accept",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 468.981,
+          "serverMs": 337,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 766.148,
+          "serverMs": 628,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 381.378,
+          "serverMs": 246,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 384.895,
+          "serverMs": 251,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1293.758,
+          "serverMs": 1178.49,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 291.524,
+          "serverMs": 167,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 375.957,
+          "serverMs": 251,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 283.674,
+          "serverMs": 162,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 292.412,
+          "serverMs": 166,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 290.997,
+          "serverMs": 165,
+          "checksPassed": true
+        },
+        {
+          "operation": "invite.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 299.308,
+          "serverMs": 168,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 386.238,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1195.41,
+          "serverMs": 1080.45,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 698.921,
+          "serverMs": 569,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 380.425,
+          "serverMs": 250,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 369.962,
+          "serverMs": 246,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1143.203,
+          "serverMs": 1029.658,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 759.906,
+          "serverMs": 625,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 373.261,
+          "serverMs": 248,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 382.29,
+          "serverMs": 252,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1140.317,
+          "serverMs": 1027.511,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.invite",
+          "outcome": "refusal",
+          "refusal": "AlreadyAMember",
+          "callerMs": 372.836,
+          "serverMs": 246,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.list",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 709.316,
+          "serverMs": 578,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 369.106,
+          "serverMs": 244,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 371.017,
+          "serverMs": 243,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1147.359,
+          "serverMs": 1034.89,
+          "checksPassed": true
+        },
+        {
+          "operation": "org.member.grant",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 2034.825,
+          "serverMs": 1900,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 367.646,
+          "serverMs": 241,
+          "checksPassed": true
+        }
+      ]
+    },
+    {
+      "name": "pay Brightside and branch the books",
+      "given": "payment-drafted",
+      "stage": "w-tpl-ce503c",
+      "record": "run-7c74ef/pay-brightside-and-branch-the-books.json",
+      "asExpected": true,
+      "why": null,
+      "ended": {
+        "as": "succeeded",
+        "tag": null,
+        "detail": null
+      },
+      "failedStep": null,
+      "steps": [
+        {
+          "step": 1,
+          "operation": "doc.create",
+          "outcome": "passed",
+          "checks": 6,
+          "checksHeld": 6
+        },
+        {
+          "step": 2,
+          "operation": "doc.submit",
+          "outcome": "passed",
+          "checks": 12,
+          "checksHeld": 12
+        },
+        {
+          "step": 3,
+          "operation": "world.snapshot.save",
+          "outcome": "passed",
+          "checks": 8,
+          "checksHeld": 8
+        },
+        {
+          "step": 4,
+          "operation": "world.snapshot.restore",
+          "outcome": "passed",
+          "checks": 8,
+          "checksHeld": 8
+        },
+        {
+          "step": 5,
+          "operation": "approval.sign",
+          "outcome": "passed",
+          "checks": 13,
+          "checksHeld": 13
+        },
+        {
+          "step": 6,
+          "operation": "report.run",
+          "outcome": "passed",
+          "checks": 8,
+          "checksHeld": 8
+        },
+        {
+          "step": 7,
+          "operation": "doc.create",
+          "outcome": "passed",
+          "checks": 3,
+          "checksHeld": 3
+        },
+        {
+          "step": 8,
+          "operation": "world.clock.warp",
+          "outcome": "passed",
+          "checks": 7,
+          "checksHeld": 7
+        },
+        {
+          "step": 9,
+          "operation": "approval.sign",
+          "outcome": "passed",
+          "checks": 2,
+          "checksHeld": 2
+        },
+        {
+          "step": 10,
+          "operation": "record.export",
+          "outcome": "passed",
+          "checks": 14,
+          "checksHeld": 14
+        }
+      ],
+      "calls": [
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 437.715,
+          "serverMs": 297,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1526.669,
+          "serverMs": 1406.523,
+          "checksPassed": true
+        },
+        {
+          "operation": "doc.create",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1779.285,
+          "serverMs": 1652,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 415.957,
+          "serverMs": 288,
+          "checksPassed": true
+        },
+        {
+          "operation": "report.run",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 744.659,
+          "serverMs": 612,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 430.297,
+          "serverMs": 276,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1300.1,
+          "serverMs": 1175.478,
+          "checksPassed": true
+        },
+        {
+          "operation": "doc.create",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 921.789,
+          "serverMs": 790,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 402.651,
+          "serverMs": 265,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 378.683,
+          "serverMs": 249,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1212.709,
+          "serverMs": 1091.338,
+          "checksPassed": true
+        },
+        {
+          "operation": "doc.submit",
+          "outcome": "refusal",
+          "refusal": "InsufficientBalance",
+          "callerMs": 749.101,
+          "serverMs": 606,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 382.46,
+          "serverMs": 249,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 386.97,
+          "serverMs": 252,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1184.415,
+          "serverMs": 1068.333,
+          "checksPassed": true
+        },
+        {
+          "operation": "doc.submit",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1001.071,
+          "serverMs": 870,
+          "checksPassed": true
+        },
+        {
+          "operation": "report.run",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 434.236,
+          "serverMs": 296,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 380.02,
+          "serverMs": 249,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 373.562,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1143.333,
+          "serverMs": 1029.198,
+          "checksPassed": true
+        },
+        {
+          "operation": "doc.submit",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 2506.559,
+          "serverMs": 2370,
+          "checksPassed": true
+        },
+        {
+          "operation": "report.run",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 434.648,
+          "serverMs": 303,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 381.014,
+          "serverMs": 252,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 394.361,
+          "serverMs": 248,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1317.267,
+          "serverMs": 1185.169,
+          "checksPassed": true
+        },
+        {
+          "operation": "doc.submit",
+          "outcome": "refusal",
+          "refusal": "NotADraft",
+          "callerMs": 399.119,
+          "serverMs": 272,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 370.628,
+          "serverMs": 243,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 375.699,
+          "serverMs": 246,
+          "checksPassed": true
+        },
+        {
+          "operation": "report.run",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 418.025,
+          "serverMs": 285,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1206.508,
+          "serverMs": 1091.589,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 379.763,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.save",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 25573.752,
+          "serverMs": 25449.075,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 385.779,
+          "serverMs": 256,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1205.14,
+          "serverMs": 1082.878,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1344.377,
+          "serverMs": 1226.925,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 383.006,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.save",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 25682.024,
+          "serverMs": 25557.268,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 394.006,
+          "serverMs": 250,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1197.65,
+          "serverMs": 1054.368,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 373.621,
+          "serverMs": 246,
+          "checksPassed": true
+        },
+        {
+          "operation": "report.run",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 734.29,
+          "serverMs": 603,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1321.801,
+          "serverMs": 1206.488,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1182.725,
+          "serverMs": 1061.672,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 379.387,
+          "serverMs": 249,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 175.572,
+          "serverMs": 55.742,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.restore",
+          "outcome": "refusal",
+          "refusal": "NotWorldOwner",
+          "callerMs": 1384.729,
+          "serverMs": 1269.165,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 170.547,
+          "serverMs": 57.721,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1347.528,
+          "serverMs": 1226.987,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 377.595,
+          "serverMs": 250,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "refusal",
+          "refusal": "WorldNotFound",
+          "callerMs": 230.03,
+          "serverMs": 69.754,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.snapshot.restore",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 52250.222,
+          "serverMs": 52081.373,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 541.069,
+          "serverMs": 303,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1415.91,
+          "serverMs": 1297.836,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 382.954,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1207.954,
+          "serverMs": 1086.951,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 446.364,
+          "serverMs": 306,
+          "checksPassed": true
+        },
+        {
+          "operation": "report.run",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1000.205,
+          "serverMs": 842,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 380.514,
+          "serverMs": 250,
+          "checksPassed": true
+        },
+        {
+          "operation": "report.run",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 779.099,
+          "serverMs": 642,
+          "checksPassed": true
+        },
+        {
+          "operation": "report.run",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 853.417,
+          "serverMs": 698,
+          "checksPassed": true
+        },
+        {
+          "operation": "report.run",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 608.992,
+          "serverMs": 476,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 420.66,
+          "serverMs": 270,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 389.223,
+          "serverMs": 256,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1432.405,
+          "serverMs": 1314.003,
+          "checksPassed": true
+        },
+        {
+          "operation": "approval.sign",
+          "outcome": "refusal",
+          "refusal": "SignatureInvalid",
+          "callerMs": 322.598,
+          "serverMs": 182,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 383.019,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 385.12,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1177.038,
+          "serverMs": 1063.632,
+          "checksPassed": true
+        },
+        {
+          "operation": "approval.sign",
+          "outcome": "refusal",
+          "refusal": "ApprovalNotFound",
+          "callerMs": 249.636,
+          "serverMs": 87,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 378.885,
+          "serverMs": 250,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 410.911,
+          "serverMs": 253,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1229.926,
+          "serverMs": 1114.857,
+          "checksPassed": true
+        },
+        {
+          "operation": "approval.sign",
+          "outcome": "refusal",
+          "refusal": "NotYourApproval",
+          "callerMs": 303.635,
+          "serverMs": 169,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 387.427,
+          "serverMs": 251,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 407.713,
+          "serverMs": 260,
+          "checksPassed": true
+        },
+        {
+          "operation": "report.run",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 636.199,
+          "serverMs": 455,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 376.682,
+          "serverMs": 248,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1461.388,
+          "serverMs": 1342.8,
+          "checksPassed": true
+        },
+        {
+          "operation": "approval.sign",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 3517.063,
+          "serverMs": 3382,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 372.848,
+          "serverMs": 246,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 379.026,
+          "serverMs": 248,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1176.098,
+          "serverMs": 1060.553,
+          "checksPassed": true
+        },
+        {
+          "operation": "approval.sign",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 299.091,
+          "serverMs": 167,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 375.624,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 459.702,
+          "serverMs": 305,
+          "checksPassed": true
+        },
+        {
+          "operation": "report.run",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 491.54,
+          "serverMs": 341,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 383.997,
+          "serverMs": 252,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1152.409,
+          "serverMs": 1037.056,
+          "checksPassed": true
+        },
+        {
+          "operation": "report.run",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 576.406,
+          "serverMs": 442,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 372.642,
+          "serverMs": 246,
+          "checksPassed": true
+        },
+        {
+          "operation": "report.run",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 417.93,
+          "serverMs": 291,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 384.441,
+          "serverMs": 250,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1155.166,
+          "serverMs": 1040.482,
+          "checksPassed": true
+        },
+        {
+          "operation": "report.run",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 427.776,
+          "serverMs": 299,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 420.735,
+          "serverMs": 252,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 374.156,
+          "serverMs": 246,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1103.674,
+          "serverMs": 989.522,
+          "checksPassed": true
+        },
+        {
+          "operation": "report.run",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 463.546,
+          "serverMs": 306,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 384.866,
+          "serverMs": 244,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 389.06,
+          "serverMs": 253,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1489.327,
+          "serverMs": 1324.675,
+          "checksPassed": true
+        },
+        {
+          "operation": "report.run",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 454.162,
+          "serverMs": 316,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 416.621,
+          "serverMs": 274,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 375.134,
+          "serverMs": 248,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 401.362,
+          "serverMs": 253,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1146.658,
+          "serverMs": 1031.849,
+          "checksPassed": true
+        },
+        {
+          "operation": "doc.create",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 946.054,
+          "serverMs": 778,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 419.142,
+          "serverMs": 271,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 376.072,
+          "serverMs": 245,
+          "checksPassed": true
+        },
+        {
+          "operation": "report.run",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 444.682,
+          "serverMs": 307,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1159.586,
+          "serverMs": 1045.392,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 394.133,
+          "serverMs": 254,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1222.624,
+          "serverMs": 1107.536,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.clock.warp",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 11437.084,
+          "serverMs": 11298,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1483.155,
+          "serverMs": 1368.772,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 386.776,
+          "serverMs": 252,
+          "checksPassed": true
+        },
+        {
+          "operation": "report.run",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 432.691,
+          "serverMs": 288,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 426.554,
+          "serverMs": 273,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1230.319,
+          "serverMs": 1114.891,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.clock.warp",
+          "outcome": "refusal",
+          "refusal": "ClockBackwards",
+          "callerMs": 255.292,
+          "serverMs": 93,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1167.839,
+          "serverMs": 1053.095,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 447.578,
+          "serverMs": 281,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 423.76,
+          "serverMs": 277,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1167.235,
+          "serverMs": 1052.584,
+          "checksPassed": true
+        },
+        {
+          "operation": "approval.sign",
+          "outcome": "refusal",
+          "refusal": "ApprovalExpired",
+          "callerMs": 460.139,
+          "serverMs": 304,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1226.793,
+          "serverMs": 1112.074,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 400.094,
+          "serverMs": 256,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 381.743,
+          "serverMs": 248,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 380.372,
+          "serverMs": 247,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 385.605,
+          "serverMs": 250,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 398.361,
+          "serverMs": 261,
+          "checksPassed": true
+        },
+        {
+          "operation": "world.show",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 1201.577,
+          "serverMs": 1086.522,
+          "checksPassed": true
+        },
+        {
+          "operation": "record.export",
+          "outcome": "success",
+          "refusal": null,
+          "callerMs": 385.209,
+          "serverMs": 251,
+          "checksPassed": true
+        }
+      ]
+    }
+  ],
+  "stages": [
+    {
+      "name": "run-7c74ef-1",
+      "readiness": null,
+      "createMs": 90577,
+      "destroyMs": 23952,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    },
+    {
+      "name": "run-7c74ef-2",
+      "readiness": null,
+      "createMs": 55843,
+      "destroyMs": 22018,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    },
+    {
+      "name": "w-tpl-ce503c",
+      "readiness": {
+        "probes": 20,
+        "relapses": 0,
+        "ms": 10911
+      },
+      "createMs": 11502,
+      "destroyMs": 0,
+      "afterwards": "destroyed",
+      "after": {
+        "workers": [],
+        "hyperdrives": [],
+        "neonProjects": [],
+        "worlds": []
+      }
+    }
+  ],
+  "oneWorld": {
+    "world": "tpl-ce503c",
+    "hub": "fleet",
+    "hubBroughtUp": false,
+    "left": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": []
+    },
+    "notTakenDown": [],
+    "timings": [
+      {
+        "part": "world create",
+        "of": "fresh",
+        "atMs": 490,
+        "ms": 22253,
+        "ok": true
+      },
+      {
+        "part": "save fresh",
+        "of": "tpl-ce503c",
+        "atMs": 22744,
+        "ms": 11580,
+        "ok": true
+      },
+      {
+        "part": "make founded",
+        "of": "founded",
+        "atMs": 34325,
+        "ms": 302984,
+        "ok": true
+      },
+      {
+        "part": "save founded",
+        "of": "tpl-ce503c",
+        "atMs": 337309,
+        "ms": 26273,
+        "ok": true
+      },
+      {
+        "part": "bench template founded",
+        "of": "tpl-ce503c",
+        "atMs": 364536,
+        "ms": 11537,
+        "ok": true,
+        "parts": {
+          "door": 10524
+        },
+        "note": "founded-635aaa7b-tpl-ce503c"
+      },
+      {
+        "part": "make office-holder",
+        "of": "office-holder",
+        "atMs": 376073,
+        "ms": 13288,
+        "ok": true
+      },
+      {
+        "part": "make payment-drafted",
+        "of": "payment-drafted",
+        "atMs": 389361,
+        "ms": 4259,
+        "ok": true
+      },
+      {
+        "part": "save payment-drafted",
+        "of": "tpl-ce503c",
+        "atMs": 393620,
+        "ms": 28521,
+        "ok": true
+      },
+      {
+        "part": "bench template payment-drafted",
+        "of": "tpl-ce503c",
+        "atMs": 422141,
+        "ms": 12013,
+        "ok": true,
+        "parts": {
+          "door": 10755
+        },
+        "note": "payment-drafted-635aaa7b-tpl-ce503c"
+      },
+      {
+        "part": "reset",
+        "journey": "two operators and their worlds",
+        "of": "fresh",
+        "atMs": 434157,
+        "ms": 32130,
+        "ok": true,
+        "parts": {
+          "index stopped": 357,
+          "database restored": 1400,
+          "chain reset": 5684,
+          "index resumed": 261,
+          "clock": 1952,
+          "chain mined at the world's time": 252,
+          "sites": 16559,
+          "core answers": 45,
+          "preserved branch dropped": 542,
+          "index caught up": 688,
+          "bundler answers": 4312,
+          "reset": 30781
+        },
+        "note": "sites none; removed northwind-tpl-ce503c.worlds.abuusama.dev"
+      },
+      {
+        "part": "starting world",
+        "journey": "two operators and their worlds",
+        "of": "quota-full",
+        "atMs": 466293,
+        "ms": 58440,
+        "ok": true
+      },
+      {
+        "part": "journey",
+        "journey": "two operators and their worlds",
+        "of": "run-7c74ef-1",
+        "atMs": 536030,
+        "ms": 138107,
+        "ok": true,
+        "steps": [
+          {
+            "step": 1,
+            "operation": "world.create",
+            "outcome": "passed",
+            "ms": 1261
+          },
+          {
+            "step": 2,
+            "operation": "world.create",
+            "outcome": "passed",
+            "ms": 965
+          },
+          {
+            "step": 3,
+            "operation": "world.create",
+            "outcome": "passed",
+            "ms": 33569
+          },
+          {
+            "step": 4,
+            "operation": "world.show",
+            "outcome": "passed",
+            "ms": 3473
+          },
+          {
+            "step": 5,
+            "operation": "record.export",
+            "outcome": "passed",
+            "ms": 8304
+          },
+          {
+            "step": 6,
+            "operation": "world.clock.warp",
+            "outcome": "passed",
+            "ms": 2762
+          },
+          {
+            "step": 7,
+            "operation": "world.snapshot.save",
+            "outcome": "passed",
+            "ms": 71801
+          },
+          {
+            "step": 8,
+            "operation": "world.snapshot.restore",
+            "outcome": "passed",
+            "ms": 15966
+          }
+        ]
+      },
+      {
+        "part": "checks",
+        "journey": "two operators and their worlds",
+        "of": "run-7c74ef-1",
+        "atMs": 669184,
+        "ms": 4953,
+        "ok": true
+      },
+      {
+        "part": "destroy the journey's own worlds",
+        "journey": "two operators and their worlds",
+        "atMs": 679177,
+        "ms": 23952,
+        "ok": true,
+        "note": "w-qf-9c5961, w-qf-079bf4, w-qf-4d22ba, w-qf-980dea, w-jw-j5vaagsq"
+      },
+      {
+        "part": "reset",
+        "journey": "an operator's inventory",
+        "of": "fresh",
+        "atMs": 706886,
+        "ms": 15457,
+        "ok": true,
+        "parts": {
+          "index stopped": 375,
+          "database restored": 4953,
+          "chain reset": 2146,
+          "index resumed": 246,
+          "clock": 1194,
+          "chain mined at the world's time": 229,
+          "sites": 975,
+          "core answers": 490,
+          "preserved branch dropped": 1111,
+          "bundler answers": 3692,
+          "index caught up": 4158,
+          "reset": 14278
+        },
+        "note": "sites none"
+      },
+      {
+        "part": "starting world",
+        "journey": "an operator's inventory",
+        "of": "quota-full",
+        "atMs": 722343,
+        "ms": 40385,
+        "ok": true
+      },
+      {
+        "part": "journey",
+        "journey": "an operator's inventory",
+        "of": "run-7c74ef-2",
+        "atMs": 775598,
+        "ms": 131356,
+        "ok": true,
+        "steps": [
+          {
+            "step": 1,
+            "operation": "world.list",
+            "outcome": "passed",
+            "ms": 15661
+          },
+          {
+            "step": 2,
+            "operation": "world.snapshot.save",
+            "outcome": "passed",
+            "ms": 32732
+          },
+          {
+            "step": 3,
+            "operation": "world.snapshot.restore",
+            "outcome": "passed",
+            "ms": 26231
+          },
+          {
+            "step": 4,
+            "operation": "world.snapshot.list",
+            "outcome": "passed",
+            "ms": 9423
+          },
+          {
+            "step": 5,
+            "operation": "world.snapshot.delete",
+            "outcome": "passed",
+            "ms": 15010
+          },
+          {
+            "step": 6,
+            "operation": "world.snapshot.delete",
+            "outcome": "passed",
+            "ms": 13184
+          },
+          {
+            "step": 7,
+            "operation": "world.show",
+            "outcome": "passed",
+            "ms": 2710
+          },
+          {
+            "step": 8,
+            "operation": "world.list",
+            "outcome": "passed",
+            "ms": 16400
+          }
+        ]
+      },
+      {
+        "part": "checks",
+        "journey": "an operator's inventory",
+        "of": "run-7c74ef-2",
+        "atMs": 900035,
+        "ms": 6919,
+        "ok": true
+      },
+      {
+        "part": "destroy the journey's own worlds",
+        "journey": "an operator's inventory",
+        "atMs": 911848,
+        "ms": 22018,
+        "ok": true,
+        "note": "w-qf-7a06d0, w-qf-cf78db, w-qf-117d3d, w-qf-6e71ab, w-ji-qajc9qdv"
+      },
+      {
+        "part": "reset",
+        "journey": "found Northwind and give sam the books",
+        "of": "fresh",
+        "atMs": 937531,
+        "ms": 11502,
+        "ok": true,
+        "parts": {
+          "index stopped": 378,
+          "database restored": 1610,
+          "chain reset": 1822,
+          "index resumed": 273,
+          "clock": 1186,
+          "chain mined at the world's time": 225,
+          "sites": 972,
+          "core answers": 370,
+          "preserved branch dropped": 1307,
+          "bundler answers": 3439,
+          "index caught up": 3836,
+          "reset": 10304
+        },
+        "note": "sites none"
+      },
+      {
+        "part": "starting world",
+        "journey": "found Northwind and give sam the books",
+        "of": "fresh",
+        "atMs": 949033,
+        "ms": 0,
+        "ok": true
+      },
+      {
+        "part": "journey",
+        "journey": "found Northwind and give sam the books",
+        "of": "w-tpl-ce503c",
+        "atMs": 964348,
+        "ms": 400808,
+        "ok": true,
+        "steps": [
+          {
+            "step": 1,
+            "operation": "org.create",
+            "outcome": "passed",
+            "ms": 19339
+          },
+          {
+            "step": 2,
+            "operation": "org.create",
+            "outcome": "passed",
+            "ms": 25862
+          },
+          {
+            "step": 3,
+            "operation": "approval.sign",
+            "outcome": "passed",
+            "ms": 10754
+          },
+          {
+            "step": 4,
+            "operation": "world.show",
+            "outcome": "passed",
+            "ms": 272561
+          },
+          {
+            "step": 5,
+            "operation": "org.member.grant",
+            "outcome": "passed",
+            "ms": 19232
+          },
+          {
+            "step": 6,
+            "operation": "approval.sign",
+            "outcome": "passed",
+            "ms": 11151
+          },
+          {
+            "step": 7,
+            "operation": "doc.create",
+            "outcome": "passed",
+            "ms": 11083
+          },
+          {
+            "step": 8,
+            "operation": "report.run",
+            "outcome": "passed",
+            "ms": 10163
+          },
+          {
+            "step": 9,
+            "operation": "org.member.grant",
+            "outcome": "passed",
+            "ms": 6825
+          },
+          {
+            "step": 10,
+            "operation": "approval.sign",
+            "outcome": "passed",
+            "ms": 13833
+          }
+        ]
+      },
+      {
+        "part": "checks",
+        "journey": "found Northwind and give sam the books",
+        "of": "w-tpl-ce503c",
+        "atMs": 1361625,
+        "ms": 3531,
+        "ok": true
+      },
+      {
+        "part": "destroy the journey's own worlds",
+        "journey": "found Northwind and give sam the books",
+        "atMs": 1369939,
+        "ms": 0,
+        "ok": true,
+        "note": "none"
+      },
+      {
+        "part": "reset",
+        "journey": "invite olga to Northwind",
+        "of": "founded",
+        "atMs": 1374111,
+        "ms": 38380,
+        "ok": true,
+        "parts": {
+          "index stopped": 550,
+          "database restored": 1660,
+          "chain reset": 2511,
+          "index resumed": 254,
+          "clock": 1192,
+          "chain mined at the world's time": 231,
+          "sites": 26541,
+          "core answers": 39,
+          "index caught up": 639,
+          "preserved branch dropped": 1564,
+          "bundler answers": 4144,
+          "reset": 37086
+        },
+        "note": "sites claimed; removed northwind-tpl-ce503c.worlds.abuusama.dev; claimed northwind-tpl-ce503c.worlds.abuusama.dev"
+      },
+      {
+        "part": "starting world",
+        "journey": "invite olga to Northwind",
+        "of": "founded",
+        "atMs": 1412491,
+        "ms": 0,
+        "ok": true
+      },
+      {
+        "part": "journey",
+        "journey": "invite olga to Northwind",
+        "of": "w-tpl-ce503c",
+        "atMs": 1424595,
+        "ms": 100423,
+        "ok": true,
+        "steps": [
+          {
+            "step": 1,
+            "operation": "org.member.list",
+            "outcome": "passed",
+            "ms": 9948
+          },
+          {
+            "step": 2,
+            "operation": "org.member.invite",
+            "outcome": "passed",
+            "ms": 29843
+          },
+          {
+            "step": 3,
+            "operation": "invite.list",
+            "outcome": "passed",
+            "ms": 4408
+          },
+          {
+            "step": 4,
+            "operation": "invite.decline",
+            "outcome": "passed",
+            "ms": 16123
+          },
+          {
+            "step": 5,
+            "operation": "org.member.invite",
+            "outcome": "passed",
+            "ms": 3609
+          },
+          {
+            "step": 6,
+            "operation": "invite.accept",
+            "outcome": "passed",
+            "ms": 20534
+          },
+          {
+            "step": 7,
+            "operation": "invite.list",
+            "outcome": "passed",
+            "ms": 3515
+          },
+          {
+            "step": 8,
+            "operation": "org.member.list",
+            "outcome": "passed",
+            "ms": 5310
+          },
+          {
+            "step": 9,
+            "operation": "org.member.invite",
+            "outcome": "passed",
+            "ms": 3206
+          },
+          {
+            "step": 10,
+            "operation": "org.member.grant",
+            "outcome": "passed",
+            "ms": 3922
+          }
+        ]
+      },
+      {
+        "part": "checks",
+        "journey": "invite olga to Northwind",
+        "of": "w-tpl-ce503c",
+        "atMs": 1523955,
+        "ms": 1064,
+        "ok": true
+      },
+      {
+        "part": "destroy the journey's own worlds",
+        "journey": "invite olga to Northwind",
+        "atMs": 1529415,
+        "ms": 0,
+        "ok": true,
+        "note": "none"
+      },
+      {
+        "part": "reset",
+        "journey": "pay Brightside and branch the books",
+        "of": "payment-drafted",
+        "atMs": 1533690,
+        "ms": 43516,
+        "ok": true,
+        "parts": {
+          "index stopped": 504,
+          "database restored": 1532,
+          "chain reset": 3460,
+          "index resumed": 255,
+          "clock": 1183,
+          "chain mined at the world's time": 216,
+          "sites": 31017,
+          "core answers": 37,
+          "index caught up": 648,
+          "preserved branch dropped": 1156,
+          "bundler answers": 3984,
+          "reset": 42155
+        },
+        "note": "sites claimed; removed northwind-tpl-ce503c.worlds.abuusama.dev; claimed northwind-tpl-ce503c.worlds.abuusama.dev"
+      },
+      {
+        "part": "starting world",
+        "journey": "pay Brightside and branch the books",
+        "of": "payment-drafted",
+        "atMs": 1577206,
+        "ms": 0,
+        "ok": true
+      },
+      {
+        "part": "journey",
+        "journey": "pay Brightside and branch the books",
+        "of": "w-tpl-ce503c",
+        "atMs": 1594583,
+        "ms": 246551,
+        "ok": true,
+        "steps": [
+          {
+            "step": 1,
+            "operation": "doc.create",
+            "outcome": "passed",
+            "ms": 7963
+          },
+          {
+            "step": 2,
+            "operation": "doc.submit",
+            "outcome": "passed",
+            "ms": 13855
+          },
+          {
+            "step": 3,
+            "operation": "world.snapshot.save",
+            "outcome": "passed",
+            "ms": 70810
+          },
+          {
+            "step": 4,
+            "operation": "world.snapshot.restore",
+            "outcome": "passed",
+            "ms": 71867
+          },
+          {
+            "step": 5,
+            "operation": "approval.sign",
+            "outcome": "passed",
+            "ms": 35646
+          },
+          {
+            "step": 6,
+            "operation": "report.run",
+            "outcome": "passed",
+            "ms": 10800
+          },
+          {
+            "step": 7,
+            "operation": "doc.create",
+            "outcome": "passed",
+            "ms": 3667
+          },
+          {
+            "step": 8,
+            "operation": "world.clock.warp",
+            "outcome": "passed",
+            "ms": 20723
+          },
+          {
+            "step": 9,
+            "operation": "approval.sign",
+            "outcome": "passed",
+            "ms": 8041
+          },
+          {
+            "step": 10,
+            "operation": "record.export",
+            "outcome": "passed",
+            "ms": 3172
+          }
+        ]
+      },
+      {
+        "part": "checks",
+        "journey": "pay Brightside and branch the books",
+        "of": "w-tpl-ce503c",
+        "atMs": 1834920,
+        "ms": 6214,
+        "ok": true
+      },
+      {
+        "part": "destroy the journey's own worlds",
+        "journey": "pay Brightside and branch the books",
+        "atMs": 1846101,
+        "ms": 10246,
+        "ok": true,
+        "note": "w-jb-bjvgav3b"
+      },
+      {
+        "part": "world destroy",
+        "of": "w-tpl-ce503c",
+        "atMs": 1860817,
+        "ms": 30145,
+        "ok": true
+      }
+    ],
+    "failure": null
+  }
+}

@@ -10,6 +10,7 @@ import {
   GradeNotOffered,
   NotWorldOwner,
   SnapshotExists,
+  SnapshotInUse,
   SnapshotNotFound,
   WorldExists,
   WorldNotFound,
@@ -120,7 +121,8 @@ export const show = declare({
   examples: [{ payload: { world: "town" }, success: exampleWorld }],
 });
 
-const Snapshot = Schema.Struct({
+/** A saved snapshot, as `world.snapshot.save` answers it. */
+export const Snapshot = Schema.Struct({
   world: WorldName,
   snapshot: SnapshotName,
   /** The last entry of the world's record that the snapshot holds. The save's own entry follows it. */
@@ -145,7 +147,8 @@ export const snapshotSave = declare({
       template: Schema.Boolean,
     },
     success: Snapshot,
-    error: Schema.Union([WorldNotFound, NotWorldOwner, SnapshotExists, NotImplemented]),
+    /** SnapshotInUse: `replace` of a snapshot a live world hangs from, which cannot go while that world lives. */
+    error: Schema.Union([WorldNotFound, NotWorldOwner, SnapshotExists, SnapshotInUse, NotImplemented]),
   }),
   emits: [
     {
