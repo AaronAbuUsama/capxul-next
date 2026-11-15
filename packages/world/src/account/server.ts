@@ -1,9 +1,9 @@
 // The platform's door: the blueprint's platform group (world.create, world.show, world.snapshot.save,
 // world.snapshot.restore, and an operator's inventory: world.list, world.snapshot.list and world.snapshot.delete),
 // served over HTTP with Effect's Rpc server at `PLATFORM_PATH` by whatever process runs it
-// where the Cloudflare and Neon keys are (decisions.md, 51): the runner, in-process, or `world platform serve`. Its
-// sign-in and its spans are Core's own middlewares; its spans are kept in the platform's store (store.ts), and each
-// call's events in the record of the world it acted on.
+// where the Cloudflare and Neon keys are (packages/blueprint/docs/decisions.md, entry 51): the runner, in-process, or
+// `world platform serve`. Its sign-in and its spans are Core's own middlewares; its spans are kept in the platform's
+// store (store.ts), and each call's events in the record of the world it acted on.
 import { PLATFORM_PATH, PlatformRpcs } from "@capxul/blueprint";
 import { PlatformSignInLive, TelemetryLive } from "@capxul/core";
 import * as Arr from "effect/Array";

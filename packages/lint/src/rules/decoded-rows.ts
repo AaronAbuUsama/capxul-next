@@ -6,6 +6,9 @@ import * as Arr from "effect/Array";
 import { isGenerated, ratcheted, type Unmigrated } from "./ratchet.ts";
 import { matches, pathOf } from "./where.ts";
 
+/** What the rule finds, as AGENTS.md and packages/lint/README.md list it (written there by `pnpm generate`). */
+export const description = "no `sql<Row>` cast outside the blueprint; rows are decoded with the blueprint's schemas.";
+
 /** The blueprint, and its toolkit (packages/blueprint-tools), which writes and checks it. */
 const OWNERS = ["packages/blueprint/**", "packages/blueprint-tools/**"];
 
@@ -21,17 +24,12 @@ const isSql = (tag: ESTree.Node): boolean =>
     tag.property.name === "sql");
 
 export const decodedRows = (listed: Unmigrated) =>
-  ratcheted(
-    "decoded-rows",
-    "Rows read from the database are decoded with the blueprint's schemas, not cast",
-    listed,
-    (context: Context, found) => {
-      if (Arr.some(OWNERS, (owner) => matches(owner, pathOf(context))) || isGenerated(context)) return null;
-      return {
-        TaggedTemplateExpression: (node: ESTree.TaggedTemplateExpression) => {
-          if (isSql(node.tag) && node.typeArguments !== null && node.typeArguments !== undefined)
-            found({ node, message: MESSAGE });
-        },
-      };
-    },
-  );
+  ratcheted("decoded-rows", description, listed, (context: Context, found) => {
+    if (Arr.some(OWNERS, (owner) => matches(owner, pathOf(context))) || isGenerated(context)) return null;
+    return {
+      TaggedTemplateExpression: (node: ESTree.TaggedTemplateExpression) => {
+        if (isSql(node.tag) && node.typeArguments !== null && node.typeArguments !== undefined)
+          found({ node, message: MESSAGE });
+      },
+    };
+  });

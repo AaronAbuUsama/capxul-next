@@ -1,5 +1,5 @@
-// The blueprint's folders read as data: each thing (a folder under src/things/), its verbs (one file each) and its
-// thing files, from the files' text alone, so `pnpm generate` can write the generated indexes even when the ones on
+// The blueprint's folders read as data: each thing (a folder under src/things/), its verbs (one file each: an
+// operation with its Rpc, or work no door serves) and its thing files, from the files' text alone, so `pnpm generate` can write the generated indexes even when the ones on
 // disk are out of date, and the renderer can say which verbs are whose. Pure: the callers read the disk.
 import * as Arr from "effect/Array";
 import { pipe } from "effect/Function";
@@ -43,6 +43,20 @@ export interface Verb {
   readonly exports: Exports;
 }
 
+/**
+ * One verb that is work no door serves (the language's `work`): its file, its name and its declaration's export. It
+ * has no Rpc, no server and no promises, so it joins no domain and no Rpc group; the pipeline's index gathers it.
+ */
+export interface WorkVerb {
+  readonly thing: string;
+  readonly verb: string;
+  readonly path: string;
+  /** Its name, `<thing>.<verb>`, as its declaration writes it. */
+  readonly name: string;
+  readonly declaration: string;
+  readonly exports: Exports;
+}
+
 /** One of a thing's own files, as the indexes read it. */
 export interface Part {
   readonly path: string;
@@ -61,6 +75,8 @@ export interface Lifecycle {
 export interface Thing {
   readonly name: string;
   readonly verbs: ReadonlyArray<Verb>;
+  /** Its verbs that are work no door serves, in order. */
+  readonly works: ReadonlyArray<WorkVerb>;
   readonly parts: { readonly [file in (typeof THING_FILES)[number]]?: Part };
   readonly lifecycle: Lifecycle | null;
 }
@@ -138,6 +154,24 @@ const verbOf = (file: ThingFile, thing: string, verb: string): { verb: Verb | nu
   };
 };
 
+/** The work a verb's file declares, when it declares work (`export const x = work({ name: "..."`) and no Rpc. */
+const workOf = (file: ThingFile, thing: string, verb: string): { work: WorkVerb | null; problems: Array<string> } => {
+  const found = all(/^export const (\w+) = work\(\{\s*name: "([^"]+)"/gm, file.text);
+  const declared = found[0];
+  if (declared === undefined) return { work: null, problems: [] };
+  const problems: Array<string> = [];
+  const declaration = declared[1] ?? "";
+  const name = declared[2] ?? "";
+  if (found.length !== 1)
+    problems.push(`${file.path}: a verb declares one piece of work; this declares ${found.length}`);
+  if (/Rpc\.make\(/.test(file.text)) problems.push(`${file.path}: work no door serves declares no Rpc`);
+  if (name !== `${thing}.${verb}`)
+    problems.push(`${file.path}: its work is named \`${thing}.${verb}\`, not \`${name}\``);
+  return problems.length > 0
+    ? { work: null, problems }
+    : { work: { thing, verb, path: file.path, name, declaration, exports: exportsOf(file.text) }, problems };
+};
+
 const lifecycleOf = (file: ThingFile): Lifecycle | null => {
   const found = /^export const (\w+) = Machine\.make\(\{\s*name: "([^"]+)"/m.exec(file.text);
   const machine = found?.[1];
@@ -171,6 +205,7 @@ export const layoutOf = (files: ReadonlyArray<ThingFile>): Layout => {
       Order.mapInput(Order.String, (each: { readonly file: string }) => each.file),
     );
     const verbs: Array<Verb> = [];
+    const works: Array<WorkVerb> = [];
     const parts: { [file in (typeof THING_FILES)[number]]?: Part } = {};
     let lifecycle: Lifecycle | null = null;
     for (const { file, at } of entries) {
@@ -180,20 +215,32 @@ export const layoutOf = (files: ReadonlyArray<ThingFile>): Layout => {
       } else if (isThingFile(file)) {
         parts[file] = { path: at.path, exports: exportsOf(at.text), subjects: has(at.text, "subjects") };
       } else {
-        const made = verbOf(at, name, Str.slice(0, -3)(file));
-        problems.push(...made.problems);
-        if (made.verb !== null) verbs.push(made.verb);
+        const verb = Str.slice(0, -3)(file);
+        const asWork = workOf(at, name, verb);
+        problems.push(...asWork.problems);
+        if (asWork.work !== null) works.push(asWork.work);
+        else if (asWork.problems.length === 0) {
+          const made = verbOf(at, name, verb);
+          problems.push(...made.problems);
+          if (made.verb !== null) verbs.push(made.verb);
+        }
       }
     }
-    if (verbs.length === 0) problems.push(`${name}: a thing has at least one verb`);
-    return { name, verbs, parts, lifecycle };
+    if (verbs.length + works.length === 0) problems.push(`${name}: a thing has at least one verb`);
+    return { name, verbs, works, parts, lifecycle };
   });
-  const operations = Arr.flatMap(things, (thing) => Arr.map(thing.verbs, (verb) => verb.operation));
+  const operations = Arr.flatMap(things, (thing) => [
+    ...Arr.map(thing.verbs, (verb) => verb.operation),
+    ...Arr.map(thing.works, (each) => each.name),
+  ]);
   for (const operation of Arr.dedupe(operations))
     if (Arr.filter(operations, (each) => each === operation).length > 1)
       problems.push(`${operation}: declared by more than one verb`);
   return { things, problems };
 };
+
+/** Every verb of the layout that is work no door serves, thing by thing. */
+export const worksOf = (layout: Layout): ReadonlyArray<WorkVerb> => Arr.flatMap(layout.things, (thing) => thing.works);
 
 /** Every verb of the layout, thing by thing. */
 export const verbsOf = (layout: Layout): ReadonlyArray<Verb> => Arr.flatMap(layout.things, (thing) => thing.verbs);

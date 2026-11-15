@@ -1,12 +1,12 @@
-// org.create: a company founded in one step (decisions.md, 26). Everything is checked before the first write. Then
-// the company Safe is minted through Companies House's company role for the founder's Safe, under the Organization's
-// id (decisions.md, 34), and the Installer deploys its authority: the Board's hats with one officer hat per
-// permission, the Director hat on every founding Director's Safe, the Signer Gate and Roles. The setup that completes
-// it is prepared as one UserOperation of the founder's Safe: the founder's capital to the company Safe, then the
-// company Safe's install batch (the Gate as module and guard, every founding Director's Safe a signer at the board's
-// threshold, Budgets with a top budget for the Books hat). Every founding Director gets an approval of its digest;
-// approval.sign sends it once the threshold is signed, the founder's among them. The company's site is started on
-// the world's bench.
+// org.create: a company founded in one step (packages/blueprint/docs/decisions.md, entry 26). Everything is checked
+// before the first write. Then the company Safe is minted through Companies House's company role for the founder's
+// Safe, under the Organization's id (packages/blueprint/docs/decisions.md, entry 34), and the Installer deploys its
+// authority: the Board's hats with one officer hat per permission, the Director hat on every founding Director's Safe,
+// the Signer Gate and Roles. The setup that completes it is prepared as one UserOperation of the founder's Safe: the
+// founder's capital to the company Safe, then the company Safe's install batch (the Gate as module and guard, every
+// founding Director's Safe a signer at the board's threshold, Budgets with a top budget for the Books hat). Every
+// founding Director gets an approval of its digest; approval.sign sends it once the threshold is signed, the founder's
+// among them. The company's site is started on the world's bench.
 import { Errors, Organizations as Ops, Values } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
@@ -62,7 +62,10 @@ const person = (name: string) =>
     );
   });
 
-/** A founding Director needs a claimed Safe to wear the Director hat, as the founder does (decisions.md, 47). */
+/**
+ * A founding Director needs a claimed Safe to wear the Director hat, as the founder does
+ * (packages/blueprint/docs/decisions.md, entry 47).
+ */
 const withSafe = (member: CastMember) =>
   member.safe === null
     ? Effect.fail(Errors.FounderNotReady.make({ person: member.person }))
