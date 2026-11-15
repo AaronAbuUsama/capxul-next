@@ -1,9 +1,9 @@
 # Triage of the old open pull requests
 
-**Status, 15 November 2026, 16:40 UTC: closed 0; open 58 (#145 to be kept; the other 57 waiting).** The conductor
-relayed Aaron's answer: close groups 1, 2, 3 and 5, and keep #145. The triage session closes them only on Aaron's
-own written yes, given in its session or on #285, and none has come yet. The closing comments are ready: each names
-the pull request's idea and where it went (group 5: the blueprint backlog, per the conductor) or why it is closed.
+**Status, 15 November 2026: closed 57, kept open 1 (#145).** On Aaron's written yes in the triage session ("yes,
+close 1, 2, 3 and 5"), groups 1 (#229), 2 (24), 3 (21) and 5 (11) were closed. Each has a comment naming its idea and
+where it went (group 5: the blueprint backlog), or why it was closed. #145 stays open for the escrow revisit. No
+branch was deleted; any of them can be reopened.
 
 Made on 15 November 2026, at Aaron's request, by the pull-request triage session. It covers the 57 pull requests still
 open from the old product line's wave 0 (12 and 13 November 2026, into `integration/wave-0` and
