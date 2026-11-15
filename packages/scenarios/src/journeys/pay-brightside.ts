@@ -7,6 +7,7 @@ import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import { Capxul } from "../client.ts";
 import { given } from "../expectation.ts";
+import { Cast } from "../cast.ts";
 import { journey, outline } from "../journey.ts";
 import { paymentsSent, usdc } from "../support/chain.ts";
 import { same, sameAddress, sameAmount } from "../support/expect.ts";
@@ -33,19 +34,21 @@ const steps = outline({
   books: [named["report.run"], "the books agree with the chain: the payment posted once, and the invoice is paid"],
 });
 
-const sam = { as: "sam" } as const;
 const SECOND_BILL = 40;
 const TOO_MUCH = 5000;
 
 export const payBrightside = journey(
   {
     name: "pay Brightside",
+    key: "pay",
     story:
       "sam's payment to Brightside is held for his signature, wrong signatures are refused, sam pays once and a replay sends nothing more, and the books agree with the chain.",
     given: startingWorlds.paymentDrafted,
     steps,
   },
   Effect.gen(function* () {
+    const cast = yield* Cast;
+    const sam = { as: cast.sam } as const;
     const facts = yield* given(startingWorlds.paymentDrafted);
     const capxul = yield* Capxul;
     const { world, supplier, invoice, payment } = facts;
@@ -89,14 +92,14 @@ export const payBrightside = journey(
 
     yield* steps.refuse.run((op) =>
       Effect.gen(function* () {
-        const samIs = yield* castMember(world, "sam");
-        const olga = yield* castMember(world, "olga");
+        const samIs = yield* castMember(world, cast.sam);
+        const olga = yield* castMember(world, cast.olga);
         const invalid = yield* op.refused(named["SignatureInvalid"], yield* sign(held.approval, olga.signer), sam);
         yield* sameAddress("the address the wrong signature recovers", invalid.recovered, olga.signer);
         yield* sameAddress("the address it must recover", invalid.expected, samIs.signer);
         yield* op.refused(named["ApprovalNotFound"], { ...bySam, approval: "apr_nobodyissuedthis" }, sam);
-        const notHers = yield* op.refused(named["NotYourApproval"], bySam, { as: "olga" });
-        yield* same("whose approval it is", notHers.signer, "sam");
+        const notHers = yield* op.refused(named["NotYourApproval"], bySam, { as: cast.olga });
+        yield* same("whose approval it is", notHers.signer, cast.sam);
         yield* same("the payments sent so far", (yield* paymentsSent(world, held.payment.paymentId)).length, 0);
       }),
     );

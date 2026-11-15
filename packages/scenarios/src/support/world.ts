@@ -89,9 +89,6 @@ export const castMember = (world: View, person: string) =>
     Arr.findFirst(world.cast, (each) => each.person === person).pipe(Option.getOrNull),
   );
 
-/** The company of the starting worlds from `founded` on. */
-export const NORTHWIND = "northwind";
-
 /** A company the world shows, by handle. */
 export const company = (world: View, handle: string) =>
   present(

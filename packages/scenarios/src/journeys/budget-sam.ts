@@ -8,6 +8,7 @@ import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import { Capxul } from "../client.ts";
 import { expect, given } from "../expectation.ts";
+import { Cast } from "../cast.ts";
 import { journey, outline } from "../journey.ts";
 import { budgetsCreated, heldOnChain, type Budget } from "../support/budgets.ts";
 import { mintedTo } from "../support/chain.ts";
@@ -44,11 +45,6 @@ const steps = outline({
   ],
 });
 
-const dana = { as: "dana" } as const;
-const eli = { as: "eli" } as const;
-const sam = { as: "sam" } as const;
-const olga = { as: "olga" } as const;
-
 /** A company nobody founded, a budget Northwind does not have, and a person who is nobody of the world. */
 const NO_ORG = "org_nowhere1";
 const NO_BUDGET = "999999";
@@ -57,12 +53,18 @@ const NOBODY = "zed";
 export const budgetSam = journey(
   {
     name: "give sam a budget at Northwind",
+    key: "budget",
     story:
       "dana proposes a monthly budget of 1,000 USDC for sam inside Northwind's top budget, dana and eli sign it onto the chain with a hat of its own on sam's Safe, and everyone who belongs reads it as the chain holds it; whoever may not propose, whom a budget may not go to and what does not fit are refused.",
     given: startingWorlds.founded,
     steps,
   },
   Effect.gen(function* () {
+    const cast = yield* Cast;
+    const dana = { as: cast.dana } as const;
+    const eli = { as: cast.eli } as const;
+    const sam = { as: cast.sam } as const;
+    const olga = { as: cast.olga } as const;
     const { founded } = yield* given(startingWorlds.founded);
     const capxul = yield* Capxul;
     const org = founded.org;
@@ -106,15 +108,15 @@ export const budgetSam = journey(
 
     yield* steps.refused.run((op) =>
       Effect.gen(function* () {
-        const office = ask(top.id, "Office costs", "sam", "1000");
+        const office = ask(top.id, "Office costs", cast.sam, "1000");
         const notDirector = yield* op.refused("NotADirector", office, sam);
-        yield* same("who may not propose", notDirector.person, "sam");
-        for (const holder of ["olga", NOBODY]) {
+        yield* same("who may not propose", notDirector.person, cast.sam);
+        for (const holder of [cast.olga, NOBODY]) {
           const outside = yield* op.refused("NotAMember", { ...office, holder }, dana);
           yield* same("the holder who does not belong", outside.person, holder);
         }
-        const noSafe = yield* op.refused("MemberHasNoSafe", { ...office, holder: "pat" }, dana);
-        yield* same("the holder with no Safe", noSafe.person, "pat");
+        const noSafe = yield* op.refused("MemberHasNoSafe", { ...office, holder: cast.pat }, dana);
+        yield* same("the holder with no Safe", noSafe.person, cast.pat);
         const noParent = yield* op.refused("BudgetNotFound", { ...office, parent: NO_BUDGET }, dana);
         yield* same("the parent Northwind does not have", noParent.budget, NO_BUDGET);
         const over = yield* op.refused("ExceedsParent", { ...office, amount: "1000000.000001" }, dana);
@@ -127,16 +129,16 @@ export const budgetSam = journey(
 
     const proposed = yield* steps.propose.run((op) =>
       Effect.gen(function* () {
-        const asked = yield* op.succeeds(ask(top.id, "Office costs", "sam", "1000"), dana);
+        const asked = yield* op.succeeds(ask(top.id, "Office costs", cast.sam, "1000"), dana);
         yield* same(
           "the proposed budget",
           [asked.creation.name, asked.creation.holder, asked.creation.asset, asked.creation.period],
-          ["Office costs", "sam", "USDC", "month"],
+          ["Office costs", cast.sam, "USDC", "month"],
         );
         yield* same(
           "the Directors asked",
           Arr.map(asked.approvals, (each) => each.signer),
-          ["dana", "eli"],
+          [cast.dana, cast.eli],
         );
         const listed = yield* capxul["org.budget.list"]({ org }, dana);
         yield* same(
@@ -160,7 +162,7 @@ export const budgetSam = journey(
         const budget = yield* present("the budget the transaction made", created[0]);
         yield* sameAddress("the new budget's Safe", budget.safe, founded.safe);
         yield* same("the new budget's parent", budget.parent, top.id);
-        const samSafe = yield* present("sam's Safe", (yield* castMember(world, "sam")).safe);
+        const samSafe = yield* present("sam's Safe", (yield* castMember(world, cast.sam)).safe);
         yield* expect(
           Arr.some(mintedTo(world, landed.logs, samSafe), (minted) => minted.id === budget.hat),
           `the transaction did not mint the new budget's hat ${budget.hat} to sam's Safe`,
@@ -180,7 +182,7 @@ export const budgetSam = journey(
         yield* same(
           "sam's budget",
           [shown.name, shown.parent, shown.hat, shown.holders, shown.asset, shown.period, shown.closed],
-          ["Office costs", top.id, made.hat, ["sam"], "USDC", "month", false],
+          ["Office costs", top.id, made.hat, [cast.sam], "USDC", "month", false],
         );
         yield* sameAmount("sam's budget's amount", shown.amount, "1000");
         yield* sameAmount("sam's budget's left", shown.left, "1000");
@@ -206,9 +208,9 @@ export const budgetSam = journey(
 
     yield* steps.nested.run((op) =>
       Effect.gen(function* () {
-        const over = yield* op.refused("ExceedsParent", ask(top.id, "Office costs", "sam", "999000.000001"), dana);
+        const over = yield* op.refused("ExceedsParent", ask(top.id, "Office costs", cast.sam, "999000.000001"), dana);
         yield* sameAmount("what the top budget has left", over.left, "999000");
-        const inside = yield* op.succeeds(ask(office.id, "Cleaners", "sam", "200"), dana);
+        const inside = yield* op.succeeds(ask(office.id, "Cleaners", cast.sam, "200"), dana);
         yield* same(
           "the budget proposed inside sam's",
           [inside.creation.parent, inside.creation.period, inside.creation.state],

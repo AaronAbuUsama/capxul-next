@@ -10,6 +10,7 @@ export {
   type Refusal,
   type Success,
 } from "./client.ts";
+export { Casting, COMPANY, ROLES, type Casted, type Role } from "./cast.ts";
 export { coverage, type Covered } from "./coverage.ts";
 export { ExpectationFailed, expect, given } from "./expectation.ts";
 export { Steps, type CheckOutcome, type StepOutline, type Tried } from "./journal.ts";

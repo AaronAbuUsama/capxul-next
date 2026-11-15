@@ -1,4 +1,4 @@
-// What the compiler cannot hold about the journeys: names are unique, each is 5 to 10 steps from one of the
+// What the compiler cannot hold about the journeys: names and keys are unique, each is 5 to 10 steps from one of the
 // blueprint's starting worlds, and between them they call every operation of the blueprint. There are at least the
 // thin line's two or three; each slice adds its own (docs/roadmap.md, phase 3), so there is no upper bound.
 import { strict as assert } from "node:assert";
@@ -17,6 +17,12 @@ test("every journey has its own name, a story and a run", () => {
     assert.ok(each.story.length > 0, `${each.name} tells no story`);
     assert.ok(Effect.isEffect(each.run), `${each.name} has no run`);
   }
+});
+
+test("every journey has its own key, 2 to 6 lowercase letters and digits, by which the run casts its people", () => {
+  const keys = Arr.map(journeys, (each) => each.key);
+  assert.deepEqual(Arr.dedupe(keys), keys);
+  for (const each of journeys) assert.match(each.key, /^[a-z0-9]{2,6}$/, `${each.name}'s key ${each.key}`);
 });
 
 test("at least the thin line's journeys, each 5 to 10 steps from a starting world the blueprint declares", () => {

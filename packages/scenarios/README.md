@@ -57,7 +57,7 @@ const steps = outline({
 });
 
 export const founding = journey(
-  { name: "found Northwind", story: "…", given: startingWorlds.fresh, steps },
+  { name: "found Northwind", key: "found", story: "…", given: startingWorlds.fresh, steps },
   Effect.gen(function* () {
     const founded = yield* steps.found.run((op) => op.answers("Founded", NORTHWIND_FOUNDING, { as: "dana" }));
     yield* steps.sign.run((op) => /* op.answers("Collected", …), op.answers("Sent", …) */);
@@ -73,6 +73,11 @@ List it in its domain's `journeys` (`src/domains/<domain>.ts`), and place the cl
   itself, anything else as `ExpectationFailed`. Steps run in the outline's order, each once.
 - After its tries a step may read the world to observe what the story alone knows (`expect`, `same`, reads in
   `src/support/`). Those reads are looks: the runner checks them generically, but no operation's checks run on them.
+- A journey's people and company are its own (`src/cast.ts`, roadmap step 4.11): it declares a `key`, unique among
+  journeys, and reads who plays each role with `const cast = yield* Cast`, then acts as `{ as: cast.dana }` and names
+  its company `cast.company`. It never writes a person's name or the handle as text. The run casts each journey by its
+  key (`Casting`, provided by the runner); when it casts nobody, each role is the person of its name and the company
+  is `northwind`, so the journeys run one after another as before.
 - `{ as: "dana" }` acts as a person of the cast; `{ operator: "second" }` signs in as the second operator; `{ at:
   view.door }` calls another world's door.
 - `yield* given(startingWorlds.paymentDrafted)` answers the facts of the starting world, or of one it is made from.
