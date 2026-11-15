@@ -11,6 +11,12 @@ import { exampleWorld } from "../examples.ts";
 import { ClockBeforeSeed, GradeNotOffered, WorldExists, WorldQuotaReached } from "../refusals.ts";
 import { Lifetime } from "../values.ts";
 
+// It answers once the world runs, not `creating`: a run is one unit (roadmap, "World lifecycle rules", 1), and a
+// caller has nothing to do with a world that does not answer. It answers once the new world's Core has answered its
+// health check ten times in a row, so a first call `at` it is not answered by Cloudflare's edge. The owner is the
+// calling operator; the payload asks for a lifetime in minutes, capped by `WORLD_LIMITS`, and the answer gives the
+// expiry in host time. A world begins at host time or at a chosen time, frozen or running at rate 1 (no other rate:
+// nothing needs one, and a running clock already drifts across daylight saving), never before `ClockBeforeSeed`.
 export const create = verb({
   rpc: Rpc.make("world.create", {
     payload: {
@@ -54,6 +60,10 @@ export const promises: ClaimsOf = {
       "world.create with a frozen clock answers state running, clock frozen, record head 1 and no parent. record.export at the new world's door lists exactly one entry, `world_created`, at seq 1, carrying what world.create answered.",
       { origin: kept("world.create/c-52e22ec1e2a6c1cc"), thinLine: true },
     ),
+    // Its start is halfway between the seed's last block and host time, which is always before host time, so the
+    // promise needs no condition. Still open for R9 (src/ratchets.ts): an `Instant` carries milliseconds but a block's
+    // timestamp is whole seconds, and nothing says whether such a start is refused, rounded and answered rounded, or
+    // kept in the clock but not on the chain; the journey asks for a whole second, which avoids the question.
     claim(
       "A fresh world can begin before host time, though not before its seeded chain's last block, and an existing world's time cannot be reset.",
       w.nothing,
@@ -90,6 +100,7 @@ export const promises: ClaimsOf = {
       w.nothing,
       "world.create lists dana, eli, sam, pat and olga, each with a signer address that is one of the well-known test keys; every one but pat has a Safe, and each Safe's balance of the world's USDC (chain.balance at the new world's door) is 10,000. record.export at the new world's door as each person is refused with NotWorldOwner, not NotSignedIn: the door signs each of them in.",
     ),
+    // Read where the promise is silent (R9): the refusal's `owner` is the first operator.
     claim(
       "An owner with as many live worlds as allowed is refused, and nothing is made.",
       w.quotaFull,

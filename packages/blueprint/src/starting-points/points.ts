@@ -1,10 +1,14 @@
 // The starting worlds the thin line's journeys begin from, each declared here once and named by the promises whose
 // state it is, by import. Every one is made through the door, by the thin line's own operations, from the one before
 // it. Most are then saved as a template snapshot in the runner's one world, which is reset in place to it before a
-// journey that starts there; the rest are made by their steps for each journey (docs/decisions.md, 27 and 39;
-// docs/roadmap.md, "One runner, one world"). Either way the journey is handed the world's facts, which it reads with
-// `given` (docs/decisions.md, 38). What a starting point is, is the toolkit's (`@capxul/blueprint-tools`, its
-// language); this file holds only the blueprint's own.
+// journey that starts there; the rest are made by their steps for each journey (docs/roadmap.md, "One runner, one
+// world"). Templates serve `fresh` to `paid`; `quota-full` (the operator's own live worlds), `with-snapshot` and
+// `restored` (a snapshot belongs to the world it was saved in) are made by their steps (`made`), since a restored
+// world names its template as parent and its record ends with the restore's `world_created`. A promise about a world
+// made from nothing starts from `nothing` and makes it. A step that waits for background work polls an operation
+// until it answers differently. Either way the journey is handed the world's facts (facts.ts), which it reads with
+// `given`. What a starting point is, is the toolkit's (`@capxul/blueprint-tools`, its language); this file holds only
+// the blueprint's own.
 import type * as Language from "@capxul/blueprint-tools";
 import type * as Schema from "effect/Schema";
 import { BRIGHTSIDE, INVOICE_AMOUNT, REPORTS } from "../common/site.ts";

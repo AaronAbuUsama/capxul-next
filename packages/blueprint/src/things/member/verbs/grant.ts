@@ -13,6 +13,7 @@ import { samBooksGrant } from "../examples.ts";
 import { AlreadyHeld, ChangeWaiting } from "../refusals.ts";
 import { GrantProposed } from "../values.ts";
 
+// A company whose setup has not landed is `OrgNotFound`: it has no board on the chain to propose to.
 export const memberGrant = verb({
   rpc: Rpc.make("org.member.grant", {
     payload: {
@@ -113,6 +114,8 @@ export const promises: ClaimsOf = {
         ),
       },
     ),
+    // Read literally (R9): the Hats logs of the grant's transaction are exactly `[HatMaxSupplyChanged?,
+    // TransferSingle]`.
     claim(
       "The proposal mints the officer hat to the member's Safe, and takes one more seat first when every seat is worn.",
       w.founded,

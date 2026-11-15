@@ -229,7 +229,7 @@ def run_due():
 
 # DAILY_JOB and DAILY_JOB_TYPE, the daily job and the name of its Scheduled Job Type (which a Scheduled Job Log row
 # links to and report.run filters by), are the blueprint's (`Site.DAILY_JOB` in packages/blueprint;
-# packages/blueprint/docs/decisions.md, entry 44), imported from capxul/generated/site.py.
+# packages/blueprint, src/common/site.ts), imported from capxul/generated/site.py.
 
 
 def name_daily_job():

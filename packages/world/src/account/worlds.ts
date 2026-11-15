@@ -1,4 +1,5 @@
-// world.create and world.show, as the platform serves them (packages/blueprint/docs/decisions.md, entries 13 to 15, 20
+// world.create and world.show, as the platform serves them (packages/blueprint, src/things/world/verbs/create.ts and
+// src/things/world/refusals.ts
 // and 25). A new world is this package's create (src/things/world), owned by the calling operator, with its owner's
 // token bound into its Core; then its cast is claimed and funded on its chain, its start block mined, its facts written
 // into its database and its `world_created` into its record. It answers once the world runs. Nothing is made for a

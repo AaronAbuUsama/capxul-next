@@ -1,6 +1,7 @@
-// org.create: a company founded in one step (packages/blueprint/docs/decisions.md, entry 26). Everything is checked
+// org.create: a company founded in one step (packages/blueprint, src/things/company/verbs/create.ts). Everything is
+// checked
 // before the first write. Then the company Safe is minted through Companies House's company role for the founder's
-// Safe, under the Organization's id (packages/blueprint/docs/decisions.md, entry 34), and the Installer deploys its
+// Safe, under the Organization's id (packages/blueprint, src/common/chain/reads.ts), and the Installer deploys its
 // authority: the Board's hats with one officer hat per permission, the Director hat on every founding Director's Safe,
 // the Signer Gate and Roles. The setup that completes it is prepared as one UserOperation of the founder's Safe: the
 // founder's capital to the company Safe, then the company Safe's install batch (the Gate as module and guard, every
@@ -64,7 +65,7 @@ const person = (name: string) =>
 
 /**
  * A founding Director needs a claimed Safe to wear the Director hat, as the founder does
- * (packages/blueprint/docs/decisions.md, entry 47).
+ * (packages/blueprint, src/things/document/verbs/create.ts).
  */
 const withSafe = (member: CastMember) =>
   member.safe === null

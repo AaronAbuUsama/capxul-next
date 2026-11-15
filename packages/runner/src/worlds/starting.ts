@@ -1,5 +1,5 @@
 // Starting worlds for a run in one world (roadmap step 1.18; docs/roadmap.md, "One runner, one world";
-// packages/blueprint/docs/decisions.md, entry 27 as amended by 39). The run's one world is the kept template world:
+// packages/blueprint, src/starting-points/points.ts). The run's one world is the kept template world:
 // `fresh`'s maker creates it, and every starting world made "from its template" is made once in it, by its steps, from
 // the one before, in the blueprint's order. Each one a journey starts from is saved there as a snapshot of its own
 // name, and a world with a company also keeps its sites as a bench template (with a pool of ready copies), so a reset

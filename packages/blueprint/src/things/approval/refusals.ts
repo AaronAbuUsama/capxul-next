@@ -52,7 +52,7 @@ export class ApprovalClosed extends refusal<ApprovalClosed, { readonly brand: un
   2,
 ) {}
 
-/** The transaction was sent and the chain reverted it. Nothing moved. */
+/** The transaction was sent and the chain reverted it. Nothing moved. A fault a caller can act on, so it is typed. */
 export class TransactionReverted extends refusal<TransactionReverted, { readonly brand: unique symbol }>()(
   "TransactionReverted",
   {

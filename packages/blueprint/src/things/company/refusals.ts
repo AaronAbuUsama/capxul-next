@@ -11,6 +11,10 @@ export class PersonNotFound extends refusal<PersonNotFound, { readonly brand: un
   2,
 ) {}
 
+/**
+ * The founder, or a founding Director, has no claimed personal Safe, so they cannot wear the Director hat; each is
+ * refused as the founder would be, named.
+ */
 export class FounderNotReady extends refusal<FounderNotReady, { readonly brand: unique symbol }>()(
   "FounderNotReady",
   {

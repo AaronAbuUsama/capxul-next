@@ -7,7 +7,7 @@
 //
 // Nothing runs in the background of a Worker: `reconcile` moves a company's site on, and is run after the setup or a
 // grant lands and whenever the world's companies are read (`companiesOf`, for world.show). Why:
-// packages/blueprint/docs/decisions.md, entry 50.
+// packages/blueprint, src/common/values.ts.
 import type { Values } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";

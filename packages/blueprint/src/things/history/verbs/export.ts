@@ -1,6 +1,10 @@
 // The concept "record": a world's record is the ordered list of the events emitted in it, each once. A world made
 // from nothing begins with its `world_created`; a world made from a snapshot begins with its source's record up to
 // the snapshot, then its own `world_created`. Exporting reads it through the world's door; the caller writes files.
+// One log rather than a separate log of commands that must agree with the events, and the export is the history the
+// training data needs. A read emits nothing, so it adds nothing. Work that finishes after its call has answered (a
+// payment settling, a site becoming ready) is not that call's declared events: it enters under its own trace. The
+// export is the owner's, takes an optional range, and refuses on a real world (`ExportNotAllowed`).
 //
 // `capxul history export` (today `record.export`): reading a world's record.
 import * as Schema from "effect/Schema";
