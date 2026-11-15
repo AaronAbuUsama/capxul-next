@@ -1,6 +1,7 @@
 // The runner's way in to a stage's database: Neon's HTTPS SQL endpoint, the only way this container reaches Postgres
 // (it has no TCP route out). Used to apply Core's migrations when a stage is created and to read back what Core kept
 // about each call. The connection string travels in a header and is never logged or recorded.
+import { Pipeline } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -13,6 +14,7 @@ import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import { SpanAttributes } from "@capxul/core";
 import { RunnerFailure } from "../failure.ts";
+import { stepOptions } from "../telemetry/step.ts";
 
 const Rows = Schema.Struct({ rows: Schema.Array(Schema.Unknown) });
 const Refusal = Schema.Struct({ message: Schema.String });
@@ -22,7 +24,7 @@ export const hostOf = (uri: string): string =>
   pipe(Str.split(uri, "@"), Arr.lastNonEmpty, Str.split("/"), Arr.headNonEmpty, Str.split(":"), Arr.headNonEmpty);
 
 /** POSTs one body to the database's `/sql` endpoint. */
-const post = Effect.fn("database.post")(function* (database: Redacted.Redacted, body: object) {
+const post = Effect.fnUntraced(function* (database: Redacted.Redacted, body: object) {
   const uri = Redacted.value(database);
   const response = yield* HttpClient.execute(
     HttpClientRequest.post(`https://${hostOf(uri)}/sql`).pipe(
@@ -57,7 +59,10 @@ export const statementsOf = (file: string): ReadonlyArray<string> =>
   );
 
 /** Applies every `.sql` file in `directory`, in name order, as one transaction: all of it or none of it. */
-export const migrate = Effect.fn("database.migrate")(function* (database: Redacted.Redacted, directory: string) {
+export const migrate = Effect.fn(
+  Pipeline.runPrepare.spans.migrate.name,
+  stepOptions(Pipeline.runPrepare.spans.migrate),
+)(function* (database: Redacted.Redacted, directory: string) {
   const fs = yield* FileSystem.FileSystem;
   const files = Arr.sort(Arr.filter(yield* fs.readDirectory(directory), Str.endsWith(".sql")), Order.String);
   const statements = Arr.flatten(
@@ -97,10 +102,10 @@ export interface Kept {
 }
 
 /** Everything Core kept under the given trace ids, in the order it was written. */
-export const telemetryOf = Effect.fn("database.telemetry")(function* (
-  database: Redacted.Redacted,
-  traceIds: ReadonlyArray<string>,
-) {
+export const telemetryOf = Effect.fn(
+  Pipeline.checkCall.spans.read.name,
+  stepOptions(Pipeline.checkCall.spans.read),
+)(function* (database: Redacted.Redacted, traceIds: ReadonlyArray<string>) {
   if (traceIds.length === 0) return { spans: [], events: [] } satisfies Kept;
   const spans = yield* query(
     database,
