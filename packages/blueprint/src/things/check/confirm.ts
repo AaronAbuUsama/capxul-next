@@ -11,7 +11,7 @@ export const checkConfirm = work({
   payload: { run: RunId },
   spans: {
     read: span("check.confirm.read", StepKind.poll),
-    compare: span("check.confirm.compare", StepKind.container),
+    compare: span("check.confirm.compare", StepKind.compute),
   },
   logs: {
     missing: log("check.confirm.missing", { run: RunId, signal: Signal }),

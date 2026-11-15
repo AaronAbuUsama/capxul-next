@@ -74,6 +74,7 @@ export * as Errors from "./generated/refusals.ts";
 export * as Values from "./generated/values.ts";
 export { startingWorlds, type Claim, type ClaimsOf, type Step, type StartingWorld } from "./starting-points/points.ts";
 export { MadeCall } from "./starting-points/facts.ts";
+export * as Cast from "./starting-points/cast.ts";
 export * as Chain from "./common/chain/chain.ts";
 export * as Site from "./common/site.ts";
 export { allClaims } from "./generated/promises.ts";
