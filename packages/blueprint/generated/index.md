@@ -60,7 +60,7 @@ today until the glossary's renames (roadmap item 3.8).
 | [ratchet](ratchet.md) | count | `ratchet.count` | none: work no door serves |
 | [report](report.md) | run | `report.run` | the world group |
 | [run](run.md) | prepare | `run.prepare` | none: work no door serves |
-| [run](run.md) | run | `run.run` | none: work no door serves |
+| [run](run.md) | start | `run.start` | none: work no door serves |
 | [run](run.md) | teardown | `run.teardown` | none: work no door serves |
 | [run](run.md) | verdict | `run.verdict` | none: work no door serves |
 | [site](site.md) | reset | `site.reset` | none: work no door serves |
