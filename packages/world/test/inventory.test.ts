@@ -1,7 +1,7 @@
 import * as assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import type { StackListing } from "../src/lifecycle/account.ts";
-import { inventoryReport, worldStageOf } from "../src/proofs/support.ts";
+import type { StackListing } from "../src/stack/cloud.ts";
+import { inventoryReport, worldStageOf } from "../src/proofs/support/conclude.ts";
 
 const empty: StackListing = {
   workers: [],
