@@ -42,7 +42,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 - [`failures.ts`](../src/common/failures.ts): The world package's own failures, declared here once.
 - [`record.ts`](../src/common/record.ts): What a run leaves behind once its world is gone, and what a proof saw.
 - [`stopwatch.ts`](../src/common/stopwatch.ts): A step of a world's life: run under its declared timeout, with its duration written down whether it ended well, failed or timed out (roadmap rule 6).
-- [`telemetry.ts`](../src/common/telemetry.ts): The world's OTLP export (roadmap 4.4): the layer its entry (cli/main.ts) provides once, so every span, log and metric it makes is posted over OTLP/HTTP JSON to `baseUrl` (the collector), under a resource naming the producer (`service.name`: "capxul-world", #301's producer) and the code's revision (`service.version`).
+- [`telemetry.ts`](../src/common/telemetry.ts): The world's OTLP export (roadmap 4.4): the layer its entry (src/cli/main.ts) provides once, through `exportFromConfig`, so every span, log and metric it makes is posted over OTLP/HTTP JSON to `baseUrl` (the collector), under a resource naming the producer (`service.name`: "capxul-world", #301's producer) and the code's revision (`service.version`).
 
 ## `src/`
 
