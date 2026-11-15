@@ -93,6 +93,7 @@
     "capxul/owned-values": "error",
     "capxul/declared-names": "error",
     "capxul/decoded-rows": "error",
+    "capxul/declared-steps": "error",
     "effecttsgo/abort-controller-in-effect": "error",
     "effecttsgo/acquire-release-disposable": "error",
     "effecttsgo/all-of-map-to-for-each": "error",
