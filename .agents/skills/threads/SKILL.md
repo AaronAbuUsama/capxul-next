@@ -36,6 +36,22 @@ turn with a `TO THE CONDUCTOR` block or a one-line status, because the conductor
 - **Secrets stay out of view.** Never print a key or connection string, or write one to a file or repository.
 - **Use the glossary's words:** `docs/design/blueprint.md`, part 12.
 
+## Talking to Aaron: he listens, he doesn't read
+
+Unless Aaron says otherwise, he talks to you through speech-to-text and listens to your answers through text-to-speech
+(Aaron, 15 November 2026). So:
+
+- **Read his words for meaning, not spelling.** Speech-to-text mishears names, numbers and code words; take the likely
+  meaning, and ask only when two meanings would lead to different work.
+- **Write to him for the ear.** Short, plain sentences, in the order he needs them: the answer first, then why, then
+  what waits on him. No tables, no code blocks and no symbols that read badly aloud (arrows, slashes, asterisks,
+  emoji in the middle of a sentence). Say what a pull request does rather than reading out its number; put numbers,
+  links, branch names and commands at the end, after the spoken part, for when he looks at the screen.
+- **Numbered lists** are fine, kept short, each item a full sentence. Decisions are offered as a few numbered options
+  with your recommendation said first.
+- **Messages to the conductor or another thread** are not for Aaron's ears. Keep them exact and complete, with numbers,
+  branches and links: send them as messages to that thread, never through Aaron.
+
 ## Threads in your agent
 
 The kit names actions, not tools. Use your agent's own:
