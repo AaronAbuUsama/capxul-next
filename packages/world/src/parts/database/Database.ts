@@ -1,6 +1,7 @@
 // A world's one database: its own copy-on-write branch of the Neon project the platform stage owns (made through
 // Neon's API, src/parts/database/neon.ts), and the Hyperdrive configuration through which the world's Core reaches it.
 import * as Cloudflare from "@alchemy.run/cloudflare";
+import { DATABASE_REGION } from "@capxul/core";
 import * as Neon from "@alchemy.run/neon";
 import * as Alchemy from "alchemy";
 import * as Config from "effect/Config";
@@ -19,8 +20,9 @@ export const WorldsProject = Effect.gen(function* () {
   const { stage } = yield* Alchemy.Stack;
   if (stage !== PLATFORM) return yield* Neon.Project.ref(PROJECT_ID, { stage: PLATFORM });
   const orgId = yield* Config.String("NEON_ORG_ID");
-  // Neon's free plan keeps at most 6 hours of history; Alchemy's default asks for 24.
-  return yield* Neon.Project(PROJECT_ID, { region: "aws-eu-west-2", orgId, historyRetentionSeconds: 21600 });
+  // Neon's free plan keeps at most 6 hours of history; Alchemy's default asks for 24. Core's region, where its Worker
+  // is placed (D5).
+  return yield* Neon.Project(PROJECT_ID, { region: DATABASE_REGION, orgId, historyRetentionSeconds: 21600 });
 });
 
 /**

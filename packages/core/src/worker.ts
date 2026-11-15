@@ -29,6 +29,7 @@ import { Served, ServedEmpty } from "./server.ts";
 import { siteOpsLive } from "./site-ops/door.ts";
 import { SiteDoor } from "./site/SiteDoor.ts";
 import { CoreDeployment, ownDeployment } from "./stack/deployment.ts";
+import { CORE_PLACEMENT } from "./stack/region.ts";
 import { coloOf, Placement } from "./telemetry/attributes.ts";
 import { CoreIdentity } from "./telemetry/middleware.ts";
 import { SqlSpanSink } from "./telemetry/sink.ts";
@@ -44,8 +45,13 @@ const connectionString = (env: Record<string, unknown>) =>
     return Redacted.make(text);
   });
 
-// The Postgres driver opens its socket through Node's `net` and `tls`.
-const props = () => ({ main: import.meta.url, compatibility: { flags: ["nodejs_compat"] } });
+// The Postgres driver opens its socket through Node's `net` and `tls`. Every deploy, each world's and staging's, runs
+// next to its database in Europe (D5, src/stack/region.ts).
+const props = () => ({
+  main: import.meta.url,
+  compatibility: { flags: ["nodejs_compat"] },
+  placement: CORE_PLACEMENT,
+});
 
 export default class Core extends Cloudflare.Worker<Core>()(
   "Core",

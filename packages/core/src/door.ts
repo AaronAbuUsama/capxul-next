@@ -7,6 +7,7 @@ export { CoreRpcs, Served, ServedEmpty } from "./server.ts";
 export { CoreIdentity, PlatformSignInLive, TelemetryLive } from "./telemetry/middleware.ts";
 export { default as CoreWorker } from "./worker.ts";
 export { CoreDeployment, type Deployment } from "./stack/deployment.ts";
+export { CORE_PLACEMENT, DATABASE_REGION } from "./stack/region.ts";
 export { ENV as CORE_ENV } from "./env.ts";
 export { HEALTH_PATH, PROBE_PATH } from "./probe.ts";
 export { SiteDoor, SiteDoorFailed, type SiteAnswer, type SiteCall } from "./site/SiteDoor.ts";
