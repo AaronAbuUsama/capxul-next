@@ -26,7 +26,8 @@
 // - An old word marked `uncounted` (spelled as a word the glossary keeps, `step`) is listed, never counted.
 // - An old word with `within` (`lane`, a shard only in packages/runner) is counted only in files under those paths.
 // - An old word spelled as an agreed word is not counted in that entry's `keptIn`, the exact code where the agreed
-//   meaning is written (`claim` in `CompaniesHouseClaimer.claim` is claiming a Safe, not taking sites).
+//   meaning is written (`claim` in `CompaniesHouseClaimer.claim` is claiming a Safe, not taking sites), as a whole name
+//   only: neither a name character nor `.` after it, so `capxul.claim` does not excuse `capxul.claim.devnet`.
 // - Only words a writer can choose today count. A package's name is renamed only with its package, so it counts
 //   nothing where it is written by shape: a package specifier (`@capxul/core`, in an import, a `package.json` or
 //   `--filter @capxul/core`), a path's folder under `packages/` (`packages/core/src`), or a flag running a package
@@ -169,22 +170,25 @@ const segmentsOf = (piece: Piece): ReadonlyArray<Segment> => {
   );
 };
 
-/** A pattern for `text` standing as exact code, nothing of a name touching it. */
-const exactly = (text: string): RegExp =>
-  new RegExp(`(?<![A-Za-z0-9_-])${Str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")(text)}(?![A-Za-z0-9_-])`, "g");
+/** `text` as exact code, nothing of a name after it; as a `whole` name (a `keptIn`), no `.` after it either. */
+const exactly = (text: string, whole = false): RegExp =>
+  new RegExp(
+    `(?<![A-Za-z0-9_-])${Str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")(text)}(?![A-Za-z0-9_${whole ? "$." : ""}-])`,
+    "g",
+  );
 
-/** Whether `text` stands in `piece` as exact code, nothing of a name touching it. */
+/** Whether `text` stands in `piece` as exact code. */
 const codeStands = (piece: Piece, text: string): boolean => every(exactly(text))(piece.text).length > 0;
 
 /** The exact code where an agreed word spelled `text` keeps its own meaning (an entry's `keptIn`). */
 const keptInOf = (glossary: ReadonlyArray<Entry>, text: string): ReadonlyArray<string> =>
   Arr.flatMap(glossary, (entry) => (entry.word === text ? (entry.keptIn ?? []) : []));
 
-/** `piece` with every one of `kept` blanked out, so nothing in it is counted. */
-const without = (piece: Piece, kept: ReadonlyArray<string>): Piece =>
-  Arr.reduce(kept, piece, (each, text) => ({
+/** `piece` with every one of `skipped` blanked out (each as a `whole` name, or as exact code), so nothing in it counts. */
+const without = (piece: Piece, skipped: ReadonlyArray<string>, whole: boolean): Piece =>
+  Arr.reduce(skipped, piece, (each, text) => ({
     kind: each.kind,
-    text: Str.replace(exactly(text), " ")(each.text),
+    text: Str.replace(exactly(text, whole), " ")(each.text),
   }));
 
 /** The exact text in which `text` as an old word is not counted: the `exceptions` of each entry that replaces it. */
@@ -242,10 +246,9 @@ export const namesFile = (glossary: ReadonlyArray<Entry>, file: File): Names => 
         ...Arr.map(old.except, wordsOf),
         ...OTHERS,
       ];
-      const kept = keptInOf(glossary, old.text);
-      const skipped = [...kept, ...exceptionsOf(glossary, old.text)];
-      const read =
-        skipped.length === 0 ? segments : Arr.flatMap(pieces, (piece) => segmentsOf(without(piece, skipped)));
+      const [kept, excepted] = [keptInOf(glossary, old.text), exceptionsOf(glossary, old.text)];
+      const skip = (piece: Piece): Piece => without(without(piece, kept, true), excepted, false);
+      const read = kept.length + excepted.length === 0 ? segments : Arr.flatMap(pieces, (p) => segmentsOf(skip(p)));
       const holding = Arr.filter(read, (segment) => countIn(segment.words, words, hiding) > 0);
       return [keyOf(old), Arr.dedupe(Arr.map(holding, (segment) => segment.text))] as const;
     }),

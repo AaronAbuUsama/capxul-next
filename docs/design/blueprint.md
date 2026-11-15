@@ -564,7 +564,7 @@ left open.
 | `conventions.ts` | The OpenTelemetry semantic conventions' version, pinned (T8) | The schema URL on every producer's resource |
 | `envelope.ts` | Every attribute stamped on every record: its name, convention or `capxul.*`, schema, who sets it | The constants producers import; the door's stamping; Axiom field descriptions |
 | `producers.ts` | Each `service.name`: core, runner, world, platform client, sdk, cli, door, cost job, gate, agents' sessions | Each process's resource |
-| `step-kinds.ts` | database, site, chain, bundler, wait, deploy, branch, container, restore, poll | `capxul.step.kind`; the waits a budget leaves out |
+| `step-kinds.ts` | database, site, chain, bundler, wait, deploy, branch, container, compute (work done in-process, touching nothing outside), restore, poll | `capxul.step.kind`; the waits a budget leaves out |
 | `metrics.ts` | Each metric: name, type, unit, the tags it may carry | Effect `Metric` definitions; the metrics a check expects |
 | `datasets.ts` | The 12 logical datasets (T2), by grade group and signal, and their correlation groups | The datasets `packages/platform` creates; the door's routing table |
 | `watch.ts` | Monitors and dashboards over declared names: the 1.5× architecture review, a run over 15 minutes, refusal and error rates per operation, a ratchet that stopped falling, a missing daily cost heartbeat | Axiom monitor and dashboard JSON, applied by the platform's deploy |
