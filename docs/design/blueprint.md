@@ -68,7 +68,7 @@ fact it does not own has another named single owner, and the blueprint imports a
 
 ## 3. How drift fails: eight layers (decision 2)
 
-**Proposed.** A drift is a disagreement between the blueprint and the code that nothing fails. Each layer catches a
+**Agreed with Aaron, 15 November 2026**, with coverage option B and every layer instrumented and budgeted. A drift is a disagreement between the blueprint and the code that nothing fails. Each layer catches a
 different kind.
 
 | # | Layer | What fails | Where it runs | Today |
@@ -106,13 +106,13 @@ and the checks have budgets that the run's 10 minutes must hold.
 
 There is no regress: checking a check is layer 6 over the runner's own spans, which produces no new verdict.
 
-**Options for coverage, R9.** A: coverage stays a report. B: every newly declared move, refusal and outcome must be
+**Coverage, R9: option B, agreed with Aaron, 15 November 2026.** Every newly declared move, refusal and outcome must be
 reached by a journey before its slice merges into `master`; existing declarations sit on R9's list, which may only
-shrink. **Recommended: B.** It changes "Coverage is not a gate" in `AGENTS.md`, so it is a roadmap decision.
+shrink. This changes "Coverage is not a gate" in `AGENTS.md` (option A, coverage as a report only, was not chosen).
 
 ## 4. The hill: ratchets and measures
 
-**Proposed.** Old code is never moved in one go. Each gap is a ratchet: declared once in the blueprint (its name, what
+**Agreed with Aaron, 15 November 2026**, the registry and the fourteen ratchets as listed. Old code is never moved in one go. Each gap is a ratchet: declared once in the blueprint (its name, what
 it counts, the command that counts it, its current list, the step that closes it), checked by one command,
 `pnpm ratchets`, on every pull request (a list that grew fails; a list that shrank must be committed smaller), and
 emitted as a metric (`capxul.ratchet.remaining`) so the dashboard shows every ratchet's line falling. A ratchet closes
@@ -148,7 +148,7 @@ behaviour: every journey stays green.
 
 ## 5. The path (decision 6)
 
-**Proposed.** Each stage starts when what it needs is on `master`.
+**Agreed with Aaron, 15 November 2026.** Each stage starts when what it needs is on `master`.
 
 | Stage | What it delivers | Needs | Who |
 |---|---|---|---|
@@ -175,8 +175,94 @@ step for the format and the ratchet registry; "Coverage is not a gate" changed i
 |---|---|---|---|
 | 1 | Purpose and boundary | Option B, part 2 | **Agreed**, 15 November 2026 |
 | — | Account version | Keep it as the "Account identity" decision records it: it changes only when an input of the derivation changes (the salt rule, the Safe factory, its singleton or module, the starting owner), not with the protocol's major version, so a person's Safe address survives releases that do not touch it. Replaces Aaron's first request for a salt versioned to the protocol's major version | **Agreed**, 15 November 2026 |
-| 2 | No drift as checks | The eight layers, each instrumented and budgeted (part 3); coverage option B; measured facts generated from verdict digests | Proposed |
-| 3 | The shape | To be brought next: one file per operation, generated indexes, one-screen READMEs, the top level. Its agreed form is written here as its own section, which the docs session follows | Not started |
+| 2 | No drift as checks | The eight layers, each instrumented and budgeted (part 3); coverage option B; measured facts generated from verdict digests; the ratchet registry (part 4) | **Agreed**, 15 November 2026 |
+| 3 | The shape | Part 7 | Proposed |
 | 4 | The pipeline as operations | Declared in the blueprint's pipeline section (part 2), a 10-minute run budget, and lanes of worlds (the speed note's change 7), which changes "One runner, one world" once changes 1 to 6 are measured | Not started |
 | 5 | Telemetry in the blueprint | One telemetry module as `telemetry-in-the-blueprint.md` part 3B describes, with T1 to T8 as agreed | Not started |
-| 6 | The sequence | Part 5 | Proposed |
+| 6 | The sequence | Part 5 | **Agreed**, 15 November 2026 |
+
+## 7. The shape: the blueprint, the repository and its docs (decision 3)
+
+**Proposed, not yet agreed.** Once agreed, this section is the rule the docs session follows for every file it moves.
+
+### Three levels, for every reader
+
+A reader stops at the level that answers them.
+
+1. **One screen** (60 lines at most, checked by `pnpm shape`): a README says what this is, links to the map, and says
+   where to go for what. It lists no files by hand.
+2. **A map, generated**: an `index.md` per package and per blueprint domain, written by `pnpm generate` from the code,
+   one line per thing. Nothing hand-written lists files, operations or domains, so no map can drift.
+3. **The thing itself**: an operation's file and its generated page, a package's source, a one-task doc page.
+
+### The blueprint
+
+Each domain has the same files. Shared nouns live at the domain's level, so machines and operations import each other
+in one direction only and the import cycle of today's machine format is gone (F7):
+
+```
+packages/blueprint/
+  README.md                 one screen
+  src/
+    format/                 the language: operation, machine, role, step, log, ratchet, starting world
+    telemetry/              the vocabulary (decision 5)
+    roles.ts                every role, once
+    pipeline/               the pipeline's own work, the checks, the proofs, the ratchet registry: a domain like any other
+    <domain>/
+      values.ts             its values (subjects folded in)
+      events.ts             its events
+      refusals.ts           its refusals, with exit codes
+      machines.ts           its machines: states and moves; each move names its event, imported from events.ts
+      <operation>.ts        one per operation, everything about it: rpc, outcomes and their events, refusals,
+                            the moves it makes (imported from machines.ts), allowed, steps, logs, budget,
+                            examples, claims
+    generated/              hubs: every domain, every operation, every refusal, the Rpc groups. Written, never edited
+  generated/                index.md, one index.md per domain, one page per operation with its machine's diagram
+```
+
+Imports run one way: `values` → `events`, `refusals` → `machines` → `<operation>`. A move does not name the operation
+that makes it; the operation names the move, and a test checks that every move is made by some operation. An operation's
+file is named after the operation (`invite.accept` is `invite-accept.ts`, as the scenarios already name their checks).
+The hand-written hubs (`domains.ts`, `errors.ts`, the gathering in `values.ts`, each `domain.ts`) become generated, so a
+new domain or operation is a new file and nothing else. Folded away: `claims.ts` and `subjects.ts` (into the operation
+and `values.ts`), `claims.md` and `order.md` (generated pages), the package's `decisions.md` (its design calls become
+comments on the declarations they explain; any that are roadmap decisions move to `docs/decisions.md`), `gaps.md`
+(coverage, R9).
+
+### The repository's top level
+
+```
+README.md            one screen: what Capxul is, the map, where to go
+AGENTS.md            the rules, and only the rules (CLAUDE.md links to it); reasons and detail live in docs/
+docs/
+  roadmap.md         the goal, phases and steps
+  decisions.md       every decision Aaron agreed, dated, one entry each (moved out of the roadmap)
+  design/            design notes: one per question, a status line at the top (open, agreed, superseded);
+                     agreed and superseded notes stay as the reasoning behind a decision, linked from it
+  guides/            how-to pages for work across packages, one task each
+packages/<name>/
+  README.md          one screen
+  generated/index.md the map, generated
+  docs/              the package's own how-to pages, one task each (what today's long READMEs hold)
+spikes/              temporary code, each with a README
+```
+
+Run records under `packages/*/records/` are frozen from the proof lane's flip (R12, R14) and get no new files.
+
+### What checks it
+
+- `pnpm shape`: the top level and `docs/` as listed above; a README over 60 lines (R8 until the long ones are cut);
+  every package and spike with a README; every package with a generated index.
+- `pnpm generate:check`: every index, page and hub up to date.
+- A test fails an operation file that names a hand-written list of files, or a README that lists files.
+
+**Options weighed.**
+
+- **Where events and refusals live:** in the domain's `events.ts` and `refusals.ts` (recommended), or inside the
+  operation that first sends them. Several operations share events and refusals (`approval_signed`,
+  `InvitationClosed`), and machines need them, so putting them in an operation's file makes operations import each
+  other and brings the cycle back.
+- **`AGENTS.md`:** the rules only, with reasons in `docs/` (recommended), or as today, rules and reasons together at
+  about 250 lines. Every agent loads it on every turn, so its length is paid on every turn.
+- **Decisions:** in their own `docs/decisions.md` (recommended), or kept in the roadmap's table. The roadmap is 54 KB,
+  mostly that table.
