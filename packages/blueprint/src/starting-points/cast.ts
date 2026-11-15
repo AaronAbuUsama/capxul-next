@@ -29,6 +29,9 @@ export const JOURNEY_KEYS = ["twoop", "invent", "branch", "found", "pay", "invit
 
 export type JourneyKey = (typeof JOURNEY_KEYS)[number];
 
+/** The company a story founds, by the handle the starting points name it with: a journey's own is `castCompany`'s. */
+export const CAST_COMPANY = "northwind";
+
 /** The first test account a journey's cast signs with: clear of the world's own cast's and services' (0 to 10). */
 export const CAST_KEY_BASE = 20;
 
