@@ -11,3 +11,6 @@ the operation's step in that order; operations may share a step when they can be
 | 4 | `world.clock.warp` | chain, clock, site when there is one | `founded` | The chain half can be built on `fresh`; its thin line claim needs a company's site and waits for step 1.4. |
 | 11 | `world.snapshot.save` | registry, database, chain, site, clock | `fresh`, `paid`, `with-snapshot` | Copies a whole world: a branch of its database, its chain state and its sites. |
 | 12 | `world.snapshot.restore` | everything `world.create` needs, and a snapshot | `with-snapshot` | Makes a world from a snapshot, so it needs create and save. |
+| 13 | `world.list` | registry | `quota-full` | A read of the registry's rows of the caller's worlds and the platform's rows of their snapshots. After the thin line: an operator's inventory. |
+| 13 | `world.snapshot.list` | registry, database | `quota-full` | A read of the platform's rows of a world's snapshots and of the branches that hang from each. Needs `world.snapshot.save` and, for its second claim, `world.snapshot.restore`. |
+| 14 | `world.snapshot.delete` | registry, database, chain | `quota-full` | Removes what a save made: the snapshot's branch, its chain state and its row. Needs `world.snapshot.list` to show what it removed and `world.snapshot.restore` for its refusal. |

@@ -1,6 +1,6 @@
 // The harness of the people operations' test (test/people-sql.test.ts): Core's groups served in this process against
 // a real Postgres with Core's migrations applied, with the world's cast, a frozen clock and Northwind founded as the
-// starting world `founded` keeps it (dana and eli its Directors, sam and pat its members), written straight into the
+// starting world `founded` keeps it (dana its founder, dana and eli its Directors, sam and pat its members), written straight into the
 // database. No chain and no bench: the people operations reach neither.
 import { CREDENTIAL_HEADER, PERSON_HEADER, TRACE_HEADER, WorldRpcs } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
@@ -33,8 +33,11 @@ const CAST = [
   { person: "olga", safe: null },
 ];
 
-/** Core's groups with every service the people operations need, on the database at `url`. */
-export const core = (url: string) =>
+/**
+ * Core's groups with every service the people operations need, on the database at `url`, and the world's chain
+ * `chain` (none by default: the people operations never reach it; board and budgets tests hand one in).
+ */
+export const core = (url: string, chain: Layer.Layer<WorldChain> = WorldChain.fromEnv({})) =>
   Served.pipe(
     Layer.provide(SqlSpanSink),
     Layer.provide(
@@ -47,11 +50,7 @@ export const core = (url: string) =>
     ),
     Layer.provideMerge(siteOpsLive({})),
     Layer.provideMerge(
-      Layer.mergeAll(
-        WorldChain.fromEnv({}),
-        SiteDoor.fromEnv({}).pipe(Layer.provide(FetchHttpClient.layer)),
-        Cast.fromDatabase,
-      ),
+      Layer.mergeAll(chain, SiteDoor.fromEnv({}).pipe(Layer.provide(FetchHttpClient.layer)), Cast.fromDatabase),
     ),
     Layer.provideMerge(PgClient.layer({ url: Redacted.make(url) })),
   );

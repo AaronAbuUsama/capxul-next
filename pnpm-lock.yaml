@@ -258,6 +258,9 @@ importers:
 
   packages/blueprint:
     dependencies:
+      '@capxul/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       effect:
         specifier: 'catalog:'
         version: 4.1.2
@@ -313,6 +316,9 @@ importers:
       '@capxul/blueprint':
         specifier: workspace:*
         version: link:../blueprint
+      '@capxul/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@effect/sql-pg':
         specifier: 'catalog:'
         version: 4.1.2(effect@4.1.2)
@@ -332,6 +338,28 @@ importers:
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 4.20260702.1
+      '@effect/tsgo':
+        specifier: 'catalog:'
+        version: 0.63.0
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.1
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+
+  packages/generate:
+    dependencies:
+      '@capxul/blueprint':
+        specifier: workspace:*
+        version: link:../blueprint
+      effect:
+        specifier: 'catalog:'
+        version: 4.1.2
+      viem:
+        specifier: 'catalog:'
+        version: 2.55.18(typescript@5.9.3)(zod@3.25.76)
+    devDependencies:
       '@effect/tsgo':
         specifier: 'catalog:'
         version: 0.63.0
@@ -366,6 +394,9 @@ importers:
 
   packages/lint:
     dependencies:
+      '@capxul/blueprint':
+        specifier: workspace:*
+        version: link:../blueprint
       effect:
         specifier: 'catalog:'
         version: 4.1.2
@@ -548,6 +579,9 @@ importers:
       '@capxul/blueprint':
         specifier: workspace:*
         version: link:../blueprint
+      '@capxul/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@capxul/core':
         specifier: workspace:*
         version: link:../core
@@ -570,6 +604,9 @@ importers:
         specifier: 'catalog:'
         version: 2.55.18(typescript@5.9.3)(zod@3.25.76)
     devDependencies:
+      '@alchemy.run/sql':
+        specifier: 'catalog:'
+        version: 2.0.0-beta.85(@effect/sql-pg@4.1.2(effect@4.1.2))(alchemy@2.0.0-beta.85(@effect/platform-bun@4.1.2(effect@4.1.2))(@effect/platform-node@4.1.2(effect@4.1.2)(redis@6.3.1(@opentelemetry/api@1.10.0)))(effect@4.1.2)(vite@8.3.1(@types/node@22.19.1)(yaml@2.9.1))(ws@8.21.0))(effect@4.1.2)(pg@8.23.1)
       '@cloudflare/workers-types':
         specifier: 'catalog:'
         version: 4.20260702.1

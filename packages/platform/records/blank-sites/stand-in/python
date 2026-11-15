@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# A stand-in for the bench's Python in the blank-sites proof (prove.py), on a bench of BENCH_CPUS CPUs (2, a t3.large):
+# each process holds one CPU while it runs, so a third at once waits for one. The site's API user takes the 1267 ms it
+# took on a real bench; a company's configure (blank.py) takes what every step it still runs took when a site was made
+# from nothing there (records/site-pool/01-template-source.json): the wizard 16934 ms, migrate 8161 ms (counted whole,
+# though configure runs only migrate's after_migrate hooks), the scheduler 653 ms, joining the world 799 ms and the API
+# user 1267 ms. Times SCALE (0.1). Prints the one JSON line the door reads.
+scale="${SCALE:-0.1}" cpus="${BENCH_CPUS:-2}" dir="${CPU_DIR:-/tmp}"
+got=""
+while [ -z "$got" ]; do  # the first CPU free, looked for every 20 ms
+  for ((i = 0; i < cpus; i++)); do
+    exec {fd}>"$dir/cpu$i"
+    if flock -n "$fd"; then got=1; break; fi
+    exec {fd}>&-
+  done
+  [ -n "$got" ] || sleep 0.02
+done
+at() { sleep "$(awk "BEGIN {print $1 * $scale / 1000}")"; }
+if [[ "$2" == *run_wizard* ]]; then
+  steps=("frappe started" 0 "setup wizard" 16934 "after_migrate hooks" 8161 "join world" 799 "core user" 1267
+         "enable scheduler" 653)
+  out=""
+  for ((i = 0; i < ${#steps[@]}; i += 2)); do
+    t0=$(date +%s%N); at "${steps[i+1]}"; ms=$((($(date +%s%N) - t0) / 1000000))
+    out+="${out:+, }{\"step\": \"${steps[i]}\", \"ms\": $ms}"
+  done
+  echo "[$out]"
+else
+  at 1267
+  echo '{"stand-in": true}'
+fi

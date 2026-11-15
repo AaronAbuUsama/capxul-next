@@ -17,6 +17,7 @@ export const exampleWorld: typeof WorldView.Type = {
     usdc: address(101),
     hats: address(102),
     payments: address(103),
+    budgets: address(107),
     entryPoint: address(104),
     companySafeMinter: address(105),
     companiesHouse: address(106),

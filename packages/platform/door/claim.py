@@ -61,7 +61,7 @@ def _clock_of(body):
 
 def claim_world(c, body):
     """Gives the token's world a ready copy of every site of the template, each under its label."""
-    template = templates.name_of(body.get("template"))
+    template = templates.worlds_name(body.get("template"))
     key, secret = body.get("api_key", ""), body.get("api_secret", "")
     if not SECRET.match(key) or not SECRET.match(secret):
         raise Refused(400, "credential-invalid", "api_key and api_secret: 10 to 64 letters and digits")

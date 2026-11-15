@@ -13,6 +13,7 @@ import * as Rec from "effect/Record";
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import { failuresOf } from "./checks/checks.ts";
+import { sumCoverage } from "./checks/paths.ts";
 import { CallOutcome } from "./client.ts";
 import { Ended } from "./failure.ts";
 import { Outcome, passedOr, RunRecord } from "./record.ts";
@@ -34,7 +35,6 @@ export type Mode = typeof Mode.Type;
 
 const NOT_IMPLEMENTED: Errors.NotImplemented["_tag"] = "NotImplemented";
 const EXPECTATION: ExpectationFailed["_tag"] = "ExpectationFailed";
-
 const JourneyLine = Schema.Struct({
   name: Schema.String,
   /** The starting world it began from. */
@@ -73,7 +73,6 @@ const JourneyLine = Schema.Struct({
   ),
 });
 type JourneyLine = typeof JourneyLine.Type;
-
 const StageLine = Schema.Struct({
   name: Schema.String,
   readiness: Schema.NullOr(Readiness),
@@ -84,7 +83,6 @@ const StageLine = Schema.Struct({
   after: Schema.NullOr(Inventory),
 });
 type StageLine = typeof StageLine.Type;
-
 const OneWorld = Schema.Struct({
   world: Schema.NullOr(Schema.String),
   hub: Schema.String,
@@ -127,6 +125,8 @@ export const Summary = Schema.Struct({
     claims: Schema.Finite,
   }),
   journeys: Schema.Array(JourneyLine),
+  /** What the run's calls reached of each machine of the blueprint, summed over its journeys (checks/paths.ts). */
+  coverage: RunRecord.fields.coverage,
   stages: Schema.Array(StageLine),
   /** A run in one world: its world and hub, what the accounts held of its worlds afterwards, every part timed. */
   oneWorld: Schema.optional(OneWorld),
@@ -220,7 +220,6 @@ const leftWords = (after: Inventory | null): string =>
   after === null
     ? "the accounts were not read"
     : `left ${Arr.join([...after.workers, ...after.hyperdrives, ...after.neonProjects, ...(after.worlds ?? [])], ", ")}`;
-
 const isGone = (stage: StageLine): boolean =>
   stage.afterwards === "destroyed" && stage.after !== null && isEmpty(stage.after);
 
@@ -294,6 +293,7 @@ export const summarize = (input: SummaryInput): Summary => {
       claims: coveredClaims,
     },
     journeys: lines,
+    coverage: sumCoverage(Arr.map(input.records, (record) => record.coverage ?? [])),
     stages,
     ...(input.oneWorld === undefined ? {} : { oneWorld: input.oneWorld }),
   };

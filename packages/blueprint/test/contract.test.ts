@@ -14,6 +14,7 @@ import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import * as Struct from "effect/Struct";
 import * as ApprovalsOps from "../src/approvals/operations.ts";
+import * as BudgetsOps from "../src/budgets/operations.ts";
 import { allClaims } from "../src/claims/all.ts";
 import { renderClaims } from "../src/claims/render.ts";
 import * as DocumentsOps from "../src/documents/operations.ts";
@@ -22,6 +23,7 @@ import * as Errors from "../src/errors.ts";
 import { refusalsOf, type EventClass, type Operation } from "../src/operation.ts";
 import * as OrganizationsOps from "../src/organizations/operations.ts";
 import * as PeopleOps from "../src/people/operations.ts";
+import * as BoardOps from "../src/board/operations.ts";
 import * as RecordOps from "../src/record/operations.ts";
 import * as ReportsOps from "../src/reports/operations.ts";
 import * as Chain from "../src/chain/chain.ts";
@@ -29,6 +31,7 @@ import { namesOf } from "../src/domains.ts";
 import { startingWorlds, type StartingWorld } from "../src/starting-worlds.ts";
 import * as Telemetry from "../src/telemetry.ts";
 import * as Values from "../src/values.ts";
+import * as WorldInventory from "../src/world/inventory.ts";
 import * as WorldOps from "../src/world/operations.ts";
 
 const names: ReadonlyArray<OperationName> = Rec.keys(operations);
@@ -108,11 +111,14 @@ const modules = {
   "values.ts": Values,
   "telemetry.ts": Telemetry,
   "world/operations.ts": WorldOps,
+  "world/inventory.ts": WorldInventory,
   "organizations/operations.ts": OrganizationsOps,
   "documents/operations.ts": DocumentsOps,
   "approvals/operations.ts": ApprovalsOps,
   "reports/operations.ts": ReportsOps,
   "people/operations.ts": PeopleOps,
+  "board/operations.ts": BoardOps,
+  "budgets/operations.ts": BudgetsOps,
   "record/operations.ts": RecordOps,
 };
 const exported: ReadonlyArray<{ file: string; name: string; value: unknown }> = Arr.flatMap(
@@ -222,16 +228,21 @@ test("a world whose claims need what a restore would change is made by its steps
     assert.equal(byName.get(name), "by its steps", name);
 });
 
-test("every chain read is declared with how it is asked, and every declared log has its signature", () => {
+test("every chain read is declared with how it is asked, and every declared log is its contract's event", () => {
   for (const [name, read] of Rec.toEntries(Chain.reads)) assert.ok(read.via.length > 10, `${name} says no via`);
   const tags = Arr.filter(
     Arr.map(Chain.Log.members, (member) => String(member.fields._tag.ast.literal)),
     (tag) => tag !== "Other",
   );
-  assert.deepEqual(sorted(tags), sorted(Rec.keys(Chain.LOG_SIGNATURES)));
-  assert.deepEqual(sorted(Chain.LogName.literals), sorted(Rec.keys(Chain.LOG_SIGNATURES)));
-  for (const [name, signature] of Rec.toEntries(Chain.LOG_SIGNATURES))
-    assert.ok(Str.startsWith(`event ${name}(`)(signature), `${name}'s signature is another event's`);
+  assert.deepEqual(sorted(tags), sorted(Rec.keys(Chain.LOG_EVENTS)));
+  assert.deepEqual(sorted(Chain.LogName.literals), sorted(Rec.keys(Chain.LOG_EVENTS)));
+  for (const [name, event] of Rec.toEntries(Chain.LOG_EVENTS)) assert.equal(event.name, name);
+  for (const member of Chain.Log.members) {
+    const tag = String(member.fields._tag.ast.literal);
+    if (!Schema.is(Chain.LogName)(tag)) continue;
+    const event = Chain.LOG_EVENTS[tag];
+    for (const input of event.inputs) assert.ok(input.name in member.fields, `${tag} lacks ${input.name}`);
+  }
 });
 
 test("PayloadRejected is declared once and no operation's door refuses with it", () => {

@@ -1,5 +1,5 @@
 // The chain reads (the blueprint's `Chain.reads`), served over a world's chain JSON-RPC through its door. viem is used
-// only as a codec of the contracts' ABI, from the blueprint's own signatures: it encodes calls and decodes answers
+// only as a codec of the contracts' ABI, from the compiled contracts' ABIs as the blueprint declares them: it encodes calls and decodes answers
 // and logs, and never reaches the network. Every answer is decoded with the read's own schema, so a read answers
 // exactly its declared type or dies. Every address and hash it answers is in lower case.
 import { Chain } from "@capxul/blueprint";
@@ -11,19 +11,11 @@ import * as Predicate from "effect/Predicate";
 import * as Rec from "effect/Record";
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
-import {
-  decodeEventLog,
-  decodeFunctionResult,
-  encodeEventTopics,
-  encodeFunctionData,
-  parseAbi,
-  type Abi,
-  type Hex,
-} from "viem";
+import { decodeEventLog, decodeFunctionResult, encodeEventTopics, encodeFunctionData, type Abi, type Hex } from "viem";
 import type { JsonRpc } from "./transport.ts";
 
-const functions: Abi = parseAbi(Rec.values(Chain.FUNCTION_SIGNATURES));
-const logs: Abi = parseAbi(Rec.values(Chain.LOG_SIGNATURES));
+const functions: Abi = Rec.values(Chain.FUNCTIONS);
+const logs: Abi = Rec.values(Chain.LOG_EVENTS);
 
 /** A value as JSON-like data: big integers as decimal text, and hex (addresses included) in lower case. */
 const plain = (value: unknown): unknown => {
@@ -51,7 +43,7 @@ const attempt = <A>(what: string, run: () => A): Effect.Effect<A> =>
 const call = (
   rpc: JsonRpc,
   to: string,
-  name: keyof typeof Chain.FUNCTION_SIGNATURES,
+  name: keyof typeof Chain.FUNCTIONS,
   args: ReadonlyArray<unknown>,
   block: number | null,
 ) =>
@@ -106,6 +98,32 @@ const logOf = (raw: typeof RawLog.Type): Effect.Effect<Chain.Log> => {
   );
 };
 
+/** Budgets' `Budget` struct as `budgetOf` answers it, its amounts in the token's smallest units. */
+const RawBudget = Schema.Struct({
+  safe: Schema.String,
+  parent: Schema.String,
+  hat: Schema.String,
+  token: Schema.String,
+  period: Schema.Finite,
+  depth: Schema.Finite,
+  closed: Schema.Boolean,
+  amount: Schema.String,
+  childrenAmount: Schema.String,
+  spent: Schema.String,
+  committed: Schema.String,
+});
+
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+/** A token's decimals at `block`. viem decodes a uint8 as a number and a uint256 as a big integer, which `plain` makes text. */
+const decimalsOf = (rpc: JsonRpc, token: string, block: number | null) =>
+  Effect.map(
+    Effect.flatMap(call(rpc, token, "decimals", [], block), (answer) =>
+      decode(Schema.Union([Schema.Finite, Schema.String]), answer),
+    ),
+    Number,
+  );
+
 const RawBlock = Schema.Struct({ number: Schema.String, timestamp: Schema.String, hash: Schema.String });
 const RawReceipt = Schema.Struct({
   transactionHash: Schema.String,
@@ -138,12 +156,7 @@ const readsOver = (rpc: JsonRpc) =>
     balance: ({ token, holder, block }) =>
       Effect.gen(function* () {
         const units = yield* decode(Schema.String, yield* call(rpc, token, "balanceOf", [holder], block));
-        // viem decodes a uint8 as a number and a uint256 as a big integer, which `plain` makes text.
-        const decimals = yield* decode(
-          Schema.Union([Schema.Finite, Schema.String]),
-          yield* call(rpc, token, "decimals", [], block),
-        );
-        return yield* answer("balance", amountOf(units, Number(decimals)));
+        return yield* answer("balance", amountOf(units, yield* decimalsOf(rpc, token, block)));
       }),
     safe: ({ safe, block }) =>
       Effect.gen(function* () {
@@ -172,6 +185,31 @@ const readsOver = (rpc: JsonRpc) =>
         call(rpc, minter, "companySafeAddressFor", [owner, namespace, company, founderSafe], null),
         (safe) => answer("companySafeFor", safe),
       ),
+    budget: ({ budgets, budget, block }) =>
+      Effect.gen(function* () {
+        const id = BigInt(budget);
+        const held = yield* decode(RawBudget, yield* call(rpc, budgets, "budgetOf", [id], block));
+        if (held.safe === ZERO_ADDRESS) return yield* answer("budget", null);
+        const left = yield* decode(Schema.String, yield* call(rpc, budgets, "leftOf", [id], block));
+        const children = yield* call(rpc, budgets, "childrenOf", [id], block);
+        const decimals = yield* decimalsOf(rpc, held.token, block);
+        const units = (value: string) => amountOf(value, decimals);
+        return yield* answer("budget", {
+          safe: held.safe,
+          parent: held.parent,
+          hat: held.hat,
+          token: held.token,
+          period: held.period,
+          depth: held.depth,
+          closed: held.closed,
+          amount: units(held.amount),
+          childrenAmount: units(held.childrenAmount),
+          spent: units(held.spent),
+          committed: units(held.committed),
+          left: units(left),
+          children,
+        });
+      }),
     transaction: ({ transaction }) =>
       Effect.gen(function* () {
         const receipt = yield* decode(RawReceipt, yield* rpc("eth_getTransactionReceipt", [transaction]));
@@ -214,6 +252,7 @@ export const readerOf = (rpcFor: (options?: Chain.ReadOptions) => JsonRpc): Chai
     wears: (payload, options) => Effect.withSpan(readsOver(rpcFor(options)).wears(payload), "chain.wears", span),
     companySafeFor: (payload, options) =>
       Effect.withSpan(readsOver(rpcFor(options)).companySafeFor(payload), "chain.companySafeFor", span),
+    budget: (payload, options) => Effect.withSpan(readsOver(rpcFor(options)).budget(payload), "chain.budget", span),
     transaction: (payload, options) =>
       Effect.withSpan(readsOver(rpcFor(options)).transaction(payload), "chain.transaction", span),
     logs: (payload, options) => Effect.withSpan(readsOver(rpcFor(options)).logs(payload), "chain.logs", span),

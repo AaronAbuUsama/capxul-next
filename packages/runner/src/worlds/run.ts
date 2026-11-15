@@ -178,6 +178,7 @@ const runOne = (
         ended: value === undefined ? null : endedOf(value.run),
         readiness: got?.readiness ?? null,
         calls: value?.calls ?? [],
+        ...(value === undefined ? {} : { coverage: value.coverage }),
         ...stepsFor({ kind: "journey" }, value?.steps ?? stepsOf(scenario.outline, [], [])),
         making: got?.madeChecked ?? [],
         afterwards: { stage: destroyed ? "destroyed" : "destroy failed", before: leftBefore, after: leftAfter },

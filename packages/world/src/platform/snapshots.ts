@@ -9,6 +9,7 @@
 // the snapshot's name; a restore makes each again in the new world from its backup, under its own label, and points
 // the new world's companies at their new sites. A world with companies and no bench is a fault to save.
 import { CurrentOperator, Errors, type World as Blueprint } from "@capxul/blueprint";
+import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
 import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
@@ -18,13 +19,14 @@ import * as Random from "effect/Random";
 import { create as createWorld } from "../lifecycle/operations.ts";
 import { resumeIndex, stopIndex } from "../lifecycle/controls.ts";
 import { rpcControl, saveChain } from "../lifecycle/parts.ts";
-import { branchOf, dropBranch, forkable } from "./branches.ts";
+import { branchOf, dropBranch, forkable, hangers } from "./branches.ts";
 import { mineAtWorldTime } from "./cast.ts";
-import { existing, isTaken, keptOrDestroyed, tried } from "./create.ts";
+import { existingRecorded, isTaken, keptOrDestroyed, tried } from "./create.ts";
 import { instantOf, readFacts, writeRestored } from "./facts.ts";
 import { tokenOf } from "./operators.ts";
 import { savePoint } from "../site/Points.ts";
 import { restoreSites, saveSites } from "../site/Saved.ts";
+import { nameOf } from "../stack/names.ts";
 import { refusalsOnly } from "./refusals.ts";
 import { keepSnapshot, prepareStore, snapshotOf } from "./store.ts";
 import { emitDeclared, opened, viewOf } from "./view.ts";
@@ -38,8 +40,8 @@ type RestorePayload = (typeof Blueprint.snapshotRestore.rpc.payloadSchema)["Type
 /** The world, its owner and its handle, refusing a caller who is not its owner unless `anyone` lets them. */
 const ownedWorld = (world: string) =>
   Effect.gen(function* () {
-    const stage = yield* existing(world);
-    const { output, world: handle } = yield* opened(stage).pipe(Effect.orDie);
+    const { stage, recorded } = yield* existingRecorded(world);
+    const { output, world: handle } = yield* opened(stage, { recorded }).pipe(Effect.orDie);
     return { stage, output, handle };
   });
 
@@ -51,6 +53,14 @@ export const save = Effect.fn("platform.world.snapshot.save")(function* (payload
   const found = yield* snapshotOf(stage, payload.snapshot).pipe(Effect.orDie);
   if (Option.isSome(found) && !payload.replace)
     return yield* Errors.SnapshotExists.make({ world: payload.world, snapshot: payload.snapshot });
+  // A snapshot a live world hangs from cannot be replaced: its branch cannot go while that world lives (inventory.ts).
+  const inUse = Option.isSome(found) ? (yield* hangers.pipe(Effect.orDie))(found.value.branch_id) : [];
+  if (Arr.isReadonlyArrayNonEmpty(inUse))
+    return yield* Errors.SnapshotInUse.make({
+      world: payload.world,
+      snapshot: payload.snapshot,
+      worlds: Arr.map(inUse, nameOf),
+    });
   return yield* Effect.gen(function* () {
     const hostMs = yield* Clock.currentTimeMillis;
     const facts = yield* readFacts(handle.database, hostMs);

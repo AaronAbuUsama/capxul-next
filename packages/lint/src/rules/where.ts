@@ -18,12 +18,16 @@ export const pathOf = (context: Context): string => {
 /** Escapes every regular-expression character (the pattern is global). */
 const escape = Str.replace(/[.+^${}()|[\]\\]/g, "\\$&");
 
-/** A path pattern: `**` matches any run of folders, `*` anything but a slash. Anything else matches itself. */
+/** One piece of a pattern between its `**`s: `*` matches anything but a slash, the rest itself. */
+const piece = (part: string): string => Arr.join(Arr.map(Str.split(part, "*"), escape), "[^/]*");
+
+// A path pattern: `**` and a slash match any run of folders, none included, as in the overrides' globs; any other
+// `**` anything at all; `*` anything but a slash. Anything else matches itself.
 export const matches = (pattern: string, path: string): boolean =>
   new RegExp(
     `^${Arr.join(
-      Arr.map(Str.split(pattern, "**"), (part) => Arr.join(Arr.map(Str.split(part, "*"), escape), "[^/]*")),
-      ".*",
+      Arr.map(Str.split(pattern, "**/"), (folders) => Arr.join(Arr.map(Str.split(folders, "**"), piece), ".*")),
+      "(?:.*/)?",
     )}$`,
   ).test(path);
 

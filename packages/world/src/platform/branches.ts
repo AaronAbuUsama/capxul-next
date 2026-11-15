@@ -19,8 +19,9 @@ import { branchesOf, deleteBranch, finished, projectId } from "../database/neon.
 import { PlatformFailed } from "../failures.ts";
 import { liftBranchExpiry } from "../lifecycle/account.ts";
 import { describeFailure } from "../lifecycle/describe.ts";
-import { WorldOutput } from "../lifecycle/parts.ts";
-import { recordedOutput, recordOutput } from "../stack/engine.ts";
+import { WorldOutput } from "../lifecycle/handle.ts";
+import { recordedOutput, recordedStages, recordOutput } from "../stack/engine.ts";
+import { isWorldStage } from "../stack/names.ts";
 import { forgetSnapshots, prepareStore } from "./store.ts";
 
 const NEON = "https://console.neon.tech/api/v2";
@@ -89,6 +90,63 @@ export const isBranchOf = (stage: string) => (name: string) =>
 
 /** What an in-place reset keeps of the world's branch as it was (src/lifecycle/reset.ts): `<stage>-pre-<n>`. */
 export const preservedPrefix = (stage: string) => `${stage}-pre-`;
+
+/** One branch of the project, as Neon lists it. */
+export interface Branch {
+  readonly id: string;
+  readonly name: string;
+  readonly parent_id?: string | undefined;
+}
+
+/** One world the shared state holds: its stage and its database's branch, once it has one. */
+export interface WorldBranch {
+  readonly stage: string;
+  readonly branch: string | undefined;
+}
+
+const HasBranch = Schema.Struct({ branch: Schema.String });
+
+/**
+ * The stages of the worlds that hang from `parent`: each branch whose parent it is belongs to the world whose own
+ * branch it is (a world restored from the snapshot, or the snapshot's own world reset to it in place), or else to the
+ * world whose name it carries (a branch an in-place reset preserved), the longest such name when several match. A
+ * branch of no world the shared state holds names none. By stage, each once.
+ */
+export const hangingFrom = (
+  parent: string,
+  branches: ReadonlyArray<Branch>,
+  worlds: ReadonlyArray<WorldBranch>,
+): ReadonlyArray<string> => {
+  const children = Arr.filter(branches, (branch) => branch.parent_id === parent);
+  const owners = Arr.flatMap(children, (child) => {
+    const own = Arr.findFirst(worlds, (world) => world.branch === child.id);
+    if (Option.isSome(own)) return [own.value.stage];
+    const named = Arr.filter(worlds, (world) => isBranchOf(world.stage)(child.name));
+    return Option.match(
+      Arr.last(
+        Arr.sort(
+          named,
+          Order.mapInput(Order.Number, (world: WorldBranch) => world.stage.length),
+        ),
+      ),
+      { onNone: () => [], onSome: (world) => [world.stage] },
+    );
+  });
+  return Arr.sort(Arr.dedupe(owners), Order.String);
+};
+
+/**
+ * Who hangs from what, read now: the stages of the worlds the shared state holds whose database hangs from a branch
+ * (`hangingFrom`), for any branch of the project.
+ */
+export const hangers = Effect.gen(function* () {
+  const branches = yield* branchesOf(yield* projectId);
+  const stages = yield* recordedStages;
+  const worlds = Arr.flatMap(stages, ({ stage, output }) =>
+    isWorldStage(stage) ? [{ stage, branch: Schema.is(HasBranch)(output) ? output.branch : undefined }] : [],
+  );
+  return (parent: string) => hangingFrom(parent, branches, worlds);
+}).pipe(Effect.withSpan("platform.hangers"), Effect.mapError(failed));
 
 /**
  * Deletes every branch of the world, children before parents, then the platform's rows of its snapshots. A snapshot

@@ -26,6 +26,23 @@ export type Outcome = typeof Outcome.Type;
 /** `passed`, or `rehearsed` when Core ran where `core` says, off Cloudflare. */
 export const passedOr = (core: string | undefined): Outcome => (core === undefined ? "passed" : "rehearsed");
 
+/**
+ * How much of each machine of the blueprint some call reached (checks/paths.ts): how many things it started, how many
+ * times each move was made, and how many calls were refused from each state a move cannot start from. The scenario
+ * author's target, not a gate (AGENTS.md, "How it is measured").
+ */
+export const Coverage = Schema.Array(
+  Schema.Struct({
+    machine: Schema.String,
+    started: Schema.Finite,
+    moves: Schema.Array(Schema.Struct({ move: Schema.String, reached: Schema.Finite })),
+    refused: Schema.Array(
+      Schema.Struct({ state: Schema.String, move: Schema.String, refusal: Schema.String, reached: Schema.Finite }),
+    ),
+  }),
+);
+export type Coverage = typeof Coverage.Type;
+
 export const RunRecord = Schema.Struct({
   /**
    * `door`: every operation called once with its blueprint example. `journey`: one registered journey. `scenario`:
@@ -69,6 +86,8 @@ export const RunRecord = Schema.Struct({
    * starting-worlds record.
    */
   making: CheckedCall.pipe(Schema.Array, Schema.optional),
+  /** What its calls reached of each machine (checks/paths.ts); absent in records made before step 3.4. */
+  coverage: Coverage.pipe(Schema.optional),
   afterwards: Schema.Struct({
     /** `left to its owner`: a world made by `world create`, which the runner neither made nor destroys. */
     stage: Schema.Literals(["destroying", "destroyed", "destroy failed", "left to its owner"]),

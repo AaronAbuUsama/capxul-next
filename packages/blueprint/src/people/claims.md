@@ -14,6 +14,29 @@ are in [claims.md](../../claims.md).
 | `invite.decline` | 2 | 0 | 0 | 2 | 0 |
 | `org.member.list` | 2 | 0 | 0 | 2 | 0 |
 
+## Machines
+
+Declared in `machines.ts` here (the format is `src/machine.ts`). Core moves each thing only through its machine's
+`step`, the database refuses a state the machine does not have, and the runner checks that each thing's events
+form a path through it.
+
+### `invitation`
+
+- States: `pending`, `accepted`, `declined`. Its `invitation` field names it in each event and refusal below.
+- Starts `pending`, made by `org.member.invite`, which sends `member_invited`.
+
+| Move | From | To | Made by | Sends | From any other state |
+|---|---|---|---|---|---|
+| `accept` | `pending` | `accepted` | `invite.accept` | `invitation_accepted` | `accepted`: unchanged; `declined`: refused, `InvitationClosed` |
+| `decline` | `pending` | `declined` | `invite.decline` | `invitation_declined` | `accepted`: refused, `InvitationClosed`; `declined`: refused, `InvitationClosed` |
+
+```mermaid
+stateDiagram-v2
+    [*] --> pending
+    pending --> accepted: accept
+    pending --> declined: decline
+```
+
 ## 1. `org.member.invite`
 
 - Served by: the world group.
@@ -21,22 +44,22 @@ are in [claims.md](../../claims.md).
 - Emits: `member_invited`.
 - Budget: 1,500 ms, provisional, excluding waking a parked world. Basis: reads of the company's board and members and of the world's cast in its database, then one write.
 
-1. A Director invites a person by email to be a member: the invitation is pending at once, and there is nothing to sign. *(thin line)*
+1. The founder invites a person by email to be a member: the invitation is pending at once, and there is nothing to sign. *(thin line)*
    - In: `founded`.
-   - Observes: org.member.invite as dana of olga@cast.test as a member answers an invitation pending, naming Northwind, that email, the role and dana. It asks for no approval: the record gains one member_invited and nothing else, the chain's head is unchanged while the world's clock is frozen, and invite.list as olga holds the invitation, pending.
+   - Observes: org.member.invite as dana, Northwind's founder, of olga@cast.test as a member answers an invitation pending, naming Northwind, that email, the role and dana. It asks for no approval: the record gains one member_invited and nothing else, the chain's head is unchanged while the world's clock is frozen, and invite.list as olga holds the invitation, pending.
    - Old: none; this claim is new.
 2. An email no person of the world signs in with is invited all the same: the invitation waits for whoever signs up with it.
    - In: `founded`.
    - Observes: org.member.invite as dana of rex@elsewhere.test answers an invitation pending for that email, and no person of the cast lists it with invite.list.
    - Old: none; this claim is new.
-3. Only a Director may invite; anyone else is refused, and nothing is sent.
+3. Only the company's founder may invite; another Director, and anyone else, is refused, and nothing is sent.
    - In: `founded`.
-   - Observes: As sam, a member with no permission, and as olga, who is not a member, org.member.invite is refused with CannotManagePeople naming Northwind and the caller. As eli, the other Director, it answers an invitation he sent. record.export shows no new entry for a refused call.
+   - Observes: As eli, a Director who is not the founder, as sam, a member with no permission, and as olga, who is not a member, org.member.invite is refused with CannotManagePeople naming Northwind and the caller, who is not the founder org_founded names in the record. record.export shows no new entry for a refused call. As dana, the founder, it answers an invitation she sent.
    - Refusals: `CannotManagePeople`.
    - Old: none; this claim is new.
 4. A person who already belongs to the company, and an email whose invitation is still pending, are refused.
    - In: `founded`.
-   - Observes: org.member.invite as dana of sam@cast.test (a member) and of eli@cast.test (a Director) is refused with AlreadyAMember naming the person; a second invitation of olga@cast.test while hers is pending, with AlreadyInvited naming the pending invitation. Once she has declined, eli invites her again; once she has accepted, she is refused with AlreadyAMember. A company nobody founded is refused with OrgNotFound, and an address that is not an email with PayloadRejected. record.export shows no new entry for any of them.
+   - Observes: org.member.invite as dana of sam@cast.test (a member) and of eli@cast.test (a Director) is refused with AlreadyAMember naming the person; a second invitation of olga@cast.test while hers is pending, with AlreadyInvited naming the pending invitation. Once she has declined, dana invites her again; once she has accepted, she is refused with AlreadyAMember. A company nobody founded is refused with OrgNotFound, and an address that is not an email with PayloadRejected. record.export shows no new entry for any of them.
    - Refusals: `AlreadyAMember`, `AlreadyInvited`, `OrgNotFound`.
    - Old: none; this claim is new.
 
@@ -49,7 +72,7 @@ are in [claims.md](../../claims.md).
 
 1. A person lists every invitation sent to their email, whatever its state, oldest first, and only those. *(thin line)*
    - In: `founded`.
-   - Observes: invite.list as olga after dana invites her answers that invitation, pending, from dana for Northwind; after she declines it and accepts eli's, it answers both, dana's declined then eli's accepted. rex@elsewhere.test's invitation is listed to nobody of the cast. As sam it answers none. Every invitation it lists is to the caller's email, and the record gains no entry.
+   - Observes: invite.list as olga after dana invites her answers that invitation, pending, from dana for Northwind; after she declines it and accepts dana's second, it answers both, the first declined then the second accepted. rex@elsewhere.test's invitation is listed to nobody of the cast. As sam it answers none. Every invitation it lists is to the caller's email, and the record gains no entry.
    - Old: none; this claim is new.
 
 ## 3. `invite.accept`
@@ -61,7 +84,7 @@ are in [claims.md](../../claims.md).
 
 1. The invitee accepts and is a member at once; nothing is signed and nothing reaches the chain or the company's site. *(thin line)*
    - In: `founded`.
-   - Observes: invite.accept as olga of eli's pending invitation answers Accepted: the invitation accepted and olga a member. The record gains one invitation_accepted naming olga and nothing else, and the chain's head is unchanged while the world's clock is frozen. org.member.list then lists olga as a member, and org.member.grant as dana of issue-invoices for olga is proposed, not refused with NotAMember.
+   - Observes: invite.accept as olga of dana's second invitation, pending, answers Accepted: the invitation accepted and olga a member. The record gains one invitation_accepted naming olga and nothing else, and the chain's head is unchanged while the world's clock is frozen. org.member.list then lists olga as a member, and org.member.grant as dana of issue-invoices for olga is proposed, not refused with NotAMember.
    - Old: none; this claim is new.
 2. Accepting again answers the same, and changes nothing.
    - In: `founded`.

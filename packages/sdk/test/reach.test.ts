@@ -22,7 +22,6 @@ import {
   encodeAbiParameters,
   encodeEventTopics,
   encodeFunctionResult,
-  parseAbi,
   parseAbiParameters,
   type Abi,
   type Hex,
@@ -43,8 +42,8 @@ const TX = hex(`0x${Str.repeat(32)("77")}`);
 const PAYMENT_ID = hex(`0x${Str.repeat(32)("9a")}`);
 const DOCUMENT = hex(`0x${Str.repeat(32)("ef")}`);
 
-const functions: Abi = parseAbi(Rec.values(Chain.FUNCTION_SIGNATURES));
-const events: Abi = parseAbi(Rec.values(Chain.LOG_SIGNATURES));
+const functions: Abi = Rec.values(Chain.FUNCTIONS);
+const events: Abi = Rec.values(Chain.LOG_EVENTS);
 
 const results: Readonly<Record<string, unknown>> = {
   balanceOf: 125_500_000n,
@@ -55,6 +54,24 @@ const results: Readonly<Record<string, unknown>> = {
   isWearerOfHat: true,
   viewHat: ["Books", 1, 1, SAFE, SAFE, "", 0, true, true],
   companySafeAddressFor: SAFE,
+  budgetOf: {
+    safe: SAFE,
+    parent: 7n,
+    hat: 9n,
+    token: USDC,
+    period: 0,
+    depth: 2,
+    closed: false,
+    amount: 1_000_000_000n,
+    childrenAmount: 200_000_000n,
+    ownSpent: 0n,
+    ownCommitted: 0n,
+    spent: 50_500_000n,
+    committed: 0n,
+    periodIndex: 682n,
+  },
+  leftOf: 749_500_000n,
+  childrenOf: [9n],
 };
 
 const paymentSent = {
@@ -163,6 +180,7 @@ test("every chain read answers its declared type from the door's chain JSON-RPC"
         company: "org_northwind1",
         founderSafe: DANA,
       }),
+      budget: client.chain.budget({ budgets: PAYMENTS, budget: "8", block: null }),
       transaction: client.chain.transaction({ transaction: TX }),
       logs: client.chain.logs({ log: "PaymentSent", address: PAYMENTS, fromBlock: null, toBlock: null }),
     }),
@@ -173,6 +191,21 @@ test("every chain read answers its declared type from the door's chain JSON-RPC"
   assert.deepEqual(read.hat, { details: "Books", maxSupply: 1, supply: 1, active: true });
   assert.equal(read.wears, true);
   assert.equal(Str.toLowerCase(read.companySafe), SAFE);
+  assert.deepEqual(read.budget, {
+    safe: SAFE,
+    parent: "7",
+    hat: "9",
+    token: USDC,
+    period: 0,
+    depth: 2,
+    closed: false,
+    amount: "1000",
+    childrenAmount: "200",
+    spent: "50.5",
+    committed: "0",
+    left: "749.5",
+    children: ["9"],
+  });
   assert.equal(read.transaction.status, "success");
   const [sent, other] = read.transaction.logs;
   assert.ok(sent?._tag === "PaymentSent", `the first log is ${sent?._tag}`);

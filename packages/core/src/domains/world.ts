@@ -14,6 +14,9 @@ export const platform = {
   "world.show": unbuilt("world.show"),
   "world.snapshot.save": unbuilt("world.snapshot.save"),
   "world.snapshot.restore": unbuilt("world.snapshot.restore"),
+  "world.list": unbuilt("world.list"),
+  "world.snapshot.list": unbuilt("world.snapshot.list"),
+  "world.snapshot.delete": unbuilt("world.snapshot.delete"),
 };
 
 /** Its share of the world group. */

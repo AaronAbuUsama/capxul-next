@@ -1,14 +1,23 @@
 // The checks of every org.member.invite (claims.md of people, org.member.invite 1 to 4): an invitation is pending at
-// once, of the email and role asked, from the caller to the company asked; nothing is signed, so the record gains one
-// member_invited carrying neither the email nor whose it is, and the chain is not written; its invitee, when a person
-// of the world, lists it. A caller who is not a Director, a person who already belongs, an email already invited and a
-// company nobody founded are each refused, and nothing is recorded.
+// once, of the email and role asked, from the caller, the company's founder, to the company asked; nothing is signed,
+// so the record gains one member_invited carrying neither the email nor whose it is, and the chain is not written; its
+// invitee, when a person of the world, lists it. A caller who is not the founder (another Director included, for now:
+// docs/roadmap.md, "Who may invite"), a person who already belongs, an email already invited and a company nobody
+// founded are each refused, and nothing is recorded.
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import { expect } from "../expectation.ts";
 import { same } from "../support/expect.ts";
-import { chainUntouched, frozenHead, invitationsOf, peopleOf, personWith, recordedOnly } from "../support/people.ts";
+import {
+  chainUntouched,
+  founderOf,
+  frozenHead,
+  invitationsOf,
+  peopleOf,
+  personWith,
+  recordedOnly,
+} from "../support/people.ts";
 import { callerOf, nothingRecorded, worldBefore, type Before } from "./common.ts";
 import { check, checks, type Asked, type Check } from "./format.ts";
 
@@ -52,6 +61,12 @@ export const orgMemberInvite = checks<"org.member.invite", Read>({
       ),
     ),
     check(
+      "the caller who invited is the company's founder, as its org_founded names them",
+      Effect.flatMap(founderOf(asked.payload.org, before.where), (founder) =>
+        same("who invited", invited.invitedBy, founder),
+      ),
+    ),
+    check(
       "the record gains one member_invited, carrying only invitation, org, role and by: nothing is signed",
       recordedOnly(
         "member_invited",
@@ -74,15 +89,12 @@ export const orgMemberInvite = checks<"org.member.invite", Read>({
           same("CannotManagePeople", [refused.org, refused.person], [asked.payload.org, callerOf(asked.options)]),
         ),
         check(
-          "the caller is not one of the company's Directors",
+          "the caller is not the company's founder, as its org_founded names them",
           Effect.gen(function* () {
-            const directors = Arr.filter(
-              yield* peopleOf(asked.payload.org, before.where),
-              (each) => each.role === "director",
-            );
+            const founder = yield* founderOf(asked.payload.org, before.where);
             yield* expect(
-              !Arr.some(directors, (each) => each.person === refused.person),
-              `${refused.person} is a Director of ${asked.payload.org}`,
+              refused.person !== founder,
+              `${refused.person} is ${asked.payload.org}'s founder, who may invite, yet was refused`,
             );
           }),
         ),

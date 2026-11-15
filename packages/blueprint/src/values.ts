@@ -1,6 +1,8 @@
 // The values the operations share: names, ids, times, money, approvals and the view of a world. Each is declared
 // here once (the ids in ids.ts, the approval subjects in their domains) and imported from here wherever it is used.
 import * as Schema from "effect/Schema";
+import * as Board from "./board/subjects.ts";
+import * as Budgets from "./budgets/subjects.ts";
 import * as Documents from "./documents/subjects.ts";
 import { ApprovalId, OrgHandle, OrgId } from "./ids.ts";
 import * as Organizations from "./organizations/subjects.ts";
@@ -37,7 +39,42 @@ export const Hash = pattern(/^0x[0-9a-f]{64}$/);
 /** A 65-byte secp256k1 signature, as hex. */
 export const Signature = pattern(/^0x[0-9a-f]{130}$/);
 
-export { ApprovalId, ChangeId, OrgHandle, OrgId, PaymentRequestId, ProposalId } from "./ids.ts";
+/** A Solidity `bool` of a chain log. */
+export const SolidityBool = Schema.Boolean;
+/** A Solidity `string` of a chain log. */
+export const SolidityString = Schema.String;
+/** A Solidity uint of up to 48 bits, which viem decodes as a number. */
+export const SmallUint = Schema.Int;
+
+/**
+ * How a Solidity value of a chain log reads in the blueprint, by its ABI type (src/chain/logs.ts derives each log's
+ * fields from its compiled ABI with these). A uint of up to 48 bits is a number, as viem decodes it; a wider one is a
+ * decimal string.
+ */
+export const SolidityValues = {
+  address: Address,
+  bytes32: Hash,
+  bool: SolidityBool,
+  string: SolidityString,
+  uint8: SmallUint,
+  uint16: SmallUint,
+  uint32: SmallUint,
+  uint64: Uint,
+  uint128: Uint,
+  uint192: Uint,
+  uint256: Uint,
+} as const;
+
+export {
+  ApprovalId,
+  BoardChangeId,
+  BudgetCreationId,
+  ChangeId,
+  OrgHandle,
+  OrgId,
+  PaymentRequestId,
+  ProposalId,
+} from "./ids.ts";
 
 /** The assets a world's chain carries. */
 export const Asset = Schema.Literals(["USDC"]);
@@ -82,9 +119,14 @@ export const Approval = Schema.Struct({
 /**
  * What an approval authorises, once enough of its kind are signed, named by the id the operation that asked for it
  * answered. Each domain whose operations ask for approvals declares its kinds in `src/<domain>/subjects.ts`: a
- * company's setup and an officer change (organizations), a held payment (documents).
+ * company's setup and an officer change (organizations), a change to its Board (board), a budget's creation (budgets), a held payment (documents).
  */
-export const Subject = Schema.Union([...Organizations.subjects, ...Documents.subjects]);
+export const Subject = Schema.Union([
+  ...Organizations.subjects,
+  ...Board.subjects,
+  ...Budgets.subjects,
+  ...Documents.subjects,
+]);
 
 /**
  * How a person of the cast signs (decisions.md, 42). Their keys are among the first `accounts` of the public test
@@ -122,6 +164,8 @@ export const ChainContracts = Schema.Struct({
   usdc: Address,
   hats: Address,
   payments: Address,
+  /** The Budgets contract: every company's tree of budgets, keyed by its Safe (src/budgets/). */
+  budgets: Address,
   entryPoint: Address,
   companySafeMinter: Address,
   /** The owner the minter derives every company Safe's address under (`companySafeAddressFor`'s `owner`). */

@@ -29,6 +29,7 @@ import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
 import * as Schema from "effect/Schema";
 import type * as Headers from "effect/http/Headers";
+import { Placement } from "./attributes.ts";
 import { SpanSink } from "./sink.ts";
 import { measured } from "./spans.ts";
 
@@ -50,7 +51,8 @@ export const TelemetryLive = Layer.effect(
   Telemetry,
   Effect.gen(function* () {
     const sink = yield* SpanSink;
-    return Telemetry.of((effect, options) => measured(sink, options, effect));
+    const placement = yield* Placement;
+    return Telemetry.of((effect, options) => measured(sink, placement, options, effect));
   }),
 );
 
@@ -80,6 +82,7 @@ export const WorldSignInLive = Layer.effect(
   WorldSignIn,
   Effect.gen(function* () {
     const sink = yield* SpanSink;
+    const placement = yield* Placement;
     const { world, owner, doorToken, platformToken } = yield* CoreIdentity;
     const accepted = [
       [doorToken, "door"],
@@ -88,6 +91,7 @@ export const WorldSignInLive = Layer.effect(
     return WorldSignIn.of((effect, options) =>
       measured(
         sink,
+        placement,
         options,
         Effect.gen(function* () {
           yield* credentialed(accepted, options.headers);
@@ -110,6 +114,7 @@ export const PlatformSignInLive = Layer.effect(
   PlatformSignIn,
   Effect.gen(function* () {
     const sink = yield* SpanSink;
+    const placement = yield* Placement;
     const { owner, platformToken, second } = yield* CoreIdentity;
     const accepted: ReadonlyArray<readonly [Redacted.Redacted, typeof Values.OperatorName.Type]> =
       second === undefined
@@ -121,6 +126,7 @@ export const PlatformSignInLive = Layer.effect(
     return PlatformSignIn.of((effect, options) =>
       measured(
         sink,
+        placement,
         options,
         Effect.flatMap(credentialed(accepted, options.headers), (operator) =>
           Effect.provideService(effect, CurrentOperator, { operator }),

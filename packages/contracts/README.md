@@ -25,6 +25,16 @@ addresses belong to the old build, see below; this package writes its own); `doc
 specs that the test comments cite, such as `spec/installer.md`; read them at the source commit); `scripts/` (tool installers
 and the old coverage and Halmos checkers, which need the old workspace); the ABI exports (`out/` is built, not committed).
 
+## What TypeScript imports (`src/door.ts`)
+
+`@capxul/contracts` exports two generated modules, written by `pnpm generate` (`packages/generate`) and never edited:
+`Abi` (`generated/abi.ts`), the compiled ABI of each contract and interface off-chain code uses, and `Seeded`
+(`generated/seeded.ts`), the seeded chain's addresses, tiers and last block from `deployments/devnet.json` and
+`state/core.json`. The outside contracts a world's chain holds are declared as Solidity interfaces in
+`src/interfaces/external`; the ones only off-chain code reads (`IEntryPoint`, `ISafe4337Module`, `IHatsEvents`,
+`ISafeState`) are in files no deployed contract imports, because a change to an imported file changes the importing
+contract's metadata, so its code and its address.
+
 ## Dependencies
 
 Vendored in `lib/`, so a build needs no network and no `node_modules`: `lib/forge-std` (v1.9.7, src only, as the old repository

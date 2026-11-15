@@ -126,6 +126,16 @@ export const markReady = Effect.fn("organizations.ready")(function* (org: string
   yield* sql`update app.organizations set setup = 'ready', budget = ${budget} where org = ${org}`;
 });
 
+/** The company's Board once a change to it has landed: its Directors in the order they were seated, and its threshold. */
+export const setBoard = Effect.fn("organizations.board")(function* (
+  org: string,
+  directors: ReadonlyArray<string>,
+  threshold: number,
+) {
+  const sql = yield* PgClient.PgClient;
+  yield* sql`update app.organizations set directors = ${sql.json(directors)}, threshold = ${threshold} where org = ${org}`;
+});
+
 export const setSite = Effect.fn("organizations.site")(function* (
   org: string,
   site: string | null,
@@ -160,14 +170,6 @@ export const waitingFor = Effect.fn("organizations.waiting")(function* (org: str
   const rows = yield* sql<{ readonly change: string }>`
     select change from app.officer_changes where org = ${org} and member = ${member} and state = 'proposed' limit 1`;
   return Option.map(Arr.head(rows), (row) => row.change);
-});
-
-/** The next nonce of the company Safe a new proposal takes: after every proposal still waiting. */
-export const nextNonce = Effect.fn("organizations.nonce")(function* (org: string, onChain: number) {
-  const sql = yield* PgClient.PgClient;
-  const [row] = yield* sql<{ readonly top: number | null }>`
-    select max(nonce) as top from app.officer_changes where org = ${org} and state = 'proposed'`;
-  return row?.top === null || row?.top === undefined ? onChain : Math.max(onChain, row.top + 1);
 });
 
 export const changeOf = Effect.fn("organizations.changeOf")(function* (change: string) {

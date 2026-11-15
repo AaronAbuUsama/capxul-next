@@ -4,11 +4,13 @@
 // nothing secret. A domain's own refusals are in its folder (`src/<domain>/refusals.ts`); those several domains share
 // are in errors/. Each such file declares its refusals with their exit codes; this file lists each file once.
 import * as Approvals from "./approvals/refusals.ts";
+import * as Board from "./board/refusals.ts";
 import * as Documents from "./documents/refusals.ts";
 import * as Caller from "./errors/caller.ts";
 import * as Companies from "./errors/companies.ts";
 import * as Server from "./errors/server.ts";
 import { gather } from "./gather.ts";
+import * as Budgets from "./budgets/refusals.ts";
 import * as Organizations from "./organizations/refusals.ts";
 import * as People from "./people/refusals.ts";
 import * as Record from "./record/refusals.ts";
@@ -20,12 +22,26 @@ export * from "./errors/companies.ts";
 export * from "./world/refusals.ts";
 export * from "./organizations/refusals.ts";
 export * from "./people/refusals.ts";
+export * from "./board/refusals.ts";
+export * from "./budgets/refusals.ts";
 export * from "./documents/refusals.ts";
 export * from "./approvals/refusals.ts";
 export * from "./record/refusals.ts";
 
 /** Every file that declares refusals. */
-const declaring = [Caller, Server, Companies, World, Organizations, People, Documents, Approvals, Record] as const;
+const declaring = [
+  Caller,
+  Server,
+  Companies,
+  World,
+  Organizations,
+  People,
+  Board,
+  Budgets,
+  Documents,
+  Approvals,
+  Record,
+] as const;
 
 /**
  * Every refusal, by its tag. The tests read this to prove no tag is declared twice. All but `PayloadRejected` are a

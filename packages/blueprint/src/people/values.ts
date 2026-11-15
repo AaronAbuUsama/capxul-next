@@ -4,6 +4,7 @@
 // them from here, and its door exports them.
 import * as Schema from "effect/Schema";
 import { Instant, OrgHandle, OrgId, PersonId } from "../values.ts";
+import { Invitation as InvitationMachine } from "./machines.ts";
 
 /** An email address, in lower case, as a person signs up with it (a person of the cast: `<person>@cast.test`). */
 export const Email = Schema.String.check(Schema.isPattern(/^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/));
@@ -21,11 +22,8 @@ export const InvitedRole = Schema.Literal("member");
 /** How a person belongs to a company: a Director (a signer of its Safe) or a member (a Seat). */
 export const MemberRole = Schema.Literals(["director", "member"]);
 
-/**
- * Where an invitation stands. It is `pending` from the moment it is made; its invitee ends it by accepting or
- * declining, and a Director by cancelling it (`org.invite.cancel`, which comes later). Only a pending one can change.
- */
-export const InvitationState = Schema.Literals(["pending", "accepted", "declined", "cancelled"]);
+/** Where an invitation stands: exactly the states of its machine (machines.ts). */
+export const InvitationState = InvitationMachine.State;
 
 /** One invitation, as its company's Directors and its invitee see it. */
 export const Invitation = Schema.Struct({
@@ -35,7 +33,7 @@ export const Invitation = Schema.Struct({
   /** The address it was sent to. The person of the world who signs in with it is its invitee. */
   email: Email,
   role: InvitedRole,
-  /** The Director who invited. */
+  /** The person who invited: for now always the company's founder (docs/roadmap.md, "Who may invite"). */
   invitedBy: PersonId,
   state: InvitationState,
   /** World time. */

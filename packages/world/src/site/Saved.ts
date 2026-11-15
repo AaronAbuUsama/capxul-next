@@ -6,11 +6,13 @@
 //   restore  each site the source world saved as the snapshot, made again in the new world under its own label, from
 //            the backup: on the new world's token, with the source's shown too (the door lets a world restore only
 //            what that world saved), the new world's site credential and its clock; then waited for until ready
+//   drop     what a deleted snapshot saved: its backup, and the point an in-place reset puts the sites back to
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Redacted from "effect/Redacted";
 import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
+import * as Str from "effect/String";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import { SITE_KEY_ID, SITE_SECRET_ID } from "../core/Core.ts";
 import { SiteFailed } from "../failures.ts";
@@ -98,4 +100,23 @@ export const restoreSites = Effect.fn("world.site.restore")(function* (
   );
   yield* Effect.forEach(asked.sites, (one) => readyOn(target.door, target.token, one.site));
   return asked.sites;
+});
+
+/**
+ * Forgets what a snapshot saved of world `stage`'s sites on `bench`: their backup, and the point an in-place reset puts
+ * them back to. What is already gone is no failure, nor is a door from before a backup could be forgotten (404): what
+ * it keeps goes with the world's sites.
+ */
+export const dropSaved = Effect.fn("world.site.dropSaved")(function* (stage: string, bench: string, snapshot: string) {
+  const { door, token } = yield* tokenFor(bench, nameOf(stage), 0, yield* soon);
+  const forget = (request: HttpClientRequest.HttpClientRequest) =>
+    doorCall(door, token, request, Schema.Unknown).pipe(
+      Effect.asVoid,
+      Effect.catchIf(
+        (error) => Str.startsWith("HTTP 404")(error.message),
+        (error) => Effect.logWarning(`${stage}'s ${snapshot} on ${bench}: ${error.message}`),
+      ),
+    );
+  yield* forget(HttpClientRequest.delete(`/world/backup/${snapshot}`));
+  yield* forget(HttpClientRequest.delete(`/world/points/${snapshot}`));
 });

@@ -13,6 +13,7 @@
     "@alchemy.run/cloudflare": "catalog:",
     "@alchemy.run/neon": "catalog:",
     "@capxul/blueprint": "workspace:*",
+    "@capxul/contracts": "workspace:*",
     "@capxul/core": "workspace:*",
     "@capxul/platform": "workspace:*",
     "@effect/platform-bun": "catalog:",
@@ -22,6 +23,7 @@
     "viem": "catalog:"
   },
   "devDependencies": {
+    "@alchemy.run/sql": "catalog:",
     "@cloudflare/workers-types": "catalog:",
     "@effect/tsgo": "catalog:",
     "@types/node": "catalog:",

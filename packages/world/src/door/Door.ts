@@ -15,6 +15,7 @@
 //   POST /chain/adopt     take another world's state as this chain's first state
 //   POST /chain/snapshot/<name>   save the chain's whole state now under a snapshot's name
 //   GET  /chain/snapshot/<name>   the state a snapshot saved, for a world restored from it
+//   DELETE /chain/snapshot/<name> forget the state a snapshot saved, once the snapshot is deleted
 //   POST /chain/reset/<name>      rewind the chain to the state a snapshot saved (src/lifecycle/reset.ts)
 //   GET  /chain/time      the chain's time (its pending block's) and the host's, read together next to anvil
 //   POST /chain/mine-at   mine the next block at the world's time (body: worldMs and the host time it was read at)
@@ -41,7 +42,7 @@ import Bundler from "../bundler/Bundler.ts";
 import Chain from "../chain/Chain.ts";
 import { ChainState } from "../chain/ChainState.ts";
 import { ADMIN_TOKEN_ID, PLACE } from "../hub/names.ts";
-import { LEDGER_PREFIX, Registration, splitToken, STAGE_PATTERN } from "../hub/registration.ts";
+import { LEDGER_PREFIX, Registration, snapshotKey, splitToken, STAGE_PATTERN } from "../hub/registration.ts";
 import Indexer from "../index/Indexer.ts";
 import { describeFailure } from "../lifecycle/describe.ts";
 
@@ -121,6 +122,10 @@ export default class Door extends Cloudflare.Worker<Door>()(
           if (action === "snapshot" && method === "GET")
             return HttpServerResponse.text(yield* chain.snapshot(snapshot));
           if (action === "reset" && method === "POST") return json(yield* chain.resetTo(snapshot));
+          if (action === "snapshot" && method === "DELETE") {
+            yield* bucket.delete(snapshotKey(named.stage, snapshot));
+            return json({ forgot: snapshot });
+          }
         }
         switch (`${method} /${Arr.join(rest, "/")}`) {
           case "POST /rpc":
