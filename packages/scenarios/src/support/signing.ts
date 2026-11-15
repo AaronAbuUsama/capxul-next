@@ -1,8 +1,7 @@
 // How a person of the cast signs: with their own key, never in a browser (packages/blueprint,
 // src/things/approval/values.ts and src/common/values.ts). The cast's keys are the blueprint's `CAST_KEYS`: among the
-// first accounts of the public test mnemonic. A
-// journey finds the key whose address is the one an approval names, signs its digest as it is (no prefix) and hands the
-// signature to approval.sign.
+// first accounts of the public test mnemonic. A journey finds the key whose address is the one an approval names, signs
+// its digest as it is (no prefix) and hands the signature to approval.sign.
 import { Values } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";

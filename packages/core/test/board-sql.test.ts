@@ -207,11 +207,11 @@ it(
 );
 
 it(
-  "org.director.list and org.member.list: dana, eli and sam at 2, as sam sees it",
+  "org.director.list and member.list: dana, eli and sam at 2, as sam sees it",
   Effect.gen(function* () {
     const seen = yield* answer(yield* list("sam"));
     assert.deepEqual([Arr.map(seen.directors, (each) => each.person), seen.threshold], [["dana", "eli", "sam"], 2]);
-    const people = yield* answer(yield* as(next(), "sam", (client, o) => client("org.member.list", { org: ORG }, o)));
+    const people = yield* answer(yield* as(next(), "sam", (client, o) => client("member.list", { org: ORG }, o)));
     assert.deepEqual(
       Arr.map(people.members, (each) => [each.person, each.role]),
       [

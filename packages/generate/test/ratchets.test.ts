@@ -3,7 +3,7 @@
 // packages/blueprint-tools' tests by item 3.10, which made the toolkit import nothing of the blueprint; R16 to R19 added.
 // Run with `pnpm test`.
 import { strict as assert } from "node:assert";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { test } from "node:test";
 import { ratchets } from "@capxul/blueprint";
 import { layoutOf, OLD_WORDS, Ratchets, renderScorecard } from "@capxul/blueprint-tools";
@@ -13,10 +13,14 @@ import * as Order from "effect/Order";
 import * as Rec from "effect/Record";
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
+import { repositoryFiles } from "../src/ratchet-files.entry.ts";
 import { listsOf, scorecardInputs, talliesOf } from "../src/ratchet-sources.ts";
 
 const { countsOf, grown, OUTPUTS } = Ratchets;
 type Counts = Ratchets.Counts;
+
+/** The repository's files R7, R8 and R10 are counted from, read once. */
+const files = repositoryFiles();
 
 test("the registry declares R1 to R19 once each; each counted or naming the item that will count it", () => {
   assert.deepEqual(
@@ -27,7 +31,7 @@ test("the registry declares R1 to R19 once each; each counted or naming the item
     assert.ok(ratchet.holds.length > 0 && ratchet.closes.length > 0, `${ratchet.id} says what it holds and closes`);
     assert.equal(ratchet.count === "not yet counted", ratchet.countedBy !== undefined, `${ratchet.id}'s countedBy`);
   }
-  assert.ok(Arr.every(["owned-values", "declared-names", "decoded-rows"], (rule) => rule in listsOf({}).lint));
+  assert.ok(Arr.every(["owned-values", "declared-names", "decoded-rows"], (rule) => rule in listsOf({}, files).lint));
   const words = Arr.findFirst(ratchets, (ratchet) => ratchet.id === "R15");
   assert.ok(Option.isSome(words) && words.value.count === "words:old-words" && words.value.gate === "pnpm words");
 });
@@ -40,7 +44,7 @@ const countsAt = (url: URL): Counts =>
   Schema.decodeUnknownSync(CountsFile)(JSON.parse(readFileSync(url, "utf8"))).counts;
 const committed = (): Counts => countsAt(new URL(OUTPUTS.counts, BLUEPRINT));
 /** The repository's ratchets counted now, R15 from the committed old-words.json. */
-const tallies = talliesOf(countsAt(new URL(`../../../${OLD_WORDS}`, import.meta.url)));
+const tallies = talliesOf(countsAt(new URL(`../../../${OLD_WORDS}`, import.meta.url)), files);
 
 test("no counted list of the repository grew over its committed count, and each counted one is committed", () => {
   const counts = committed();
@@ -64,4 +68,15 @@ test("the committed scorecard is what the sources render", () => {
     "the scorecard is out of date: run `pnpm generate`",
   );
   assert.equal(layout.things.length, 20);
+});
+
+test("R7, R8 and R10 read the repository's files, and each doc on R8's list is still there to fold", () => {
+  assert.ok(Rec.keys(files.verbs).length > 0, "the verbs are read");
+  assert.ok("packages/blueprint/README.md" in files.docs, "the READMEs are read");
+  assert.ok("packages/indexer/src/index.ts" in files.nonEffect, "effect-only ran on Ponder's files");
+  assert.ok(Arr.contains(files.dependencies["packages/core"] ?? [], "effect"), "the manifests are read");
+  const docs = Arr.findFirst(ratchets, (ratchet) => ratchet.id === "R8");
+  assert.ok(Option.isSome(docs) && docs.value.count === "docs:long-or-mapped");
+  for (const path of docs.value.unmigrated ?? [])
+    assert.ok(existsSync(new URL(`../../../${path}`, import.meta.url)), `${path} is folded: take it off R8's list`);
 });

@@ -24,5 +24,5 @@ export const peopleHandlers = {
     invitationAccept(payload).pipe(Effect.catchTags(faults)),
   "invitation.decline": (payload: Payload<typeof People.invitationDecline>) =>
     invitationDecline(payload).pipe(Effect.catchTags(faults)),
-  "org.member.list": (payload: Payload<typeof People.memberList>) => memberList(payload).pipe(Effect.catchTags(faults)),
+  "member.list": (payload: Payload<typeof People.memberList>) => memberList(payload).pipe(Effect.catchTags(faults)),
 };

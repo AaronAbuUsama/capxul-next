@@ -7,8 +7,11 @@
  * (packages/lint/src/unmigrated.ts, its findings in all), the delta check's formats' unmigrated lists (the
  * blueprint's, their operations in all), some of those lists only (`formats:<which>`, each operation once: the
  * machine format's; who may call, `allowed`; the declared steps and logs, `spans` and `logs` together; the promises),
- * the glossary's old words (generated/old-words.json, every old word's count, in all), or the ratchet's own
- * `unmigrated` list (its names in all).
+ * the glossary's old words (generated/old-words.json, every old word's count, in all), the ratchet's own
+ * `unmigrated` list (its names in all), or one of three counters over the repository's files (../checks/
+ * ratchet-files.ts): the verbs whose examples sit in their thing's `examples.ts` (`verbs:examples`), the long
+ * READMEs, the hand-written file maps and the docs on the ratchet's own list not yet folded (`docs:long-or-mapped`),
+ * and the non-Effect constructs and runtime dependencies (`effect:non-effect`).
  */
 export type Counter =
   | "lint:owned-values"
@@ -20,7 +23,10 @@ export type Counter =
   | "formats:steps"
   | "formats:promises"
   | "words:old-words"
-  | "own-list";
+  | "own-list"
+  | "verbs:examples"
+  | "docs:long-or-mapped"
+  | "effect:non-effect";
 
 /** One ratchet. */
 export interface Ratchet {
@@ -39,6 +45,9 @@ export interface Ratchet {
    * count and leaves it out of generated/ratchets.json, so only that command fails when its list grows.
    */
   readonly gate?: string;
-  /** For a ratchet counted by its own list (`own-list`): what has not yet moved to its rule. It may only shrink. */
+  /**
+   * For a ratchet counted by its own list (`own-list`, and `docs:long-or-mapped` for the docs not yet folded): what
+   * has not yet moved to its rule. It may only shrink.
+   */
   readonly unmigrated?: ReadonlyArray<string>;
 }

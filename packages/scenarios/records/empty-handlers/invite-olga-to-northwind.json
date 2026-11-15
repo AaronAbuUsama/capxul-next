@@ -10,16 +10,16 @@
     "began": [
       {
         "step": 1,
-        "operation": "org.member.list",
-        "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"org.member.list\"}"
+        "operation": "member.list",
+        "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"member.list\"}"
       }
     ],
     "calls": [
       "record.export",
-      "org.member.list"
+      "member.list"
     ],
     "outcome": "failed",
     "failedWith": "NotImplemented",
-    "detail": "org.member.list answered NotImplemented"
+    "detail": "member.list answered NotImplemented"
   }
 }

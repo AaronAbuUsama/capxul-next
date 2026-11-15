@@ -2,7 +2,6 @@
 // chain and off the site (docs/build-order.md says why).
 import * as Schema from "effect/Schema";
 import { Instant, OrgHandle, OrgId, PersonId } from "../../common/values.ts";
-import { Invitation as InvitationMachine } from "./lifecycle.ts";
 
 /** An email address, in lower case, as a person signs up with it (a person of the cast: `<person>@cast.test`). */
 export const Email = Schema.String.check(Schema.isPattern(/^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/));
@@ -31,8 +30,14 @@ export const RefusalRule = Schema.Literals([
   "closed",
 ]);
 
-/** Where an invitation stands: exactly the states of its machine (lifecycle.ts). */
-export const InvitationState = InvitationMachine.State;
+/** Where an invitation stands: its machine's states (lifecycle.ts), in order, from which it derives its SQL CHECK. */
+export const InvitationState = Schema.Literals(["pending", "accepted", "declined"]);
+
+/**
+ * Where an invitation stands when an answer to it is refused: the closed states, as InvitationClosed names them. Its
+ * machine (lifecycle.ts) compiles only while these are exactly the states its moves refuse from.
+ */
+export const ClosedState = Schema.Literals(["accepted", "declined"]);
 
 /** One invitation, as its company's Directors and its invitee see it. */
 export const Invitation = Schema.Struct({

@@ -114,6 +114,6 @@ export const asChainHolds = (world: View, budget: Budget, who: Who = {}) =>
     }
   });
 
-/** Whether `person` is a Director or a member of `org`, as `org.member.list` answers the world's owner. */
+/** Whether `person` is a Director or a member of `org`, as `member.list` answers the world's owner. */
 export const belongsTo = (org: string, person: string, who: Who = {}) =>
   Effect.map(peopleOf(org, who), (people) => Arr.some(people, (each) => each.person === person));

@@ -53,16 +53,16 @@ and gated only by that command.
 | R4 Lifecycles not machines | Things with a lifecycle not yet declared as a machine (site, approval, world, budget among them). | not yet counted (C.1) | C.1 (was 7.3) |
 | R5 Operations not in the full format | Operations on the machine format's unmigrated list: those that start or move no machine, or leave a state's refusal undeclared. Who may call, steps and logs, and promises are R17 to R19. | 13 | 3.5 |
 | R6 Undeclared spans | Effectful functions of our own code (Core, the world, the platform client, the runner) with no declared step. | not yet counted (4.1) | 4.1 |
-| R7 Operations not in one file | Operations whose declaration is still split across files beside their verb's own file. | not yet counted (3.6) | Decision 3 |
-| R8 Long or hand-mapped docs | READMEs over one screen (60 lines), hand-written file maps, and docs not yet folded. | not yet counted (3.6) | Decision 3 |
+| R7 Operations not in one file | Verbs whose declaration still reads its examples from their thing's `examples.ts` (part 13: until stage 2b folds it into the verbs). A thing's refusals and events have their own files by design (part 13, amended), so they are not counted. | 23 | Decision 3 |
+| R8 Long or hand-mapped docs | READMEs over one screen (60 lines), as the docs' shape lists them (`LONG_READMES`, packages/lint); READMEs and package docs that are hand-written file maps (three or more list items or table rows opening with a file's path); and the docs on this list, not yet folded into a declaration or a generated page. | 10 | Decision 3 |
 | R9 Unreached declarations | Declared moves, refusals and outcomes no journey reaches. | not yet counted (3.7) | 3.7 |
-| R10 Non-Effect code | Non-Effect constructs outside entry files, and non-Effect runtime dependencies. | not yet counted (3.6) | Phase 7 |
+| R10 Non-Effect code | Non-Effect constructs outside entry files, as capxul/effect-only finds them in the TypeScript the lint does not reach (Ponder's files; spikes, vendored code and Frappe are exempt), and each package's runtime dependencies that are not Effect nor Capxul's own. | 63 | Phase 7 |
 | R11 Untyped starting worlds | Starting-world steps in prose, and payloads retyped in the runner. | not yet counted (7.2) | 7.2 |
 | R12 Proofs by file path | Roadmap proof entries naming files instead of verdicts, for steps not yet Done. | not yet counted (4.5) | 4.5 |
 | R13 Provisional budgets | Operations whose budget is not yet set from a measured verdict. | not yet counted (4.1) | 4.1 and the measured runs |
 | R14 Own telemetry tables | Readers of app.spans and the runner's JSON records beside OTLP. | not yet counted (4.4) | 4.4 |
 | R15 Old words | The glossary's old words still written as names in code, counted per word in distinct names in generated/old-words.json; its count is their total. Distinct names: a lane that uses an existing name adds nothing; only a newly introduced name grows the count (blueprint lead, 15 Nov 2026). | 600, gated by `pnpm words` | 3.8 |
-| R16 Names not from their path | Verbs whose operation is not named `<thing>.<verb>` from its path (docs/design/blueprint.md, part 13, amended, point 3), each renamed directly as its thing is climbed. | 17 | C.1 (the climb), with item 3.8's renames |
-| R17 Operations without who may call | Operations on the `allowed` format's unmigrated list: no roles allowed declared, nor the refusal anyone else gets. | 22 | 5.1 |
-| R18 Operations without declared steps and logs | Operations on the `spans` or `logs` format's unmigrated list: no declared spans, logs, or log where each refusal is decided. | 22 | 4.1 |
+| R16 Names not from their path | Verbs whose operation is not named `<thing>.<verb>` from its path (docs/design/blueprint.md, part 13, amended, point 3), each renamed directly as its thing is climbed. | 16 | C.1 (the climb), with item 3.8's renames |
+| R17 Operations without who may call | Operations on the `allowed` format's unmigrated list: no roles allowed declared, nor the refusal anyone else gets. | 21 | 5.1 |
+| R18 Operations without declared steps and logs | Operations on the `spans` or `logs` format's unmigrated list: no declared spans, logs, or log where each refusal is decided. | 21 | 4.1 |
 | R19 Promises that do not name every refusal they decide | Operations on the `promises` format's unmigrated list: some refusal they decide is named in none of their promises. | 8 | C.1 |
