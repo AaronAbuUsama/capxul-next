@@ -63,7 +63,7 @@ test("a README on the list that now fits must come off it", () => {
 });
 
 test("the shrinking lists only shrink", () => {
-  assert.ok(LONG_READMES.length <= 18, "LONG_READMES may only shrink: lower this ceiling with it");
+  assert.ok(LONG_READMES.length <= 17, "LONG_READMES may only shrink: lower this ceiling with it");
   assert.ok(UNSTATED_NOTES.length <= 1, "UNSTATED_NOTES may only shrink: lower this ceiling with it");
 });
 

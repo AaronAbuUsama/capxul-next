@@ -11,6 +11,14 @@
 //
 // Every token is an Alchemy.Random of the world's stage, kept in the shared state, bound to the Worker as a secret
 // and read back from the state (parts.ts), never an output.
+//
+// A world is ready once Core answers 200 on CORE_HEALTH; `world.create` waits for ten such answers in a row
+// (src/platform/steady.ts). A caller may fill
+// the slot itself: a host of Core off Cloudflare (host.ts), or its own CoreSlot for one run. That a world made this
+// way answers every blueprint operation at its door is the runner's door check (packages/runner/records/w-c1).
+//
+// TODO: Core's bundle is made once per world, 3 to 4 s of a create that must stay under 20 s; it could be made once
+// per hub.
 import { CORE_ENV, CoreDeployment, CoreWorker, migrations } from "@capxul/core";
 import * as Alchemy from "alchemy";
 import * as Context from "effect/Context";
