@@ -5,7 +5,7 @@ export { default as stack } from "../alchemy.run.ts";
 export { PLATFORM_PATH, serveDoors, WORLD_PATH } from "./doors.ts";
 export { CoreRpcs, Served, ServedEmpty } from "./server.ts";
 export { CoreIdentity, PlatformSignInLive, TelemetryLive } from "./telemetry/middleware.ts";
-export { default as CoreWorker, coreProps } from "./worker.ts";
+export { default as CoreWorker, workerProps } from "./worker.ts";
 export { CoreDeployment, type Deployment } from "./stack/deployment.ts";
 export { ENV as CORE_ENV } from "./env.ts";
 export { HEALTH_PATH, PROBE_PATH } from "./probe.ts";

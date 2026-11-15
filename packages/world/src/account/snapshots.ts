@@ -160,7 +160,7 @@ export const restore = Effect.fn("platform.world.snapshot.restore")(function* (p
   const restored = yield* Ref.make<ReadonlyArray<{ readonly site: string; readonly from: string }>>([]);
   const onDeployed =
     snapshot.companies > 0
-      ? Effect.fn("platform.world.snapshot.restore.sites")(
+      ? Effect.fn("account.world.snapshot.restore.sites")(
           function* (target: string) {
             yield* Ref.set(restored, yield* restoreSites(stage, target, bench, payload.snapshot, clock));
           },
