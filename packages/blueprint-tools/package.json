@@ -1,0 +1,21 @@
+{
+  "name": "@capxul/blueprint-tools",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "types": "effect-tsgo tsc -p .",
+    "test": "node --experimental-strip-types --no-warnings --test test/*.test.ts",
+    "claims": "node --experimental-strip-types --no-warnings src/render/render.entry.ts",
+    "delta:check": "node --experimental-strip-types --no-warnings src/checks/delta.entry.ts"
+  },
+  "dependencies": {
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@effect/tsgo": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

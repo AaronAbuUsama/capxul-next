@@ -8,7 +8,12 @@ generate again. `pnpm generate:check`, in CI's `check` job, fails when generatin
 |---|---|---|
 | `packages/contracts/generated/abi.ts`: one `as const` ABI per contract or interface listed in `src/sources.ts` | The compiled contracts (`forge build`'s `out/`), outside contracts declared as interfaces in `packages/contracts/src/interfaces/external` | The blueprint (`Chain`'s logs and reads), Core (`src/chain/abi.ts`), the indexer (`abis.ts`), packages/world |
 | `packages/contracts/generated/seeded.ts`: the seeded chain's addresses, tiers, last block and anvil's first account | `packages/contracts/deployments/devnet.json` and `state/core.json` | Core (`src/chain/seeded.ts`), packages/world (`src/chain/contracts.ts`, `faucet.ts`) |
-| `packages/frappe-app/capxul/generated/site.py`: the site's names the Capxul app shares with the blueprint | `packages/blueprint/src/documents/site.ts` | The Capxul app (`canon.py`, `clock.py`, `hooks.py`, `setup.py`) |
+| `packages/frappe-app/capxul/generated/site.py`: the site's names the Capxul app shares with the blueprint | `packages/blueprint/src/common/site.ts` | The Capxul app (`canon.py`, `clock.py`, `hooks.py`, `setup.py`) |
+| `packages/blueprint/src/generated/*.ts`: the blueprint's indexes (each domain's hub, `domains`, the refusals, the approval subjects, `Values`, the promises) | The thing folders, `packages/blueprint/src/things/`, read by `@capxul/blueprint-tools`' `layoutOf`, and today's domains, `BLUEPRINT` in `src/sources.ts` | The blueprint's door, `src/index.ts` |
+
+The blueprint's indexes are written from the files' text, before anything imports the blueprint, so a verb added or
+removed is picked up even while the indexes on disk are stale. A verb file no domain of `BLUEPRINT` lists, or a
+listed verb with no file, stops the run.
 
 `packages/contracts`' door (`src/door.ts`) exports the two TypeScript modules as `Abi` and `Seeded`.
 

@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        // The language declares operations as Effect Rpc declarations and builds lifecycles with Effect's `Graph`,
+        // which Effect 4 marks unstable with no stable replacement, as in packages/blueprint. The catalog's exact
+        // pin of effect is the guard.
+        "allowedUnstableApis": ["effect/rpc", "effect/Graph"]
+      }
+    ]
+  },
+  "include": ["src", "test"]
+}

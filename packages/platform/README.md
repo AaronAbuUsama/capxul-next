@@ -82,7 +82,7 @@ proof (`packages/world/records/site.proof.json`) on the stand-in stage `pr-site`
 
 The decision "Sites from a pool" (14 November 2026) as `spikes/site-speed` measured it, built into the door:
 
-- **Templates** (`door/templates.py`). A starting world's company sites (`packages/blueprint/src/starting-worlds.ts`:
+- **Templates** (`door/templates.py`). A starting world's company sites (`packages/blueprint/src/starting-points/points.ts`:
   `founded`, `office-holder`, `payment-drafted`, `payment-held`, `paid`; their one company is Northwind, label
   `northwind`). A template world makes the starting world once by its steps and hands its sites over with
   `POST /templates {template, site}` (or `{template, snapshot}` from a saved backup). A template is a database and a
