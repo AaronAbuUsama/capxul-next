@@ -118,9 +118,12 @@ jobs:
     if: always() && needs.thin-line.result != 'skipped'
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    # The cloud secrets and variables are the run's, which `thin-line` required already.
     steps:
       - uses: actions/checkout@v4
+      - name: Require the cloud secrets and variables
+        run: >-
+          packages/platform/bin/require.sh CLOUDFLARE_API_TOKEN NEON_API_KEY CLOUDFLARE_ACCOUNT_ID NEON_ORG_ID
+          PLATFORM_DOMAIN
       - uses: ./.github/actions/platform-setup
       - name: Destroy every world the run's operators own
         if: always()
@@ -140,13 +143,12 @@ jobs:
           exit "$status"
       - name: Take down the run's own hub
         if: always()
-        # The cluster `thin-line` chose; when it ended before saying, the name it would have chosen.
+        # The cluster `thin-line` chose; when it ended before saying, the name it would have chosen. `fleet` stays up.
         env:
           CLUSTER: ${{ needs.thin-line.outputs.cluster }}
         run: |
           cluster="${CLUSTER:-ch-$(printf '%s' '${{ github.run_id }}' | tail -c 7)${{ github.run_attempt }}}"
-          # Only a cluster of the run's own (named ch-...) is taken down.
-          case "$cluster" in ch-*) ;; *) echo "The run used the standing cluster $cluster, which stays up."; exit 0 ;; esac
+          [ "$cluster" = fleet ] && { echo "The run used the standing cluster fleet, which stays up."; exit 0; }
           mkdir -p "$RUNNER_TEMP/teardown" && echo "$cluster" >"$RUNNER_TEMP/teardown/cluster.txt"
           if packages/world/run.sh hub show --hub "$cluster" >/dev/null 2>&1; then
             packages/world/run.sh hub down --hub "$cluster" || {

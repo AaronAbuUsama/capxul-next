@@ -14,7 +14,8 @@ on:
   workflow_dispatch:
     inputs:
       cluster:
-        description: The cluster to redeploy, by name
+        description: The cluster to redeploy
+        default: fleet
         required: true
       lifetime:
         description: How long the cluster may live from now, e.g. "14 days" (at most 30 days)
