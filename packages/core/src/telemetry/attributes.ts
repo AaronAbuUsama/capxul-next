@@ -2,7 +2,7 @@
 // that ran Core's Worker, and how much of the call Core spent in its Postgres round trips. Each is an attribute of the
 // span `measured` opens (spans.ts), under an OpenTelemetry-style key named once here, so the span can later be
 // exported as it is and the keys declared in the blueprint. Kept in `app.spans.attributes`
-// (migrations/0008_core_span_attributes.sql) and in the platform's `platform.spans.attributes`.
+// (migrations/0009_core_span_attributes.sql) and in the platform's `platform.spans.attributes`.
 import * as Arr from "effect/Array";
 import * as Context from "effect/Context";
 import { pipe } from "effect/Function";

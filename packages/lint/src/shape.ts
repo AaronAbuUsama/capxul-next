@@ -18,6 +18,8 @@ export const TOP_LEVEL: Readonly<Record<string, string>> = {
   ".oxlintrc.json": "the lint rules: built-in, Effect's and ours",
   ".gitignore": "what git never tracks",
   ".github": "CI and the pull request template",
+  ".claude":
+    "Claude Code's settings for every session: the tools agents may run without asking, and what they may never run",
   docs: "only docs/roadmap.md, the plan this line follows",
   packages: "the code, one package per component",
   spikes: "throwaway code that proves a risk, deleted when its step graduates it",

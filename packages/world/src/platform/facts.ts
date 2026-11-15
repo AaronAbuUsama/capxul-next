@@ -134,12 +134,16 @@ const CompanyRow = Schema.Struct({
   site_url: Schema.NullOr(Schema.String),
 });
 
-const ONE = `select w.chain_id, w.contracts, c.mode, c.frozen_at_ms, c.offset_ms,
+/** What `readFacts` asks of the world's database: the world, its clock, its record's head, its migrations and birth. */
+export const ONE = `select w.chain_id, w.contracts, c.mode, c.frozen_at_ms, c.offset_ms,
   (select count(*)::int from app.events) as head,
   (select max(name) from world.migrations) as migrations,
   (select jsonb_build_object('grade', payload->'grade', 'parent', payload->'parent') from app.events
     where event = 'world_created' order by id desc limit 1) as born
   from app.world w left join app.clock c on true`;
+
+export const CAST = "select person, email, signer, safe from app.cast order by position";
+export const COMPANIES = "select org, handle, name, site_state, site_url from app.companies order by position";
 
 /** An instant as the blueprint writes one, from epoch milliseconds. */
 export const instantOf = (ms: number): string => DateTime.formatIso(DateTime.makeUnsafe(ms));
@@ -157,18 +161,11 @@ export const clockNow = (
   hostMs: number,
 ) => (row.mode === "frozen" && row.frozen_at_ms !== null ? row.frozen_at_ms : hostMs + (row.offset_ms ?? 0));
 
-const FACTS: ReadonlyArray<Statement> = [
-  { query: ONE, params: [] },
-  { query: "select person, email, signer, safe from app.cast order by position", params: [] },
-  { query: "select org, handle, name, site_state, site_url from app.companies order by position", params: [] },
-];
-
 /**
- * Everything the world's database says of the world, its clock read at `hostMs`: its three reads sent as one request
- * (one round trip, and one snapshot of the database).
+ * The world's facts from the rows its database answered to `ONE`, `CAST` and `COMPANIES`, its clock read at `hostMs`.
+ * Rows written by earlier code decode here once the migrations since have moved them (test/old-rows.test.ts).
  */
-export const readFacts = Effect.fn("platform.facts")(function* (database: Redacted.Redacted, hostMs: number) {
-  const [rows = [], cast = [], companies = []] = yield* transaction(database, FACTS);
+export const factsOf = Effect.fnUntraced(function* (rows: unknown, cast: unknown, companies: unknown, hostMs: number) {
   const row = yield* Effect.fromOption(Arr.head(yield* Schema.decodeUnknownEffect(Schema.Array(Row))(rows))).pipe(
     Effect.mapError(() => "the world's database holds no facts of the world"),
   );
@@ -189,6 +186,21 @@ export const readFacts = Effect.fn("platform.facts")(function* (database: Redact
       site: { state: company.site_state, url: company.site_url },
     })),
   };
+});
+
+const FACTS: ReadonlyArray<Statement> = [
+  { query: ONE, params: [] },
+  { query: CAST, params: [] },
+  { query: COMPANIES, params: [] },
+];
+
+/**
+ * Everything the world's database says of the world, its clock read at `hostMs`: its three reads sent as one request
+ * (one round trip, and one snapshot of the database).
+ */
+export const readFacts = Effect.fn("platform.facts")(function* (database: Redacted.Redacted, hostMs: number) {
+  const [rows = [], cast = [], companies = []] = yield* transaction(database, FACTS);
+  return yield* factsOf(rows, cast, companies, hostMs);
 }, Effect.mapError(failed));
 
 export type Facts = Effect.Success<ReturnType<typeof readFacts>>;
