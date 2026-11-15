@@ -78,3 +78,4 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 - [`starting.ts`](../src/worlds/starting.ts): Starting worlds for a run in one world (roadmap step 1.18; docs/roadmap.md, "One runner, one world"; packages/blueprint, src/starting-points/points.ts).
 - [`teardown.ts`](../src/worlds/teardown.ts): What a run in private worlds takes down, and what it reads of the accounts afterwards: the worlds it made, destroyed the newest first.
 - [`timing.ts`](../src/worlds/timing.ts): `./run.sh starting-worlds`: makes every starting world the runner can make, in the blueprint's order, as a journey of it would get it, and times each: in the run's one world on its hub (worlds/hub.ts), each made once and saved, then for each the one world reset to it and what it makes by its steps made.
+- [`wait.ts`](../src/worlds/wait.ts): The makers' wait for background work (decisions.md, 27): poll an operation until it answers differently.
