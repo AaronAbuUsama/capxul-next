@@ -13,17 +13,23 @@
 # door at their public names under PLATFORM_DOMAIN, and the door's address and key are read from the shared state with
 # the Cloudflare key (packages/world, src/site/Bench.ts). So the job needs no AWS.
 #
-# Gated: on a pull request or a push to master it runs only once the repository variable CAPXUL_CLOUD_READY is
+# Gated: on a pull request or master's daily run it runs only once the repository variable CAPXUL_CLOUD_READY is
 # `true`, which packages/platform/bootstrap sets last, after the Cloudflare and Neon keys are repository secrets.
 # Started by hand it always runs, and from then on a missing secret fails it by name: a skipped check is not a green
 # one.
 name: world
+#
+# Minutes (agreed with Aaron on 15 November 2026, after the account's Actions spending limit stopped CI): the journeys run
+# on a pull request into master from a slice branch (`slice/<name>`), not on one that changes only documents or records;
+# a newer push to the same pull request cancels the older run; and master's own run is once a day, not on every push,
+# since every slice already passed the journeys on its way in. Started by hand it always runs.
 on:
   workflow_dispatch:
   pull_request:
     branches: [master]
-  push:
-    branches: [master]
+    paths-ignore: ["docs/**", "**/*.md", "packages/*/records/**"]
+  schedule:
+    - cron: "41 3 * * *"
 permissions:
   contents: read
 # Runs of different branches share the staging bench at once (docs/roadmap.md, "Bench templates never change"): a
@@ -32,7 +38,7 @@ permissions:
 # takes another's. Runs of one branch still go one at a time, a newer one waiting and replacing an older waiting one.
 concurrency:
   group: world-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 env:
   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
   NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
@@ -46,7 +52,7 @@ env:
   WORLD_SECOND_OWNER: ci-${{ github.run_id }}-${{ github.run_attempt }}-2
 jobs:
   thin-line:
-    if: github.event_name == 'workflow_dispatch' || vars.CAPXUL_CLOUD_READY == 'true'
+    if: github.event_name == 'workflow_dispatch' || (vars.CAPXUL_CLOUD_READY == 'true' && (github.event_name != 'pull_request' || startsWith(github.head_ref, 'slice/')))
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
