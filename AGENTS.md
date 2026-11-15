@@ -87,9 +87,9 @@ slice branch `slice/<lane>`. One more session, the **conductor**, starts leads a
   rule that a slice reaches `master` only with a 🔍 pass, a fresh `gate` and `world`), `hashtags` (Aaron's
   `#shortcuts`) and `reviewer` (the 🔍 review). `.claude/skills/` and `.claude/agents/reviewer.md` are links to it, so
   edit the kit only in `.agents/skills/`.
-- **A Claude Code cloud session never connects to Aaron's computer**
-  ([why](docs/guides/how-work-flows.md#aarons-computer)). A conductor on his machine (Amp, Codex, a
-  terminal) does that work itself.
+- **A Claude Code cloud session never connects to Aaron's computer.** A session that does is limited to his trusted
+  devices for good, and then no cloud thread or scheduled task can reach it. A conductor on his machine (Amp, Codex, a
+  terminal) does that work itself ([why](docs/guides/how-work-flows.md#aarons-computer)).
 
 ### Standing rules
 

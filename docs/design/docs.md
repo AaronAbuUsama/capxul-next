@@ -548,11 +548,14 @@ Still to do:
    docs' shape (`packages/lint/src/docs.ts`) and the package maps (`packages/lint/src/maps.ts`), with their shrinking
    lists. When in doubt, a sentence is a rule and stays. What moved, each to a `[why]` link beside its rule:
    - to `docs/guides/how-work-flows.md`, quoted: why `master` is its own line (its cut from `main`), "those judge its
-     work", "so independent lanes run in parallel", and why a cloud session never connects to Aaron's computer.
+     work" and "so independent lanes run in parallel". The consequence of connecting to Aaron's computer stays in
+     `AGENTS.md` too, at the conductor's word: it is the one reason that stops an irreversible act.
    - Nothing else moved. `docs/guides/how-a-feature-is-built.md` links the rules of "How a feature is built" to the
      decisions they come from, quoted from `docs/decisions.md`.
    Its citations of decisions point to `docs/decisions.md`; "Standing rules" is a heading of its own. Every section
-   name that code or docs cite is kept.
+   name that code or docs cite is kept. Also added: an intro naming the two guides and `docs/decisions.md`, and a line
+   under the standing rules saying where the decisions are; `docs/roadmap.md` changed only in its opening sentence,
+   which now says decisions are written in `docs/decisions.md`.
 3. **M23, the design notes:** landed by this lead, as the threads that wrote them are archived. Copied word for word
    under `docs/design/`, each with a status line: `proof-and-telemetry.md`, `telemetry-in-the-blueprint.md` and
    `invoice-ledger.md` agreed; `speed.md` superseded by `run-time.md`; `agreements-design.md` agreed as the
