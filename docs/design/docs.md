@@ -549,8 +549,9 @@ Still to do:
 3. **M23, the design notes:** landed by this lead, as the threads that wrote them are archived. Copied word for word
    under `docs/design/`, each with a status line: `proof-and-telemetry.md`, `telemetry-in-the-blueprint.md` and
    `invoice-ledger.md` agreed; `speed.md` superseded by `run-time.md`; `agreements-design.md` superseded by
-   `invoice-ledger.md` except its §2. Not landed: the other notes on `design/contracts-first-principles`
-   (`primitive-mapping.md`, `parity-inventory.md`, `handoff-knock-on-map.md`), which no decision cites as agreed.
+   `invoice-ledger.md` except its §2. Not landed, as the conductor's list left them out: the other notes on
+   `design/contracts-first-principles` (`primitive-mapping.md`, `parity-inventory.md`, `handoff-knock-on-map.md`).
+   The roadmap's decision "Every payment settles one sealed document" cites `primitive-mapping` as a design study.
    The roadmap's decisions still cite the notes on their branches; M4 repoints them when it moves the table.
 4. **The last long READMEs:** `packages/world/records/spike-bundler/README.md`, `spikes/containers` and
    `spikes/world-speed`, which the world-layout session graduates into `packages/world`; `spikes/containers` holds
