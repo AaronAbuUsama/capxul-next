@@ -10,7 +10,7 @@
 // place to its starting world's snapshot (`resetFor`), and a starting world made "by its steps" (`quota-full`,
 // `with-snapshot`, `restored`) is then made from there. Every call made on the way is a fact of the world (`calls`) and
 // is kept for the checks.
-import { holdsFactsOf, startingWorlds, type StartingWorld } from "@capxul/blueprint";
+import { holdsFactsOf, startingWorlds, type StartingWorld, Pipeline } from "@capxul/blueprint";
 import { Capxul } from "@capxul/scenarios";
 import * as World from "@capxul/world";
 import * as Arr from "effect/Array";
@@ -72,10 +72,10 @@ export const anchorOf = (world: StartingWorld): StartingWorld =>
 
 /**
  * What makes the starting worlds of one run in its one world. `templateWorlds` is the one world, by stage, which the
- * run destroys at its end; `kept` the bench template it kept of each starting world, which outlives the run. No span
- * of its own: it only builds the makers, and each part they do (`world create`, `make`, `save`) is spanned.
+ * run destroys at its end; `kept` the bench template it kept of each starting world, which outlives the run. It is
+ * part of the run's preparation (`run.prepare`); each part its makers do (`world create`, `make`, `save`) has a span.
  */
-export const startingWorldsOf = Effect.fnUntraced(function* (
+export const startingWorldsOf = Effect.fn(Pipeline.runPrepare.name)(function* (
   settings: Settings,
   platformUrl: string,
   timings: Timings,

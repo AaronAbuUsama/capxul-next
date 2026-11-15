@@ -277,7 +277,7 @@ tester.run("declared-steps: the ratchet", declaredSteps({ "packages/core/src/a.t
 });
 
 // The most findings declared-steps' unmigrated list may hold in all: what it found when turned on. It may only fall.
-const STEPS_CEILING = 315;
+const STEPS_CEILING = 308;
 const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 
 test("declared-steps: its unmigrated list names tracked files, each with a positive whole count, within its ceiling", () => {
