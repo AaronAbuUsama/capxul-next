@@ -51,7 +51,7 @@ Read the run's telemetry back from the sink: nothing undeclared arrived, nothing
 Clear the gate's rungs in order, stopping at the first that fails.
 
 - Payload: none.
-- Spans: `check.gate.shape` (compute) → `check.gate.format` (compute) → `check.gate.generate` (compute) → `check.gate.seed` (compute) → `check.gate.lint` (compute) → `check.gate.types` (compute) → `check.gate.test` (compute) → `check.gate.delta` (compute).
+- Spans: `check.gate.shape` (compute) → `check.gate.format` (compute) → `check.gate.generate` (compute) → `check.gate.seed` (compute) → `check.gate.lint` (compute) → `check.gate.types` (compute) → `check.gate.test` (compute) → `check.gate.delta` (compute) → `check.gate.ratchets` (compute) → `check.gate.words` (compute).
 - Logs: `check.gate.failed` (rung).
 - Budget: 180,000 ms, a target, provisional. Basis: docs/design/blueprint.md, part 3: 3 minutes for the job; `check` run 43710528109 on master took 2 min 39 s.
 
