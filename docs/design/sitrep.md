@@ -1,62 +1,118 @@
-# The Rebuild Sitrep
+# The sitrep: the conductor's state, declared by the blueprint
 
-Aaron's one page for where the rebuild stands, redesigned with him on 15 November 2026.
-Page: https://claude.ai/artifact/CjRhEey4CEwXciharu1bPF. How to update it, its data and its tests: the `sitrep` skill
-(`.agents/skills/sitrep/`).
+Status: **direction agreed with Aaron, 15 November 2026** (the state lives in the repository; five tabs; Preact).
+Shapes and build order below are proposed; the items under "Needs Aaron's yes" are not yet agreed.
 
-## What it is for
+The page today (https://claude.ai/artifact/CjRhEey4CEwXciharu1bPF, the `sitrep` skill) is a stopgap: its data's shape
+is written only in the skill, and the conductor types half of what it shows. This note replaces that with one rule.
 
-Aaron mostly glances at it on his phone, away from his desk, and listens rather than reads. In the first five
-seconds it answers: does anything need me, is `master` healthy, how fast is a full run, and how much of the plan is
-done. Then: how close the next milestone is, whether the work left is falling, what each lane is doing, and what landed.
+**The sitrep is a view of the conductor's state. The blueprint declares every shape in it. Every fact that has an owner
+is read from that owner when the view is refreshed. Only judgement is typed, by any agent, through the CLI.**
 
-Agreed with Aaron, in order:
+## 1. The things
 
-1. A tower: tiles, then detail. Not a briefing column, not a spoken-only page.
-2. The next milestone with its steps, every milestone's progress, and a burn-down (not a burn-up) that shows each
-   point's time and cause on hover or touch.
-3. Lanes open in place, like an accordion, with their own sitreps inside.
-4. Spoken sitreps on their own tab: a fold-out list, unheard first, heard in grey, each with its text, a play button
-   and its links. Finer playback: speed, pause, back, forward, and a bar of parts to jump to.
-5. A native phone layout, with a tab bar at the bottom.
+The conductor's state becomes things in the blueprint, in the same format as `ratchet` and `run` on `slice/blueprint`
+(`src/things/<thing>/values.ts`, `machines.ts`, one file per verb, each verb work no door serves):
 
-## How it is built
+| Thing | What it holds | Where it is kept | Its states (machine) | Verbs, so CLI commands |
+|---|---|---|---|---|
+| `milestone` | Name, goal, what "done" means, its steps, its target (optional) | Declared in the blueprint (the plan, below) | from its steps | none: changed by pull request |
+| `step` | What, needs, lane, count, waits-on, evidence, proof | Declared in the blueprint (the plan) | not started, in progress, done (from its proof; from verdicts at 4.5), claimed | none: changed by pull request |
+| `lane` | Name, its chain of steps, its slice branch | Declared in the plan; its live state derived | open, landing, landed | none |
+| `thread` | Type (emoji), title, agent (Claude Code, Amp, Codex), link, lane, parent | The `state` branch | active, waiting on Aaron, done, archived | `thread start`, `thread move`, `thread archive` |
+| `ask` | A question for Aaron, 2 to 4 options, the recommended one, why, who asked, by when | The `state` branch | open, answered, withdrawn | `ask open`, `ask answer`, `ask withdraw` |
+| `sitrep` | Title, parts (each one or two spoken sentences), links, lanes | The `state` branch | said | `sitrep say` |
+| `measure` | Ratchets, budgets against measured times, the evals | Derived only | none | none |
 
-- **The page is a template with no data in it.** It reads the artifact's database (the `db` capability) and redraws
-  live. Updating the sitrep is a data write by the conductor, never a republish, so the design changes only by pull
-  request and the data cannot drift from what the page expects.
-- **Numbers are never typed.** Milestones, steps and the burn-down come from `numbers.py`, which uses
-  `packages/status-feed/feed.py`: a step is Done only when its proof is committed, at the time that proof landed.
-  The burn-down's total comes from the roadmap's own history, so the plan growing shows as the line going up.
-- **The conductor writes only what needs judgement:** what needs Aaron, the lanes, what landed in plain words, the
-  threads, and the spoken sitreps, each checked at its source first.
-- **Per viewer:** what each viewer has heard and their reading speed live in their own private part of the database,
-  so his phone and his laptop agree.
-- **Reading aloud** uses the platform's voice (`tts`). It has speed, pause and resume, and lines, but no seek, so each
-  sitrep is split into parts and back, forward and the parts bar start a new reading at a part's start.
-- **Access:** anyone the page is shared with reads it; only Aaron and editors (and the conductor acting as Aaron) write
-  the shared data.
+Derived at each refresh, never typed:
 
-## How it should connect to the blueprint
+- each step's state and done time, from its proof (today `packages/status-feed/feed.py`; verdicts from 4.5);
+- the burn-down, from the plan's history and the steps' done times;
+- each lane's pull requests and their checks, from `slice/<lane>` on GitHub; its lead, from the thread whose lane it is;
+- what landed, from `master`'s merges;
+- `master`'s health, from its latest `check` run; the run time, from run records (verdicts and telemetry later);
+- the ratchets, from `generated/ratchets.json` at each commit of `master`; budgets from run records; the evals once
+  4.2 and 4.3 exist;
+- "needs you" also includes every open pull request whose "Needs Aaron" section is not `_none_`.
 
-Today the sitrep reads the facts it shows from their owners: step states and times from the roadmap through the
-status feed, pull requests and `check` runs from GitHub. Nothing on it is a second copy of a fact that has an owner,
-except what the conductor writes by hand after checking it.
+## 2. Where the state lives
 
-That hand-written part should shrink as the pipeline is declared:
+- **The plan** (milestones, steps, lanes) is declared in the blueprint and changed by pull request, as the roadmap's
+  table is today. The roadmap's "Phases" and "Steps to the goal" tables are generated from it.
+- **The running state** (threads, asks, sitreps) lives on an orphan branch, `state`, as one JSON file per thing, the way
+  verdicts live on `proofs`. Each CLI verb validates against the generated schema, commits and pushes. No CI runs on
+  it, `master` stays quiet, and git keeps the history. Any agent with git and the CLI can write it.
+- **Derived facts** are not stored anywhere but in the snapshot below.
 
-1. When the blueprint's `pipeline` domain lands (3.6), the sitrep's documents (`now`, a sitrep, a lane) become things
-   declared there, and their JSON schema is generated into the skill, so the page, the test and the conductor share
-   one shape that `generate:check` keeps honest.
-2. When verdicts land (4.5), the run-time tile and `master`'s health come from verdicts, and `numbers.py` reads them
-   instead of the conductor typing a run's minutes.
-3. When the pipeline is instrumented (4.7), lanes and their pull requests can be derived from slices and their
-   telemetry, leaving the conductor only the spoken sitreps and what needs Aaron.
+## 3. How it flows
 
-Each is a blueprint delta inside the existing decisions, so it is the lead's call when its step comes.
+1. **`sitrep.refresh`** (work no door serves; `capxul sitrep refresh`) reads the plan, the `state` branch, GitHub and
+   the run records. It builds one **snapshot**, whose schema is generated from the blueprint, and validates it. A
+   snapshot that does not validate fails the refresh: nothing wrong is ever shown. Every part of the snapshot carries
+   the time its source was read.
+2. **Publishers** put the snapshot where Aaron reads it. The first is the Claude artifact: the refresh writes the
+   snapshot into the artifact's database. Another agent's publisher could write a page elsewhere from the same
+   snapshot.
+3. **Freshness:** a scheduled task runs the refresh every 15 minutes, and every CLI verb runs it after its write. The
+   page shows each panel's age, and turns it amber past 30 minutes.
+4. **Answers come back:** on Now, Aaron taps an option (and may add a note). The page saves the answer in its database
+   and, when the asking thread is a Claude Code session, sends that thread the answer as a message. The next refresh
+   records it on the `state` branch (`ask answer`), so every agent sees it. For a thread in Amp or Codex, a copy button
+   gives one plain line to paste: "Answer to <ask>: option 2, <note>".
 
-## Open
+The maintainer's whole interface is four commands: `capxul sitrep refresh`, `capxul sitrep say`, `capxul ask open`,
+`capxul thread start` (and `archive`). Nothing else is typed.
 
-- Spend has no source yet, so the page does not show it; `now.spend` is reserved for when cost is measured (4.6).
-- The status dashboard and this page overlap. Once this page reads verdicts, the dashboard can be retired; that is
-  Aaron's call.
+## 4. The screens
+
+Five tabs at the bottom on a phone, a sidebar on a laptop. Drill-down pushes a page with a back chevron on a phone and
+opens a side panel on a laptop. Counts appear only on Now and Sitreps. Every chart has a verdict sentence and a
+reference line. Done and heard things are dimmed and folded, never hidden for good.
+
+1. **Now**: only what needs Aaron. Open asks as cards: the question, lettered options, the recommended one marked,
+   how long the thread has waited, answered in place with undo. Then anything broken (`master` red, a failed run).
+   Then new sitreps to play. When nothing needs him it says so and offers the latest sitrep.
+2. **Plan**: milestones, each with its progress. A milestone's page has its goal, what done means, a burn-down with its
+   verdict ("on pace", "behind by 3 units"), and its steps grouped by state, with **Done (n)** folded at the bottom. A
+   step's page has its state, what it waits on (each a link), its lane, its evidence and proof, its pull requests and
+   the ratchet it closes.
+3. **Lanes**: each lane's row has its lead, its current step, its pull request and the age of its last update. A lane's
+   page has its lead and threads, its steps, its pull requests with their checks, and its sitreps.
+4. **Measures**: one card per ratchet (count, change this week, a falling line with its old ceiling dotted), each
+   budget against its measured p95 (red past 1.5 times, where an architecture review is raised), and the evals.
+5. **Sitreps**: a podcast-style feed by day; unheard bold, partly heard with a bar, heard dimmed; a mini player above
+   the tabs with speed, back, forward and parts to jump to.
+
+Reference screens (Mobbin, 15 November 2026): Linear's project and issues for Plan, Plane's burn-down, GitHub Copilot's
+agent sessions for Lanes, Bevel's trend cards for Measures, Queue and Apple Podcasts for the player, Discord's poll for
+answering in place.
+
+## 5. The build
+
+- A package, `packages/sitrep`: Preact and TypeScript, no component library, one set of design tokens, built by esbuild
+  into one HTML file that is published to the artifact.
+- Its data types are generated from the blueprint's snapshot schema (`pnpm generate`), so the page, the refresh and the
+  tests share one shape and `generate:check` fails when they drift.
+- Its tests render the page from a snapshot fixture that the schema validates, at phone, tablet and laptop widths, in
+  both themes, and drive every control (as `.agents/skills/sitrep/test.cjs` does today).
+- The page is an entry file in the lint's sense (browser code, outside Effect), listed with its reason. The refresh and
+  the verbs are Effect, like the rest of the pipeline.
+
+## 6. Needs Aaron's yes
+
+1. The roadmap's two tables become generated from the plan declared in the blueprint (they stop being hand-written).
+2. A new package, `packages/sitrep`, in the shape list.
+3. A new orphan branch, `state`, written by agents.
+
+## 7. Order of work
+
+Each piece is written first as journeys or checks by another agent, as AGENTS.md says.
+
+1. After 3.6 lands on `master`: the blueprint delta, meaning the six things, their machines, the verbs and the
+   snapshot's schema. This is the blueprint lead's call inside the existing decisions.
+2. The plan moved into the blueprint, with the roadmap's tables generated from it (after Aaron's yes).
+3. The CLI verbs and the `state` branch.
+4. `sitrep.refresh` and the artifact publisher, on a 15-minute schedule.
+5. `packages/sitrep`, replacing the stopgap page at the same URL.
+6. Retire the stopgap skill's hand-written schema, `numbers.py` and the status dashboard; the `sitrep` skill becomes
+   the four commands.
