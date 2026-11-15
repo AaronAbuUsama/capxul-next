@@ -34,10 +34,6 @@ export const MAX_README_LINES = 60;
  */
 export const LONG_READMES: ReadonlyArray<string> = [
   "packages/blueprint/README.md",
-  "packages/cli/README.md",
-  "packages/core/README.md",
-  "packages/frappe-app/README.md",
-  "packages/sdk/README.md",
   "packages/world/records/spike-bundler/README.md",
   "spikes/bench-clocks/README.md",
   "spikes/containers/README.md",
