@@ -11,6 +11,7 @@ import * as Option from "effect/Option";
 import * as Predicate from "effect/Predicate";
 import * as Rec from "effect/Record";
 import * as Schema from "effect/Schema";
+import { WARP_ATTRIBUTES, WarpAttributes } from "../site-ops/warp-times.ts";
 
 /** The keys of the attributes Core sets on a call's span. */
 export const SPAN_ATTRIBUTES = {
@@ -32,10 +33,12 @@ export const SpanAttributes = Schema.Struct({
   [SPAN_ATTRIBUTES.colo]: Schema.optional(Schema.String),
   [SPAN_ATTRIBUTES.queryMs]: Schema.optional(Schema.Finite),
   [SPAN_ATTRIBUTES.queryCount]: Schema.optional(Schema.Int),
+  // A clock warp's stretches and site calls: where its time went (site-ops/warp-times.ts).
+  ...WarpAttributes.fields,
 });
 export type SpanAttributes = typeof SpanAttributes.Type;
 
-const DECLARED: ReadonlyArray<string> = Rec.values(SPAN_ATTRIBUTES);
+const DECLARED: ReadonlyArray<string> = [...Rec.values(SPAN_ATTRIBUTES), ...Rec.values(WARP_ATTRIBUTES)];
 const decodeAttributes = Schema.decodeUnknownOption(SpanAttributes);
 
 /** The declared attributes among a span's, or null when it has none of them. Library attributes are left out. */
