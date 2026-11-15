@@ -45,16 +45,32 @@ the blueprint, OpenTelemetry's conventions first. So there is one way to emit an
 other declared name (3.3).
 
 **2. Route: configuration, in one place.** Every producer sends to the door of its stage and nowhere else. The door
-holds the keys, stamps `capxul.world`, `capxul.grade` and `capxul.stage` so no producer can misstate them, and
-forwards by one routing table that `packages/platform` owns:
+holds the keys and stamps the envelope (below), so no producer can misstate it. It forwards by one routing table that
+`packages/platform` owns. Every world gets every signal, product events included (Aaron, 15 November 2026): a test
+world's events are how a failed run is debugged and how a slow one is improved. Test and real are kept in separate
+sinks, never filtered apart inside one:
 
 | Records | Test grades (private, shared) | Real grade |
 |---|---|---|
 | Spans, logs, metrics (cost included) | test sink | real sink |
-| Events: declared events | test sink | real sink, and the analytics sink (this is product analytics) |
+| Events: declared events, as product events | test analytics sink | real analytics sink |
 | Events: checks and verdicts | test sink | (none: real worlds run no journeys) |
 
 Choosing or adding a sink is a row of this table and a key in the door, never a change to a producer.
+
+**The envelope: every record is tagged to its session.** One set of attributes, declared once in the blueprint and
+stamped at the door, so any record can be traced back to who and what made it, and any session can be asked for
+everything it caused:
+
+| Attribute | What it names | Set by |
+|---|---|---|
+| `capxul.session` | What drove the work: an agent's session, a CI run, or a person's sign-in in a real world | The caller's own resource attribute, checked by the door against its token |
+| `capxul.world`, `capxul.grade`, `capxul.stage` | Where it ran | The door, from who called it |
+| `capxul.run`, `capxul.journey`, `capxul.journey.step` | Which run, journey and step, in a test world | The runner, carried to Core in the trace's baggage |
+| `vcs.ref.head.revision`, `vcs.ref.head.name` | Which code | Each producer's resource, from its deploy |
+| trace and span id | Which call | OpenTelemetry |
+
+So "show me everything session X caused" is one query across traces, logs, events and cost, in any world.
 
 **3. Keep: three keeps, each with one job.**
 
@@ -87,8 +103,85 @@ it is the one record we keep forever and can verify from outside.
 column and the dashboard read the ledger; the speed analysis, the evals' trends, debugging and cost read the sink; and
 a run older than the sink's retention is read from the archive (section 9).
 
-The note works through the model in this order: proof (2, 3), the signals (4), emitting (5), routing and the sinks
-(6), the tap (7), cost (8), the uses of the records (9), the move (10).
+**Where the model comes from: the blueprint.** The model holds only if the blueprint declares every part of it and
+the ladder fails what is not declared. Today it does not, and that is the root cause, not the records. Section 0
+says why and what changes.
+
+The note works through the model in this order: the blueprint (0), proof (2, 3), the signals (4), emitting (5),
+routing and the sinks (6), the tap (7), cost (8), the uses of the records (9), the move (10).
+
+## 0. Why the blueprint does not enforce this today, and what changes
+
+Aaron's question: what is wrong with the blueprint, such that measurement is not enforced and not all one way?
+Read from `packages/blueprint` on `master`:
+
+1. **It declares the outside of an operation only.** An operation's declaration (`src/operation.ts`) is its Rpc, the
+   events of each outcome, one budget and examples. Its steps, logs, machine, who may call, and its telemetry are not
+   declared, so Core makes them up: 176 different span names are written as strings across Core, the world, the
+   platform and the runner. Nothing can check what was never declared. Steps 3.4, 4.1 and 5.1 add these one by one,
+   each as a separate format.
+2. **The slow part of a run is not in the blueprint at all.** The 47-minute run is mostly making worlds, starting
+   worlds, snapshots, resets and sites (`design-notes/speed.md`), not the product's operations. Only `world.create`
+   and the snapshot calls are declared operations. Resets, site claims and the making of starting worlds are code in
+   `packages/world` and the runner with ad hoc spans; the speed thread found a 4.7 s request in every save inside
+   no named span. What is not declared is not measured, and what is not measured cannot be cut to 10 minutes.
+3. **There is no telemetry vocabulary.** `src/telemetry.ts` holds headers and middleware. The envelope above, the
+   step kinds and the attribute names have no owner, so each producer invents its own.
+4. **Measured facts are typed by hand.** A budget's `provisional` and `basis` are typed prose ("the bench is not
+   measured yet"), where they should be generated from measured runs.
+5. **One operation is spread over six files.** `operations.ts`, `refusals.ts`, `claims.ts`, `subjects.ts`,
+   `order.md` and a rendered `claims.md`, per domain, plus `decisions.md` (398 lines), `gaps.md` and `order.md` at the
+   top. To understand `doc.submit` you open six files. Hand-written maps drift: the blueprint's README lists the
+   domain folders twice, once with `board` and once with `budgets`, and `subjects.ts` twice, likewise.
+
+### What changes: one declaration per operation, holding the whole model
+
+Each operation is one file that declares everything about it, and a format check fails the file when a part is
+missing (3.5, `pnpm delta:check`):
+
+```
+src/<domain>/<operation>.ts
+  rpc          payload, answer
+  outcomes     each kind of success and the events it sends (events carry the envelope)
+  refusals     each with its exit code; from each machine state a move cannot start from
+  machine      the moves it makes (3.4)
+  allowed      who may call (5.1)
+  steps        its spans, each with a kind: database, site, chain, bundler, wait (4.1)
+  logs         each with a schema, including the one that decides each refusal (4.1)
+  budget       the target; whether it is measured, and its p95, are generated from the sink, never typed
+  examples, claims
+```
+
+The same format declares **the pipeline's own work**: creating, resetting, saving and restoring a world, claiming a
+site, making a starting world, running a journey. These become declared operations of the platform group (or
+declared steps of one), with their steps and budgets. Then a whole run has a declared budget too: **10 minutes**,
+provisional until measured, as Aaron set it. The explainability measure (4.2) covers the whole run, not only Core's
+calls: the share of a run's wall time inside declared spans. The goal is every second of a run accounted for, so the
+speed work can see where each minute goes.
+
+The telemetry vocabulary is a blueprint module: the envelope, the attribute names, the step kinds, the routing
+table's record kinds. Producers import them; a lint rule fails a span name or attribute written as a string (3.3).
+
+### One obvious way to find everything
+
+- **The map is generated, never written by hand.** `pnpm generate` writes one index per level from the declarations:
+  the blueprint's index (its domains, one line each), each domain's index (its operations, machines and events, one
+  line each), and each operation's page (everything above, with its diagram). Nothing hand-written lists files, so
+  nothing drifts.
+- **Progressive disclosure, three levels.** Level one: each README is one screen: what this is, the map, where to go
+  for what. Level two: a domain's index. Level three: an operation's file and page. A reader stops at the level that
+  answers them.
+- **The same folder shape everywhere.** Every domain has the same files: `index.md` (generated), `values.ts`,
+  `machines.ts`, and one file per operation. Every package has a one-screen README; detail goes in `docs/` pages, one
+  task each. The shape rung checks both (a README over 60 lines fails, as a source file over 300 does). Today's
+  READMEs run 222 to 607 lines (Core, the runner, the platform, the world).
+- **One home per decision.** Decisions Aaron agrees stay in the roadmap. The blueprint's `decisions.md`, `gaps.md` and
+  `order.md` are folded in: a lead's design calls become comments on the declarations they explain, gaps become
+  coverage (which the runner already reports), and the build order is generated from what each operation needs.
+
+How this lands: it is not a rewrite. The per-operation file is the 3.5 format, introduced by the ratchet: new
+operations use it from the day it lands, old ones move over in the same slice when cheap, and an `unmigrated` list
+shrinks.
 
 ## 1. What is wrong today, restated as requirements
 
@@ -206,7 +299,7 @@ declared, or names a file path for a step not already Done.
 | **Logs** | What a call decided and why, with a declared schema (4.1): the refusal's deciding log, warnings | Effect's `Logger`, inside spans | OTLP logs, carrying the trace and span id | As traces | Traces |
 | **Errors** | A call that failed for a reason nobody declared: a defect, an undeclared failure, an interruption, a timeout | Not emitted separately: the span's status is `ERROR` with an `exception` event (type, message, stack), and an error log | Inside OTLP traces and logs | As traces; error tracking is a view the sink builds | Traces |
 | **Declared events** | The facts the blueprint declares an operation sends (`invitation_declined`) | Core: kept as state in `app.events` in the change's own transaction, then emitted as an OpenTelemetry event after commit, under the call's trace | OTLP event, its attributes the blueprint's event schema | Through the door like everything else; the tap in test worlds | Spans (same trace) |
-| **Product analytics** | Who did what, as people and companies, for funnels and retention | Nobody separately: it is the declared events of real worlds, routed by the door to an analytics sink | As declared events | The analytics sink, **real grade only**, by the routing table | Declared events: it is a route, not a signal |
+| **Product analytics** | Who did what, as people and companies, for funnels and retention | Nobody separately: it is the declared events of every world, routed by the door to the analytics sink of its grade | As declared events | The test or real analytics sink, by the routing table | Declared events: it is a route, not a signal |
 | **Runtime metrics** | Counts and durations over time: calls per operation, durations, refusals, errors | Derived from spans in the sink, or by Effect's `Metric` where a span cannot show it | OTLP metrics | Through the door | Spans |
 | **Cost** | Money and usage per world, run, journey, lane and day | The daily cost job, a collector: it pulls from Cloudflare, Neon, GitHub and the agents' telemetry, and emits | OTLP metrics (`capxul.cost.usd`, `capxul.usage.*`) | Through the door | Metrics |
 | **Checks and verdicts** | What the runner judged: each check's result, and each run's verdict | The runner and the proving job | OTLP events | Through the door; the verdict also to the ledger | Spans of the run |
@@ -216,8 +309,8 @@ declared, or names a file path for a step not already Done.
 - **They describe the same calls.** Spans, logs, events and errors of a call share its trace id and the same resource
   attributes, and are read together when a call is explained (4.2). Classic sent product events by one path and spans
   by another, and its catalog and code drifted apart; one path is what prevents that.
-- **What differs between them is routing, not emitting.** Product analytics is the real grade's declared events
-  routed to one more sink, so no handler emits a second, hand-typed analytics event ("Generated, never typed twice").
+- **What differs between them is routing, not emitting.** Product analytics is the declared events routed to
+  one more sink, so no handler emits a second, hand-typed analytics event ("Generated, never typed twice").
   Privacy differs by route too: the analytics route carries only ids and drops sensitive fields.
 - **Declared events keep their guarantee.** They are kept exactly once, in the change's transaction, in the world's
   database, because the system and the runner depend on them. The pipeline carries their copy, which may be delayed
@@ -304,10 +397,10 @@ only the standard settings (`Otlp.layerFromConfig`: an endpoint, and whether eac
 | Where | Traces, logs, metrics | Tap | Product analytics | Sampling |
 |---|---|---|---|---|
 | Unit tests (rung 5) | In memory | No | No | All |
-| Private world (test) | `staging` door, then the **test sink** | Yes | No | All |
-| Shared world (test) | `staging` door, then the test sink | Yes | No | All |
-| CI | The runner exports to the `staging` door with the run's attributes (`cicd.pipeline.run.id`, commit, ref); the proving job archives the run's OTLP to R2 | As its world | No | All |
-| Agent's container | As CI, marked untrusted | As its world | No | All |
+| Private world (test) | `staging` door, then the **test sink** | Yes | Yes, test analytics sink | All |
+| Shared world (test) | `staging` door, then the test sink | Yes | Yes, test analytics sink | All |
+| CI | The runner exports to the `staging` door with the run's attributes (`cicd.pipeline.run.id`, commit, ref); the proving job archives the run's OTLP to R2 | As its world | As its world | All |
+| Agent's container | As CI, marked untrusted, tagged with the agent's session | As its world | As its world | All |
 | Real world | `production` door, then the **real sink**: a separate project or dataset with its own key, never shared with test | No | Yes, derived from declared events | All to start; errors and refusals always kept if sampling comes |
 
 Two sinks, one per grade group, not one sink filtered by a property: Classic's single PostHog project for every
@@ -426,7 +519,7 @@ blueprint's attribute names; every producer sends to its stage's telemetry door,
 configuration (signal and grade to sinks) and holds every key; three keeps (the tap per test world, the sink per grade
 group, the ledger of verdicts on `proofs` with each CI run's telemetry archived by digest); and nothing counts until it
 is read back. Proof is a verdict, an event only CI emits, notarised by GitHub. Declared events stay state in the
-world's database and are emitted after commit; product analytics is their route to an analytics sink in real worlds;
+world's database and are emitted after commit; product analytics is their route to the analytics sink of each grade, in every world;
 cost is emitted by a daily collector. It amends
 "Measurement is part of the contract" (run data is stored in the sink and archive, not the repository).
 
@@ -479,7 +572,9 @@ Each has a recommendation. The first three shape everything else.
    which is a credential only you can create. In both cases, turning on Claude Code's own OpenTelemetry in the agents'
    environment, sent to the door, gives tokens and cost per session. **Recommend turning it on; the admin key only if
    you want invoices reconciled automatically.**
-7. **Product analytics only in real worlds, derived from declared events.** No handler emits an analytics event of its
+7. **Decided by Aaron, 15 November 2026: every world gets every signal, product events included, tagged to its
+   session** (the envelope, in "The model"). Test and real worlds have separate analytics sinks. The original
+   recommendation follows for the record: product analytics only in real worlds, derived from declared events. No handler emits an analytics event of its
    own. **Recommend yes.** It means no analytics until phase 8, which is when there are people to analyse.
 8. **`CODEOWNERS`** naming you (or the lead) for `.github/workflows/`, `packages/scenarios/` and
    `packages/runner/src/checks/`, so a change to what judges the work needs a named reviewer. **Recommend yes**; it is
