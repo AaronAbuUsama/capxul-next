@@ -1,11 +1,12 @@
 // The database of one stage of the stack `CapxulCore`: a Neon project of its own (its default branch is the one
 // database) and the Hyperdrive configuration through which the Worker reaches it. Declared here so the stack and the
-// Worker name the same resources. When `packages/world` lands, a world's Core binds the world's database instead.
+// Worker name the same resources. When `packages/world` lands, a world's api binds the world's database instead.
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Neon from "@alchemy.run/neon";
 import * as Alchemy from "alchemy";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
+import { DATABASE_REGION } from "./region.ts";
 
 /**
  * The stage's Neon project. Inside the running Worker this is evaluated again only to name the Hyperdrive binding;
@@ -15,7 +16,7 @@ export const CoreProject = Effect.gen(function* () {
   const runtime = (yield* Alchemy.ALCHEMY_PHASE) === "runtime";
   const orgId = runtime ? "" : yield* Config.String("NEON_ORG_ID");
   // Neon keeps at most 6 hours of history on the free plan; Alchemy's default asks for 24. London, as every world.
-  return yield* Neon.Project("core-db", { region: "aws-eu-west-2", orgId, historyRetentionSeconds: 21600 });
+  return yield* Neon.Project("core-db", { region: DATABASE_REGION, orgId, historyRetentionSeconds: 21600 });
 });
 
 /**
