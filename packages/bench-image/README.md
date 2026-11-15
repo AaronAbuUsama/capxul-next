@@ -1,7 +1,7 @@
 # bench-image
 
 The image the hosted bench runs, and the proof that it serves a production site. It replaces, for hosting, the
-development bench the test sites used on `main` (`spikes/skeleton/frappe`): same apps, but pinned, built once, and run
+development bench the test sites used on `main` (the skeleton spike's `frappe/` there): same apps, but pinned, built once, and run
 as separate production processes.
 
 ```bash

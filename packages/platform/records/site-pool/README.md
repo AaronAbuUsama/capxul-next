@@ -16,7 +16,7 @@ container with 4 CPUs and 15.7 GiB that other agents shared, not the AWS bench h
 | A second change (5 entries) and reset of one site | 0.12 s, equal again | `07-reset-again.json` |
 | Everything removed | no site folder and no database left but MariaDB's own | `08-cleanup.json` |
 
-Against `spikes/site-speed`: a take is 1.3 to 1.6 s, not 1.1 s, since the join also settles the site's scheduled jobs
+Against [site-speed](../site-speed/README.md): a take is 1.3 to 1.6 s, not 1.1 s, since the join also settles the site's scheduled jobs
 on the world's time (`capxul.jobs.settle_jobs`); resets are faster than its 0.5 s, with MariaDB's caches sized for many
 sites and the saved copy's checksums taken once, at the save. Before the proof stopped the bench's scheduler and
 worker, one of four resets read back a General Ledger row a background job had written: why a world is paused first.
