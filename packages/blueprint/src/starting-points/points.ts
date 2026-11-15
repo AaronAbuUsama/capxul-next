@@ -24,6 +24,9 @@ export type Claim = Language.Claim<OperationName>;
 /** An operation's promises (today's word: its claims), each verb's `promises`. */
 export type ClaimsOf = Language.ClaimsOf<OperationName>;
 
+/** An operation's promises, under the glossary's word: what a verb climbed to every format writes. */
+export type PromisesOf = Language.PromisesOf<OperationName>;
+
 const step = (operation: Step["operation"], as: string, does: string, fact: string | null = null): Step => ({
   operation,
   as,
@@ -205,3 +208,6 @@ export const startingWorlds = {
   withSnapshot,
   restored,
 } as const;
+
+/** Every starting point, under the glossary's word: what a verb climbed to every format writes. */
+export const startingPoints = startingWorlds;

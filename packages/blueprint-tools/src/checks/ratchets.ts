@@ -2,7 +2,7 @@
 // (packages/blueprint/src/ratchets.ts) tallied by its counter from the lists that hold it today, compared with the
 // committed counts (packages/blueprint/generated/ratchets.json). Pure: ratchets.entry.ts reads the lists and the file,
 // prints, and writes; the tests run it on made-up registries and lists.
-import type { Counter, Ratchet } from "../../../blueprint/src/index.ts";
+import type { Counter, Ratchet } from "../language/ratchet.ts";
 import * as Arr from "effect/Array";
 import * as Rec from "effect/Record";
 
@@ -55,12 +55,19 @@ const oldWordList = (lists: Lists): Omit<Tally, "ratchet"> => ({
 });
 
 /** Each counter, by the name the registry gives it. */
-const counters: { readonly [C in Counter]: (lists: Lists) => Omit<Tally, "ratchet"> } = {
+/** A ratchet's own list: its names in all, one item each. */
+const ownList = (_lists: Lists, ratchet: Ratchet): Omit<Tally, "ratchet"> => {
+  const items = ratchet.unmigrated ?? [];
+  return { count: items.length, items };
+};
+
+const counters: { readonly [C in Counter]: (lists: Lists, ratchet: Ratchet) => Omit<Tally, "ratchet"> } = {
   "lint:owned-values": (lists) => lintList(lists, "owned-values"),
   "lint:declared-names": (lists) => lintList(lists, "declared-names"),
   "lint:decoded-rows": (lists) => lintList(lists, "decoded-rows"),
   formats: formatLists,
   "words:old-words": oldWordList,
+  "own-list": ownList,
 };
 
 /** Every ratchet of `registry`, counted from `lists`. */
@@ -68,7 +75,7 @@ export const tally = (registry: ReadonlyArray<Ratchet>, lists: Lists): ReadonlyA
   Arr.map(registry, (ratchet) =>
     ratchet.count === "not yet counted"
       ? { ratchet, count: null, items: [] }
-      : { ratchet, ...counters[ratchet.count](lists) },
+      : { ratchet, ...counters[ratchet.count](lists, ratchet) },
   );
 
 /**

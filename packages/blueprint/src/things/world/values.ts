@@ -4,6 +4,7 @@
 //
 // A world's values: the platform's limits on worlds.
 import * as Schema from "effect/Schema";
+import type { WorldView } from "../../common/values.ts";
 
 /** The platform's limits on worlds. Agreed by Aaron on 13 November 2026: decisions.md, "Answered by Aaron", 2. */
 export const WORLD_LIMITS = { lifetimeMinutes: 7 * 24 * 60, liveWorldsPerOwner: 5 } as const;
@@ -26,3 +27,14 @@ export const WorkRefusal = Schema.Literals([
 
 /** @internal What of a world its destroying or sweeping left behind; shared by the world's work, not exported. */
 export const WorldPart = Schema.Literals(["api", "objects", "branch", "sites", "registry"]);
+
+/**
+ * @internal What world_created carries, for both verbs that make a world.
+ */
+export const created = (view: typeof WorldView.Type) => ({
+  world: view.world,
+  owner: view.owner,
+  grade: view.grade,
+  expiresAt: view.expiresAt,
+  parent: view.parent,
+});

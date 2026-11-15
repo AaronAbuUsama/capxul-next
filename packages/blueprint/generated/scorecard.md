@@ -16,12 +16,12 @@ so it never drifts; a test fails while it differs from its sources.
 | [company](company.md) | ✗ | ✗ | ✗ | not yet measured | not yet measured | not yet measured | not yet measured | ✗ |
 | [director](director.md) | ✗ | ✗ | ✓ | not yet measured | not yet measured | not yet measured | not yet measured | ✗ |
 | [document](document.md) | ✗ | ✗ | ✗ | not yet measured | not yet measured | not yet measured | not yet measured | ✗ |
-| [history](history.md) | — | ✓ | ✗ | not yet measured | not yet measured | not yet measured | not yet measured | ✗ |
+| [history](history.md) | — | ✗ | ✗ | not yet measured | not yet measured | not yet measured | not yet measured | ✗ |
 | [invitation](invitation.md) | ✓ | ✓ | ✓ | not yet measured | not yet measured | not yet measured | not yet measured | ✗ |
 | [journey](journey.md) | — | ✓ | ✓ | not yet measured | not yet measured | not yet measured | not yet measured | ✓ |
 | [member](member.md) | ✗ | ✗ | ✗ | not yet measured | not yet measured | not yet measured | not yet measured | ✗ |
 | [ratchet](ratchet.md) | — | ✓ | ✓ | not yet measured | not yet measured | not yet measured | not yet measured | ✓ |
-| [report](report.md) | — | ✓ | ✗ | not yet measured | not yet measured | not yet measured | not yet measured | ✗ |
+| [report](report.md) | — | ✗ | ✗ | not yet measured | not yet measured | not yet measured | not yet measured | ✗ |
 | [run](run.md) | — | ✓ | ✓ | not yet measured | not yet measured | not yet measured | not yet measured | ✓ |
 | [site](site.md) | — | ✓ | ✓ | not yet measured | not yet measured | not yet measured | not yet measured | ✓ |
 | [snapshot](snapshot.md) | ✗ | ✗ | ✗ | not yet measured | not yet measured | not yet measured | not yet measured | ✗ |
@@ -48,10 +48,10 @@ and gated only by that command.
 | Ratchet | What its list holds | Count | Closes in |
 | --- | --- | --- | --- |
 | R1 Raw schemas | Raw schemas outside values files, machines and listed edges, as findings of capxul/owned-values. | 667 | 3.3 |
-| R2 Names typed as strings | Declared names retyped as strings outside the blueprint, as findings of capxul/declared-names. | 766 | 3.3 |
+| R2 Names typed as strings | Declared names retyped as strings outside the blueprint, as findings of capxul/declared-names. | 765 | 3.3 |
 | R3 Rows not decoded | Stored rows cast to hand-written types instead of decoded, as findings of capxul/decoded-rows. | 38 | 3.3 |
 | R4 Lifecycles not machines | Things with a lifecycle not yet declared as a machine (site, approval, world, budget among them). | not yet counted (C.1) | C.1 (was 7.3) |
-| R5 Operations not in the full format | Operations on a format's unmigrated list: missing machine moves, and later allowed, steps, logs, budget. | 13 | 3.5, 4.1, 5.1 |
+| R5 Operations not in the full format | Operations on a format's unmigrated list: missing machine moves, and later allowed, steps, logs, budget. | 87 | 3.5, 4.1, 5.1 |
 | R6 Undeclared spans | Effectful functions of our own code (Core, the world, the platform client, the runner) with no declared step. | not yet counted (4.1) | 4.1 |
 | R7 Operations not in one file | Operations whose declaration is still split across files beside their verb's own file. | not yet counted (3.6) | Decision 3 |
 | R8 Long or hand-mapped docs | READMEs over one screen (60 lines), hand-written file maps, and docs not yet folded. | not yet counted (3.6) | Decision 3 |
@@ -61,4 +61,5 @@ and gated only by that command.
 | R12 Proofs by file path | Roadmap proof entries naming files instead of verdicts, for steps not yet Done. | not yet counted (4.5) | 4.5 |
 | R13 Provisional budgets | Operations whose budget is not yet set from a measured verdict. | not yet counted (4.1) | 4.1 and the measured runs |
 | R14 Own telemetry tables | Readers of app.spans and the runner's JSON records beside OTLP. | not yet counted (4.4) | 4.4 |
-| R15 Old words | The glossary's old words still written as names in code, counted per word in distinct names in generated/old-words.json; its count is their total. Distinct names: a lane that uses an existing name adds nothing; only a newly introduced name grows the count (blueprint lead, 15 Nov 2026). | 603, gated by `pnpm words` | 3.8 |
+| R15 Old words | The glossary's old words still written as names in code, counted per word in distinct names in generated/old-words.json; its count is their total. Distinct names: a lane that uses an existing name adds nothing; only a newly introduced name grows the count (blueprint lead, 15 Nov 2026). | 602, gated by `pnpm words` | 3.8 |
+| R16 Names not from their path | Verbs whose operation is not named `<thing>.<verb>` from its path (docs/design/blueprint.md, part 13, amended, point 3), each renamed directly as its thing is climbed. | 17 | C.1 (the climb), with item 3.8's renames |

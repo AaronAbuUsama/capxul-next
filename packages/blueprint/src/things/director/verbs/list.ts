@@ -1,7 +1,7 @@
 // `capxul director list` (today `org.director.list`): a company's Directors and its threshold.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, claim } from "@capxul/blueprint-tools";
+import { verb, claim } from "@capxul/blueprint-tools";
 import { NotImplemented, OrgNotFound } from "../../../common/refusals.ts";
 import { Address, HatId, OrgId, PersonId } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
@@ -12,7 +12,7 @@ import { exampleAddress as address } from "../../world/examples.ts";
 /** One Director of a company: the person and the personal Safe that signs the company Safe. */
 export const Director = Schema.Struct({ person: PersonId, safe: Address });
 
-export const directorList = declare({
+export const directorList = verb({
   rpc: Rpc.make("org.director.list", {
     payload: { org: OrgId },
     success: Schema.Struct({

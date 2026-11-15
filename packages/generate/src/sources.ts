@@ -55,9 +55,10 @@ export const OUTPUTS = {
 } as const;
 
 /**
- * The outputs the root's `pnpm generate` writes after this package, through packages/blueprint-tools (`ratchets
- * --write`): their counters read the blueprint's own declarations, which this package cannot hand that one (see its
- * README). Listed here so every generated file is named in one place.
+ * The outputs the root's `pnpm generate` writes after `src/main.ts`, through this package's `ratchets --write`
+ * (src/ratchets.entry.ts): they count the old words main.ts has just written. Listed here so every generated file is
+ * named in one place. The blueprint's pages, `packages/blueprint/generated/index.md` and one per thing, main.ts writes
+ * from the blueprint's declarations through the toolkit's `renderPages`.
  */
 export const WRITTEN_BY_TOOLS = {
   ratchets: {

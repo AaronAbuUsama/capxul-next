@@ -1,14 +1,12 @@
 // The rename ratchet R15 (roadmap item 3.8): the count of the glossary's old words (src/checks/old-words.ts), on a
-// made-up glossary first (a word in a name counts, the same word in a comment or in prose does not; growth fails),
-// then on the blueprint's own glossary and the repository. Run with `pnpm test`.
+// made-up glossary (a word in a name counts, the same word in a comment or in prose does not; growth fails). The
+// blueprint's own glossary is counted by its own tests (packages/blueprint/test/words.test.ts). Run with `pnpm test`.
 import { strict as assert } from "node:assert";
-import { readdirSync, readFileSync, statSync } from "node:fs";
 import { test } from "node:test";
 import * as Arr from "effect/Array";
 import * as Rec from "effect/Record";
-import { glossary } from "../../blueprint/src/index.ts";
 import { countFile, countOldWords, grown, type Counts } from "../src/checks/old-words.ts";
-import { isRead, wordFiles } from "../src/checks/word-files.ts";
+import { isRead } from "../src/checks/word-files.ts";
 import { code, type Entry, uncounted, words } from "../src/language/glossary.ts";
 
 /** A made-up glossary: the widget becomes the gizmo, the sprocket hub the gear, and the widget-maker's file goes. */
@@ -158,26 +156,6 @@ test("an applied migration and its file name count nothing", () => {
   assert.equal(count("a.ts", 'const file = "0009_widget_spans.sql"; const widgetSql = 1;')["widget"], 1);
 });
 
-/** The count of `word` in one file, by the blueprint's own glossary. */
-const of = (word: string, text: string): number => countFile(glossary, { path: "a.ts", text })[word] ?? -1;
-
-/** The count of `core` in one file, by the blueprint's own glossary. */
-const real = (text: string): number => of("core", text);
-
-test("the blueprint's glossary: packages and deployed names count nothing, a chosen name still counts", () => {
-  assert.equal(real('import x from "@capxul/core";'), 0);
-  assert.equal(real('const p = "packages/core/src/x.ts";'), 0);
-  assert.equal(
-    real('yield* Neon.Project("core-db", {}); yield* Cloudflare.Hyperdrive.Connection("core-hyperdrive", {});'),
-    0,
-  );
-  assert.equal(real("const coreClient = 1;"), 1);
-  assert.equal(real('import { x } from "../core.ts";'), 0);
-  assert.equal(of("point", "metric.dataPoints; m.rejectedDataPoints; metric_data_point; data_point;"), 0);
-  assert.equal(of("record", "logs.logRecords; l.rejectedLogRecords; log_record; const stepRecord = 1;"), 1);
-  assert.equal(of("platform", 'run("platform.yml"); yield* Alchemy.Stack("CapxulPlatform");'), 0);
-});
-
 test("counted in distinct names: a repeated use adds nothing, a new name adds one, a rename lowers", () => {
   const base = [{ path: "a.ts", text: "const widgetToken = 1; useWidget(widgetToken);" }];
   assert.equal(countOldWords(GLOSSARY, base)["widget"], 2);
@@ -217,23 +195,4 @@ test("records, generated files, node_modules, vendored code and Solidity are not
   ])
     assert.equal(isRead(path), false, path);
   assert.equal(isRead("packages/core/src/main.ts"), true);
-});
-
-test("the blueprint's glossary: each agreed word once, each with a meaning of one sentence", () => {
-  const agreed = Arr.map(glossary, (entry) => entry.word);
-  assert.deepEqual(Arr.dedupe(agreed), agreed);
-  for (const entry of glossary) assert.match(entry.meaning, /^[A-Z][^.]*\.$/, entry.word);
-});
-
-test("the blueprint's glossary counts on the repository: every counted old word has a count", () => {
-  const root = new URL("../../../", import.meta.url);
-  const files = wordFiles({
-    isFolder: (path) => statSync(new URL(path, root)).isDirectory(),
-    names: (folder) => readdirSync(new URL(`${folder}/`, root)),
-    text: (file) => readFileSync(new URL(file, root), "utf8"),
-  });
-  assert.ok(files.length > 0, "no file was read");
-  const counts = countOldWords(glossary, files);
-  assert.ok(Arr.every(Rec.values(counts), (each) => Number.isInteger(each) && each >= 0));
-  assert.ok((counts["core"] ?? 0) > 0, "`core` is written today, so a count of none means nothing was read");
 });

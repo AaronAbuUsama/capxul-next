@@ -1,14 +1,16 @@
-// `capxul invitation list` (today `invite.list`): a person lists the invitations sent to them.
+// `capxul invitation list`: a person lists the invitations sent to them.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, claim } from "@capxul/blueprint-tools";
+import { promise, promisesOf, span, verb } from "@capxul/blueprint-tools";
 import { NotImplemented } from "../../../common/refusals.ts";
-import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
+import { roles } from "../../../common/values.ts";
+import { startingPoints as w, type PromisesOf } from "../../../starting-points/points.ts";
+import { StepKind } from "../../../telemetry/step-kinds.ts";
 import { invitation } from "../examples.ts";
 import { Invitation } from "../values.ts";
 
-export const inviteList = declare({
-  rpc: Rpc.make("invite.list", {
+export const invitationList = verb({
+  rpc: Rpc.make("invitation.list", {
     payload: {},
     success: Schema.Struct({
       /** Every invitation sent to the caller's email, whatever its state, oldest first. The world's owner has none. */
@@ -17,6 +19,14 @@ export const inviteList = declare({
     error: NotImplemented,
   }),
   emits: [],
+  allowed: [roles.person, roles.operator],
+  refusesOthers: null,
+  spans: {
+    /** The invitations sent to the caller's email, from the world's database. */
+    load: span("invitation.list.load", StepKind.database),
+  },
+  logs: {},
+  refusals: {},
   budget: {
     excludes: ["waking a parked world"],
     provisional: true,
@@ -32,16 +42,12 @@ export const server = "world";
 /** It moves no thing with a lifecycle (the machine format): why. */
 export const stateless = "a read: lists the caller's invitations and changes nothing";
 
-/** What `invite.list` promises, each promise checked by the journeys. */
-export const promises: ClaimsOf = {
-  operation: inviteList,
-  claims: [
-    claim(
-      "A person lists every invitation sent to their email, whatever its state, oldest first, and only those.",
-      w.founded,
-      "invite.list as olga after dana invites her answers that invitation, pending, from dana for Northwind; after she declines it and accepts dana's second, it answers both, the first declined then the second accepted. rex@elsewhere.test's invitation is listed to nobody of the cast. As sam it answers none. Every invitation it lists is to the caller's email, and the record gains no entry.",
-      { thinLine: true },
-    ),
-  ],
-  dropped: [],
-};
+/** What `invitation.list` promises, each promise checked by the journeys. */
+export const promises: PromisesOf = promisesOf(invitationList, [
+  promise(
+    "A person lists every invitation sent to their email, whatever its state, oldest first, and only those.",
+    w.founded,
+    "invitation.list as olga after dana invites her answers that invitation, pending, from dana for Northwind; after she declines it and accepts dana's second, it answers both, the first declined then the second accepted. rex@elsewhere.test's invitation is listed to nobody of the cast. As sam it answers none. Every invitation it lists is to the caller's email, and the world's history gains no entry.",
+    { thinLine: true },
+  ),
+]);

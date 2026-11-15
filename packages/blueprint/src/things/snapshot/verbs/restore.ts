@@ -1,17 +1,18 @@
 // `capxul snapshot restore` (today `world.snapshot.restore`): a new world made from a snapshot.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, claim, kept, dropped } from "@capxul/blueprint-tools";
+import { verb, claim, kept, dropped } from "@capxul/blueprint-tools";
 import { NotImplemented, NotWorldOwner } from "../../../common/refusals.ts";
 import { SnapshotName, WorldName, WorldView } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
-import { created, WorldCreated } from "../../world/events.ts";
+import { WorldCreated } from "../../world/events.ts";
+import { created } from "../../world/values.ts";
 import { WorldExists, WorldNotFound, WorldQuotaReached } from "../../world/refusals.ts";
 import { Lifetime } from "../../world/values.ts";
 import { restoredWorld } from "../examples.ts";
 import { ExpiryBeyondSource, SnapshotNotFound } from "../refusals.ts";
 
-export const snapshotRestore = declare({
+export const snapshotRestore = verb({
   rpc: Rpc.make("world.snapshot.restore", {
     payload: { world: WorldName, snapshot: SnapshotName, as: WorldName, lifetimeMinutes: Lifetime },
     success: WorldView,
