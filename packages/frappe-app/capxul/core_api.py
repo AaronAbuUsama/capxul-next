@@ -254,11 +254,14 @@ def report(org, user, report, filters=None):
 def warp(from_ms, to_ms, frozen, write):
     """Moves this site from the world's `from_ms` to `to_ms` (UTC ms), stopping at 01:00 of every day between and running
     what fell due at each stop (capxul.clock.advance), so the daily job runs once for each day passed. With `write`,
-    the world's clock on the bench is then set, which moves every site of the world: Core sets it with its last site."""
-    _core_only()
-    from frappe.core.doctype.scheduled_job_type.scheduled_job_type import sync_jobs
+    the world's clock on the bench is then set, which moves every site of the world: Core sets it with its last site.
+    Answers where its time went, for the span Core records the call in: `ms` in all, `setup_ms` before the first stop,
+    each stop's milliseconds and jobs (`stop_ms`, `stop_jobs`), and the slowest jobs over every stop (`slowest`)."""
+    import time
 
-    sync_jobs()
+    _core_only()
+    started = time.perf_counter()
+    clock.sync_hooked_jobs()
     clock.name_daily_job()
     # A run of the daily job is a row of the Scheduled Job Log only when its type keeps a log.
     frappe.db.set_value("Scheduled Job Type", {"method": clock.DAILY_JOB}, "create_log", 1)
@@ -268,9 +271,19 @@ def warp(from_ms, to_ms, frozen, write):
     frappe.db.sql("update `tabScheduled Job Type` set last_execution=%s where last_execution > %s or last_execution is null",
                   (start, start))
     host = clock._host_ms()
-    moved = clock.advance.__wrapped__(int(from_ms) - host, int(to_ms) - host)
+    setup_ms = (time.perf_counter() - started) * 1000
+    moved = clock.advance.__wrapped__(int(from_ms) - host, int(to_ms) - host, synced=True)
     if write in (True, 1, "1", "true"):
         clock.write_world.__wrapped__(clock.world_of_site(), int(to_ms) - host,
                                       int(to_ms) if frozen in (True, 1, "1", "true") else None)
     frappe.db.commit()
-    return {"site": frappe.local.site, "stops": moved["stops"], "jobs": moved["jobs_run"]}
+    log = moved.get("log", [])
+    slowest = sorted(moved.get("job_ms", {}).items(), key=lambda job: -job[1][1])[:SLOWEST_JOBS]
+    return {"site": frappe.local.site, "stops": moved["stops"], "jobs": moved["jobs_run"],
+            "ms": round((time.perf_counter() - started) * 1000, 1), "setup_ms": round(setup_ms, 1),
+            "stop_ms": [stop["ms"] for stop in log], "stop_jobs": [stop["jobs"] for stop in log],
+            "slowest": [{"job": method, "runs": runs, "ms": ms} for method, (runs, ms) in slowest]}
+
+
+# How many of a warp's jobs its answer names, the slowest first: enough to say where the time went, short enough for a span.
+SLOWEST_JOBS = 12
