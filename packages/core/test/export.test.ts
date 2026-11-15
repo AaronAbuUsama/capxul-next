@@ -3,7 +3,7 @@
 // tap is handed each body as OTLP JSON.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { WorldRpcs } from "@capxul/blueprint";
+import { Envelope, WorldRpcs } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -51,6 +51,7 @@ const OtlpSpan = Schema.Struct({
   parentSpanId: Schema.optional(Schema.String),
   name: Schema.String,
   attributes: Schema.Array(KeyValue),
+  status: Schema.Struct({ code: Schema.Int }),
 });
 const TraceData = Schema.Struct({
   resourceSpans: Schema.Array(
@@ -80,8 +81,16 @@ const one = <A>(all: ReadonlyArray<A>, found: (each: A) => boolean, missing: str
 const textOf = (value: typeof AnyValue.Type): string | undefined =>
   value.stringValue ?? (value.intValue ?? value.doubleValue)?.toString();
 
+/** A call's work: a Postgres round trip and a step of its own. */
+const steps = Effect.gen(function* () {
+  yield* Effect.useSpan("postgres", { kind: "client", attributes: { "db.system.name": "postgresql" } }, () =>
+    Effect.sleep("2 millis"),
+  );
+  yield* Effect.withSpan(Effect.sleep("1 millis"), "inner.step");
+});
+
 /** Runs a call through the exporters and returns what was kept, what the tap was handed, and when. */
-const run = (caller: Headers.Headers) =>
+const run = (caller: Headers.Headers, work: Effect.Effect<unknown, string> = steps) =>
   Effect.gen(function* () {
     const kept: Array<KeptSpan> = [];
     const tapped: Array<readonly [Signal, string]> = [];
@@ -96,14 +105,9 @@ const run = (caller: Headers.Headers) =>
       scope,
     );
     const tracer = Context.get(built, Tracer.Tracer);
-    const work = Effect.gen(function* () {
-      yield* Effect.useSpan("postgres", { kind: "client", attributes: { "db.system.name": "postgresql" } }, () =>
-        Effect.sleep("2 millis"),
-      );
-      yield* Effect.withSpan(Effect.sleep("1 millis"), "inner.step");
-    });
     yield* measured(sink, { colo: Option.some("LHR") }, { rpc, headers: caller }, work).pipe(
       Effect.provideService(CallTracer, Option.some(tracer)),
+      Effect.exit,
     );
     const beforeClose = tapped.length;
     yield* Context.get(built, OtlpExporter.Flusher).flush;
@@ -203,4 +207,35 @@ test("with neither tap nor collector, nothing is built and nothing is exported",
     requestExport({}, Effect.succeed(Redacted.make("postgresql://nobody@127.0.0.1:1/none"))).pipe(Effect.scoped),
   );
   assert.ok(Option.isNone(exported));
+});
+
+/** The exported call span's `capxul.outcome` and OTLP status code, and the kept outcome, for a call doing `work`. */
+const endedAs = (work: Effect.Effect<unknown, string>) =>
+  Effect.map(run(Headers.empty, work), ({ kept, traces }) => {
+    const span = one(spansOf(traces), (each) => each.name === rpc._tag, "the call's span was not exported");
+    const outcome = one(
+      span.attributes,
+      (each) => each.key === Envelope.attributes.outcome.name,
+      "the call's span carries no outcome",
+    );
+    return {
+      outcome: outcome.value.stringValue,
+      status: span.status.code,
+      kept: one(kept, (each) => each.name === rpc._tag, "the call's span was not kept").outcome,
+    };
+  });
+
+test("every exported span carries its outcome; a refusal leaves the status unset, a defect sets ERROR", async () => {
+  const [ok, refused, defect] = await Effect.runPromise(
+    Effect.all([endedAs(steps), endedAs(Effect.fail("refused")), endedAs(Effect.die("broken"))]),
+  );
+  assert.deepEqual(ok, { outcome: "ok", status: 1, kept: "success" });
+  assert.deepEqual(refused, { outcome: "refused", status: 0, kept: "failure" });
+  assert.deepEqual(defect, { outcome: "error", status: 2, kept: "defect" });
+  const { traces } = await Effect.runPromise(run(Headers.empty));
+  for (const span of spansOf(traces))
+    assert.ok(
+      Arr.some(span.attributes, (each) => each.key === Envelope.attributes.outcome.name),
+      `${span.name} carries no outcome`,
+    );
 });
