@@ -7,7 +7,7 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import { coreTelemetry } from "../src/telemetry/export.ts";
-import { bodiesTo, capturing, ENDPOINT, failsUntilBuilt, REVISION } from "./support/otlp-endpoint.ts";
+import { bodiesTo, capturing, ENDPOINT, REVISION } from "./support/otlp-endpoint.ts";
 
 /** The OTLP JSON of one `/v1/traces` body, as far as this test reads it. */
 interface Traces {
@@ -47,8 +47,5 @@ const exportsTheProbe = Effect.gen(function* () {
   assert.equal(attribute("service.version"), REVISION);
 });
 
-// Fails until the Core builder's pull request (branch `work/telemetry-core`; PR #317, item 2) replaces the stub, which exports nothing.
-test("Core's OTLP layer posts a traced effect's spans, with its service and revision", async () => {
-  const reason = await exportsTheProbe.pipe(failsUntilBuilt, Effect.runPromise);
-  assert.match(reason, /no export reached the endpoint/);
-});
+test("Core's OTLP layer posts a traced effect's spans, with its service and revision", () =>
+  Effect.runPromise(exportsTheProbe));

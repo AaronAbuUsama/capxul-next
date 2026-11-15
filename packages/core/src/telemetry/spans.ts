@@ -41,23 +41,69 @@ export const outcomeOf = (exit: Exit.Exit<unknown, unknown>): SpanOutcome => {
   return Cause.hasFails(exit.cause) ? "failure" : "interrupted";
 };
 
-/** Effect's own span, which also hands itself to `keep` the moment it ends. */
-class KeepingSpan extends Tracer.NativeSpan {
+/**
+ * A span of the inner tracer, which also hands itself to `keep` the moment it ends. Every read and write goes to the
+ * inner span, so what is kept and what the inner tracer exports (the OTLP tracer, when Core exports: export.ts) are
+ * one span: the same ids, name, parent and attributes.
+ */
+class KeepingSpan implements Tracer.Span {
+  readonly _tag = "Span";
+  readonly inner: Tracer.Span;
   readonly keep: (span: KeptSpan) => void;
-  constructor(options: ConstructorParameters<typeof Tracer.NativeSpan>[0], keep: (span: KeptSpan) => void) {
-    super(options);
+  constructor(inner: Tracer.Span, keep: (span: KeptSpan) => void) {
+    this.inner = inner;
     this.keep = keep;
   }
-  override end(endTime: bigint, exit: Exit.Exit<unknown, unknown>): void {
-    if (this.status._tag === "Ended") return;
-    super.end(endTime, exit);
+  get name() {
+    return this.inner.name;
+  }
+  get spanId() {
+    return this.inner.spanId;
+  }
+  get traceId() {
+    return this.inner.traceId;
+  }
+  get parent() {
+    return this.inner.parent;
+  }
+  get annotations() {
+    return this.inner.annotations;
+  }
+  get status() {
+    return this.inner.status;
+  }
+  get attributes() {
+    return this.inner.attributes;
+  }
+  get links() {
+    return this.inner.links;
+  }
+  get sampled() {
+    return this.inner.sampled;
+  }
+  get kind() {
+    return this.inner.kind;
+  }
+  attribute(key: string, value: unknown): void {
+    this.inner.attribute(key, value);
+  }
+  event(name: string, startTime: bigint, attributes?: Record<string, unknown>): void {
+    this.inner.event(name, startTime, attributes);
+  }
+  addLinks(links: ReadonlyArray<Tracer.SpanLink>): void {
+    this.inner.addLinks(links);
+  }
+  end(endTime: bigint, exit: Exit.Exit<unknown, unknown>): void {
+    const status = this.inner.status;
+    if (status._tag === "Ended") return;
+    this.inner.end(endTime, exit);
     this.keep({
       traceId: this.traceId,
       spanId: this.spanId,
       parentSpanId: Option.getOrNull(Option.map(this.parent, (parent) => parent.spanId)),
       name: this.name,
       outcome: outcomeOf(exit),
-      durationMs: Number(endTime - this.startTime) / 1_000_000,
+      durationMs: Number(endTime - status.startTime) / 1_000_000,
       endedMs: Number(endTime / 1_000_000n),
       attributes: declaredOf(this.attributes),
       roundTrip: isPostgresRoundTrip(this.kind, this.attributes),
@@ -65,9 +111,24 @@ class KeepingSpan extends Tracer.NativeSpan {
   }
 }
 
-/** A tracer that keeps every span it ends. One per call, so one call's spans never mix with another's. */
-export const keepingTracer = (keep: (span: KeptSpan) => void): Tracer.Tracer =>
-  Tracer.make({ span: (options) => new KeepingSpan(options, keep) });
+/** Effect's own tracer, which makes spans and sends them nowhere. */
+const nativeTracer: Tracer.Tracer = Tracer.make({ span: (options) => new Tracer.NativeSpan(options) });
+
+/**
+ * A tracer that keeps every span it ends. One per call, so one call's spans never mix with another's. Its spans are
+ * made by `inner`: Effect's own tracer, or the OTLP tracer that exports them too.
+ */
+export const keepingTracer = (keep: (span: KeptSpan) => void, inner: Tracer.Tracer = nativeTracer): Tracer.Tracer =>
+  Tracer.make({ span: (options) => new KeepingSpan(inner.span(options), keep) });
+
+/**
+ * The tracer that makes each call's spans: the OTLP tracer when this Core exports (export.ts), so every span the
+ * sink keeps is exported too, and only those. With none, the tracer of the process around the call: a process that
+ * serves calls itself and exports through its own tracer (the runner's platform) exports them too.
+ */
+export const CallTracer = Context.Reference<Option.Option<Tracer.Tracer>>("capxul/core/CallTracer", {
+  defaultValue: () => Option.none(),
+});
 
 /** True inside a call whose span is already open. */
 const Measuring = Context.Reference<boolean>("capxul/core/Measuring", { defaultValue: () => false });
@@ -101,6 +162,8 @@ export const measured = Effect.fnUntraced(function* <A, E, R>(
 ) {
   if (yield* Measuring) return yield* withCurrentCall(options, effect);
   const kept: Array<KeptSpan> = [];
+  const around = yield* Effect.tracer;
+  const inner = Option.getOrElse(yield* CallTracer, () => around);
   const caller = HttpTraceContext.w3c(options.headers);
   const annotate = (span: Tracer.Span) =>
     Effect.sync(() => {
@@ -119,7 +182,7 @@ export const measured = Effect.fnUntraced(function* <A, E, R>(
         Effect.provideService(Measuring, true),
         Effect.ensuring(annotate(span)),
       ),
-  ).pipe(Effect.withTracer(keepingTracer((span) => kept.push(span))), Effect.exit);
+  ).pipe(Effect.withTracer(keepingTracer((span) => kept.push(span), inner)), Effect.exit);
   yield* Arr.match(kept, { onEmpty: () => Effect.void, onNonEmpty: sink.keep });
   return yield* exit;
 });
