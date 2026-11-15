@@ -21,6 +21,7 @@ import { caller, instant } from "./caller.ts";
 import { newId } from "./ids.ts";
 import * as Store from "./store.ts";
 import { hex } from "../chain/hex.ts";
+import { belongs } from "../people/roster.ts";
 
 type Grant = typeof Ops.memberGrant.rpc.payloadSchema.Type;
 type Granted = typeof Ops.memberGrant.rpc.successSchema.Type;
@@ -55,7 +56,8 @@ export const orgMemberGrant = Effect.fn("org.member.grant.propose")(function* (g
   const organization = found.value;
   if (!who.person || !Arr.contains(organization.directors, who.name))
     return yield* Errors.NotADirector.make({ org: grant.org, person: who.name });
-  if (!Arr.contains([...organization.directors, ...organization.members], grant.member))
+  // A member who joined by an invitation is a member like a founding one (src/people/roster.ts).
+  if (!(yield* belongs(organization, grant.member)))
     return yield* Errors.NotAMember.make({ org: grant.org, person: grant.member });
   const member = yield* cast.find(grant.member);
   const memberSafe = Option.getOrNull(Option.flatMap(member, (each) => Option.fromNullishOr(each.safe)));

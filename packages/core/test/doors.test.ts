@@ -94,8 +94,10 @@ test("through the SDK, each operation answers at its door, the unbuilt NotImplem
   assert.equal(calls.length, Rec.keys(operations).length);
   for (const { name, exit, traceId } of calls) {
     const error = errorOf(exit);
-    // The chain operations' handlers need a chain and a database, which a test in memory has not (test/chain).
-    if (BUILT.has(name)) assert.ok(Exit.isFailure(exit), `${name} answered with no chain`);
+    // The chain and people operations' handlers need a chain or a database, which a test in memory has not
+    // (test/chain, test/people-sql.test.ts); invite.list as the world's owner, who has no email, reads nothing.
+    if (BUILT.has(name))
+      assert.ok(Exit.isFailure(exit) || name === "invite.list", `${name} answered with no chain or database`);
     else if (Arr.contains(built, name))
       assert.ok(
         Exit.isSuccess(exit) || isRefusal(operations[name], error),
