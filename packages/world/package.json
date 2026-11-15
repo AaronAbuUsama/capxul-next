@@ -23,6 +23,7 @@
     "viem": "catalog:"
   },
   "devDependencies": {
+    "@alchemy.run/sql": "catalog:",
     "@cloudflare/workers-types": "catalog:",
     "@effect/tsgo": "catalog:",
     "@types/node": "catalog:",
