@@ -425,7 +425,9 @@ the plumbing, and verdict before teardown (the speed lane's lead).
   That covers options 1 (the world's parts in one place, Core next to its data; which region is the speed lane's,
   from one measured run), 2 (checks read the run's telemetry instead of polling), 6 (the plumbing), 7 (the verdict
   before teardown), and moving pay Brightside's snapshot round trip off the critical path (the journey author's call).
-  The agreed order stands: instrumentation first (stage 3b), then the speed lane (3d) builds it, measured by its spans.
+  The order changed the same day (Aaron, about 17:55 UTC: "don't you think we should prioritize that first?"): the
+  speed steps start at once, in parallel with instrumentation, measured by the run records until 4.7 lands (every
+  call's timing, Core's colo and its spans are already in them). Roadmap decision "The run's speed comes first".
 - **D5, where the world runs: Europe** (Aaron, 15 November 2026): "we need to bring the Cloudflare to Europe instead
   of keeping it in America. That's crazy." Core's Worker is placed next to its database (Neon, aws-eu-west-2) and the
   hub (WEUR), so its queries, lookups and chain calls stay inside Europe (option 1a). What still crosses the Atlantic
