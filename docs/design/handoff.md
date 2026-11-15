@@ -12,8 +12,8 @@ and archived. Whoever conducts next starts here, whatever agent they run on.
    - `hashtags`: Aaron's `#shortcuts`;
    - `reviewer`: the 🔍 review.
 
-   Amp's and Codex's columns in the `threads` table were written without their docs to hand. Check them in your first
-   session (does your agent list these four skills?) and fix the table in a pull request.
+   Amp and Codex both load these four skills from `.agents/skills`. Their columns in the `threads` table were checked
+   against each agent's docs and the Amp conductor's own tools on 15 November 2026.
 3. `docs/roadmap.md`, and the design notes on `master`:
    - `docs/design/blueprint.md`: the decisions, the glossary in part 12, the layout in part 13, the path in part 5;
    - `docs/design/system.md`: what is generated and what is hand-written;
