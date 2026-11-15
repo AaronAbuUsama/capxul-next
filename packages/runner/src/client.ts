@@ -8,7 +8,7 @@
 // have no command, still go through the SDK.
 import { CHAIN_PATH, Errors, isRefusal, operations, WORLD_PATH, type OperationName } from "@capxul/blueprint";
 import * as Cli from "@capxul/cli";
-import { CallTraces, Capxul, type CallOptions, type CapxulClient } from "@capxul/scenarios";
+import { CallTraces, Capxul, Observing, type CallOptions, type CapxulClient } from "@capxul/scenarios";
 import * as Sdk from "@capxul/sdk";
 import * as Cause from "effect/Cause";
 import * as Duration from "effect/Duration";
@@ -25,6 +25,7 @@ import * as Schema from "effect/Schema";
 import * as HttpClient from "effect/http/HttpClient";
 import { RpcClientError } from "effect/rpc/RpcClientError";
 import { describe } from "./failure.ts";
+import { ObservationRetry } from "./settings.ts";
 import { resendingWhileWarm } from "./world/warmup.ts";
 
 /**
@@ -56,6 +57,8 @@ export interface Call {
   readonly callerMs: number;
   /** Sends repeated during the call because the stage's address was not routed yet. */
   readonly resent: number;
+  /** Sends repeated because no answer came back, for an observation read only (`Observing`); absent when none. */
+  readonly retried?: number;
   readonly failure: string | null;
 }
 
@@ -110,17 +113,53 @@ type Send = (
 ) => Effect.Effect<Sdk.Success<OperationName>, Sdk.Refusal<OperationName>>;
 
 /** Every call through `send`, appended to `log`, whatever its outcome, and answered unchanged; `chain` as it is. */
+/**
+ * A read a check makes around the step's call (`Observing` present, `CallTraces` absent: never the step's own call),
+ * sent again while no answer comes back, at most `tries` times in all, the waits doubling from `backoff`; each resend
+ * logged. A decoded answer or refusal is never sent again. Answers the last exit and how many times it was resent.
+ */
+const sendObserving = (
+  send: Send,
+  name: OperationName,
+  payload: unknown,
+  options: CallOptions | undefined,
+  observation: ObservationRetry,
+) =>
+  Effect.gen(function* () {
+    const observing =
+      Option.isSome(yield* Effect.serviceOption(Observing)) && Option.isNone(yield* Effect.serviceOption(CallTraces));
+    const tries = observing ? Math.max(1, observation.tries) : 1;
+    const go = (
+      retried: number,
+    ): Effect.Effect<readonly [Exit.Exit<Sdk.Success<OperationName>, Sdk.Refusal<OperationName>>, number]> =>
+      Effect.flatMap(Effect.exit(send(name, payload, options)), (exit) =>
+        retried + 1 < tries && classify(name, exit).outcome === "unanswered"
+          ? Effect.logWarning(
+              `observation ${name}: no answer (try ${retried + 1} of ${tries}), sent again: ${failureOf(exit) ?? ""}`,
+            ).pipe(
+              Effect.andThen(Effect.sleep(Duration.times(observation.backoff, 2 ** retried))),
+              Effect.andThen(go(retried + 1)),
+            )
+          : Effect.succeed([exit, retried] as const),
+      );
+    return yield* go(0);
+  });
+
 const recording = (
   send: Send,
   chain: CapxulClient["chain"],
   log: Ref.Ref<ReadonlyArray<Call>>,
   resent: Ref.Ref<number>,
+  observation: ObservationRetry,
 ): CapxulClient => {
   const each = (name: OperationName) => (payload: unknown, options?: CallOptions) =>
     Effect.gen(function* () {
       const span = yield* Effect.orDie(Effect.currentSpan);
       const before = yield* Ref.get(resent);
-      const [took, exit] = yield* send(name, payload, options).pipe(Effect.exit, Effect.timed);
+      const [took, [exit, retried]] = yield* sendObserving(send, name, payload, options, observation).pipe(
+        Effect.timed,
+      );
+      if (retried > 0) yield* Effect.annotateCurrentSpan("runner.call.retried", retried);
       const call: Call = {
         operation: name,
         traceId: span.traceId,
@@ -133,6 +172,7 @@ const recording = (
         error: Exit.isSuccess(exit) ? Option.none() : Cause.findErrorOption(exit.cause),
         callerMs: Duration.toMillis(took),
         resent: (yield* Ref.get(resent)) - before,
+        ...(retried > 0 ? { retried } : {}),
         failure: failureOf(exit),
       };
       yield* Ref.update(log, (calls) => [...calls, call]);
@@ -181,6 +221,7 @@ export const capxulFor = (
   Layer.unwrap(
     Effect.gen(function* () {
       const resent = yield* Ref.make(0);
+      const observation = yield* Effect.orDie(ObservationRetry);
       const http = resendingWhileWarm(target.warmUntil, target.every, resent)(yield* HttpClient.HttpClient);
       const viaCli = Cli.callVia(cliDoors(target));
       const sendOf = (client: CapxulClient): Send =>
@@ -190,7 +231,9 @@ export const capxulFor = (
           : (name, payload, options) => Sdk.callByName(client, name, payload, options);
       return Layer.effect(
         Capxul,
-        Effect.map(Effect.service(Capxul), (client) => recording(sendOf(client), client.chain, log, resent)),
+        Effect.map(Effect.service(Capxul), (client) =>
+          recording(sendOf(client), client.chain, log, resent, observation),
+        ),
       ).pipe(Layer.provide(Sdk.layer(Capxul)), Layer.provide(doors(target, http)));
     }),
   );

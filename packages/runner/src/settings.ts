@@ -2,6 +2,17 @@
 import * as Config from "effect/Config";
 import * as Duration from "effect/Duration";
 
+/**
+ * How many times an observation read is sent when no answer comes back (a transport error): a read a check makes
+ * before or after the step's call (`Observing`, never the step's own call), at most `tries` times, the waits between
+ * them doubling from `backoff`. A decoded answer or refusal is never sent again (client.ts, `sendObserving`).
+ */
+export const ObservationRetry = Config.all({
+  tries: Config.Int("RUNNER_OBSERVATION_TRIES").pipe(Config.withDefault(4)),
+  backoff: Config.Duration("RUNNER_OBSERVATION_BACKOFF").pipe(Config.withDefault(Duration.millis(250))),
+});
+export type ObservationRetry = Config.Success<typeof ObservationRetry>;
+
 export const Settings = Config.all({
   /** Who the stages of this run belong to. Core reads the same variable at deploy. */
   owner: Config.String("WORLD_OWNER").pipe(Config.withDefault("runner")),
@@ -26,6 +37,8 @@ export const Settings = Config.all({
    * which destroys every world the run's operators own; each world's expiry and the hub's lifetime back it up.
    */
   teardown: Config.Literals(["run", "job"], "RUNNER_TEARDOWN").pipe(Config.withDefault("run")),
+  /** How an observation read is sent again when no answer comes back (`ObservationRetry` above). */
+  observation: ObservationRetry,
   destroyTimeout: Config.Duration("WORLD_DESTROY_TIMEOUT").pipe(Config.withDefault(Duration.minutes(4))),
   /**
    * A stage is ready after this many answers in a row from its Core (warmup.ts). Five since no run has ever recorded

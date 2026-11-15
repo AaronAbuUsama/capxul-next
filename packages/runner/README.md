@@ -241,6 +241,7 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 | `WORLD_SCENARIO_TIMEOUT` | `20 minutes` | The same for a scenario in private worlds, whose calls may make worlds. |
 | `WORLD_DESTROY_TIMEOUT` | `4 minutes` | The destroy. |
 | `WORLD_READY_ANSWERS` | `5` | Answers in a row before a stage is ready. A relapse (a miss after the first answer) is still counted in `readiness.relapses`; none has ever been seen, so 20 was cut to 5 (docs/design/run-time.md, option 6c). |
+| `RUNNER_OBSERVATION_TRIES`, `RUNNER_OBSERVATION_BACKOFF` | `4`, `250 millis` | How many times a read a check makes around the step's call (`Observing`, never the step's own call) is sent when no answer comes back (a transport error), the waits doubling from the backoff. Each resend is logged, set on the call's span as `runner.call.retried` and kept as the call's `retried`. A decoded answer or refusal is never sent again. |
 | `RUNNER_TEARDOWN` | `run` | Who takes down a run in one world at its end: `run`, the run itself; `job`, CI's `teardown` job in `world.yml` (the one world and its own hub are left up for it, named in `oneWorld.handedOver`). Each journey's own worlds are destroyed after it either way. |
 | `WORLD_PROBE_EVERY` | `500 millis` | Between two probes, and between two sends of a call during the warm-up. |
 | `WORLD_WARM_UP` | `30 seconds` | How long after ready a call Cloudflare's edge answered is sent again. |
