@@ -1,6 +1,6 @@
 // A world's cast as Core's operations read it: each person's email, the address that signs for them and their claimed
-// personal Safe (decisions.md, 25). The world writes it when it is made (`app.cast`, the world's migration); Core only
-// reads it. A test hands its own.
+// personal Safe (packages/blueprint/docs/decisions.md, entry 25). The world writes it when it is made (`app.cast`, the
+// world's migration); Core only reads it. A test hands its own.
 import * as Arr from "effect/Array";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";

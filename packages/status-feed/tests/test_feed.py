@@ -2,7 +2,7 @@
 import json, os, subprocess, sys, tempfile, unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-from feed import Repo, critical_path, proven, record_passed, steps  # noqa: E402
+from feed import Repo, critical_path, proven, ratchets, record_passed, steps  # noqa: E402
 
 ROADMAP = """# Roadmap
 
@@ -91,6 +91,69 @@ class Feed(unittest.TestCase):
     def test_counts_and_the_critical_path(self):
         self.assertEqual((self.steps["1.1"]["done"], self.steps["1.1"]["of"]), (3, 12))
         self.assertEqual(critical_path(list(self.steps.values())), ["0.2", "1.1", "1.2"])
+
+
+SCORECARD = """# The scorecard
+
+| Thing | Lifecycle (R4) |
+| --- | --- |
+| [site](site.md) | ✗ |
+
+## The ratchets
+
+| Ratchet | What its list holds | Count | Closes in |
+| --- | --- | --- | --- |
+| R1 Raw schemas | Raw schemas outside `values` files. | 12 | 3.3 |
+| R3 Rows not decoded | Stored rows cast. | 0 | 3.3 |
+| R4 Lifecycles not machines | Things with no machine. | not yet counted (C.1) | C.1 |
+| R15 Old words | The glossary's old words. | 9, gated by `pnpm words` | 3.8 |
+"""
+
+
+class Ratchets(unittest.TestCase):
+    """The scorecard's ratchets on the dashboard: each count from ratchets.json, R15's from old-words.json's total."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.dir = tempfile.TemporaryDirectory()
+        root = cls.dir.name
+        run(root, "init", "-q", "-b", "master")
+        generated = "packages/blueprint/generated"
+        write(root, f"{generated}/scorecard.md", SCORECARD)
+        write(root, f"{generated}/ratchets.json", json.dumps({"generated": "x", "counts": {"R1": 12, "R3": 0}}))
+        write(root, f"{generated}/old-words.json", json.dumps({"generated": "x", "counts": {"core": 5, "door": 4, "hub": 0}}))
+        run(root, "add", "-A")
+        run(root, "commit", "-qm", "scorecard", when="2026-11-15T06:00:00Z")
+        cls.rows = {r["id"]: r for r in ratchets(Repo(root, "master"))}
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.dir.cleanup()
+
+    def test_every_ratchet_of_the_scorecard_is_a_row(self):
+        self.assertEqual(list(self.rows), ["R1", "R3", "R4", "R15"])
+        self.assertTrue(all(r["kind"] == "ratchet" for r in self.rows.values()))
+        self.assertEqual(self.rows["R1"]["name"], "R1 Raw schemas")
+        self.assertEqual(self.rows["R1"]["detail"], "Raw schemas outside values files.")
+        self.assertEqual(self.rows["R1"]["waits"], "3.3")
+
+    def test_a_counted_ratchet_shows_its_committed_count(self):
+        self.assertEqual((self.rows["R1"]["count"], self.rows["R1"]["state"]), (12, "Counting"))
+        self.assertEqual((self.rows["R3"]["count"], self.rows["R3"]["state"]), (0, "Closed"))
+
+    def test_old_words_show_their_total(self):
+        self.assertEqual((self.rows["R15"]["count"], self.rows["R15"]["state"]), (9, "Counting"))
+
+    def test_a_ratchet_not_yet_counted_says_so(self):
+        self.assertEqual((self.rows["R4"]["count"], self.rows["R4"]["state"]), ("", "Not yet counted"))
+
+    def test_no_scorecard_no_rows(self):
+        with tempfile.TemporaryDirectory() as root:
+            run(root, "init", "-q", "-b", "master")
+            write(root, "a.txt", "a")
+            run(root, "add", "-A")
+            run(root, "commit", "-qm", "a")
+            self.assertEqual(ratchets(Repo(root, "master")), [])
 
 
 if __name__ == "__main__":

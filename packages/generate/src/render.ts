@@ -132,7 +132,7 @@ export interface Mapped {
   readonly text: string;
 }
 
-/** What a file says it is: a page's title, or the first sentence of the comment a source file opens with. */
+/** What a file says it is: a page's title, or the first sentence of the comment a source file opens with (after any `#!`). */
 export const saysOf = (file: Mapped): string => {
   const lines = Str.split(file.text, "\n");
   if (Str.endsWith(".md")(file.path)) {
@@ -140,7 +140,9 @@ export const saysOf = (file: Mapped): string => {
     return title._tag === "Some" ? Str.trim(Str.slice(2)(title.value)) : "";
   }
   const comment = Arr.join(
-    Arr.map(Arr.takeWhile(lines, Str.startsWith("//")), (line) => Str.trim(Str.replace(/^\/\/+/, "")(line))),
+    Arr.map(Arr.takeWhile(Arr.dropWhile(lines, Str.startsWith("#!")), Str.startsWith("//")), (line) =>
+      Str.trim(Str.replace(/^\/\/+/, "")(line)),
+    ),
     " ",
   );
   const sentence = /^(.+?[.!?])(\s|$)/.exec(Str.trim(comment));

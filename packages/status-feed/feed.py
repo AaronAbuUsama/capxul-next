@@ -125,3 +125,31 @@ def critical_path(all_steps):
         return best[step_id]
 
     return max((longest(i) for i in left), key=lambda p: p[0], default=(0, []))[1]
+
+
+SCORECARD = "packages/blueprint/generated/scorecard.md"
+COUNTS = "packages/blueprint/generated/ratchets.json"
+OLD_WORDS = "packages/blueprint/generated/old-words.json"
+WORDS = "R15"  # the glossary's old words, gated by `pnpm words`: its count is the total of old-words.json
+
+
+def ratchets(repo):
+    """Every ratchet of the scorecard with its committed count, all from files `pnpm generate` writes.
+
+    The names, what each list holds and where it closes come from the scorecard's table of ratchets; a counted
+    ratchet's count from ratchets.json; R15's from the total of old-words.json. A ratchet with no count says so.
+    """
+    if not repo.exists(SCORECARD):
+        return []
+    counts = json.loads(repo.show(COUNTS))["counts"] if repo.exists(COUNTS) else {}
+    if repo.exists(OLD_WORDS):
+        counts[WORDS] = sum(json.loads(repo.show(OLD_WORDS))["counts"].values())
+    out = []
+    for ratchet, holds, _count, closes in table(repo.show(SCORECARD), "## The ratchets"):
+        rid, _, name = ratchet.partition(" ")
+        count = counts.get(rid)
+        state = "Not yet counted" if count is None else "Closed" if count == 0 else "Counting"
+        out.append({"kind": "ratchet", "id": rid, "name": f"{rid} {name}", "detail": re.sub(r"`", "", holds), "state": state,
+                    "count": "" if count is None else count, "done": 0, "of": 1, "pct": 100 if count == 0 else 0,
+                    "path": "", "waits": closes, "at": "", "needs": ""})
+    return out

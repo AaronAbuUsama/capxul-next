@@ -26,6 +26,8 @@ export const ownDeployment = Effect.gen(function* () {
   const secondOwner = yield* Config.option(Config.String(ENV.secondOwner));
   const secondToken = yield* Config.option(Config.Redacted(ENV.secondPlatformToken));
   const handlers = yield* Config.option(Config.String(ENV.handlers));
+  // `on` gives this stage the tap (src/telemetry/export.ts), as a world of a test grade has it.
+  const tap = yield* Config.option(Config.String(ENV.tap));
   const second =
     Option.isSome(secondOwner) && Option.isSome(secondToken)
       ? { [ENV.secondOwner]: secondOwner.value, [ENV.secondPlatformToken]: secondToken.value }
@@ -38,6 +40,7 @@ export const ownDeployment = Effect.gen(function* () {
       [ENV.platformToken]: yield* Config.Redacted(ENV.platformToken),
       ...second,
       ...(Option.isSome(handlers) ? { [ENV.handlers]: handlers.value } : {}),
+      ...(Option.isSome(tap) ? { [ENV.tap]: tap.value } : {}),
     },
   } satisfies Deployment;
 });

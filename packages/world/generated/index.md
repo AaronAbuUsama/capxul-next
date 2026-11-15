@@ -20,14 +20,14 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 ## `src/account/`
 
 - [`lists.ts`](../src/account/lists.ts): world.list, world.snapshot.list and world.snapshot.delete, as the platform serves them: what an operator has on the platform (packages/blueprint, src/world/inventory.ts).
-- [`operators.ts`](../src/account/operators.ts): Who may call the platform: its two operators, each by the name the platform gives them and the token that signs them in (decisions.md, 16 and 37).
-- [`refusals.ts`](../src/account/refusals.ts): How the platform's handlers keep their declared refusals and nothing else: any other failure of what they call (a deploy, a database, the shared state) is a fault, which the caller sees as a defect (decisions.md, 10).
-- [`serve.ts`](../src/account/serve.ts): `world platform serve`: the platform group served on this machine's loopback until the process is stopped, for a caller on the same machine (decisions.md, 51).
-- [`server.ts`](../src/account/server.ts): The platform's door: the blueprint's platform group (world.create, world.show, world.snapshot.save, world.snapshot.restore, and an operator's inventory: world.list, world.snapshot.list and world.snapshot.delete), served over HTTP with Effect's Rpc server at `PLATFORM_PATH` by whatever process runs it where the Cloudflare and Neon keys are (decisions.md, 51): the runner, in-process, or `world platform serve`.
-- [`snapshots.ts`](../src/account/snapshots.ts): world.snapshot.save and world.snapshot.restore, as the platform serves them (decisions.md, 17 to 19, 46 and 51).
+- [`operators.ts`](../src/account/operators.ts): Who may call the platform: its two operators, each by the name the platform gives them and the token that signs them in (packages/blueprint/docs/decisions.md, entries 16 and 37).
+- [`refusals.ts`](../src/account/refusals.ts): How the platform's handlers keep their declared refusals and nothing else: any other failure of what they call (a deploy, a database, the shared state) is a fault, which the caller sees as a defect (packages/blueprint/docs/decisions.md, entry 10).
+- [`serve.ts`](../src/account/serve.ts): `world platform serve`: the platform group served on this machine's loopback until the process is stopped, for a caller on the same machine (packages/blueprint/docs/decisions.md, entry 51).
+- [`server.ts`](../src/account/server.ts): The platform's door: the blueprint's platform group (world.create, world.show, world.snapshot.save, world.snapshot.restore, and an operator's inventory: world.list, world.snapshot.list and world.snapshot.delete), served over HTTP with Effect's Rpc server at `PLATFORM_PATH` by whatever process runs it where the Cloudflare and Neon keys are (packages/blueprint/docs/decisions.md, entry 51): the runner, in-process, or `world platform serve`.
+- [`snapshots.ts`](../src/account/snapshots.ts): world.snapshot.save and world.snapshot.restore, as the platform serves them (packages/blueprint/docs/decisions.md, entries 17 to 19, 46 and 51).
 - [`store.ts`](../src/account/store.ts): What the platform keeps of its own, in the schema `platform` of the registry's branch (the platform stage's), beside the registry of world names: the spans of every platform call, which world each successful call acted on (its events are in that world's record), and every snapshot a world has saved.
 - [`view.ts`](../src/account/view.ts): What the platform answers of a world, and the events it writes into a world's record.
-- [`worlds.ts`](../src/account/worlds.ts): world.create and world.show, as the platform serves them (decisions.md, 13 to 15, 20 and 25).
+- [`worlds.ts`](../src/account/worlds.ts): world.create and world.show, as the platform serves them (packages/blueprint/docs/decisions.md, entries 13 to 15, 20 and 25).
 
 ## `src/cli/`
 
@@ -42,6 +42,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 - [`failures.ts`](../src/common/failures.ts): The world package's own failures, declared here once.
 - [`record.ts`](../src/common/record.ts): What a run leaves behind once its world is gone, and what a proof saw.
 - [`stopwatch.ts`](../src/common/stopwatch.ts): A step of a world's life: run under its declared timeout, with its duration written down whether it ended well, failed or timed out (roadmap rule 6).
+- [`telemetry.ts`](../src/common/telemetry.ts): The world's OTLP export (roadmap 4.4): the layer its entry (src/cli/main.ts) provides once, through `exportFromConfig`, so every span, log and metric it makes is posted over OTLP/HTTP JSON to `baseUrl` (the collector), under a resource naming the producer (`service.name`, the blueprint's producer) and the code's revision (`service.version`).
 
 ## `src/`
 
@@ -155,12 +156,12 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 - [`bench.ts`](../src/things/site/bench.ts): A world's company sites on a shared bench (roadmap step 1.4; the decision "Site creation on a shared bench").
 - [`client.ts`](../src/things/site/client.ts): One call to a bench's site door (packages/platform, door/door.py), with a world's site token: answered at once (`doorCall`), or run by the door as a job and polled (`doorJob`).
 - [`reset.ts`](../src/things/site/reset.ts): A world's company sites across an in-place reset (roadmap 1.16 to 1.18): saved to a point of the bench with the world's snapshot, and put back in place to it when the world is reset.
-- [`snapshot.ts`](../src/things/site/snapshot.ts): A world's company sites in its snapshots (blueprint decisions.md, 17): saving them with the snapshot, and making them again in a world restored from it.
+- [`snapshot.ts`](../src/things/site/snapshot.ts): A world's company sites in its snapshots (packages/blueprint/docs/decisions.md, entry 17): saving them with the snapshot, and making them again in a world restored from it.
 
 ## `src/things/world/`
 
 - [`bring-up.ts`](../src/things/world/bring-up.ts): Bringing one world up on its fleet hub, step by step: the claim, its registration on the hub, then the chain's lane and the database's lane side by side.
-- [`cast.ts`](../src/things/world/cast.ts): A new world's cast and its clock's start on its chain (decisions.md, 20, 25 and 42).
+- [`cast.ts`](../src/things/world/cast.ts): A new world's cast and its clock's start on its chain (packages/blueprint/docs/decisions.md, entries 20, 25 and 42).
 - [`client.ts`](../src/things/world/client.ts): The parts of a deployed world, reached from outside: its door (chain and index), its Core, and its record in the shared state.
 - [`create.ts`](../src/things/world/create.ts): Creates one world outside a run and leaves it up for its owner.
 - [`destroy.ts`](../src/things/world/destroy.ts): Destroys one world by name, from the shared state alone.

@@ -50,7 +50,9 @@
         "packages/runner/src/record.ts": "run records are JSON files on disk, which the dashboard and the speed climb read",
         "packages/cli/src/input.ts": "the command line's input: a flag's JSON value and the --input file, decoded at once with the payload's schema",
         "packages/cli/src/output.ts": "the command line's output: one line of JSON per answer, encoded with the operation's own schemas",
-        "packages/world/src/common/record.ts": "run records and proof records are JSON files, written to be read by people and by scoring, and read back by the proofs; the command line prints its results as the same JSON text"
+        "packages/world/src/common/record.ts": "run records and proof records are JSON files, written to be read by people and by scoring, and read back by the proofs; the command line prints its results as the same JSON text",
+        "packages/platform/src/collector/otlp-json.ts": "the collector reads and rewrites OTLP/HTTP's JSON encoding, the producers' and the sink's format, to stamp each resource",
+        "packages/runner/src/telemetry/otlp.ts": "OTLP JSON, OpenTelemetry's wire format: the bodies the tap and the sink hold, decoded from their text at this one edge"
       },
       // Places where raw schemas describe a format of their own, not the contract's values, each with its reason
       // (capxul/owned-values). Anything else the rule finds is on its unmigrated list (packages/lint/src/unmigrated.ts).
@@ -62,7 +64,10 @@
         "packages/world/src/common/record.ts": "run records and proof records are JSON files outside the world; their schemas are those files' format",
         "packages/world/src/things/world/handle.ts": "a deployed world's stack outputs as Alchemy stores them: the format of a file outside the world, read back as it was written",
         "packages/core/src/telemetry/attributes.ts": "the attributes of a kept span as OpenTelemetry and effect/sql set them: an outside format, decoded where it is read",
-        "packages/blueprint-tools/src/language/lifecycle.ts": "the machine format: builds each machine's state schema from the states its declaration names"
+        "packages/blueprint-tools/src/language/lifecycle.ts": "the machine format: builds each machine's state schema from the states its declaration names",
+        "packages/platform/src/collector/otlp-json.ts": "OTLP/HTTP's JSON encoding, an outside format, decoded only to stamp each resource and count its items",
+        "packages/platform/src/collector/tokens.ts": "a collector token's text is the platform's own format, as the site token's is (src/token.ts): its expiry is Unix seconds",
+        "packages/runner/src/telemetry/otlp.ts": "OTLP JSON as OpenTelemetry defines it and Effect's OtlpSerialization writes it: an outside format, decoded where the runner reads the tap and the sink"
       }
     }
   },

@@ -33,6 +33,6 @@ time. Its spans and logs judge it once it is instrumented (roadmap item 4.7). It
 Reset a shard's world to the journey's starting point, take the journey's steps, and check every call.
 
 - Payload: `journey`, `world`, `from`.
-- Spans: `journey.run.wait` (wait).
+- Spans: `journey.run.start` (compute) → `journey.run.step` (compute) → `journey.run.call` (compute) → `journey.run.wait` (wait).
 - Logs: `journey.run.step_failed` (journey, step).
 - Budget: 60,000 ms, a target, provisional. Basis: a shard's 6 minutes hold several journeys (docs/design/blueprint.md, part 8); a first guess per journey.
