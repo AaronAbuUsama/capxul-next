@@ -31,8 +31,8 @@ import { timeStartingWorlds } from "./worlds/timing.ts";
 import { runScenarios } from "./scenario-runs.ts";
 import { Settings } from "./settings.ts";
 import { runnerExport } from "./telemetry/export.ts";
-import { RUN_SPANS } from "./timings.ts";
 import { ranAsExpected, type Expectation, type Mode } from "./summary.ts";
+import { RUN_SPANS, stepOptions } from "./telemetry/step.ts";
 
 const USAGE =
   "usage: door [--world=<name>] | chain --world=<name> | scenarios [--one-stage] [--expect=pass|not-implemented] [--core=local] [--shared] [--via=sdk|cli] [name...] | starting-worlds [--core=local] | shared";
@@ -168,7 +168,10 @@ const theScenarios = (given: Settings, chosen: ReadonlyArray<Plan>) =>
       ? yield* inWorlds(
           settings,
           runInWorlds(chosenJourneys, settings, onShared ? Option.some(settings.shared) : Option.none()).pipe(
-            Effect.withSpan(RUN_SPANS.run, { attributes: { mode: onShared ? "shared world" : "one world" } }),
+            Effect.withSpan(
+              RUN_SPANS.run.name,
+              stepOptions(RUN_SPANS.run, { mode: onShared ? "shared world" : "one world" }),
+            ),
           ),
         )
       : yield* runScenarios(chosen, settings, mode, expect);
@@ -190,7 +193,9 @@ const theStartingWorlds = (settings: Settings) =>
   Effect.gen(function* () {
     const record = yield* inWorlds(
       settings,
-      timeStartingWorlds(settings).pipe(Effect.withSpan(RUN_SPANS.run, { attributes: { mode: "starting worlds" } })),
+      timeStartingWorlds(settings).pipe(
+        Effect.withSpan(RUN_SPANS.run.name, stepOptions(RUN_SPANS.run, { mode: "starting worlds" })),
+      ),
     );
     for (const line of record.worlds)
       yield* Effect.log(
@@ -220,7 +225,9 @@ const theSharedWorld = (given: Settings) =>
         : given;
     const record = yield* inWorlds(
       settings,
-      makeOrRenew(settings, journeys).pipe(Effect.withSpan(RUN_SPANS.run, { attributes: { mode: "shared" } })),
+      makeOrRenew(settings, journeys).pipe(
+        Effect.withSpan(RUN_SPANS.run.name, stepOptions(RUN_SPANS.run, { mode: "shared" })),
+      ),
     );
     yield* Effect.log(
       `${record.outcome}: ${record.world} ${record.how}, owned by ${record.owner}, until ${record.expiresAt ?? "?"} on hub ${record.hub.stage}; templates ${Arr.join(record.templates, ", ")} -> ${settings.records}/${record.run}/shared.json${record.failure === null ? "" : `\n${record.failure}`}`,
