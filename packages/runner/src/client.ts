@@ -2,8 +2,12 @@
 // every call recorded for the checks. Each call runs in a root span of its own, so the SDK's caller-side span and
 // Core's server spans share one trace id, which the SDK sends in `traceparent`. The log keeps what was sent, what
 // came back, the caller's time and how the call ended. During a stage's warm-up, and only then, a call Cloudflare's
-// edge answered is sent again (world/warmup.ts).
+// edge answered is sent again (world/warmup.ts). With `via` `cli` (`--via=cli`), every operation goes through the
+// command line instead: the `capxul` command that makes the call, run in this process at the same doors, with the
+// same credentials and the same HTTP client (packages/cli, `callVia`). The chain reads, which are not operations and
+// have no command, still go through the SDK.
 import { CHAIN_PATH, Errors, isRefusal, operations, WORLD_PATH, type OperationName } from "@capxul/blueprint";
+import * as Cli from "@capxul/cli";
 import { Capxul, type CallOptions, type CapxulClient } from "@capxul/scenarios";
 import * as Sdk from "@capxul/sdk";
 import * as Cause from "effect/Cause";
@@ -95,13 +99,28 @@ export interface Target {
   readonly every: Duration.Duration;
 }
 
-/** `client` with every call appended to `log`, whatever its outcome, and answered unchanged. */
-const recording = (client: CapxulClient, log: Ref.Ref<ReadonlyArray<Call>>, resent: Ref.Ref<number>): CapxulClient => {
+/** How a journey's calls reach Core: through the SDK's client, or through the command line (settings.ts). */
+export type Via = "sdk" | "cli";
+
+/** One operation's call, by its name, as a transport makes it. */
+type Send = (
+  name: OperationName,
+  payload: unknown,
+  options?: CallOptions,
+) => Effect.Effect<Sdk.Success<OperationName>, Sdk.Refusal<OperationName>>;
+
+/** Every call through `send`, appended to `log`, whatever its outcome, and answered unchanged; `chain` as it is. */
+const recording = (
+  send: Send,
+  chain: CapxulClient["chain"],
+  log: Ref.Ref<ReadonlyArray<Call>>,
+  resent: Ref.Ref<number>,
+): CapxulClient => {
   const each = (name: OperationName) => (payload: unknown, options?: CallOptions) =>
     Effect.gen(function* () {
       const span = yield* Effect.orDie(Effect.currentSpan);
       const before = yield* Ref.get(resent);
-      const [took, exit] = yield* Sdk.callByName(client, name, payload, options).pipe(Effect.exit, Effect.timed);
+      const [took, exit] = yield* send(name, payload, options).pipe(Effect.exit, Effect.timed);
       const call: Call = {
         operation: name,
         traceId: span.traceId,
@@ -122,14 +141,21 @@ const recording = (client: CapxulClient, log: Ref.Ref<ReadonlyArray<Call>>, rese
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- one function per operation, built by name from the blueprint's own list, each the recorded call of the operation it is keyed by; the compiler cannot follow the mapping
   const calls = Rec.map(operations, (_operation, name) => each(name)) as unknown as Omit<CapxulClient, "chain">;
   // Chain reads are not operations: no span of Core's, no event, nothing for the generic checks. They pass through.
-  return { ...calls, chain: client.chain };
+  return { ...calls, chain };
 };
 
+/** The stage's doors as the command line reads them from its environment (packages/cli, `Doors`). */
+const cliDoors = (target: Target): Cli.Doors => ({
+  platform: { url: target.platformUrl, token: target.platformToken },
+  world: { url: `${target.url}${WORLD_PATH}`, token: target.doorToken },
+  secondOperator: target.secondPlatformToken,
+});
+
 /**
- * The stage's two doors, its chain and whatever else a call reaches (another operator, another world's door),
- * through an HTTP client that resends what the edge answered during the warm-up.
+ * The stage's two doors, its chain and whatever else a call reaches (another operator, another world's door), all
+ * through `http`.
  */
-const doors = (target: Target, resent: Ref.Ref<number>) =>
+const doors = (target: Target, http: HttpClient.HttpClient) =>
   Layer.mergeAll(
     Sdk.platformDoor({ url: target.platformUrl, token: target.platformToken }),
     Sdk.worldDoor({ url: `${target.url}${WORLD_PATH}`, token: target.doorToken }),
@@ -138,27 +164,30 @@ const doors = (target: Target, resent: Ref.Ref<number>) =>
       chain: { url: `${target.url}${CHAIN_PATH}`, token: target.doorToken },
       operators: { first: target.platformToken, second: target.secondPlatformToken },
     }),
-  ).pipe(
-    Layer.provide(
-      Layer.effect(
-        HttpClient.HttpClient,
-        Effect.map(Effect.service(HttpClient.HttpClient), (client) =>
-          resendingWhileWarm(target.warmUntil, target.every, resent)(client),
-        ),
-      ),
-    ),
-  );
+  ).pipe(Layer.provide(Layer.succeed(HttpClient.HttpClient, http)));
 
-/** `Capxul` for one stage, every call recorded in `log`. */
+/**
+ * `Capxul` for one stage, every call recorded in `log`, through the SDK or the command line (`via`). Both send
+ * through an HTTP client that resends what the edge answered during the warm-up.
+ */
 export const capxulFor = (
   target: Target,
   log: Ref.Ref<ReadonlyArray<Call>>,
+  via: Via = "sdk",
 ): Layer.Layer<Capxul, never, HttpClient.HttpClient> =>
   Layer.unwrap(
-    Effect.map(Ref.make(0), (resent) =>
-      Layer.effect(
+    Effect.gen(function* () {
+      const resent = yield* Ref.make(0);
+      const http = resendingWhileWarm(target.warmUntil, target.every, resent)(yield* HttpClient.HttpClient);
+      const viaCli = Cli.callVia(cliDoors(target));
+      const sendOf = (client: CapxulClient): Send =>
+        via === "cli"
+          ? (name, payload, options) =>
+              Effect.provideService(viaCli(name, payload, options), HttpClient.HttpClient, http)
+          : (name, payload, options) => Sdk.callByName(client, name, payload, options);
+      return Layer.effect(
         Capxul,
-        Effect.map(Effect.service(Capxul), (client) => recording(client, log, resent)),
-      ).pipe(Layer.provide(Sdk.layer(Capxul)), Layer.provide(doors(target, resent))),
-    ),
+        Effect.map(Effect.service(Capxul), (client) => recording(sendOf(client), client.chain, log, resent)),
+      ).pipe(Layer.provide(Sdk.layer(Capxul)), Layer.provide(doors(target, http)));
+    }),
   );
