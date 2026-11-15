@@ -170,6 +170,125 @@ accepted for the beta (ruling `aaron.claim-trust`); the role keeps it to this on
 [role], [true])` and revokes it with `[false]`. Rotating the backend key is a revoke and a grant. Revoking stops new
 claims at once and changes no Safe already claimed.
 
+## The claim permission as a blueprint delta
+
+Asked for by Aaron through the conductor session on 15 November 2026, so that the accounts pilot (roadmap step 5.2)
+builds it through the loop of `AGENTS.md` on `master`, "How a feature is built". No code is written here. The formats
+for roles (step 5.1), machines (3.4) and steps (4.1) are not built yet, so this is written to their description in
+`AGENTS.md`, as tables. It is a new domain of the blueprint, `accounts`.
+
+**One role per account version, with nothing to pin.** The roadmap puts Companies House at one address per account
+version. Each version therefore has its own Roles module, and a role on it is already bounded to that version. The role
+key is `capxul.claim.v<N>`. This closes the question of pinning a namespace.
+
+### Roles
+
+| Role | Where it comes from | Who holds it |
+|---|---|---|
+| `person` | A platform sign-in (exists today) | Anyone signed in |
+| `companies-house-signer` | A Safe signer of that account version's Companies House | Capxul's own officers. In a test world, the seeded signer |
+| `claimer` | A credential: a backend key that is a member of `capxul.claim.v<N>` on Companies House's Roles module | Core only. No person or agent is ever given it, and no operation lists it under `allowed` |
+
+### Operations
+
+| Operation | Allowed | Payload | Answer | Events |
+|---|---|---|---|---|
+| `account.claim` | `person`, for their own sign-in only | none: the email and the signer come from the sign-in | `Claimed {safe, accountVersion, deployed}` or `AlreadyClaimed {safe, accountVersion}` | `account_claimed` on `Claimed`; none on `AlreadyClaimed` |
+| `claimer.grant` | `companies-house-signer` | `{accountVersion, key}` | The approval it opened, as for any act a Safe signs | `claimer_grant_opened`, then `claimer_granted` when it lands |
+| `claimer.revoke` | `companies-house-signer` | `{accountVersion, key}` | The approval it opened | `claimer_revoke_opened`, then `claimer_revoked` when it lands |
+| `claimer.list` | `companies-house-signer` | `{accountVersion}` | Every grant of that version with its state | none |
+
+`account.claim` is where Core uses the `claimer` credential: it computes the salt, sends `claim(salt, signer)` through
+the Roles module with its key, and waits for it to land.
+
+### Events
+
+No event carries an email or a salt.
+
+| Event | Carries |
+|---|---|
+| `account_claimed` | `person`, `safe`, `signer`, `accountVersion`, `deployed` |
+| `account_claim_failed` | `person`, `accountVersion`, `reason` |
+| `claimer_grant_opened`, `claimer_revoke_opened` | `accountVersion`, `key`, `approval`, `by` |
+| `claimer_granted`, `claimer_revoked` | `accountVersion`, `key`, `transaction` |
+
+Chain logs: `CapxulSafeClaimed(safe, signer, deployed)` from the claimer, which the indexer already records, and the
+Roles module's own log of a role being assigned, which the indexer must start to record for Companies House.
+
+### Machines
+
+**A person's account**, one per person and account version.
+
+| State | `account.claim` |
+|---|---|
+| `unclaimed` | moves to `claiming` |
+| `claiming` | refused: `ClaimInProgress` |
+| `claimed` | answers `AlreadyClaimed` when the Safe's owner is the caller's signer; otherwise refused: `ClaimedByAnotherSigner` |
+
+`claiming` moves to `claimed` when the claim lands (`account_claimed`), and back to `unclaimed` when it fails
+(`account_claim_failed`).
+
+**A claimer grant**, one per account version and key.
+
+| State | `claimer.grant` | `claimer.revoke` |
+|---|---|---|
+| `absent` | moves to `granting` (`claimer_grant_opened`) | refused: `ClaimerNotGranted` |
+| `granting` | refused: `ClaimerChangePending` | refused: `ClaimerChangePending` |
+| `granted` | refused: `ClaimerAlreadyGranted` | moves to `revoking` (`claimer_revoke_opened`) |
+| `revoking` | refused: `ClaimerChangePending` | refused: `ClaimerChangePending` |
+| `revoked` | moves to `granting` (`claimer_grant_opened`) | refused: `ClaimerNotGranted` |
+
+`granting` moves to `granted` when the approval lands (`claimer_granted`), and `revoking` to `revoked`
+(`claimer_revoked`). An approval that expires or is rejected returns the grant to the state it left.
+
+### Refusals
+
+| Refusal | Carries | When | Who acts |
+|---|---|---|---|
+| `NotCompaniesHouseSigner` | `person`, `accountVersion` | A caller without the role calls `claimer.grant`, `claimer.revoke` or `claimer.list`. Generated from `allowed` | A Companies House signer |
+| `ClaimInProgress` | `person`, `accountVersion` | `account.claim` from `claiming` | The caller waits |
+| `ClaimedByAnotherSigner` | `safe`, `accountVersion` | `account.claim` from `claimed`, and the Safe's owner is not the caller's signer | Capxul support |
+| `ClaimerUnavailable` | `accountVersion` | `account.claim` when no grant of Core's key is `granted`. A server-side fault, not the caller's | A Companies House signer |
+| `ClaimerNotGranted` | `accountVersion`, `key`, `state` | `claimer.revoke` from `absent` or `revoked` | none |
+| `ClaimerAlreadyGranted` | `accountVersion`, `key` | `claimer.grant` from `granted` | none |
+| `ClaimerChangePending` | `accountVersion`, `key`, `state`, `approval` | Either from `granting` or `revoking` | Sign or reject the open approval |
+
+A signer that is zero or is Companies House itself cannot come from a sign-in, so it is a defect, not a refusal.
+
+### Steps
+
+| Operation | Steps, in order |
+|---|---|
+| `account.claim` | database (read the account), chain (read the Safe's code and owners), chain (send `claim` through the Roles module), wait (it lands), database (write the account) |
+| `claimer.grant`, `claimer.revoke` | database (read the grant), chain (read the role's membership), database (open the approval). The landing is the approval's own steps |
+| `claimer.list` | database |
+
+Budgets are provisional until measured.
+
+### Journeys
+
+Written by a different agent from the builder, each failing against empty handlers first.
+
+1. **Claim an account.** From a starting world where one signed-in person has no claimed Safe and the claimer is
+   granted: the person claims (`Claimed`, `deployed` true); claims again (`AlreadyClaimed`); the Safe's only owner is
+   their signer.
+2. **Only a Companies House signer changes the claimer.** A person without the role calls `claimer.grant`, then
+   `claimer.revoke`, then `claimer.list`: each is refused `NotCompaniesHouseSigner`.
+3. **Rotate the claimer.** A signer revokes Core's key; a second person's claim is refused `ClaimerUnavailable`; the
+   signer grants a new key; the second person claims; the first person's Safe is unchanged.
+4. **The grant's refusals.** Grant when granted (`ClaimerAlreadyGranted`); revoke twice (`ClaimerNotGranted` the
+   second time); grant while a grant is waiting for its signature (`ClaimerChangePending`).
+
+A new starting world is needed: today `world.create` claims every cast member's Safe, so no person starts unclaimed.
+
+What the contract alone must prove, in its own tests, because no operation can reach it: the key's role cannot make
+any call but `claim`; a plain call to `claim` reverts; a claimed Safe refuses a second swap.
+
+### Two things this delta does not decide
+
+- **Who Companies House's signers are in a real world, and its threshold.** That is Aaron's to name.
+- **How a world's enrolment calls `account.claim`.** Enrolment is the other half of step 5.2 and is not designed here.
+
 ## What this changes in decisions already made
 
 - **Roadmap, "Every payment settles one sealed document".** "Paid once" becomes: each payment is recorded against one

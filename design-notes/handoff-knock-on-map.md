@@ -79,9 +79,9 @@ confirmed by Aaron where it is his to make.
    permission held by a backend key; `claim` takes the salt, never the email (`invoice-ledger.md`, "Claiming an
    email-derived Safe"; roadmap, "Account identity"). Classic instead uses a bootstrap key as first owner
    (`infrastructure: packages/backend/src/accounts/claims/external/ownership.ts`); read it for the operations, errors
-   and events around a claim, not for the mechanism. The spec still has to state: whether the contract folds a pinned
-   account version into the salt, so that one role is bounded to one version; and who signs for Companies House to
-   grant and revoke the role in a real world.
+   and events around a claim, not for the mechanism. Its blueprint delta is in `invoice-ledger.md`, "The claim
+   permission as a blueprint delta", for roadmap step 5.2. Two things remain Aaron's: who Companies House's signers
+   are in a real world, and how a world's enrolment calls `account.claim`.
 2. **Who owns a held payment before the payer has claimed their account**, and who signs for it. In classic the
    bootstrap owner holds the Safe until the claim.
 3. **The signature's exact form:** the typed data signed, how a Safe's signature is verified, and what is stored on the
