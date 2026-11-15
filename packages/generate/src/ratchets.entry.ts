@@ -8,6 +8,7 @@ import * as Arr from "effect/Array";
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import { layoutOf, OLD_WORDS, Ratchets, renderScorecard } from "@capxul/blueprint-tools";
+import { repositoryFiles } from "./ratchet-files.entry.ts";
 import { scorecardInputs, talliesOf } from "./ratchet-sources.ts";
 
 const { countText, grown, notes, OUTPUTS, settled } = Ratchets;
@@ -28,7 +29,7 @@ const countsAt = (url: URL): Counts =>
 
 const committed: Counts = countsAt(at(OUTPUTS.counts));
 /** R15's list, the old words as `pnpm generate` committed them before this runs (packages/generate writes them). */
-const tallies = talliesOf(countsAt(new URL(`../../../${OLD_WORDS}`, import.meta.url)));
+const tallies = talliesOf(countsAt(new URL(`../../../${OLD_WORDS}`, import.meta.url)), repositoryFiles());
 
 const mode = process.argv.includes("--write") ? "write" : process.argv.includes("--check") ? "check" : "count";
 
