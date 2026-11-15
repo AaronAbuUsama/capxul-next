@@ -178,7 +178,7 @@ step for the format and the ratchet registry; "Coverage is not a gate" changed i
 | 2 | No drift as checks | The eight layers, each instrumented and budgeted (part 3); coverage option B; measured facts generated from verdict digests; the ratchet registry (part 4) | **Agreed**, 15 November 2026 |
 | 3 | The shape | Part 7, with its three choices as recommended | **Agreed**, 15 November 2026 |
 | 4 | The pipeline as operations | Part 8: the operations as listed, journeys named in the blueprint, the 10-minute breakdown, lanes of worlds (option B). A budget is a target, not a gate | **Agreed**, 15 November 2026 |
-| 5 | Telemetry in the blueprint | One telemetry module as `telemetry-in-the-blueprint.md` part 3B describes, with T1 to T8 as agreed | Not started |
+| 5 | Telemetry in the blueprint | Part 10 | Proposed |
 | 6 | The sequence | Part 5 | **Agreed**, 15 November 2026 |
 
 ## 7. The shape: the blueprint, the repository and its docs (decision 3)
@@ -273,8 +273,8 @@ Run records under `packages/*/records/` are frozen from the proof lane's flip (R
 as the provisional budget, and lanes of worlds (option B), which changes "One runner, one world".
 
 **A budget is a target, not a gate** (Aaron, 15 November 2026). Nothing fails on speed. A run within striking distance
-of its budget is fine; a run far over it is a reason to look at the architecture, not to fail the work. Proposed rule
-for "far over": when the measured p95 of an operation, or of the whole run, is over 1.5 times its budget (15 minutes for
+of its budget is fine; a run far over it is a reason to look at the architecture, not to fail the work. Agreed rule
+for "far over" (Aaron, 15 November 2026): when the measured p95 of an operation, or of the whole run, is over 1.5 times its budget (15 minutes for
 the run), the cost job raises an architecture review as a task, naming the parts that grew.
 
 ### What is declared
@@ -337,7 +337,7 @@ lanes, each lane one world reset in place between its journeys, K raised by the 
 
 ## 9. What it looks like
 
-**A sketch, for Aaron to see the format before it is built.** The names of the format's functions (`operation`,
+**Agreed with Aaron, 15 November 2026, as the format's shape.** The names of the format's functions (`operation`,
 `work`, `step`, `log`) are illustrative: stage 2 settles them. What the sketch fixes is what each file holds and in
 what order things are imported.
 
@@ -482,3 +482,52 @@ run                                   budget 10 min
 ```
 
 Each line is a declared operation or step. A second not under one of them shows as unexplained time (4.2).
+
+## 10. The telemetry model in the blueprint (decision 5)
+
+**Proposed, not yet agreed.** T1 to T8 of `telemetry-in-the-blueprint.md` are agreed already (Axiom Cloud; 12 datasets
+in correlation groups; locked event schemas; conventions first for the envelope, product events in a typed events
+dataset; a closed vocabulary; the pipeline's work declared; Claude Code's telemetry on, prompts and tool details off;
+query-cost caps; one pinned conventions' version). This part says where each lives and settles what those decisions
+left open.
+
+### `src/telemetry/`, one file each
+
+| File | Declares | Generated from it |
+|---|---|---|
+| `conventions.ts` | The OpenTelemetry semantic conventions' version, pinned (T8) | The schema URL on every producer's resource |
+| `envelope.ts` | Every attribute stamped on every record: its name, convention or `capxul.*`, schema, who sets it | The constants producers import; the door's stamping; Axiom field descriptions |
+| `producers.ts` | Each `service.name`: core, runner, world, platform client, sdk, cli, door, cost job, gate, agents' sessions | Each process's resource |
+| `step-kinds.ts` | database, site, chain, bundler, wait, deploy, branch, container, restore, poll | `capxul.step.kind`; the waits a budget leaves out |
+| `metrics.ts` | Each metric: name, type, unit, the tags it may carry | Effect `Metric` definitions; the metrics a check expects |
+| `datasets.ts` | The 12 logical datasets (T2), by grade group and signal, and their correlation groups | The datasets `packages/platform` creates; the door's routing table |
+| `watch.ts` | Monitors and dashboards over declared names: the 1.5× architecture review, a run over 15 minutes, refusal and error rates per operation, a ratchet that stopped falling, a missing daily cost heartbeat | Axiom monitor and dashboard JSON, applied by the platform's deploy |
+
+Steps, logs and events stay in each operation's file and each domain's `events.ts` (part 7). The events dataset's field
+manifest is generated from the event schemas; a field marked sensitive is never sent (the door drops it as a second
+guard).
+
+### The envelope
+
+| Attribute | Name | Set by |
+|---|---|---|
+| Session | `session.id` (convention) | The caller's resource, checked by the door against its token |
+| Grade | `deployment.environment.name` (convention) | The door |
+| World, stage | `capxul.world`, `capxul.stage` | The door |
+| Run, lane, journey, journey step, trusted | `capxul.run`, `capxul.lane`, `capxul.journey`, `capxul.journey.step`, `capxul.run.trusted` | The runner, carried in baggage |
+| Code | `vcs.ref.head.revision`, `vcs.ref.head.name` (conventions) | Each producer, from its deploy |
+| CI run | `cicd.pipeline.run.id` (convention) | The gate and the runner in CI |
+| On an operation's span | `capxul.operation`, `capxul.operation.version`, `capxul.outcome`, `capxul.refusal`, `capxul.caller.role`, `capxul.budget.ms` | The operation's middleware |
+| On a step's span | `capxul.step.kind` | `Step.fn` |
+| On a check's span | `capxul.check`, `capxul.check.layer` | The checks |
+
+**What this settles that was open:**
+
+1. **The session's name.** `proof-and-telemetry.md` used `capxul.session`; T4 (conventions first) points to the
+   convention `session.id`. Recommended: `session.id`, so Axiom types it and Claude Code's own records join on it.
+2. **`capxul.lane`** is new, from decision 4.
+3. **Monitors and dashboards are declared** in `watch.ts` and generated, never made by hand in the console; the
+   console is only for locking the events datasets (T3).
+4. **Metric tags are a closed list per metric**, so a metric cannot grow tags nobody declared.
+5. **Refusals are not errors**, as `proof-and-telemetry.md` §4 says: a refusal leaves the span's status unset, with
+   `capxul.outcome=refused` and `capxul.refusal`; only what nobody declared sets `ERROR`.
