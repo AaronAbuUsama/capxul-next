@@ -3,6 +3,7 @@
 // checks; the runner adds which of the run's calls each step made, how long it took, and whether every generic check
 // passed on those calls. The run record keeps every step of the journey's outline, those never reached included, and
 // names the first step that failed.
+import { Envelope } from "@capxul/blueprint";
 import { Steps, type StepOutline, type Tried } from "@capxul/scenarios";
 import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
@@ -17,7 +18,7 @@ import * as Schema from "effect/Schema";
 import type * as Tracer from "effect/Tracer";
 import type { CheckedCall } from "./checks/checks.ts";
 import type { Call } from "./client.ts";
-import { RUN_SPANS } from "./timings.ts";
+import { RUN_SPANS, stepOptions } from "./telemetry/step.ts";
 
 /** One step as the runner heard it while the journey ran. */
 export interface Heard {
@@ -43,7 +44,7 @@ export class OpenStep extends Context.Service<OpenStep, Ref.Ref<Option.Option<Tr
 
 /**
  * `Steps` for one run: every step heard into `heard`, its calls counted from `log`. Each step is also a span of the
- * journey's (`runner.journey.step`), open from its beginning to its end and failed when the step failed; `OpenStep`
+ * journey's (`journey.run.step`), open from its beginning to its end and failed when the step failed; `OpenStep`
  * holds it meanwhile.
  */
 export const hearing = (heard: Ref.Ref<ReadonlyArray<Heard>>, log: Ref.Ref<ReadonlyArray<Call>>) =>
@@ -63,9 +64,14 @@ const heardSteps = (
     Effect.gen(function* () {
       const from = (yield* Ref.get(log)).length;
       const startedMs = yield* Clock.currentTimeMillis;
-      const span = yield* Effect.makeSpan(RUN_SPANS.step, {
-        attributes: { step, operation: outline.operation, does: outline.does },
-      });
+      const span = yield* Effect.makeSpan(
+        RUN_SPANS.step.name,
+        stepOptions(RUN_SPANS.step, {
+          [Envelope.attributes.journeyStep.name]: step,
+          [Envelope.attributes.operation.name]: outline.operation,
+          does: outline.does,
+        }),
+      );
       yield* Ref.set(open, Option.some(span));
       yield* Ref.update(heard, (all) => [
         ...all,
