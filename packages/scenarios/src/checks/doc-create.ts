@@ -6,7 +6,7 @@ import * as Effect from "effect/Effect";
 import * as Rec from "effect/Record";
 import { expect } from "../expectation.ts";
 import { same } from "../support/expect.ts";
-import { entriesAfter } from "../support/world.ts";
+import { entriesOfCall } from "../support/world.ts";
 import { namesCaller, nothingRecorded, worldBefore, type Before } from "./common.ts";
 import { check, checks } from "./format.ts";
 
@@ -34,7 +34,7 @@ export const docCreate = checks<"doc.create", Before>({
     ),
     check(
       "the record gains its doc_created",
-      Effect.flatMap(entriesAfter(before.head, before.where), (added) =>
+      Effect.flatMap(entriesOfCall(before.head, before.where), (added) =>
         same(
           "the entries the document added",
           Arr.map(added, (entry) => [entry.event, entry.carried]),
