@@ -4,7 +4,8 @@
 
 This file holds the rules only, each once. Why each rule is the way it is, and the detail behind it, is in two guides:
 [How work flows](docs/guides/how-work-flows.md) and [How a feature is built](docs/guides/how-a-feature-is-built.md).
-Every decision Aaron agreed is in [docs/decisions.md](docs/decisions.md), with its date. The plan this line follows is
+The decisions the roadmap recorded are in [docs/decisions.md](docs/decisions.md); a row without a date was agreed on
+13 November 2026. The plan this line follows is
 [docs/roadmap.md](docs/roadmap.md).
 
 ## This branch is `master`: the rebuild line (read this first)
