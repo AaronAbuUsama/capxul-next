@@ -10,15 +10,22 @@ so it never drifts; a test fails while it differs from its sources.
 | [approval](approval.md) | ✗ | ✗ | ✗ | not yet measured | not yet measured | not yet measured | not yet measured | ✗ |
 | [board](board.md) | ✗ | ✗ | ✗ | not yet measured | not yet measured | not yet measured | not yet measured | ✗ |
 | [budget](budget.md) | ✗ | ✗ | ✗ | not yet measured | not yet measured | not yet measured | not yet measured | ✗ |
+| [check](check.md) | — | ✓ | ✓ | not yet measured | not yet measured | not yet measured | not yet measured | ✓ |
 | [clock](clock.md) | ✗ | ✗ | ✗ | not yet measured | not yet measured | not yet measured | not yet measured | ✗ |
+| [cluster](cluster.md) | — | ✓ | ✓ | not yet measured | not yet measured | not yet measured | not yet measured | ✓ |
 | [company](company.md) | ✗ | ✗ | ✗ | not yet measured | not yet measured | not yet measured | not yet measured | ✗ |
 | [director](director.md) | ✗ | ✗ | ✓ | not yet measured | not yet measured | not yet measured | not yet measured | ✗ |
 | [document](document.md) | ✗ | ✗ | ✗ | not yet measured | not yet measured | not yet measured | not yet measured | ✗ |
 | [history](history.md) | — | ✓ | ✗ | not yet measured | not yet measured | not yet measured | not yet measured | ✗ |
 | [invitation](invitation.md) | ✓ | ✓ | ✓ | not yet measured | not yet measured | not yet measured | not yet measured | ✗ |
+| [journey](journey.md) | — | ✓ | ✓ | not yet measured | not yet measured | not yet measured | not yet measured | ✓ |
 | [member](member.md) | ✗ | ✗ | ✗ | not yet measured | not yet measured | not yet measured | not yet measured | ✗ |
+| [ratchet](ratchet.md) | — | ✓ | ✓ | not yet measured | not yet measured | not yet measured | not yet measured | ✓ |
 | [report](report.md) | — | ✓ | ✗ | not yet measured | not yet measured | not yet measured | not yet measured | ✗ |
+| [run](run.md) | — | ✓ | ✓ | not yet measured | not yet measured | not yet measured | not yet measured | ✓ |
+| [site](site.md) | — | ✓ | ✓ | not yet measured | not yet measured | not yet measured | not yet measured | ✓ |
 | [snapshot](snapshot.md) | ✗ | ✗ | ✗ | not yet measured | not yet measured | not yet measured | not yet measured | ✗ |
+| [starting-point](starting-point.md) | — | ✓ | ✓ | not yet measured | not yet measured | not yet measured | not yet measured | ✓ |
 | [world](world.md) | ✗ | ✗ | ✗ | not yet measured | not yet measured | not yet measured | not yet measured | ✗ |
 
 ## What each column measures

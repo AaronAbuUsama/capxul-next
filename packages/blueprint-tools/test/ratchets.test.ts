@@ -144,5 +144,5 @@ test("the committed scorecard is what the sources render", () => {
   );
   const onDisk = readFileSync(new URL(OUTPUTS.scorecard, BLUEPRINT), "utf8");
   assert.equal(onDisk, renderScorecard(scorecardInputs(layout)), "the scorecard is out of date: run `pnpm generate`");
-  assert.equal(layout.things.length, 13);
+  assert.equal(layout.things.length, 20);
 });
