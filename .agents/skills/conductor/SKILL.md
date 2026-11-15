@@ -57,6 +57,12 @@ All four must hold:
 
 Then check `master`'s next `check` run. If it goes red, fixing it comes before anything else.
 
+**One landing at a time.** Any merge into `master`, a documents-only one included, makes every slice whose `world` run
+is in flight stale: its run no longer counts and must be repeated on the new head (15 November 2026: a roadmap merge
+cost the docs slice a 30-minute run). So before you merge anything into `master`, check which slices are in their
+`world` run and hold small changes until those land. Leads tell you "landing #N now" before they merge, and you answer
+if another landing is under way.
+
 ## Keeping the view
 
 - **Aaron listens.** Every answer to him follows "Talking to Aaron" in the `threads` skill, sitreps included. Every
