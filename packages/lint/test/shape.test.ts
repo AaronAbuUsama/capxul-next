@@ -10,6 +10,7 @@ const clean = [
   "docs/roadmap.md",
   ".github/workflows/check.yml",
   "packages/lint/README.md",
+  "packages/lint/generated/index.md",
   "packages/lint/src/shape.ts",
   "spikes/hosting/README.md",
   "spikes/hosting/run.sh",
@@ -40,13 +41,18 @@ test("only the listed files and folders live under docs", () => {
 });
 
 test("a package not in the allowlist is a problem", () => {
-  const problems = shapeProblems({ files: [...clean, "packages/portal/README.md"], lines: short, read, entries });
+  const problems = shapeProblems({
+    files: [...clean, "packages/portal/README.md", "packages/portal/generated/index.md"],
+    lines: short,
+    read,
+    entries,
+  });
   assert.deepEqual(problems, ['packages: "portal" is not in the allowlist in packages/lint/src/shape.ts']);
 });
 
 test("a package or a spike without a README is a problem", () => {
   const problems = shapeProblems({
-    files: [...clean, "packages/world/src/main.ts", "spikes/pipeline/run.sh"],
+    files: [...clean, "packages/world/src/main.ts", "packages/world/generated/index.md", "spikes/pipeline/run.sh"],
     lines: short,
     read,
     entries,
@@ -71,6 +77,7 @@ test("a source file over 300 lines is a problem, vendored code is not", () => {
   const files = [
     ...clean,
     "packages/contracts/README.md",
+    "packages/contracts/generated/index.md",
     "packages/contracts/lib/forge-std/src/Test.sol",
     "packages/contracts/lib/x.js",
   ];

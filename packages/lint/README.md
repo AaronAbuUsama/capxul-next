@@ -13,30 +13,41 @@ The repository's own checks, and the formatter's settings. The gate that runs th
   ignored, such as `node_modules` or a local run's records, ever counts.
 - `src/plugin.ts` is the `capxul` oxlint plugin; its rules are in `src/rules/`. `.oxlintrc.json` loads it. The plugin
   imports `@capxul/blueprint` for `declaredNames`, the names `capxul/declared-names` guards, so the blueprint stays
-  their one owner; oxlint's plugin host loads the blueprint like any other module.
+  their one owner.
+- `src/ladder.ts` declares the ladder's rungs; `src/maps.ts` checks that every package has its generated map. The
+  door, `src/door.ts`, gives them, `PACKAGES` and each rule's `description` to `pnpm generate` for the docs.
 - `src/unmigrated.ts` holds the unmigrated lists of the three typed-once rules (below), and `src/rules/ratchet.ts`
   the ratchet they share.
-- `oxfmt.json` is oxfmt's configuration: 120 columns, the rest oxfmt's defaults. It lives here because the top level
-  is closed.
+- `oxfmt.json` is oxfmt's configuration: 120 columns, the rest oxfmt's defaults (here, as the top level is closed).
 - `test/` holds the tests: each rule runs through oxlint's own `RuleTester`, and the shape check on made-up trees.
+
+## The rules, from each one's `description` in `src/rules/`
+
+<!-- generated:lint-rules start -->
+<!-- Written by `pnpm generate` from each rule's `description` in packages/lint/src/rules/; never edit it. -->
+- `capxul/blueprint-owns-names`: an operation, a refusal (a tagged error), an event or a starting world is declared only
+  in `packages/blueprint`.
+- `capxul/effect-only`: no `async`, `await`, `new Promise`, `try`, `throw`, `process.env`, `Date.now`, `new Date()` or
+  `console` in TypeScript outside entry files. Entry files are listed in `.oxlintrc.json` under
+  `settings.capxul.entries`, each with its reason.
+- `capxul/import-door`: another package is imported only through its door, `src/door.ts` (`src/index.ts` in the
+  blueprint and its toolkit), or by its bare name.
+- `capxul/no-json-text`: no `JSON.parse`, `JSON.stringify`, `Schema.parseJson` or string schema documented as JSON
+  outside entry files and the edges listed under `settings.capxul.jsonEdges`.
+- `capxul/owned-values`: a raw schema (`Schema.String`, `Schema.Literals`, ...) only in the blueprint's values files and
+  machines, and there only as a named value, never as a field; elsewhere only in entry files and the edges listed under
+  `settings.capxul.schemaEdges`, each with its reason.
+- `capxul/declared-names`: a name the blueprint declares (an operation, a refusal, an event, an outcome, a starting
+  world) is imported, never written as a string outside the blueprint, except where the compiler checks it (an object's
+  key, a computed member, the tag given to `catchTag`, `Match.tag` or `isTagged`).
+- `capxul/decoded-rows`: no `sql<Row>` cast outside the blueprint; rows are decoded with the blueprint's schemas.
+<!-- generated:lint-rules end -->
 
 ## Typed once, with a ratchet
 
-Step 3.3 (`docs/roadmap.md`, "Typed once, by check" and "New formats by a ratchet") adds three rules. Each exempts
-generated files: a file whose first line is a comment starting `// Generated`, written by `pnpm generate` and never
-edited.
-
-- `capxul/owned-values`: a raw schema (`Schema.String`, `Schema.Literals`, `Schema.Int`, ...) appears only in the
-  blueprint's values files (`values.ts`, `ids.ts`) and machines (`machines.ts`), and there only as the whole of a
-  named value, never as a field of a struct, refusal or event. Elsewhere it is found wherever it is, except in entry
-  files and in the edges listed under `settings.capxul.schemaEdges`, each with its reason: places whose schemas
-  describe a format of their own (a run record's file, an infrastructure failure), not the contract's values.
-- `capxul/declared-names`: a name the blueprint declares (an operation, a refusal's tag, an event's or an outcome's
-  tag, a starting world) is not written as a string outside the blueprint. The compiler-checked places are allowed: an
-  object's key, a computed member, and the tag given to `Effect.catchTag`, `Match.tag`, `Match.tagStartsWith` or
-  `Predicate.isTagged`. The lint rules' own tests hold such names on purpose and are excepted in `.oxlintrc.json`.
-- `capxul/decoded-rows`: no `sql<Row>` query outside the blueprint; a row is read untyped and decoded with the
-  blueprint's schema.
+The last three come from step 3.3 (`docs/roadmap.md`, "Typed once, by check" and "New formats by a ratchet"). Each
+exempts generated files: a file whose first line is a comment starting `// Generated`, written by `pnpm generate` and
+never edited.
 
 What each rule found when it was turned on is on its list in `src/unmigrated.ts`: a file, and how many findings it
 may still hold. A listed file with more findings than its count fails (the count must not grow); one with fewer fails

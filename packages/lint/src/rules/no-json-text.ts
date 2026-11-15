@@ -7,6 +7,10 @@ import { pipe } from "effect/Function";
 import { memberName } from "./names.ts";
 import { isListed } from "./where.ts";
 
+/** What the rule finds, as AGENTS.md and packages/lint/README.md list it (written there by `pnpm generate`). */
+export const description =
+  "no `JSON.parse`, `JSON.stringify`, `Schema.parseJson` or string schema documented as JSON outside entry files and the edges listed under `settings.capxul.jsonEdges`.";
+
 /** The calls that turn values into JSON text or back. */
 const JSON_TEXT = new Set([
   "JSON.parse",
@@ -76,7 +80,7 @@ const create = (context: Context) => {
 export const noJsonText: Rule = {
   meta: {
     type: "problem",
-    docs: { description: "No JSON text outside entry files and listed edges" },
+    docs: { description },
   },
   create,
 };
