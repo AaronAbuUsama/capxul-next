@@ -48,7 +48,7 @@ export const PACKAGES: Readonly<Record<string, string>> = {
 };
 
 /** The only files allowed under docs/. */
-export const DOCS: ReadonlyArray<string> = ["docs/roadmap.md", "docs/design/blueprint.md"];
+export const DOCS: ReadonlyArray<string> = ["docs/roadmap.md", "docs/design/blueprint.md", "docs/design/world.md"];
 
 /** Longest source file allowed, in lines. The lint rule max-lines says the same for TypeScript. */
 export const MAX_LINES = 300;
