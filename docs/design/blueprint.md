@@ -534,7 +534,7 @@ guard).
 
 ## 11. The restack: what changes in the roadmap and `AGENTS.md`
 
-**Proposed for Aaron's sign-off.** Every decision above is agreed; this is their exact landing. Step numbers already
+**Signed off by Aaron, 15 November 2026, and landed on `master` as a documents-only pull request ahead of the build.** Every decision above is agreed; this is their exact landing. Step numbers already
 used elsewhere (3.1 to 3.5, 4.1 to 4.3, 5.1, 5.2) keep their numbers, so no reference breaks; new steps are added
 after them.
 
