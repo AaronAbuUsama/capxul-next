@@ -126,7 +126,7 @@ behaviour: every journey stays green.
 | R3 | Rows not decoded | Stored rows cast to hand-written types instead of decoded with the blueprint's schemas | #262's list | 3.3 |
 | R4 | Lifecycles not machines | Things with a lifecycle not yet declared as machines (site, approval, world, budget; the invitation is done by #262 and moves into the new format) | Roadmap "Other lifecycles" | 7.3 |
 | R5 | Operations not in the full format | Operations on the machine format's `unmigrated` list: no machine started or moved, or a state's refusal left undeclared (who may call, steps and logs, and promises are R17 to R19, from item 3.10) | 13 operations | 3.5 |
-| R6 | Undeclared spans | Effectful functions of our own code without a declared step: Core, the world, the platform client, the runner's plumbing (176 span names) | Not counted yet | 4.1 |
+| R6 | Undeclared spans | Effectful functions of our own code without a declared step: Core, the world, the platform client, the runner's plumbing; `capxul/declared-steps`' unmigrated list, counted by `pnpm ratchets` | 315 findings | 4.1 |
 | R7 | Operations not in one file | Verbs whose declaration still reads its examples from the thing's `examples.ts` (refusals and events keep their own files by design, part 13); counted by `pnpm ratchets` (`src/ratchets.ts` holds the definition) | 23 verbs | Decision 3 |
 | R8 | Long or hand-mapped docs | READMEs over one screen (60 lines); hand-written file maps; docs not yet folded (`build-order.md`; `decisions.md` and `gaps.md` were folded by #375) | Core, runner, platform, world READMEs (222 to 607 lines) | Decision 3 |
 | R9 | Unreached declarations | Declared moves, refusals and outcomes no journey reaches | Coverage report | If option B |

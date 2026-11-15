@@ -61,8 +61,7 @@ export const ratchets: ReadonlyArray<Ratchet> = [
     holds:
       "Effectful functions of our own code (Core, the world, the platform client, the runner) with no declared step.",
     closes: "4.1",
-    count: "not yet counted",
-    countedBy: "4.1",
+    count: "lint:declared-steps",
   },
   {
     id: "R7",
