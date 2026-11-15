@@ -39,7 +39,10 @@ const WorldSites = Schema.Struct({
   world: Schema.String,
   sites: Schema.Array(Schema.Struct({ site: Schema.String, state: Schema.String })),
 });
-/** One site as the door holds it: its name and its state (creating, ready, failed or removing). */
+/**
+ * One site as the door holds it: its name and its state (creating, ready, failed, removing, or interrupted: the door
+ * restarted while making it, door.py).
+ */
 const DoorSite = Schema.Struct({ site: Schema.String, state: Schema.String });
 export type DoorSite = typeof DoorSite.Type;
 
@@ -64,6 +67,8 @@ export class SiteDoor extends Context.Service<
     readonly make: (label: string, company: string) => Effect.Effect<DoorSite, SiteDoorFailed>;
     /** One of the world's sites as the door holds it now. */
     readonly site: (site: string) => Effect.Effect<DoorSite, SiteDoorFailed>;
+    /** Removes one of the world's sites, its database and files, and the door's entry for it. */
+    readonly remove: (site: string) => Effect.Effect<void, SiteDoorFailed>;
     /** Sets the world's clock on the bench, through one of its ready sites: frozen at an instant, or running offset. */
     readonly clock: (
       clock: { readonly frozen_at_ms: number } | { readonly offset_ms: number },
@@ -140,6 +145,7 @@ export class SiteDoor extends Context.Service<
               );
             }),
           site: (site) => Effect.flatMap(send(HttpClientRequest.get(`/sites/${site}`)), decodeSite),
+          remove: (site) => HttpClientRequest.delete(`/sites/${site}`).pipe(send, Effect.asVoid),
           clock: (clock) => send(HttpClientRequest.bodyJsonUnsafe(HttpClientRequest.post("/clock"), clock)),
           sites: send(HttpClientRequest.get("/world")).pipe(
             Effect.flatMap((answer) => Schema.decodeUnknownEffect(WorldSites)(answer.body)),

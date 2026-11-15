@@ -65,10 +65,55 @@ interface Pending {
   readonly body: unknown;
 }
 
+/** The door's refusal for a site it does not hold: one Core made, then lost (door.py, `site_of`). */
+const NOT_IN_WORLD = "site-not-in-world";
+const LOST = "lost";
+const UNREACHABLE = "unreachable";
+
 /**
- * Moves one company's site on: makes it if it was never started, reads its state from the door, and once the door
- * has made it, hands it every delivery still queued, in order, stopping at the first it does not take. The world
- * sees the site ready only when nothing is left to deliver and the setup has landed.
+ * What a site the door did not finish comes to. One the door lost, or stopped making only because it restarted
+ * (`interrupted`, door.py), is made again, once; one the door could not make (`failed`), or lost a second time, stops.
+ */
+export const afterFailure = (state: string, restarts: number): "again" | "stop" =>
+  (state === "interrupted" || state === LOST) && restarts < 1 ? "again" : "stop";
+
+/** The company's name, as its site is made with it; its handle when it has none. */
+const nameOf = Effect.fn("site.name")(function* (org: string, handle: string) {
+  const sql = yield* PgClient.PgClient;
+  const name = yield* sql<{ readonly name: string }>`select name from app.companies where org = ${org}`;
+  return Option.getOrElse(
+    Option.map(Arr.head(name), (row) => row.name),
+    () => handle,
+  );
+});
+
+/** Removes the lost site, makes it again under its label, and counts the restart; it is then told everything again. */
+const makeAgain = Effect.fn("site.again")(function* (org: string, site: string, handle: string) {
+  const door = yield* SiteDoor;
+  const sql = yield* PgClient.PgClient;
+  yield* door.remove(site).pipe(
+    Effect.catchIf(
+      (error) => error.code === NOT_IN_WORLD,
+      () => Effect.void,
+    ),
+  );
+  const made = yield* door.make(labelOf(handle), yield* nameOf(org, handle));
+  yield* Effect.logWarning(`the site ${site} was lost to the site door, so it is made again as ${made.site}`);
+  yield* sql.withTransaction(
+    Effect.all([
+      sql`update app.organizations set site_restarts = site_restarts + 1 where org = ${org}`,
+      // A new site has been told nothing: it is handed every delivery again, in order.
+      sql`update app.site_deliveries set delivered = false where org = ${org}`,
+      Store.setSite(org, made.site, "creating"),
+    ]),
+  );
+});
+
+/**
+ * Moves one company's site on: makes it if it was never started, reads its state from the door (`afterFailure` for
+ * one it did not finish), and once the door has made it, hands it every delivery still queued, in order, stopping at
+ * the first it does not take. The world sees the site ready only when nothing is left to deliver and the setup has
+ * landed.
  */
 export const reconcile = Effect.fn("site.reconcile")(function* (org: string) {
   const sql = yield* PgClient.PgClient;
@@ -76,22 +121,20 @@ export const reconcile = Effect.fn("site.reconcile")(function* (org: string) {
   const found = yield* Store.byOrg(org);
   if (Option.isNone(found)) return yield* Effect.void;
   const organization = found.value;
-  if (organization.site === null) {
-    const name = yield* sql<{ readonly name: string }>`select name from app.companies where org = ${org}`;
-    return yield* startSite(
-      org,
-      organization.handle,
-      Option.getOrElse(
-        Option.map(Arr.head(name), (row) => row.name),
-        () => organization.handle,
-      ),
-    );
-  }
+  if (organization.site === null)
+    return yield* startSite(org, organization.handle, yield* nameOf(org, organization.handle));
   const site = organization.site;
-  const state = yield* door.site(site).pipe(Effect.option);
-  if (Option.isNone(state)) return yield* Effect.void;
-  if (state.value.state === "failed") return yield* sql.withTransaction(Store.setSite(org, site, "stopped"));
-  if (state.value.state !== "ready") return yield* Effect.void;
+  const state = yield* door.site(site).pipe(
+    Effect.map((each) => each.state),
+    Effect.catch((error) => Effect.succeed(error.code === NOT_IN_WORLD ? LOST : UNREACHABLE)),
+  );
+  if (state === UNREACHABLE) return yield* Effect.void;
+  if (state === "failed" || state === "interrupted" || state === LOST) {
+    return yield* afterFailure(state, organization.siteRestarts) === "again"
+      ? makeAgain(org, site, organization.handle).pipe(Effect.option, Effect.asVoid)
+      : sql.withTransaction(Store.setSite(org, site, "stopped"));
+  }
+  if (state !== "ready") return yield* Effect.void;
   const pending = yield* sql<Pending>`
     select id, kind, body from app.site_deliveries where org = ${org} and not delivered order by id`;
   const delivered = yield* deliverInOrder(site, pending);
