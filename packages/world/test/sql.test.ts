@@ -1,6 +1,6 @@
 import * as assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { statementsOf } from "../src/database/sql.ts";
+import { statementsOf } from "../src/parts/database/sql.ts";
 import { nameOf, stageOf, isWorldStage } from "../src/stack/names.ts";
 
 describe("statementsOf", () => {

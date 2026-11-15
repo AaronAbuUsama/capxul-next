@@ -10,7 +10,7 @@ import {
   leftoverRepositories,
   lifetimeAllowed,
   renewalOf,
-} from "../src/lifecycle/expiry.ts";
+} from "../src/things/world/expiry.ts";
 
 const now = DateTime.makeUnsafe("2026-11-13T10:00:00.000Z");
 const at = (output: unknown) => Effect.runSync(classify(now, output));
