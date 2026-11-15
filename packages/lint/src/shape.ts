@@ -49,6 +49,7 @@ export const PACKAGES: Readonly<Record<string, string>> = {
 export const DOCS: ReadonlyArray<string> = [
   "docs/roadmap.md",
   "docs/design/blueprint.md",
+  "docs/design/handoff.md",
   "docs/design/system.md",
   "docs/design/world.md",
 ];
