@@ -8,15 +8,7 @@ import { Errors } from "@capxul/blueprint";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as PgClient from "@effect/sql-pg/PgClient";
-import {
-  decodeFunctionResult,
-  encodeFunctionData,
-  formatUnits,
-  keccak256,
-  parseAbi,
-  parseUnits,
-  stringToHex,
-} from "viem";
+import { decodeFunctionResult, encodeFunctionData, formatUnits, keccak256, parseUnits, stringToHex } from "viem";
 import { Cast } from "../cast/Cast.ts";
 import { hexOf, usdcOf } from "../chain/calls.ts";
 import { APPROVAL_LIFETIME_MS, SEEDED, USDC_DECIMALS } from "../chain/seeded.ts";
@@ -30,10 +22,9 @@ import type { OpenedPayment, PaymentToHold } from "../site-ops/payments.ts";
 import { deliver } from "../organizations/site.ts";
 import { open, subjectOf } from "./store.ts";
 import { hex } from "../chain/hex.ts";
+import { BUDGETS } from "../chain/abi.ts";
 
-const SPEND = parseAbi([
-  "function spend(uint256 id, address recipient, uint128 amount, uint16 kind, bytes32 documentHash, bytes32 jobNonce) returns (bytes32)",
-]);
+const SPEND = BUDGETS;
 /** Payments' kind of a payment to a supplier (Budgets refuses any above its prepared kinds). */
 const SUPPLIER_PAYMENT = 1;
 

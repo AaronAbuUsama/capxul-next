@@ -1,5 +1,5 @@
 // The chain reads (the blueprint's `Chain.reads`), served over a world's chain JSON-RPC through its door. viem is used
-// only as a codec of the contracts' ABI, from the blueprint's own signatures: it encodes calls and decodes answers
+// only as a codec of the contracts' ABI, from the compiled contracts' ABIs as the blueprint declares them: it encodes calls and decodes answers
 // and logs, and never reaches the network. Every answer is decoded with the read's own schema, so a read answers
 // exactly its declared type or dies. Every address and hash it answers is in lower case.
 import { Chain } from "@capxul/blueprint";
@@ -11,19 +11,11 @@ import * as Predicate from "effect/Predicate";
 import * as Rec from "effect/Record";
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
-import {
-  decodeEventLog,
-  decodeFunctionResult,
-  encodeEventTopics,
-  encodeFunctionData,
-  parseAbi,
-  type Abi,
-  type Hex,
-} from "viem";
+import { decodeEventLog, decodeFunctionResult, encodeEventTopics, encodeFunctionData, type Abi, type Hex } from "viem";
 import type { JsonRpc } from "./transport.ts";
 
-const functions: Abi = parseAbi(Rec.values(Chain.FUNCTION_SIGNATURES));
-const logs: Abi = parseAbi(Rec.values(Chain.LOG_SIGNATURES));
+const functions: Abi = Rec.values(Chain.FUNCTIONS);
+const logs: Abi = Rec.values(Chain.LOG_EVENTS);
 
 /** A value as JSON-like data: big integers as decimal text, and hex (addresses included) in lower case. */
 const plain = (value: unknown): unknown => {
@@ -51,7 +43,7 @@ const attempt = <A>(what: string, run: () => A): Effect.Effect<A> =>
 const call = (
   rpc: JsonRpc,
   to: string,
-  name: keyof typeof Chain.FUNCTION_SIGNATURES,
+  name: keyof typeof Chain.FUNCTIONS,
   args: ReadonlyArray<unknown>,
   block: number | null,
 ) =>

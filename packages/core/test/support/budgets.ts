@@ -70,7 +70,9 @@ const empty = {
 
 const budgetsCall = (state: ChainState, data: Hex): Hex => {
   const call = decodeFunctionData({ abi: BUDGETS, data });
-  const held = state.budgets.get(call.args[0]);
+  // budgetOf, leftOf and childrenOf each take the budget's id first.
+  const id = call.args?.[0];
+  const held = typeof id === "bigint" ? state.budgets.get(id) : undefined;
   switch (call.functionName) {
     case "budgetOf":
       return encodeFunctionResult({

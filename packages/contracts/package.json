@@ -2,6 +2,8 @@
   "name": "@capxul/contracts",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
+  "exports": "./src/door.ts",
   "description": "Capxul Protocol v4: the Solidity contracts, their tests, and the seeded chain state",
   "scripts": {
     "build": "forge build",
