@@ -18,7 +18,18 @@ export const CheckLayer = Schema.Literals([
   "watch",
 ]);
 /** The gate's rungs, as `pnpm check` runs them in order (AGENTS.md, "The ladder"). */
-export const Rung = Schema.Literals(["shape", "format", "generate", "seed", "lint", "types", "test", "delta"]);
+export const Rung = Schema.Literals([
+  "shape",
+  "format",
+  "generate",
+  "seed",
+  "lint",
+  "types",
+  "test",
+  "delta",
+  "ratchets",
+  "words",
+]);
 /** The generic checks run on every call of every journey (AGENTS.md, "How it is measured"). */
 export const CallCheck = Schema.Literals(["events", "spans", "logs", "path", "timings"]);
 /** A measure watched after a deploy, by its metric's or monitor's name. */

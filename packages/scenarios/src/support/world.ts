@@ -8,7 +8,7 @@ import * as Option from "effect/Option";
 import * as Random from "effect/Random";
 import type * as Schema from "effect/Schema";
 import * as Str from "effect/String";
-import { Capxul } from "../client.ts";
+import { Capxul, ThisCall } from "../client.ts";
 import { expect, failWith, given } from "../expectation.ts";
 import { present, refusal, same, show } from "./expect.ts";
 
@@ -48,28 +48,40 @@ export const ownerOf = (view: View) =>
     return yield* failWith(`${view.world} is owned by ${view.owner}, neither of the run's operators`);
   });
 
+/** The entries of a world's history from position `from` (null: the first), read as its owner, at `who`'s door. */
+const exported = (from: number | null, who: Who) =>
+  Effect.flatMap(Capxul, (capxul) => capxul["record.export"]({ from, to: null }, whereOf(who)));
+
 /** The whole record of a world, read as its owner: the client's own, or `at` another door. */
-export const recordOf = (who: Who = {}) =>
-  Effect.gen(function* () {
-    const capxul = yield* Capxul;
-    return yield* capxul["record.export"]({ from: null, to: null }, whereOf(who));
-  });
+export const recordOf = (who: Who = {}) => exported(null, who);
 
 /** The record's entries after position `after`, read as the owner. */
 export const entriesAfter = (after: number, who: Who = {}) =>
-  Effect.gen(function* () {
-    const capxul = yield* Capxul;
-    const answer = yield* capxul["record.export"]({ from: after + 1, to: null }, whereOf(who));
-    return answer.entries;
-  });
+  Effect.map(exported(after + 1, who), (answer) => answer.entries);
 
 /** A record's head now. */
 export const headOf = (who: Who = {}) => Effect.map(recordOf(who), (answer) => answer.head);
 
-/** The record gained no entry since `before`: what every refusal and every read must leave behind. */
+/**
+ * The entries the call a check judges wrote: those after position `after` carrying the call's trace. Other journeys'
+ * calls, made at the same time in the same world, write under traces of their own and are not the call's. When the
+ * client did not tell the call's trace (`ThisCall`), every entry after `after` is taken as the call's, as when one
+ * journey ran alone in its world.
+ */
+export const entriesOfCall = (after: number, who: Who = {}) =>
+  Effect.gen(function* () {
+    const call = yield* ThisCall;
+    const added = yield* entriesAfter(after, who);
+    return call.trace === null ? added : Arr.filter(added, (each) => each.trace === call.trace);
+  });
+
+/** The call wrote no entry: what every refusal and every read must leave behind. `before` is the head before it. */
 export const unchangedRecord = (what: string, before: number, who: Who = {}) =>
-  Effect.flatMap(headOf(who), (now) =>
-    expect(now === before, `after ${what} the record's head is ${now}; it was ${before}`),
+  Effect.flatMap(entriesOfCall(before, who), (added) =>
+    expect(
+      added.length === 0,
+      `after ${what} the record gained ${show(Arr.map(added, (each) => each.event))} under the call's trace`,
+    ),
   );
 
 /** world.show of a world. */

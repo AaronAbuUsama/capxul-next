@@ -1,5 +1,7 @@
 // Who a call acts as: the world's owner or a person of the world through a world's door, an operator at the
-// platform. Declarations only: the servers implement the middlewares.
+// platform. Declarations only: the servers implement the middlewares. Real sign-in comes with real worlds (phase 8);
+// until then these two middlewares provide the caller or refuse, so journeys can act as several people now, and the
+// operations will not change when real sign-in arrives, only the middlewares.
 import * as Context from "effect/Context";
 import * as Schema from "effect/Schema";
 import * as RpcMiddleware from "effect/rpc/RpcMiddleware";

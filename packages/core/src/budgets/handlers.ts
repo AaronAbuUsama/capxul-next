@@ -1,6 +1,6 @@
 // The handlers of the world group's budgets operations, as src/domains/budgets.ts names them. Each answers with its
 // outcome or one of its declared refusals; a fault of the database or the chain travels as a defect
-// (packages/blueprint/docs/decisions.md, entry 10), which the runner records as a failed call. They need what
+// (packages/blueprint, src/common/refusals.ts), which the runner records as a failed call. They need what
 // org.member.grant needs: the database, the world's chain, its cast, its clock and its record.
 import type { Budgets } from "@capxul/blueprint";
 import * as Effect from "effect/Effect";

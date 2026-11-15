@@ -7,7 +7,8 @@ CANON v1 (written down in FINDINGS.md too):
   * nothing that changes during the signing flow is in it: not `reference_no`, `reference_date`,
     `docstatus`, `modified`, nor the Capxul status fields.
   * hash = "0x" + keccak-256(canonical bytes), as Ethereum hashes (capxul.keccak): the hash doc.create answers and the
-    chain's PaymentSent carries (packages/blueprint/docs/decisions.md, entry 28). It was sha256 before the rebuild's
+    chain's PaymentSent carries (packages/blueprint, src/things/document/verbs/submit.ts). It was sha256 before the
+    rebuild's
     thin line.
 
 Any other document's hash (`stored_hash`) is keccak-256 of the document as the site stored it: its fields as Frappe

@@ -19,10 +19,12 @@ Not followed (still the host's): see docs/clock.md, "What still reads the host's
 """
 import json
 import sys
+import time
 from datetime import datetime, timedelta, timezone
 
 import frappe
 
+from capxul.due import run_due  # noqa: F401 (one stop of advance; kept here by its old name)
 from capxul.emit import emit
 from capxul.generated.site import DAILY_JOB, DAILY_JOB_TYPE
 
@@ -211,25 +213,9 @@ def rewind_jobs():
     return now()
 
 
-def run_due():
-    """Run, inline and now (world time), every scheduled job that is due. One call is one stop."""
-    ran = []
-    for n in frappe.get_all("Scheduled Job Type", {"stopped": 0}, pluck="name"):
-        jt = frappe.get_doc("Scheduled Job Type", n)
-        try:
-            due = jt.is_event_due()
-        except Exception:
-            continue
-        if due:
-            frappe.set_user("Administrator")
-            jt.execute()
-            ran.append(jt.method)
-    return ran
-
-
 # DAILY_JOB and DAILY_JOB_TYPE, the daily job and the name of its Scheduled Job Type (which a Scheduled Job Log row
 # links to and report.run filters by), are the blueprint's (`Site.DAILY_JOB` in packages/blueprint;
-# packages/blueprint/docs/decisions.md, entry 44), imported from capxul/generated/site.py.
+# packages/blueprint, src/common/site.ts), imported from capxul/generated/site.py.
 
 
 def name_daily_job():
@@ -266,8 +252,17 @@ def advance_stops(host_ms, from_offset_ms, to_offset_ms, step_days=1):
     return stops + [(site_time(target_ms), int(to_offset_ms))]
 
 
+def sync_hooked_jobs():
+    """Every job the app's hooks name has its Scheduled Job Type: a site made before a job was added to the hooks gets it
+    now, as a migrate would. The hooks are cached, so they are read fresh first."""
+    from frappe.core.doctype.scheduled_job_type.scheduled_job_type import sync_jobs
+
+    frappe.cache.delete_value("app_hooks")
+    sync_jobs()
+
+
 @emit
-def advance(from_offset_ms, to_offset_ms, step_days=1, trace_id=None):
+def advance(from_offset_ms, to_offset_ms, step_days=1, trace_id=None, synced=False):
     """Move THIS site from one offset to another, stopping at every `step_days` midnight on the way and running what is due at each stop (so a
     daily job, a recurring document, runs once per day skipped, not once for the whole jump). The world's file is written by the CLI after every
     site of the world is done."""
@@ -275,11 +270,9 @@ def advance(from_offset_ms, to_offset_ms, step_days=1, trace_id=None):
     frappe.set_user("Administrator")
     frappe.local.conf[OVERRIDE] = int(from_offset_ms)
     stops = advance_stops(_host_ms(), int(from_offset_ms), int(to_offset_ms), int(step_days))
-    from frappe.core.doctype.scheduled_job_type.scheduled_job_type import sync_jobs
-
-    frappe.cache.delete_value("app_hooks")  # the hooks are cached: read them fresh, so a job added to them is seen
-    sync_jobs()  # a site made before a job was added to the hooks gets it now (a migrate would do the same)
-    log, jobs = [], 0
+    if not synced:  # `synced`: the caller has just done this (core_api.warp), and doing it twice costs a warp time
+        sync_hooked_jobs()
+    log, jobs, timed = [], 0, {}
     # A scheduled job usually hands its work to a worker with frappe.enqueue; the worker would run it later, at whatever time the world has then.
     # While stepping, "enqueue" means "do it now", at this stop's time (the same code, run inline).
     import frappe.utils.background_jobs as bj
@@ -290,11 +283,14 @@ def advance(from_offset_ms, to_offset_ms, step_days=1, trace_id=None):
     try:
         for s, off in stops:
             frappe.local.conf[OVERRIDE] = off
-            ran = run_due()
+            started = time.perf_counter()
+            ran = run_due(timed)
             jobs += len(ran)
             frappe.db.commit()
-            log.append({"stop": str(s), "jobs": len(ran)})
+            log.append({"stop": str(s), "jobs": len(ran), "ms": round((time.perf_counter() - started) * 1000, 1)})
     finally:
         frappe.enqueue, bj.enqueue = real_enqueue, real_bj
         frappe.local.conf.pop(OVERRIDE, None)
-    return {"stops": len(stops), "jobs_run": jobs, "log": log}
+    # Where the time went: each stop's milliseconds (`log`), and each job's runs and milliseconds over every stop.
+    return {"stops": len(stops), "jobs_run": jobs, "log": log,
+            "job_ms": {method: [runs, round(ms, 1)] for method, (runs, ms) in timed.items()}}

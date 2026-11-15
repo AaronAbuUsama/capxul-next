@@ -1,4 +1,4 @@
-// The checks of every invite.accept (claims.md of people, invite.accept 1 to 3): the caller's pending invitation is
+// The checks of every invitation.accept (claims.md of people, invitation.accept 1 to 3): the caller's pending invitation is
 // accepted and the caller is a member at once, as a member, under the email they sign in with; the record gains one
 // invitation_accepted and the chain is not written. Accepting again answers the same and records nothing. Another's
 // invitation, one no longer pending and one nobody sent are each refused, and nothing is recorded.
@@ -11,7 +11,7 @@ import { callerOf, nothingRecorded } from "./common.ts";
 import { check, checks, type Asked } from "./format.ts";
 import { answerRefusals, answeringBefore, mineBefore, type Answering } from "./invite-answer.ts";
 
-type Asking = Asked<"invite.accept">;
+type Asking = Asked<"invitation.accept">;
 type Answer = { readonly invitation: { readonly id: string; readonly state: string; readonly org: string } } & {
   readonly member: { readonly person: string; readonly email: string; readonly role: string };
 };
@@ -43,7 +43,7 @@ const acceptedChecks = (asked: Asking, answer: Answer, before: Answering) => [
   ),
 ];
 
-export const inviteAccept = checks<"invite.accept", Answering>({
+export const invitationAccept = checks<"invitation.accept", Answering>({
   before: (asked) => answeringBefore(asked.options),
   success: (asked, answer, before) => [
     ...acceptedChecks(asked, answer, before),
@@ -71,7 +71,10 @@ export const inviteAccept = checks<"invite.accept", Answering>({
               before.where,
             ),
           ),
-          check("nothing is written to the chain", chainUntouched(before.world, before.where, before.chain)),
+          check(
+            "nothing is written to the chain",
+            chainUntouched(before.world, before.where, before.chain, answer.invitation.org),
+          ),
         ]
       : [
           check(

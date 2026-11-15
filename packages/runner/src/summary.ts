@@ -1,10 +1,8 @@
 // The summary of a run of the journeys: one record whose `outcome` says whether every journey ended as the run
 // expected, whether the run held every registered journey, and whether every stage it used is gone. It is the file a
-// step's Proof names; each journey's own run record sits beside it under another name (scenario-runs.ts).
-//
-// What a run expects is declared when it starts: `pass`, every journey's run record passes (step 1.6), or
-// `not-implemented`, every journey fails at its first step on the `NotImplemented` that Core's empty handlers answer
-// (step 1.14).
+// step's Proof names; each journey's own run record sits beside it under another name (scenario-runs.ts). What a run
+// expects is declared when it starts: `pass`, every journey's run record passes (step 1.6), or `not-implemented`, every
+// journey fails at its first step on the `NotImplemented` that Core's empty handlers answer (step 1.14).
 import type { Errors } from "@capxul/blueprint";
 import { coverage, journeys, type ExpectationFailed } from "@capxul/scenarios";
 import * as Arr from "effect/Array";
@@ -17,7 +15,7 @@ import { sumCoverage } from "./checks/paths.ts";
 import { CallOutcome } from "./client.ts";
 import { Ended } from "./failure.ts";
 import { Outcome, passedOr, RunRecord } from "./record.ts";
-import { Inventory, isEmpty } from "./world/leftovers.ts";
+import { butHandedOver, Inventory, isEmpty } from "./world/leftovers.ts";
 import { FailedStep } from "./steps.ts";
 import { Timing } from "./timings.ts";
 import { Readiness } from "./world/warmup.ts";
@@ -91,6 +89,8 @@ const OneWorld = Schema.Struct({
   left: Schema.NullOr(Inventory),
   /** What the run's take-down could not do, a line each with why (worlds/teardown.ts); `left` reads only the accounts. */
   notTakenDown: Schema.Array(Schema.String),
+  /** Worlds, by stage, left up on purpose for CI's teardown job (RUNNER_TEARDOWN=job), which destroys them. */
+  handedOver: Schema.String.pipe(Schema.Array, Schema.optional),
   timings: Schema.Array(Timing),
   /**
    * What failed outside the journeys: a starting world that was not made (the part that failed, the world it acted
@@ -134,11 +134,9 @@ export const Summary = Schema.Struct({
 export type Summary = typeof Summary.Type;
 
 const ONE_WORLD =
-  "The registered journeys run through the runner in one world, made on a fleet hub by the platform this process serves, its starting worlds made in it once and saved, and the world reset in place to each journey's starting world before the journey. Passed when every registered journey was in the run, every journey's run record passed (every step as it expected, every operation check and every generic check on every call), and every world the run made, the one world included, was destroyed with nothing of it left in the accounts.";
-
+  "The registered journeys run through the runner in one world, made on a fleet hub by the platform this process serves, its starting worlds made in it once and saved, and the world reset in place to each journey's starting world before the journey. Passed when every registered journey was in the run, every journey's run record passed (every step as it expected, every operation check and every generic check on every call), and every world the run made, the one world included, was destroyed with nothing of it left in the accounts, but a world handed over to CI's teardown job (RUNNER_TEARDOWN=job), which destroys it.";
 const SHARED_WORLD =
   "The registered journeys run through the runner on a shared world that lives on (roadmap steps 2.3 and 2.4), which the run never resets or changes: before each journey whose starting world is made from a template, the shared world's template snapshot of it is restored into a new world of the run, and a starting world made by its steps is made by them. Passed when every registered journey was in the run, every journey's run record passed (every step as it expected, every operation check and every generic check on every call), and every world the run made was destroyed with nothing of it left in the accounts; the shared world is left as it was.";
-
 const WHAT: { readonly [E in Expectation]: string } = {
   pass: "The registered journeys run through the runner, each in fresh private worlds made by the platform this process serves, its starting world made for it. Passed when every registered journey was in the run, every journey's run record passed (every step as it expected, every operation check and every generic check on every call), and every world it made was destroyed with nothing of it left in the accounts.",
   "not-implemented":
@@ -262,6 +260,8 @@ export const summarize = (input: SummaryInput): Summary => {
   const missing = notRun(input.records);
   const wrong = Arr.filter(lines, (line) => !line.asExpected);
   const left = Arr.filter(stages, (stage) => !isGone(stage));
+  const one = input.oneWorld;
+  const leftOver = one?.left === undefined || one.left === null ? null : butHandedOver(one.left, one.handedOver);
   const failures = [
     ...(missing.length === 0
       ? []
@@ -269,9 +269,9 @@ export const summarize = (input: SummaryInput): Summary => {
     ...Arr.map(wrong, (line) => `${line.name}: ${line.why ?? ""}`),
     ...Arr.map(left, (stage) => `stage ${stage.name} is not gone: ${stage.afterwards}, ${leftWords(stage.after)}`),
     ...(input.oneWorld?.failure === undefined || input.oneWorld.failure === null ? [] : [input.oneWorld.failure]),
-    ...(input.oneWorld === undefined || (input.oneWorld.left !== null && isEmpty(input.oneWorld.left))
+    ...(input.oneWorld === undefined || (leftOver !== null && isEmpty(leftOver))
       ? []
-      : [`the run's worlds are not all gone: ${leftWords(input.oneWorld.left)}`]),
+      : [`the run's worlds are not all gone: ${leftWords(leftOver)}`]),
     ...Arr.map(input.oneWorld?.notTakenDown ?? [], (what) => `the run's take-down failed: ${what}`),
   ];
   return {

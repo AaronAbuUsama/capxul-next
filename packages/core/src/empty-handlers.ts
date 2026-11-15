@@ -1,5 +1,5 @@
 // Core's empty-handler mode: every operation of both groups refuses with the blueprint's `NotImplemented`, naming
-// itself (packages/blueprint/docs/decisions.md, entry 33), whatever is built in src/handlers.ts. A stage of
+// itself (packages/blueprint, src/common/refusals.ts), whatever is built in src/handlers.ts. A stage of
 // `CapxulCore` deployed with `CAPXUL_HANDLERS=empty` serves these, so the scenario author can show that every journey
 // fails against handlers that do nothing (roadmap steps 1.5 and 1.14: `./run.sh scenarios --expect=not-implemented` in
 // packages/runner). A world's Core never binds it. The handlers are made from the groups' own operations, so a new

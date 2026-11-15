@@ -1,7 +1,7 @@
 // `capxul snapshot list` (today `world.snapshot.list`): a world's saved snapshots.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, claim } from "@capxul/blueprint-tools";
+import { verb, claim } from "@capxul/blueprint-tools";
 import { NotImplemented, NotWorldOwner } from "../../../common/refusals.ts";
 import { WorldName } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
@@ -16,7 +16,7 @@ export const ListedSnapshot = Schema.Struct({
   inUseBy: Schema.Array(WorldName),
 });
 
-export const snapshotList = declare({
+export const snapshotList = verb({
   rpc: Rpc.make("world.snapshot.list", {
     payload: { world: WorldName },
     success: Schema.Struct({

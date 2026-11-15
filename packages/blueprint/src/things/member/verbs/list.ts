@@ -1,7 +1,7 @@
 // `capxul member list` (today `org.member.list`): a company's Directors and members.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, claim } from "@capxul/blueprint-tools";
+import { verb, claim } from "@capxul/blueprint-tools";
 import { NotImplemented, OrgNotFound } from "../../../common/refusals.ts";
 import { OrgId } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
@@ -9,7 +9,7 @@ import { NotAMember } from "../../company/refusals.ts";
 import { olga } from "../examples.ts";
 import { Member } from "../values.ts";
 
-export const memberList = declare({
+export const memberList = verb({
   rpc: Rpc.make("org.member.list", {
     payload: { org: OrgId },
     success: Schema.Struct({

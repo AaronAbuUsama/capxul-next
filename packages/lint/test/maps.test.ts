@@ -25,5 +25,5 @@ test("a package on the list that has its map must come off it", () => {
 });
 
 test("the list of packages without a map only shrinks", () => {
-  assert.ok(UNMAPPED.length <= 3, "UNMAPPED may only shrink: lower this ceiling with it");
+  assert.ok(UNMAPPED.length <= 2, "UNMAPPED may only shrink: lower this ceiling with it");
 });

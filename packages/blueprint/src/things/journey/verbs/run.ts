@@ -19,6 +19,12 @@ export const journeyRun = work({
     // One call of an operation through the endpoint, the operation an attribute; its own spans are the operation's.
     call: span("journey.run.call", StepKind.compute),
     wait: span("journey.run.wait", StepKind.wait),
+    // A check's observation read sent again after a transport error: the backoff, then the send again, once per resend.
+    resend: span("journey.run.resend", StepKind.wait),
+    // Waiting for a world's place, under the runner's worlds at once and the hub's free places (4.8 b).
+    place: span("journey.run.place", StepKind.wait),
+    // Waiting for a site's slot from the bench's blank pool before the journey founds its company (4.8 b).
+    sites: span("journey.run.sites", StepKind.wait),
   },
   logs: { stepFailed: log("journey.run.step_failed", { journey: JourneyName, step: JourneyStep }) },
   budget: {

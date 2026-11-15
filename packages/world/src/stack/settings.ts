@@ -18,7 +18,7 @@ export interface WorldSettings {
   readonly bench: Option.Option<BenchGrant>;
   /**
    * The token of the operator who owns the world, which its Core accepts as the owner's at both doors
-   * (packages/blueprint/docs/decisions.md, entry 36). Left out, the world mints one of its own (`operator-token`).
+   * (packages/blueprint, src/protocol/headers.ts). Left out, the world mints one of its own (`operator-token`).
    */
   readonly operatorToken: Option.Option<Redacted.Redacted>;
   /** The fleet hub the world's chain, index and bundler live on (src/things/cluster), and the world's door token there. */

@@ -16,8 +16,6 @@ export const UNMAPPED: ReadonlyArray<string> = [
   // No TypeScript under src/ and no docs/: the map reads only those.
   "packages/bench-image",
   "packages/status-feed",
-  // The blueprint lead's: its map comes when that lead takes it off this list.
-  "packages/blueprint-tools",
 ];
 
 const packagesOf = (files: ReadonlyArray<string>): Array<string> =>

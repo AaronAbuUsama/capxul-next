@@ -1,29 +1,38 @@
 // Renders the four lists a thing's page opens with (docs/design/blueprint.md, part 13, amended 15 November 2026): its
 // commands, its SDK calls, the refusals its verbs answer with each one's exit code, and the events they send. Names
 // are today's operation names: a command is the name split at its dots, an SDK call the client's function of that
-// name. Work no door serves has no command and no call, so it adds nothing here. Pure: render.ts places it.
-import { Errors, operations, type OperationName } from "../../../blueprint/src/index.ts";
+// name. Work no door serves has no command and no call, so it adds nothing here. A refusal's exit code is read from
+// its own declaration (`refusal(...)`). Pure: render.ts places it.
 import * as Arr from "effect/Array";
 import * as Option from "effect/Option";
 import * as Str from "effect/String";
-import { eventNamesOf, refusalsOf, type Operation } from "../language/operation.ts";
+import * as Predicate from "effect/Predicate";
+import { eventNamesOf, refusalsOf, type EventClass, type Operation } from "../language/operation.ts";
 
 const code = (text: string) => `\`${text}\``;
 const bullets = (items: ReadonlyArray<string>): ReadonlyArray<string> =>
   items.length === 0 ? ["- none"] : Arr.map(items, (item) => `- ${item}`);
 
-/** The command line's exit code for each refusal, by its tag. */
-const exitCodes: { readonly [tag: string]: number } = Errors.exitCode;
+/** How a refusal's exit code reads: the code its declaration carries (`refusal(...)`). */
+const exitOf = (refusal: EventClass | undefined): string =>
+  Option.match(
+    Option.liftPredicate(Predicate.isNumber)(refusal === undefined ? undefined : Reflect.get(refusal, "exitCode")),
+    {
+      onNone: () => "no exit code declared",
+      onSome: (each) => `exit ${String(each)}`,
+    },
+  );
 
-const exit = (tag: string): string =>
-  Option.match(Option.fromNullishOr(exitCodes[tag]), {
-    onNone: () => "no exit code declared",
-    onSome: (each) => `exit ${String(each)}`,
-  });
-
-/** The opening lists of a thing's page, for its operations in the order of `operations`. */
-export const glanceSection = (names: ReadonlyArray<OperationName>): ReadonlyArray<string> => {
-  const of: ReadonlyArray<Operation> = Arr.map(names, (name) => operations[name]);
+/** The opening lists of a thing's page, for its operations (of `operations`) in the order of `names`. */
+export const glanceSection = (
+  operations: { readonly [name: string]: Operation },
+  every: { readonly [tag: string]: EventClass },
+  names: ReadonlyArray<string>,
+): ReadonlyArray<string> => {
+  const exit = (tag: string): string => exitOf(every[tag]);
+  const of: ReadonlyArray<Operation> = Arr.flatMap(names, (name) =>
+    Option.toArray(Option.fromNullishOr(operations[name])),
+  );
   const refusals = Arr.dedupe(
     Arr.flatMap(of, (operation) => Arr.map(refusalsOf(operation), (each) => each.identifier)),
   );

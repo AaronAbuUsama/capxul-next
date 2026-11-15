@@ -1,7 +1,7 @@
-// org.member.invite and org.member.list: a company's founder invites a person by email to be a member, and its
+// invitation.send and org.member.list: a company's founder invites a person by email to be a member, and its
 // people (and the world's owner) list who belongs. An invitation is pending at once: a Seat is off the chain and off
 // the site, so nothing is signed and nothing but Core's database and the world's record is written.
-import { Errors, machines, type People } from "@capxul/blueprint";
+import { Errors, machines, People } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -11,11 +11,14 @@ import { caller, instant } from "../organizations/caller.ts";
 import { newId } from "../organizations/ids.ts";
 import * as Organizations from "../organizations/store.ts";
 import { emitDeclared, worldNow } from "../record/emit.ts";
+import { refuse } from "./refused.ts";
 import { belongs, rosterOf } from "./roster.ts";
 import * as Store from "./store.ts";
 
-type Invite = typeof People.memberInvite.rpc.payloadSchema.Type;
+type Invite = typeof People.invitationSend.rpc.payloadSchema.Type;
 type Listing = typeof People.memberList.rpc.payloadSchema.Type;
+
+const Send = People.invitationSend;
 
 /** The company, or `OrgNotFound`. */
 const company = (org: string) =>
@@ -23,41 +26,68 @@ const company = (org: string) =>
     Effect.fromOption(found).pipe(Effect.mapError(() => Errors.OrgNotFound.make({ org }))),
   );
 
-export const memberInvite = Effect.fn("org.member.invite.send")(function* (invite: Invite) {
-  const sql = yield* PgClient.PgClient;
+/** What sending reads first: the company, and that the caller may invite this email to it. */
+const load = Effect.fn(Send.spans.load.name)(function* (invite: Invite) {
   const cast = yield* Cast;
   const who = yield* caller;
-  const organization = yield* company(invite.org);
+  const organization = yield* company(invite.org).pipe(
+    Effect.catchTag("OrgNotFound", (refusal) =>
+      refuse(Send.refusals.OrgNotFound, { org: invite.org, rule: "no-such-company" }, refusal),
+    ),
+  );
   // For now only the founder invites, as the company's row holds it (docs/roadmap.md, "Who may invite"); another
   // Director is refused like anyone else. A role that grants it comes later.
   if (!who.person || who.name !== organization.founder)
-    return yield* Errors.CannotManagePeople.make({ org: invite.org, person: who.name });
+    return yield* refuse(
+      Send.refusals.CannotManagePeople,
+      { org: invite.org, rule: "not-the-founder" },
+      Errors.CannotManagePeople.make({ org: invite.org, person: who.name }),
+    );
   const invitee = yield* cast.withEmail(invite.email);
   if (Option.isSome(invitee) && (yield* belongs(organization, invitee.value.person)))
-    return yield* Errors.AlreadyAMember.make({ org: invite.org, person: invitee.value.person });
+    return yield* refuse(
+      Send.refusals.AlreadyAMember,
+      { org: invite.org, rule: "already-a-member" },
+      Errors.AlreadyAMember.make({ org: invite.org, person: invitee.value.person }),
+    );
   const pending = yield* Store.pendingTo(invite.org, invite.email);
   if (Option.isSome(pending))
-    return yield* Errors.AlreadyInvited.make({ org: invite.org, email: invite.email, invitation: pending.value });
+    return yield* refuse(
+      Send.refusals.AlreadyInvited,
+      { org: invite.org, rule: "already-invited" },
+      Errors.AlreadyInvited.make({ org: invite.org, email: invite.email, invitation: pending.value }),
+    );
+  return { organization, who };
+});
 
-  const now = yield* worldNow;
-  const sent: Store.Invitation = {
-    id: yield* newId("inv"),
-    org: invite.org,
-    handle: organization.handle,
-    email: invite.email,
-    role: invite.role,
-    invitedBy: who.name,
-    state: machines.invitation.start.state,
-    invitedAt: instant(now.timestampMs),
-  };
+/** The invitation and its event, in one transaction. */
+const write = Effect.fn(Send.spans.write.name)(function* (invite: Invite, sent: Store.Invitation, at: number) {
+  const sql = yield* PgClient.PgClient;
   yield* sql.withTransaction(
     Effect.gen(function* () {
-      yield* Store.insertInvitation(sent, now.timestampMs);
-      yield* emitDeclared("org.member.invite", invite, sent);
+      yield* Store.insertInvitation(sent, at);
+      yield* emitDeclared(Send.rpc._tag, invite, sent);
     }),
   );
-  return sent;
 });
+
+export const invitationSend = (invite: Invite) =>
+  Effect.gen(function* () {
+    const { organization, who } = yield* load(invite);
+    const now = yield* worldNow;
+    const sent: Store.Invitation = {
+      id: yield* newId("inv"),
+      org: invite.org,
+      handle: organization.handle,
+      email: invite.email,
+      role: invite.role,
+      invitedBy: who.name,
+      state: machines.invitation.start.state,
+      invitedAt: instant(now.timestampMs),
+    };
+    yield* write(invite, sent, now.timestampMs);
+    return sent;
+  });
 
 export const memberList = Effect.fn("org.member.list.read")(function* (listing: Listing) {
   const cast = yield* Cast;
