@@ -48,6 +48,12 @@ export const OUTPUTS = {
   },
 } as const;
 
+/**
+ * The packages whose map `pnpm generate` writes, at `<package>/generated/index.md`: one line per file under `src/`,
+ * from the comment it opens with, and one per page under `docs/`, from its title (docs/design/blueprint.md, part 7).
+ */
+export const MAPS: ReadonlyArray<string> = ["packages/world"];
+
 /** The deployment record (`deployments/devnet.json`) and the seed (`state/core.json`), relative to the root. */
 export const RECORD = `${CONTRACTS}/deployments/devnet.json`;
 export const SEED = `${CONTRACTS}/state/core.json`;
@@ -73,5 +79,5 @@ export const CHAIN_ID = 84532;
  */
 export const TEST_MNEMONIC = "test test test test test test test test test test test junk";
 
-/** Anvil's first test account: the account a world's faucet sends from (packages/world, src/chain/faucet.ts). */
+/** Anvil's first test account: the account a world's faucet sends from (packages/world, src/parts/chain/faucet.ts). */
 export const FIRST_ACCOUNT = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
