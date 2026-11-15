@@ -45,3 +45,14 @@ export const paymentsSent = (world: View, paymentId: string, who: Who = {}) =>
     );
     return Arr.filter(logsOf(logs, "PaymentSent"), (log) => log.paymentId === paymentId);
   });
+
+/** Every company Safe Companies House minted for company `org` (an Organization's id), through the endpoint `who` names. */
+export const companySafesOf = (org: string, who: Who = {}) =>
+  Effect.gen(function* () {
+    const capxul = yield* Capxul;
+    const logs = yield* capxul.chain.logs(
+      { log: "CompanySafeMinted", address: null, fromBlock: null, toBlock: null },
+      whereOf(who),
+    );
+    return Arr.filter(logsOf(logs, "CompanySafeMinted"), (log) => log.company === org);
+  });

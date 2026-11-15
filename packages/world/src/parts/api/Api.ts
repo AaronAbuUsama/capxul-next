@@ -31,6 +31,7 @@ import { HUB_STACK } from "../../things/cluster/values.ts";
 import { nameOf } from "../../stack/names.ts";
 import { worldSettings } from "../../stack/settings.ts";
 import type { CoreSlot } from "../../things/world/stage.ts";
+import { PrebuiltApi } from "./bundle.ts";
 import { CoreHost } from "./host.ts";
 
 /** Logical ids of the Core slot's own secrets, as the state store keys them. */
@@ -82,7 +83,9 @@ export const defaultCore: CoreSlot = Effect.gen(function* () {
     [CORE_ENV.chainToken]: doorToken,
     ...site,
   };
-  const core = yield* CoreWorker.pipe(Effect.provideService(CoreDeployment, Option.some({ database, env })));
+  // The world's copy of Core's bundle when the deploy made one (bundle.ts); otherwise Alchemy builds Core here.
+  const prebuilt = yield* PrebuiltApi;
+  const core = yield* CoreWorker.pipe(Effect.provideService(CoreDeployment, Option.some({ database, env, prebuilt })));
   return { url: core.url };
 });
 
