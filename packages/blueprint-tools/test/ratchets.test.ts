@@ -23,6 +23,7 @@ const made: Lists = {
   lint: { "owned-values": { "a.ts": 3, "b.ts": 2 } },
   formats: { machine: ["ticket.open"], steps: ["ticket.open", "ticket.close"] },
   oldWords: { alpha: 4, beta: 0, gamma: 2 },
+  files: { verbs: {}, longReadmes: [], docs: {}, nonEffect: {}, dependencies: {} },
 };
 
 test("each ratchet is counted from its list, and one not yet counted has no count", () => {

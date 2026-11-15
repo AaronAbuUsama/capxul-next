@@ -67,18 +67,19 @@ export const ratchets: ReadonlyArray<Ratchet> = [
   {
     id: "R7",
     name: "Operations not in one file",
-    holds: "Operations whose declaration is still split across files beside their verb's own file.",
+    holds:
+      "Verbs whose declaration still reads its examples from their thing's `examples.ts` (part 13: until stage 2b folds it into the verbs). A thing's refusals and events have their own files by design (part 13, amended), so they are not counted.",
     closes: "Decision 3",
-    count: "not yet counted",
-    countedBy: "3.6",
+    count: "verbs:examples",
   },
   {
     id: "R8",
     name: "Long or hand-mapped docs",
-    holds: "READMEs over one screen (60 lines), hand-written file maps, and docs not yet folded.",
+    holds:
+      "READMEs over one screen (60 lines), as the docs' shape lists them (`LONG_READMES`, packages/lint); READMEs and package docs that are hand-written file maps (three or more list items or table rows opening with a file's path); and the docs on this list, not yet folded into a declaration or a generated page.",
     closes: "Decision 3",
-    count: "not yet counted",
-    countedBy: "3.6",
+    count: "docs:long-or-mapped",
+    unmigrated: ["packages/blueprint/docs/build-order.md"],
   },
   // R9 also carries the points the journeys' author could not settle from the promises (folded here on 15 November
   // 2026), each a comment on the declaration it is about: the snapshot's missing block (`Snapshot`, things/
@@ -96,10 +97,10 @@ export const ratchets: ReadonlyArray<Ratchet> = [
   {
     id: "R10",
     name: "Non-Effect code",
-    holds: "Non-Effect constructs outside entry files, and non-Effect runtime dependencies.",
+    holds:
+      "Non-Effect constructs outside entry files, as capxul/effect-only finds them in the TypeScript the lint does not reach (Ponder's files; spikes, vendored code and Frappe are exempt), and each package's runtime dependencies that are not Effect nor Capxul's own.",
     closes: "Phase 7",
-    count: "not yet counted",
-    countedBy: "3.6",
+    count: "effect:non-effect",
   },
   {
     id: "R11",
