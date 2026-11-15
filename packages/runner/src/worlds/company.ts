@@ -5,22 +5,21 @@
 //
 // Signatures are made with the cast's keys, the blueprint's `CAST_KEYS`, as a person's agent would: the digest an
 // approval names, signed as it is (decisions.md, 23 and 42), with viem (decisions.md, 34). A wait polls an operation
-// until it answers differently (decisions.md, 27).
+// until it answers differently (decisions.md, 27; wait.ts).
 import { Site, Values, startingWorlds } from "@capxul/blueprint";
 import { Capxul } from "@capxul/scenarios";
 import * as Arr from "effect/Array";
 import * as Cause from "effect/Cause";
-import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Predicate from "effect/Predicate";
-import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import { mnemonicToAccount } from "viem/accounts";
 import { describe, RunnerFailure } from "../failure.ts";
 import { encodeAnswer } from "./encode.ts";
 import type { Making, Steps } from "./makers.ts";
+import { seenExit, siteReading, until } from "./wait.ts";
 
 const failed = (message: string) => RunnerFailure.make({ step: "starting world", message });
 
@@ -82,41 +81,6 @@ const approvalOf = (approvals: ReadonlyArray<Approval>, signer: string) =>
     Effect.mapError(() => failed(`no approval for ${signer}`)),
   );
 
-/** A wait for background work: one poll every two seconds, for at most ten minutes. */
-const POLL = { schedule: Schedule.spaced(Duration.seconds(2)), times: 300 } as const;
-
-/** Polls until `done`; an answer `stopped` gives a reason for ends the wait at once, as no later poll can be done. */
-export const until = <A, E, R>(
-  what: string,
-  poll: Effect.Effect<A, E, R>,
-  done: (answer: A) => boolean,
-  stopped: (answer: A) => Option.Option<string> = () => Option.none(),
-) =>
-  poll.pipe(
-    Effect.flatMap((answer) => {
-      if (done(answer)) return Effect.succeed(Option.none<string>());
-      const why = stopped(answer);
-      return Option.isSome(why) ? Effect.succeed(why) : Effect.fail(failed(`waiting for ${what}`));
-    }),
-    Effect.retry(POLL),
-    Effect.mapError(() => failed(`waited ten minutes for ${what}`)),
-    Effect.flatMap(
-      Option.match({
-        onNone: () => Effect.void,
-        onSome: (why) => Effect.fail(failed(`stopped waiting for ${what}: ${why}`)),
-      }),
-    ),
-  );
-
-/** Why a wait for `org`'s site is over: a stopped site is never made again (as when the site door restarts mid-make). */
-export const siteStopped =
-  (org: string) =>
-  (view: { readonly companies: ReadonlyArray<{ readonly org: string; readonly site: { readonly state: string } }> }) =>
-    Option.map(
-      Arr.findFirst(view.companies, (company) => company.org === org && company.site.state === "stopped"),
-      (company) => `world.show lists ${company.org}'s site as stopped, which is never made again`,
-    );
-
 /** `founded`: dana founds Northwind; dana and eli sign its setup; the world shows its site ready. */
 const founded: Steps = (making) =>
   Effect.gen(function* () {
@@ -130,7 +94,7 @@ const founded: Steps = (making) =>
       "world.show to list northwind's site as ready",
       must("world.show", capxul["world.show"]({ world: own.world })),
       (view) => Arr.some(view.companies, (company) => company.org === made.org && company.site.state === "ready"),
-      siteStopped(made.org),
+      siteReading(made.org),
     );
     return {
       facts: {
@@ -180,6 +144,7 @@ const officeHolder: Steps = (making) =>
       "report.run of the General Ledger as sam to stop refusing with NoSiteUser",
       Effect.exit(generalLedger(org, own.door)),
       (exit) => exit._tag === "Success",
+      { seen: seenExit },
     );
     return {
       facts: {
@@ -284,6 +249,7 @@ const paid: Steps = (making) =>
       "report.run's General Ledger to show the Payment Entry",
       must("report.run of the General Ledger as sam", generalLedger(org, own.door)),
       (ledger) => Arr.some(ledger.rows, (row) => row[Site.ROW_FIELDS.voucher] === name),
+      { seen: (ledger) => `a General Ledger of ${ledger.rows.length} rows, none of ${name}` },
     );
     return { facts: { ...making.facts, paidSent: yield* encodeAnswer("approval.sign", sent) }, own };
   });

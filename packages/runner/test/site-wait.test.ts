@@ -6,15 +6,21 @@ import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Option from "effect/Option";
 import * as Ref from "effect/Ref";
-import { siteStopped, until } from "../src/worlds/company.ts";
+import { siteReading, until } from "../src/worlds/wait.ts";
 
 const view = (state: string) => ({ companies: [{ org: "org-1", site: { state } }] });
+const stoppedOf = (org: string) => siteReading(org).stopped ?? (() => Option.none());
 
 test("a stopped site names why; a site being made or ready, or another company's, does not", () => {
-  assert.ok(Option.isSome(siteStopped("org-1")(view("stopped"))));
-  assert.ok(Option.isNone(siteStopped("org-1")(view("creating"))));
-  assert.ok(Option.isNone(siteStopped("org-1")(view("ready"))));
-  assert.ok(Option.isNone(siteStopped("org-2")(view("stopped"))));
+  assert.ok(Option.isSome(stoppedOf("org-1")(view("stopped"))));
+  assert.ok(Option.isNone(stoppedOf("org-1")(view("creating"))));
+  assert.ok(Option.isNone(stoppedOf("org-1")(view("ready"))));
+  assert.ok(Option.isNone(stoppedOf("org-2")(view("stopped"))));
+});
+
+test("a wait reads the site's state as what it last saw", () => {
+  assert.equal(siteReading("org-1").seen(view("creating")), "org-1's site creating");
+  assert.equal(siteReading("org-2").seen(view("creating")), "world.show listing no company org-2");
 });
 
 test("a wait ends at the first poll that says stopped, failing with why", () => {
@@ -26,7 +32,7 @@ test("a wait ends at the first poll that says stopped, failing with why", () => 
         view("stopped"),
       );
       const refused = yield* Effect.flip(
-        until("the site", poll, (each) => each.companies[0]?.site.state === "ready", siteStopped("org-1")),
+        until("the site", poll, (each) => each.companies[0]?.site.state === "ready", siteReading("org-1")),
       );
       return { error: refused, polls: yield* Ref.get(count) };
     }),
@@ -36,7 +42,7 @@ test("a wait ends at the first poll that says stopped, failing with why", () => 
 });
 
 test("a wait that is done succeeds", () => {
-  const exit = until("the site", Effect.succeed(view("ready")), () => true, siteStopped("org-1")).pipe(
+  const exit = until("the site", Effect.succeed(view("ready")), () => true, siteReading("org-1")).pipe(
     Effect.exit,
     Effect.runSync,
   );
