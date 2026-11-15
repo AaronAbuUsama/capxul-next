@@ -201,11 +201,23 @@ const runOne = (
 /**
  * Destroys the run's one world, timed; what could not be done, one line each. Whatever ends the run, this runs. The
  * bench templates the run kept stay: they are the bench's, never dropped by a run, and the sweep removes them by age
- * (docs/roadmap.md, "Bench templates never change").
+ * (docs/roadmap.md, "Bench templates never change"). With RUNNER_TEARDOWN=job the one world is left, and kept in
+ * `handedOver`, for CI's teardown job to destroy (settings.ts, `teardown`).
  */
-const takeDown = (starting: Starting, timings: Timings) =>
+const takeDown = (
+  settings: Settings,
+  starting: Starting,
+  timings: Timings,
+  handedOver: Ref.Ref<ReadonlyArray<string>>,
+) =>
   Effect.gen(function* () {
-    const done = yield* takeDownWorlds(yield* starting.templateWorlds, timings);
+    const ones = yield* starting.templateWorlds;
+    if (settings.teardown === "job") {
+      yield* Ref.set(handedOver, ones);
+      yield* Effect.log(`left for the teardown job: ${Arr.join(ones, ", ") || "no world"}`);
+      return [];
+    }
+    const done = yield* takeDownWorlds(ones, timings);
     return done.failed;
   });
 
@@ -234,6 +246,7 @@ export const runInWorlds = (
     const timings = yield* makeTimings;
     const notMade = yield* Ref.make<string | null>(null);
     const notTakenDown = yield* Ref.make<ReadonlyArray<string>>([]);
+    const handedOver = yield* Ref.make<ReadonlyArray<string>>([]);
     const oneWorld = yield* Ref.make<string | null>(null);
     const hubUsed = yield* Ref.make<HubUse | null>(null);
     const ran = yield* Effect.exit(
@@ -244,7 +257,7 @@ export const runInWorlds = (
             ? yield* sharedStartingWorldsOf(settings, platform.url, timings, shared.value)
             : yield* startingWorldsOf(settings, platform.url, timings);
           // What the take-down could not do fails the run; a take-down that itself died is named as one.
-          const takenDown = takeDown(starting, timings).pipe(
+          const takenDown = takeDown(settings, starting, timings, handedOver).pipe(
             Effect.flatMap((failed) => Ref.set(notTakenDown, failed)),
             Effect.catchCause((cause) => Ref.set(notTakenDown, [`the take-down did not finish: ${describe(cause)}`])),
           );
@@ -272,6 +285,7 @@ export const runInWorlds = (
       ran,
       notMade: yield* Ref.get(notMade),
       notTakenDown: yield* Ref.get(notTakenDown),
+      handedOver: yield* Ref.get(handedOver),
       world: yield* Ref.get(oneWorld),
       used: yield* Ref.get(hubUsed),
       left: yield* leftOf(Arr.dedupe([...(yield* platform.made), ...(yield* platform.tried)])),

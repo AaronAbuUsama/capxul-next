@@ -11,7 +11,7 @@ import { worldSnapshotList } from "../checks/world-snapshot-list.ts";
 import { worldSnapshotRestore } from "../checks/world-snapshot-restore.ts";
 import { worldSnapshotSave } from "../checks/world-snapshot-save.ts";
 import { foundNorthwind } from "../journeys/found-northwind.ts";
-import { payAndBranch } from "../journeys/pay-and-branch.ts";
+import { branchTheBooks } from "../journeys/branch-the-books.ts";
 import { twoOperators } from "../journeys/two-operators.ts";
 import { worldInventory } from "../journeys/world-inventory.ts";
 import { at, type Domain } from "../domain.ts";
@@ -29,7 +29,7 @@ export const checks: Domain<typeof World>["checks"] = {
 };
 
 /** The journeys it leads, in the order they run. */
-export const journeys: Domain<typeof World>["journeys"] = [twoOperators, worldInventory];
+export const journeys: Domain<typeof World>["journeys"] = [twoOperators, worldInventory, branchTheBooks];
 
 /** Where each claim of each of its operations is checked, in claims.md's order. */
 export const coverage: Domain<typeof World>["coverage"] = {
@@ -41,21 +41,21 @@ export const coverage: Domain<typeof World>["coverage"] = {
     at(["world.create", "record.export"], [twoOperators, 3], [twoOperators, 5]),
     at(["world.create"], [twoOperators, 1]),
   ],
-  "world.clock.warp": [at(["world.clock.warp"], [payAndBranch, 8]), at(["world.clock.warp"], [twoOperators, 6])],
+  "world.clock.warp": [at(["world.clock.warp"], [branchTheBooks, 6]), at(["world.clock.warp"], [twoOperators, 6])],
   "world.snapshot.save": [
-    at(["world.snapshot.save"], [payAndBranch, 3]),
+    at(["world.snapshot.save"], [branchTheBooks, 2]),
     at(["world.snapshot.save"], [twoOperators, 7]),
     at(["world.snapshot.save"], [twoOperators, 7]),
   ],
   "world.snapshot.restore": [
-    at(["world.snapshot.restore"], [payAndBranch, 4], [payAndBranch, 5], [payAndBranch, 7]),
-    at(["world.snapshot.restore"], [payAndBranch, 4]),
-    at(["world.snapshot.restore"], [payAndBranch, 4]),
+    at(["world.snapshot.restore"], [branchTheBooks, 3], [branchTheBooks, 4], [branchTheBooks, 5]),
+    at(["world.snapshot.restore"], [branchTheBooks, 3]),
+    at(["world.snapshot.restore"], [branchTheBooks, 3]),
     at(["world.snapshot.restore"], [twoOperators, 8]),
     at(["world.snapshot.restore"], [twoOperators, 8]),
   ],
   "world.show": [
-    at(["world.snapshot.restore", "world.show"], [payAndBranch, 4]),
+    at(["world.snapshot.restore", "world.show"], [branchTheBooks, 3]),
     at(["world.show"], [twoOperators, 4]),
     at(["world.show"], [foundNorthwind, 4]),
   ],

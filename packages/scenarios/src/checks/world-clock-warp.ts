@@ -6,7 +6,7 @@ import * as Effect from "effect/Effect";
 import { Capxul } from "../client.ts";
 import { expect } from "../expectation.ts";
 import { addSeconds, millis, same, sameInstant } from "../support/expect.ts";
-import { entriesAfter, operatorName, view, whereOf } from "../support/world.ts";
+import { entriesOfCall, operatorName, view, whereOf } from "../support/world.ts";
 import { nothingRecorded, worldBefore, type Before } from "./common.ts";
 import { check, checks, type Asked, type Check } from "./format.ts";
 
@@ -56,7 +56,7 @@ export const worldClockWarp = checks<"world.clock.warp", Before>({
     ),
     check(
       "the record gains one clock_warped, from where the clock was to where it is",
-      Effect.flatMap(entriesAfter(before.head, before.where), (added) =>
+      Effect.flatMap(entriesOfCall(before.head, before.where), (added) =>
         same(
           "the entries the warp added",
           Arr.map(added, (entry) => [entry.event, entry.carried]),
