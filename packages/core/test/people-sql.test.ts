@@ -69,10 +69,11 @@ it(
 );
 
 it(
-  "org.member.invite: who may not invite and who already belongs are refused, recording nothing",
+  "org.member.invite: who is not the founder may not invite, and who already belongs is refused, recording nothing",
   Effect.gen(function* () {
     const refused = [
       yield* refusal(yield* invite("olga@cast.test", "sam")),
+      yield* refusal(yield* invite("olga@cast.test", "eli")),
       yield* refusal(yield* invite("rex@elsewhere.test", "olga")),
       yield* refusal(yield* invite("olga@cast.test", undefined)),
       yield* refusal(yield* invite("sam@cast.test", "dana")),
@@ -83,12 +84,15 @@ it(
       "CannotManagePeople",
       "CannotManagePeople",
       "CannotManagePeople",
+      "CannotManagePeople",
       "AlreadyAMember",
       "AlreadyAMember",
       "OrgNotFound",
     ]);
     assert.deepEqual(refused[0], { _tag: "CannotManagePeople", org: ORG, person: "sam" });
-    assert.deepEqual([refused[3]?.["person"], refused[4]?.["person"]], ["sam", "eli"]);
+    // eli is a Director but not the founder: for now only the founder invites.
+    assert.deepEqual(refused[1], { _tag: "CannotManagePeople", org: ORG, person: "eli" });
+    assert.deepEqual([refused[4]?.["person"], refused[5]?.["person"]], ["sam", "eli"]);
     assert.equal(yield* recordSize, 0);
   }),
 );
@@ -159,10 +163,13 @@ it(
 );
 
 it(
-  "invite.accept: eli invites olga again, she accepts and is a member at once, once; grant sees her",
+  "invite.accept: eli may not invite olga again, dana does; she accepts and is a member at once, once; grant sees her",
   Effect.gen(function* () {
     assert.equal((yield* refusal(yield* grant("olga")))["_tag"], "NotAMember");
-    const again = yield* answer(yield* invite("olga@cast.test", "eli"));
+    const notFounder = yield* refusal(yield* invite("olga@cast.test", "eli"));
+    assert.deepEqual(notFounder, { _tag: "CannotManagePeople", org: ORG, person: "eli" });
+    const again = yield* answer(yield* invite("olga@cast.test", "dana"));
+    assert.equal(again.invitedBy, "dana");
     assert.notEqual(again.id, sent.first);
     sent.second = again.id;
     const size = yield* recordSize;
