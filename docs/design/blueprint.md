@@ -176,6 +176,60 @@ step for the format and the ratchet registry; "Coverage is not a gate" changed i
 "run records" become verdicts and telemetry (F6); "Who owns each fact" names one file per operation; the ladder gains
 `pnpm ratchets` and `pnpm delta:check`; the ratchet rule names the registry.
 
+### Where it stands (15 November 2026, evening)
+
+Written at the hand-over from the Claude blueprint thread, so an agent that never saw that thread can continue from
+this section and the parts it names.
+
+**Landed on `master`.** The design and every decision in this file: parts 1 to 14 (#275 the restack, #281 things then
+verbs, the glossary and the CLI, #283 the climb and "no callers, no compatibility"), part 15 the triage backlog and
+the declined speed option (#306, this pull request).
+
+**On `slice/blueprint`, not yet on `master`.** Stage 2a, the move into part 13's layout (#282 the layout record, #291
+the move: `src/things/<thing>/<verb>.ts`, `src/common/`, `src/starting-points/`, `src/protocol/`, `src/generated/`, the
+new package `packages/blueprint-tools`, `src/index.ts` as the entry). Its pull request into `master` is **#295**: it
+passed the 🔍 reviewer and `gate` on head `adcb697`; `thin-line` was still running on that head (slower than usual: the
+bench's site templates rebuild once, since the fingerprint now includes blueprint-tools). `master` has since moved
+(#310 and later), so before merging: merge `master` into `slice/blueprint`, wait for `gate` and `thin-line` green on
+that head, check #295 is not conflicting, merge.
+
+**Open pull requests into `slice/blueprint`** (each green on its own; held only so that #295's head did not move under
+its journey run and review; merge each after #295 lands, then merge `master` into the slice again):
+
+| PR | Branch | What | Note |
+|---|---|---|---|
+| #299 | `work/ratchets` | The ratchet registry (`packages/blueprint/src/ratchets.ts`, R1 to R14), `pnpm ratchets` in `gate`, the generated scorecard `packages/blueprint/generated/scorecard.md` (items 3.6 part, 3.11) | R13 deliberately not counted (every new verb starts provisional) |
+| #301 | `work/telemetry-pipeline` | `packages/blueprint/src/telemetry/` (conventions pinned 1.37.0, envelope, producers, step kinds, metrics, datasets, monitors) and the pipeline's things as "work no door serves" (`blueprint-tools/src/language/work.ts`) | Follow-up below |
+| #302 | `work/glossary` | `packages/blueprint/src/glossary.ts`, the generated glossary page, the old-words count `pnpm words` in `gate` (item 3.8, first part) | Follow-up below |
+
+**Next steps of stage 2, in order.**
+
+1. Land #295, then #299, #301 and #302 into the slice (resolve their conflicts with each other in the generated files
+   and `packages/generate/src/sources.ts` by regenerating).
+2. A small follow-up into the slice, decided by the lead within the agreed decisions:
+   - add the step kind `compute` for work done in-process (gate rungs, call checks, ratchet counting), and use it where
+     #301 used `container`;
+   - rename the pipeline verb `run.run` to `run.start`, matching the CLI `capxul run start`;
+   - add a glossary entry `claim`: claiming a person's Safe (it stays "claim"; part 12's promise row says so), so the
+     old-word count of `claim` covers only the renamed meanings;
+   - count `lane` only in `packages/runner` (where it means a shard); leave `step` to R6;
+   - fix the old blueprint paths in `docs/roadmap.md` (the "Facts typed twice" table and items 3.3 to 3.5).
+3. Fold `packages/blueprint/docs/decisions.md` and `gaps.md` (moved unchanged by #291): each decision becomes a comment
+   on the declaration it explains, a roadmap decision, or is dropped when superseded; gaps go to ratchet R9.
+4. Stage 2b and item 3.10: every format in the toolkit, proven end to end on the invitation (lifecycle, who may call,
+   spans and logs, budget, promises, telemetry names). Remove the toolkit's relative import of the blueprint
+   (`blueprint-tools` reads `../../../blueprint/src/index.ts` to avoid a package cycle) by having the blueprint pass
+   itself to the checks; write the pages inside `pnpm generate`; drop the hand-written domain table in
+   `packages/generate/src/sources.ts` once the renames of 3.8 land.
+5. Items 3.7 (the coverage gate) and 3.9 (the CLI's grammar), then the slice into `master`, then the climb (phase C).
+
+**Open decisions.** None waits on Aaron in this design. Within the climb, each thing's states are agreed with Aaron as
+they are declared where today's lists disagree or were never written: the site's "unreachable", the approval's states.
+The two roadmap candidates of part 15 (a world-time lint rule; the site joining the trace) go to Aaron at the next
+restack.
+
+**Backlog.** Part 15 (14 ideas from the triage, each with its source pull request).
+
 ## 6. Decisions still open, with recommendations
 
 | # | Decision | Recommendation | State |
