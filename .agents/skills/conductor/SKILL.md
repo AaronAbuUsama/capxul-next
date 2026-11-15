@@ -51,7 +51,9 @@ thread types, their emojis, their finish lines and your agent's word for each ac
 All four must hold:
 1. **No conflicts:** the pull request merges cleanly.
 2. **A fresh `gate`:** it ran green on a head that includes the current `master`.
-3. **`world` is green** on that head.
+3. **`world` is green** on that head. Paused, except for the speed lane, while the roadmap's decision "Full runs
+   paused until the run is fast" holds: then a slice lands on 1, 2 and 4, and a red `world` on `master` or the speed
+   lane's slice is fixed before anything else lands.
 4. **A 🔍 pass.** Have the `reviewer` skill run on the slice's diff by a subagent or a 🔍 thread that did not write it,
    against its brief, `AGENTS.md` and the agreed design. Merge on a pass. Send findings back to the lead.
 
