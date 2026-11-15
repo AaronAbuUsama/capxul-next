@@ -8,14 +8,17 @@
 //   database  the world's branch restored in place from the snapshot's (Neon's restore): same id, compute and
 //             connection string, so Hyperdrive and Core carry on. Never the chain without its database: the database
 //             goes first, and a reset that fails after it fails loudly.
-//   chain     anvil reset and loaded with the snapshot's state, in place (src/parts/chain/Chain.ts, `reset`)
-//   clock     Core's clock set to read the snapshot's time now, and the chain's next block mined at that time, as a
-//             restore and a warp do (`mineAtWorldTime`); the bench's clock entry set to it too (src/things/site/reset.ts)
+//   chain     anvil reset and loaded with the snapshot's state, in place, and alto kept up with its mempool and
+//             reputation cleared (src/parts/chain/Chain.ts and src/parts/bundler/Bundler.ts, `reset`)
+//   clock     Core's clock set to read the snapshot's time from the reset's start, and, beside it, the chain's next
+//             block mined at that time, as a restore and a warp do (`mineAtWorldTime`); the bench's clock entry set to
+//             it too (src/things/site/reset.ts)
 //   sites     each company site put back to the snapshot's point on the bench, in place, or claimed from the bench
 //             template the caller names (the one the world kept of the snapshot) when the point lost its sites; a
-//             snapshot of no company removes the world's sites (src/things/site/reset.ts)
+//             snapshot of no company removes the world's sites (src/things/site/reset.ts). The bench's alone, so it
+//             runs from the start, beside everything above
 //   then      Ponder started again on the restored schema (as soon as the chain is back) and waited for until it has
-//             the chain's head; alto and Core waited for beside it
+//             the chain's head; alto, Core and the dropped branch waited for beside it
 //
 // What Neon kept of the world's branch as it was (`<stage>-pre-<n>`) is deleted at once when nothing hangs from it,
 // and otherwise with the world, children first (src/parts/database/branches.ts, `dropBranches`).
@@ -96,26 +99,16 @@ export const reset = Effect.fn("world.reset")(function* (name: string, snapshot:
     });
   const began = yield* Clock.currentTimeMillis;
   const preserved = `${preservedPrefix(stage)}${(yield* Random.nextIntBetween(0, 0xffffff)).toString(16)}`;
+  // One clock, from one moment: Core's clock reads the snapshot's time at it, the chain's next block is mined at that
+  // time brought to now, and the bench's clock entry runs from it. It is taken first, so the sites need not wait.
+  const clockAt = yield* Clock.currentTimeMillis;
   const done = yield* Effect.gen(function* () {
-    yield* timed("index stopped", stopIndex(world));
-    yield* timed("database restored", restoreBranch(project, output.branch, saved.branch_id, preserved));
-    const chain = yield* timed("chain reset", resetChain(world, snapshot));
-    // Ponder takes 6 to 8 s to start; it is started now, on the restored schema and chain, without waiting for it,
-    // and indexes the block mined at the world's time below like any other.
-    yield* timed("index resumed", resumeIndex(world));
-    // One clock: Core's reads the snapshot's time from now on, and the chain's next block is mined at it.
-    const clockAt = yield* Clock.currentTimeMillis;
-    const clock = { mode: saved.clock_mode, worldMs: saved.clock_ms, hostMs: clockAt };
-    yield* timed("clock", writeRestored(world.database, clock));
-    // A frozen clock reads its instant at any host time; a running one moves on from the snapshot's time.
-    const mined = yield* timed(
-      "chain mined at the world's time",
-      mineAtWorld(world, saved.clock_ms, saved.clock_mode === "frozen" ? null : clockAt),
-    );
-    const sites: SitesReset | null =
+    // The sites are the bench's alone (the bench's own database and clock entry): they are put back beside the world's
+    // database and chain, from the start, not after them.
+    const sitesPart =
       bench === "none"
-        ? null
-        : yield* timed(
+        ? Effect.succeed<SitesReset | null>(null)
+        : timed(
             "sites",
             resetSites(
               stage,
@@ -128,16 +121,50 @@ export const reset = Effect.fn("world.reset")(function* (name: string, snapshot:
               Option.fromNullishOr(template),
             ),
           );
-    const [indexedBlock] = yield* Effect.all(
-      [
-        timed("index caught up", Effect.andThen(indexReady(world), caughtUp(world))),
-        timed("bundler answers", servesEntryPoint(world)),
-        timed("core answers", coreAnswers(world)),
-        timed("preserved branch dropped", dropIfChildless(project, preserved)),
-      ],
-      { concurrency: 4 },
-    );
-    return { chain, minedAt: mined.minedAt, indexedBlock, sites };
+    const rewind = Effect.fn("world.reset.rewind")(function* () {
+      yield* timed("index stopped", stopIndex(world));
+      yield* timed("database restored", restoreBranch(project, output.branch, saved.branch_id, preserved));
+      const chain = yield* timed("chain reset", resetChain(world, snapshot));
+      // Ponder takes 6 to 8 s to start; it is started now, on the restored schema and chain, without waiting for it,
+      // and indexes the block mined at the world's time below like any other.
+      yield* timed("index resumed", resumeIndex(world));
+      // Core's clock (the database) and the chain's block are apart, so they are set side by side; a frozen clock
+      // reads its instant at any host time, a running one moves on from the snapshot's time. The index is waited for
+      // once that block is mined, looked at every half second, not every 2 s: it is already starting.
+      const settle = Effect.fn("world.reset.settle")(function* () {
+        const clock = { mode: saved.clock_mode, worldMs: saved.clock_ms, hostMs: clockAt };
+        const [mined] = yield* Effect.all(
+          [
+            timed(
+              "chain mined at the world's time",
+              mineAtWorld(world, saved.clock_ms, saved.clock_mode === "frozen" ? null : clockAt),
+            ),
+            timed("clock", writeRestored(world.database, clock)),
+          ],
+          { concurrency: 2 },
+        );
+        const indexedBlock = yield* timed(
+          "index caught up",
+          Effect.andThen(indexReady(world, "500 millis"), caughtUp(world)),
+        );
+        return { minedAt: mined.minedAt, indexedBlock };
+      });
+      // The chain's reset kept alto up with its state cleared (src/parts/bundler/Bundler.ts, `reset`), so the bundler
+      // answers at its first look; Core and the branch Neon kept need only the database. All are waited for beside
+      // the clock and the index.
+      const [{ minedAt, indexedBlock }] = yield* Effect.all(
+        [
+          settle(),
+          timed("bundler answers", servesEntryPoint(world)),
+          timed("core answers", coreAnswers(world)),
+          timed("preserved branch dropped", dropIfChildless(project, preserved)),
+        ],
+        { concurrency: 4 },
+      );
+      return { chain, minedAt, indexedBlock };
+    });
+    const [rewound, sites] = yield* Effect.all([rewind(), sitesPart], { concurrency: 2 });
+    return { ...rewound, sites };
   }).pipe(
     Effect.timeoutOrElse({
       duration: timeout,
