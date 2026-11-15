@@ -676,3 +676,72 @@ Frappe where it owns the data".
 
 **`notes.md`:** agreed with Aaron, 15 November 2026, to fold it into decisions 7 and 8 and delete the file in the
 restack.
+
+## 13. The blueprint's layout, locked (15 November 2026)
+
+**Agreed with Aaron, 15 November 2026**, from the explorer "Blueprint Layout" (version 2): this is the layout stage 2a
+moves the package into, and the layout every later piece of work lands in. The toolkit keeps the name
+`blueprint-tools`. Directors are a thing of their own (`director/add`, `director/list`), apart from the board
+(`board/set-threshold`).
+
+**`packages/blueprint`: only facts about Capxul.**
+
+| Path | Holds |
+|---|---|
+| `src/index.ts` | The one file other packages import from (was `src/door.ts`) |
+| `src/things/<thing>/` | One thing: `values.ts`, `events.ts`, `refusals.ts`, `lifecycle.ts` where it has one, and one file per verb, `<verb>.ts`, holding its request and answer, refusals, outcomes, budget, examples and promises |
+| `src/common/` | What several things use: `values.ts`, `ids.ts`, `refusals.ts`, `site.ts` (Capxul's names on a Frappe site), `chain/` (the logs and reads Capxul uses) |
+| `src/starting-points/` | `points.ts`, the named states journeys begin from, and `facts.ts`, what each hands a journey |
+| `src/protocol/` | How a call travels: `paths.ts`, `headers.ts`, `sign-in.ts`, `trace.ts` |
+| `src/generated/` | Indexes written by `pnpm generate` (the things, the refusals, the subjects, the promises, each thing's hub). Never edited |
+| `generated/` | `index.md` (every thing and its verbs) and one page per thing. Never edited |
+| `docs/build-order.md` | One page, until each verb declares what it needs and the page is generated |
+| `README.md` | One screen |
+
+The thirteen things today, from the 26 operations: approval (sign), board (set-threshold), budget (create, show,
+list), clock (warp), company (create), director (add, list), document (create, submit), history (export), invitation
+(send, list, accept, decline; its lifecycle), member (grant, list), report (run), snapshot (save, restore, list,
+delete), world (create, show, list).
+
+**`packages/blueprint-tools`: how the blueprint is written and checked.** `src/language/` (operation, lifecycle,
+promise, starting point, gather), `src/checks/` (the delta check, the formats, the declared names), `src/render/` (the
+pages, run inside `pnpm generate`).
+
+**What 2a does not do.** Operation names, event tags and identifiers keep today's words (`invite.accept`, `org`,
+claims); the glossary's renames run on their own ratchet (item 3.8). No behaviour changes; every journey stays green.
+
+**What keeps it.** A test fails a file under `src/` that does not fit: under `things/<thing>/` only `values.ts`,
+`events.ts`, `refusals.ts`, `lifecycle.ts`, `examples.ts` (until 2b folds it) and verb files; only the folders above at
+`src/`; markdown only in `generated/` and `docs/`.
+
+## 14. Build the system, then climb, then breadth (15 November 2026)
+
+**Agreed with Aaron, 15 November 2026.**
+
+**Part 1: the blueprint system, complete and clean.** The machinery, not the product: the language with every format
+it will need (thing, verb, lifecycle, who may call, spans and logs, budget, promises, telemetry names, glossary words,
+the pipeline's things), the generators (indexes, pages, the CLI tree, SQL constraints, later the Frappe catalogue), the
+checks (format, layout, lint, the closed vocabulary at run time) and the ratchet registry. Built as it should be, with no
+shims for the old shape: old declarations sit on ratchet lists, they do not bend the format. Done when every format
+exists, every ratchet is counted, a scorecard of every thing against every format is generated from the ratchet lists,
+and one thing, the invitation, is in every format end to end (blueprint, generated code, API handler, journeys,
+telemetry checks) with nothing drifting. Only once the whole system is working is the toolkit split off as a package
+anyone could reuse.
+
+**Part 2: the climb.** Everything that exists today is brought up to spec before breadth, in parallel lanes. The unit
+is the thing: a lane takes a few things and brings each fully up to spec (its lifecycle declared and the API moving it
+only through it, every format, the glossary's words, its spans declared and instrumented, journeys reaching every new
+declaration). The lifecycles of every existing thing are pulled forward into the climb (they were item 7.3): world,
+site, company setup, approval and document first; where today's states disagree or were never written down (the
+site's "unreachable", the approval's states), they are agreed with Aaron as they are declared. The climb is done when
+the scorecard is all green. It is run as a rehearsal of breadth, with the same machinery (a lead per lane, a journey
+author apart from the builder, a thing per unit, lanes merging through slices) and measured as one: things brought to
+spec per day, tries to green, conflicts between lanes, time waiting; breadth starts from those numbers.
+
+**Then** the accounts pilot (phase 5), the invoice ledger (phase 6) and breadth (phase 7), in that order.
+
+**No callers, no compatibility.** Agreed with Aaron, 15 November 2026: Capxul has no users yet, so until a real caller
+exists (phase 8), existing operations are reshaped and renamed directly, with no side-by-side versions; the journey
+author updates the journeys in the same lane. The aim is to cut over as quickly as possible: work merges fast into its
+slice, and a slice reaches `master` only when every check passes (`gate` and `world`). "Side by side, then flip, then
+retire" applies again from the first real caller.
