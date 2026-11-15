@@ -4,6 +4,7 @@
 import type { StartingWorld } from "@capxul/blueprint";
 import type { Capxul } from "@capxul/scenarios";
 import * as Arr from "effect/Array";
+import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import type * as FileSystem from "effect/FileSystem";
 import * as Option from "effect/Option";
@@ -52,6 +53,16 @@ export const targetOf = (settings: Settings, platformUrl: string): Target => ({
   every: settings.probeEvery,
 });
 
+/**
+ * Where the calls made for one journey's starting world go, besides the run's `made`: the journey's own log. Provided
+ * per journey (worlds/run.ts), so a journey reads its own making calls, not a slice of a list other journeys append to
+ * at the same time (roadmap 4.8). A making with none provided records into `made` alone.
+ */
+export class JourneyMaking extends Context.Service<
+  JourneyMaking,
+  { readonly calls: Ref.Ref<ReadonlyArray<MakingCall>> }
+>()("@capxul/runner/worlds/making/JourneyMaking") {}
+
 /** Runs `steps` of `world` from `making`, recording each call into `made`, and appends them to the world's `calls`. */
 export const recorder =
   (target: Target, made: Ref.Ref<ReadonlyArray<MakingCall>>) =>
@@ -65,7 +76,10 @@ export const recorder =
       // oxlint-disable-next-line effecttsgo/strict-effect-provide -- a maker's client is built for its one making and closed with it
       const exit = yield* Effect.exit(steps(making).pipe(Effect.provide(capxulFor(target, log))));
       const calls = yield* Ref.get(log);
-      yield* Ref.update(made, (all) => [...all, ...Arr.map(calls, (call) => ({ world: world.name, call }))]);
+      const recorded = Arr.map(calls, (call): MakingCall => ({ world: world.name, call }));
+      yield* Ref.update(made, (all) => [...all, ...recorded]);
+      const journey = yield* Effect.serviceOption(JourneyMaking);
+      if (Option.isSome(journey)) yield* Ref.update(journey.value.calls, (all) => [...all, ...recorded]);
       const after = yield* exit;
       const entries = yield* Effect.forEach(calls, (call) => madeCallOf(call, making.own ?? after.own));
       const facts: Facts = { ...after.facts, calls: [...callsOf(after.facts), ...entries] };
