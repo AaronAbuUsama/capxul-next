@@ -1,9 +1,9 @@
 // The platform's door: the blueprint's platform group (world.create, world.show, world.snapshot.save and
-// world.snapshot.restore), served over HTTP with Effect's Rpc server at `PLATFORM_PATH` by whatever process runs it
+// world.snapshot.restore; world.list, world.snapshot.list and world.snapshot.delete are not built yet), served over HTTP with Effect's Rpc server at `PLATFORM_PATH` by whatever process runs it
 // where the Cloudflare and Neon keys are (decisions.md, 51): the runner, in-process, or `world platform serve`. Its
 // sign-in and its spans are Core's own middlewares; its spans are kept in the platform's store (store.ts), and each
 // call's events in the record of the world it acted on.
-import { PLATFORM_PATH, PlatformRpcs } from "@capxul/blueprint";
+import { Errors, PLATFORM_PATH, PlatformRpcs, type OperationName } from "@capxul/blueprint";
 import { PlatformSignInLive, TelemetryLive } from "@capxul/core";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
@@ -21,12 +21,18 @@ import { save, restore } from "./snapshots.ts";
 import { keptOf, PlatformSpanSink, prepareStore } from "./store.ts";
 import { opened } from "./view.ts";
 
+/** The answer of an operation the platform does not serve yet: the blueprint's `NotImplemented`, naming it. */
+const unbuilt = (operation: OperationName) => () => Effect.fail(Errors.NotImplemented.make({ operation }));
+
 /** The platform group's handlers: one per operation, or this does not compile. */
 export const PlatformHandlers = PlatformRpcs.toLayer({
   "world.create": create,
   "world.show": show,
   "world.snapshot.save": save,
   "world.snapshot.restore": restore,
+  "world.list": unbuilt("world.list"),
+  "world.snapshot.list": unbuilt("world.snapshot.list"),
+  "world.snapshot.delete": unbuilt("world.snapshot.delete"),
 });
 
 const sink = Layer.unwrap(

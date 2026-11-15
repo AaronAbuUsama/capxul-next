@@ -120,7 +120,8 @@ export const show = declare({
   examples: [{ payload: { world: "town" }, success: exampleWorld }],
 });
 
-const Snapshot = Schema.Struct({
+/** A saved snapshot, as `world.snapshot.save` answers it. */
+export const Snapshot = Schema.Struct({
   world: WorldName,
   snapshot: SnapshotName,
   /** The last entry of the world's record that the snapshot holds. The save's own entry follows it. */

@@ -13,6 +13,9 @@ are in [claims.md](../../claims.md).
 | `world.snapshot.save` | 3 | 1 | 0 | 2 | 0 |
 | `world.snapshot.restore` | 5 | 1 | 0 | 4 | 1 |
 | `world.show` | 3 | 1 | 0 | 2 | 0 |
+| `world.list` | 2 | 0 | 0 | 2 | 0 |
+| `world.snapshot.list` | 3 | 0 | 0 | 3 | 0 |
+| `world.snapshot.delete` | 3 | 0 | 0 | 3 | 0 |
 
 ## 1. `world.create`
 
@@ -148,4 +151,64 @@ Old claims not kept:
 3. It shows a world's owner, grade, expiry, clock, record head, cast and companies, each company with its site's state.
    - In: `founded`.
    - Observes: world.show answers the owner, grade, expiry, door, chain id, contracts and cast that the call that made the world answered (the `world` fact), a record head that matches record.export's, and northwind with its site ready at its own address.
+   - Old: none; this claim is new.
+
+## 6. `world.list`
+
+- Served by: the platform group.
+- Refusals: `NotImplemented`, and `NotSignedIn` from sign-in.
+- Emits: none.
+- Budget: 2,000 ms, provisional. Basis: reads the registry's rows of the caller's worlds and the platform's rows of their snapshots, one query each; wakes no world; not measured.
+
+1. An operator lists exactly the worlds they own, each as world.show shows it, with how many snapshots it keeps. *(thin line)*
+   - In: `quota-full`.
+   - Observes: world.list by the first operator answers them as its owner, the limit of live worlds and every world `quota-full` filled, as many worlds as the limit; each with the grade, state, expiry, door and parent world.show answers, an owner who is the caller, and as many snapshots as world.snapshot.list lists. world.list by the second operator holds none of the first operator's worlds.
+   - Old: none; this claim is new.
+2. A world restored from another operator's template is listed by its new owner alone, naming where it came from.
+   - In: `quota-full`.
+   - Observes: After the second operator restores the first operator's template `base`, world.list by the second operator holds the new world, its parent the first operator's world and `base`; the first operator's list does not hold it, and lists their world with one snapshot once `scratch` is deleted.
+   - Old: none; this claim is new.
+
+## 7. `world.snapshot.list`
+
+- Served by: the platform group.
+- Refusals: `WorldNotFound`, `NotWorldOwner`, `NotImplemented`, and `NotSignedIn` from sign-in.
+- Emits: none.
+- Budget: 2,000 ms, provisional. Basis: reads the registry, the platform's rows of the world's snapshots and the branches of the platform's Neon project; wakes no world; not measured.
+
+1. It lists every snapshot a world keeps, in the order they were saved, each as its save answered. *(thin line)*
+   - In: `quota-full`.
+   - Observes: After the first operator saves `base`, a template, and then `scratch` of a world they own, world.snapshot.list answers the world and both snapshots in that order, each exactly as world.snapshot.save answered it. The record gains no entry.
+   - Old: none; this claim is new.
+2. Each snapshot names the live worlds that hang from it.
+   - In: `quota-full`.
+   - Observes: After the second operator restores `base` as a world of their own, world.snapshot.list lists `base` in use by that world alone and `scratch` by none.
+   - Old: none; this claim is new.
+3. Only the world's owner may list its snapshots, and only of a world that exists.
+   - In: `quota-full`.
+   - Observes: world.snapshot.list by the second operator is refused with NotWorldOwner naming the first operator as owner; of a name with no world, with WorldNotFound naming it.
+   - Refusals: `NotWorldOwner`, `WorldNotFound`.
+   - Old: none; this claim is new.
+
+## 8. `world.snapshot.delete`
+
+- Served by: the platform group.
+- Refusals: `WorldNotFound`, `NotWorldOwner`, `SnapshotNotFound`, `SnapshotInUse`, `NotImplemented`, and `NotSignedIn` from sign-in.
+- Emits: `snapshot_deleted`.
+- Budget: 15,000 ms, provisional, excluding waking a parked world. Basis: deletes a Neon branch with no compute and the chain's state saved under the snapshot's name in the bucket, then writes one record entry; not measured.
+
+1. Deleting a snapshot removes it and records it, and leaves the world and its other snapshots as they were. *(thin line)*
+   - In: `quota-full`.
+   - Observes: world.snapshot.delete of `scratch` answers it as world.snapshot.list listed it. record.export lists one new entry, `snapshot_deleted`, carrying its world, its name and the record position it held; world.snapshot.list lists `base` alone, as before; world.show reads as before but for its record head, one higher. Deleting `scratch` again is refused with SnapshotNotFound.
+   - Refusals: `SnapshotNotFound`.
+   - Old: none; this claim is new.
+2. A snapshot a live world hangs from cannot be deleted, and stays as it was.
+   - In: `quota-full`.
+   - Observes: world.snapshot.delete of `base`, from which the second operator restored a world, is refused with SnapshotInUse naming that world, as world.snapshot.list's `inUseBy` names it; world.snapshot.list lists `base` unchanged, the record gains no entry, and world.show of the restored world still names `base` as its parent.
+   - Refusals: `SnapshotInUse`.
+   - Old: none; this claim is new.
+3. Only the world's owner may delete a snapshot, and only one that exists, of a world that exists.
+   - In: `quota-full`.
+   - Observes: world.snapshot.delete by the second operator is refused with NotWorldOwner naming the first operator; of a name with no world, with WorldNotFound; of `m9`, which was never saved, with SnapshotNotFound. The record gains no entry and world.snapshot.list lists the same snapshots.
+   - Refusals: `NotWorldOwner`, `WorldNotFound`, `SnapshotNotFound`.
    - Old: none; this claim is new.
