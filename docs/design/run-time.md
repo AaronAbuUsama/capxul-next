@@ -19,7 +19,7 @@ minutes is work. It is waiting**, in five kinds, and then every wait is lined up
 1. **Distance, about 14 minutes.** The runner is in the United States; Core runs next to it; Core's database and the
    chain, bundler and index are in Europe. Every database query is a round trip across the Atlantic, about a tenth of
    a second, where the query itself takes under a millisecond. A run makes about 2,400 queries, 1,270 lookups of the
-   world's own details, 880 calls from the runner to Core, and thousands of chain reads, and most of those are the
+   world's own details, 880 calls from the runner to Core, and the checks' own chain reads; most of those are the
    checks reading the world back, not the operation under test.
 2. **Things starting up, about 7 to 8 minutes.** After every reset the bundler takes 6 to 29 seconds to answer and the
    index 1 to 16 seconds to catch up; whole worlds are made (a deploy, a database branch, a registration) for the
@@ -285,8 +285,9 @@ locally is fast. It is the most build work of the three paths.
 Each is set out as options with a recommendation. Nothing here is decided until it is written in section 8 with its
 date.
 
-**D1. The target.** (a) Under 10 minutes, inside today's decisions (recommended: it is within reach without
-reopening anything). (b) Under 5, which needs D4.
+**D1. The target.** (a) Under 10 minutes in the cloud, inside today's decisions: within reach without reopening
+anything. (b) Under 5 in the cloud, which needs D4. (c) Under 5 on one machine, which needs D7. Recommended: (a) now,
+since it is mostly placement and plumbing, with (c) built beside it as the way under 5.
 
 **D2. How far lanes go.** (a) K rises to 7 while the four measures hold, the hub's capacity raised to match
 (recommended). (b) Keep a ceiling, such as K = 4, which is enough for under 10 minutes.
