@@ -1,8 +1,9 @@
-// The approval a held payment waits for (blueprint decisions.md, 23 and 28). doc.submit reads the payment from the
-// Payment Entry, its payee's address from the Supplier and its hash from what doc.create stored; opening the approval
-// for it is the approvals' work: the sponsored UserOperation the signer's signature will send, its digest, its
-// expiry and the payment's id on the chain, and the check that the company Safe holds the amount. approval.sign sends
-// it. That half is built with approval.sign (the chain operations), which provides `PaymentApprovals`.
+// The approval a held payment waits for (packages/blueprint/docs/decisions.md, entries 23 and 28). doc.submit reads the
+// payment from the Payment Entry, its payee's address from the Supplier and its hash from what doc.create stored;
+// opening the approval for it is the approvals' work: the sponsored UserOperation the signer's signature will send, its
+// digest, its expiry and the payment's id on the chain, and the check that the company Safe holds the amount.
+// approval.sign sends it. That half is built with approval.sign (the chain operations), which provides
+// `PaymentApprovals`.
 import type { Errors, Values } from "@capxul/blueprint";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";

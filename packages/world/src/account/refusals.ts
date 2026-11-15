@@ -1,5 +1,6 @@
 // How the platform's handlers keep their declared refusals and nothing else: any other failure of what they call
-// (a deploy, a database, the shared state) is a fault, which the caller sees as a defect (decisions.md, 10).
+// (a deploy, a database, the shared state) is a fault, which the caller sees as a defect
+// (packages/blueprint/docs/decisions.md, entry 10).
 import * as Effect from "effect/Effect";
 
 /** Keeps the failures `is` names as failures, and turns every other into a defect. */

@@ -3,9 +3,9 @@
 ### The platform (roadmap steps 1.6 and 1.12)
 
 `src/account` serves the blueprint's platform group with Effect's Rpc server at `PLATFORM_PATH`, on the loopback of
-the machine that holds the Cloudflare and Neon keys (blueprint decisions.md, 51): in the runner's own process
-(`packages/runner`, `src/worlds/platform.ts`), or by `./run.sh platform serve [--port 8790]`. Its sign-in and its
-spans are Core's middlewares; the first operator is `WORLD_OWNER` with `CAPXUL_PLATFORM_TOKEN`, the second
+the machine that holds the Cloudflare and Neon keys (packages/blueprint/docs/decisions.md, entry 51): in the runner's
+own process (`packages/runner`, `src/worlds/platform.ts`), or by `./run.sh platform serve [--port 8790]`. Its sign-in
+and its spans are Core's middlewares; the first operator is `WORLD_OWNER` with `CAPXUL_PLATFORM_TOKEN`, the second
 `WORLD_SECOND_OWNER` with `CAPXUL_SECOND_PLATFORM_TOKEN`.
 
 | Operation | What it does |
