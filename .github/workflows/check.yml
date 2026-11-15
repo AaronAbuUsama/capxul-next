@@ -49,3 +49,4 @@ jobs:
       - run: pnpm types
       - run: pnpm test
       - run: pnpm delta:check
+      - run: pnpm ratchets

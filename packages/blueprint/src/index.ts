@@ -76,6 +76,7 @@ export { MadeCall } from "./starting-points/facts.ts";
 export * as Chain from "./common/chain/chain.ts";
 export * as Site from "./common/site.ts";
 export { allClaims } from "./generated/promises.ts";
+export { ratchets, type Counter, type Ratchet } from "./ratchets.ts";
 export {
   Approvals,
   Board,
