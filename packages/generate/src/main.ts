@@ -3,7 +3,7 @@
 // writes nothing and fails when any would change. The root scripts build the contracts first. No generated file is
 // formatted after: each is written in its final form. An entry file: it reads the disk, parses JSON, sets the exit code.
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative, sep } from "node:path";
 import { layoutOf } from "@capxul/blueprint-tools";
 import * as Arr from "effect/Array";
 import * as Option from "effect/Option";
@@ -12,8 +12,8 @@ import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import { getContractAddress } from "viem";
 import { renderBlueprint } from "./blueprint.ts";
-import { renderAbi, renderSeeded, renderSite, renderSitePackage, type Seeded } from "./render.ts";
-import { ABIS, BLUEPRINT, FIRST_ACCOUNT, OUT, OUTPUTS, RECORD, SEED } from "./sources.ts";
+import { renderAbi, renderMap, renderSeeded, renderSite, renderSitePackage, type Seeded } from "./render.ts";
+import { ABIS, BLUEPRINT, FIRST_ACCOUNT, MAPS, OUT, OUTPUTS, RECORD, SEED } from "./sources.ts";
 
 const root = join(import.meta.dirname, "../../..");
 const literal = (value: unknown): string => JSON.stringify(value, null, 2);
@@ -133,9 +133,25 @@ const site = {
   SAFE_ACCOUNT_PREFIX: Site.SAFE_ACCOUNT_PREFIX,
 };
 
+/** Every TypeScript file under a package's src/ and page under its docs/, with its text, by its path in the package. */
+const mapped = (pkg: string) =>
+  Arr.flatMap(["src", "docs"], (folder) => {
+    const at = join(root, pkg, folder);
+    if (!existsSync(at)) return [];
+    const files = Arr.filter(
+      readdirSync(at, { recursive: true, withFileTypes: true }),
+      (entry) => entry.isFile() && /\.(ts|md)$/.test(entry.name),
+    );
+    return Arr.map(files, (entry) => {
+      const file = join(entry.parentPath, entry.name);
+      return { path: Arr.join(Str.split(relative(join(root, pkg), file), sep), "/"), text: readFileSync(file, "utf8") };
+    });
+  });
+
 const stale =
   staleIndexes +
   settle([
+    ...Arr.map(MAPS, (pkg) => [`${pkg}/generated/index.md`, renderMap(pkg, mapped(pkg))] as const),
     [OUTPUTS.abi.path, renderAbi(abis, literal)],
     [OUTPUTS.seeded.path, renderSeeded(seeded, literal)],
     [OUTPUTS.site.path, renderSite(site, literal)],

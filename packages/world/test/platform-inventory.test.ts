@@ -1,4 +1,4 @@
-// An operator's inventory as the platform serves it (src/platform/inventory.ts): world.list, world.snapshot.list and
+// An operator's inventory as the platform serves it (src/account/lists.ts): world.list, world.snapshot.list and
 // world.snapshot.delete, and world.snapshot.save's refusal to replace a snapshot in use. Each runs against an
 // in-memory shared state and stand-ins for Neon, the registry, each world's database and the hub (platform-stand-in.ts).
 //
@@ -8,11 +8,11 @@ import * as assert from "node:assert/strict";
 import { beforeEach, describe, test } from "node:test";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
-import { hangingFrom } from "../src/platform/branches.ts";
-import { instantOf } from "../src/platform/facts.ts";
-import { list, savedOf, snapshotDelete, snapshotList } from "../src/platform/inventory.ts";
-import { save } from "../src/platform/snapshots.ts";
-import type { SnapshotRow } from "../src/platform/store.ts";
+import { hangingFrom } from "../src/parts/database/branches.ts";
+import { instantOf } from "../src/things/world/store.ts";
+import { list, savedOf, snapshotDelete, snapshotList } from "../src/account/lists.ts";
+import { save } from "../src/account/snapshots.ts";
+import type { SnapshotRow } from "../src/account/store.ts";
 import { FAR, type Needs, type Outside, recordOf, runAs, WORLD_MS } from "./platform-stand-in.ts";
 
 const snapshot = (

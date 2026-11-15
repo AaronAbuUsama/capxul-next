@@ -6,7 +6,7 @@ import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
-import { WorldSettingsMissing } from "../failures.ts";
+import { WorldSettingsMissing } from "../common/failures.ts";
 
 export interface WorldSettings {
   readonly owner: string;
@@ -14,17 +14,17 @@ export interface WorldSettings {
   readonly expiresAt: string;
   /** The stage of the world this one is made from; none for a world made from nothing. */
   readonly forkedFrom: Option.Option<string>;
-  /** The shared bench the world's company sites are on, and its site token there (src/site/Bench.ts); none for a world with no bench. */
+  /** The shared bench the world's company sites are on, and its site token there (src/things/site/bench.ts); none for a world with no bench. */
   readonly bench: Option.Option<BenchGrant>;
   /**
    * The token of the operator who owns the world, which its Core accepts as the owner's at both doors (decisions.md,
    * 36). Left out, the world mints one of its own (`operator-token`).
    */
   readonly operatorToken: Option.Option<Redacted.Redacted>;
-  /** The fleet hub the world's chain, index and bundler live on (src/hub), and the world's door token there. */
+  /** The fleet hub the world's chain, index and bundler live on (src/things/cluster), and the world's door token there. */
   readonly hub: HubGrant;
   readonly doorToken: Redacted.Redacted;
-  /** The world's branch, made by its create through Neon's API (src/database/neon.ts): its id and connection string. */
+  /** The world's branch, made by its create through Neon's API (src/parts/database/neon.ts): its id and connection string. */
   readonly branch: { readonly id: string; readonly connectionUri: Redacted.Redacted };
 }
 

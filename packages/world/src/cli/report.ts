@@ -3,7 +3,7 @@ import * as Context from "effect/Context";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Str from "effect/String";
-import { InvalidDuration } from "../failures.ts";
+import { InvalidDuration } from "../common/failures.ts";
 
 /** Where a command's result goes. */
 export class Report extends Context.Service<Report, { readonly print: (value: unknown) => Effect.Effect<void> }>()(
