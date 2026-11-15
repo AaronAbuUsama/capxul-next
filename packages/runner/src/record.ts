@@ -48,6 +48,8 @@ export const RunRecord = Schema.Struct({
   outcome: Outcome,
   /** Where Core ran, when not on Cloudflare: the local-Core rehearsal's label (src/local/host.ts). */
   core: Schema.optional(Schema.String),
+  /** `cli`: the journey's calls went through the command line (`--via=cli`); left out, through the SDK. */
+  via: Schema.optional(Schema.Literal("cli")),
   failure: Schema.NullOr(Schema.String),
   /** How the run's own program ended, before any check; null when it never ran or did not finish. */
   ended: Schema.NullOr(Ended),

@@ -11,6 +11,7 @@
   "dependencies": {
     "@alchemy.run/cloudflare": "catalog:",
     "@capxul/blueprint": "workspace:*",
+    "@capxul/cli": "workspace:*",
     "@capxul/core": "workspace:*",
     "@capxul/scenarios": "workspace:*",
     "@capxul/sdk": "workspace:*",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",
+    "@effect/platform-node": "catalog:",
     "@effect/tsgo": "catalog:",
     "@types/bun": "catalog:",
     "@types/node": "catalog:",

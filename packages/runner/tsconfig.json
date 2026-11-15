@@ -10,7 +10,8 @@
         // Rpc, HTTP, the file system, paths and its Bun platform only as unstable modules, with no stable replacement.
         // The catalog's exact pin of effect is the guard, as in packages/blueprint. A local Core (src/local) also needs
         // sockets (its database bridge) and child processes (workerd), which Effect 4 ships only as unstable modules
-        // too, Bun's through the shared Node ones.
+        // too, Bun's through the shared Node ones. A test serves the SDK's TestDoor with
+        // @effect/platform-node's HTTP server, as the SDK's and the command line's tests do.
         "allowedUnstableApis": [
           "effect/rpc",
           "effect/http",
@@ -20,6 +21,7 @@
           "effect/net",
           "effect/process",
           "@effect/platform-bun",
+          "@effect/platform-node",
           "@effect/platform-node-shared"
         ]
       }

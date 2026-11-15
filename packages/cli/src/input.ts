@@ -1,19 +1,25 @@
 // What a command reads, derived from its operation's payload in the blueprint: one flag per field, and `--input`,
-// a JSON file holding the payload or part of it. This is the command line's input edge (.oxlintrc.json,
-// settings.capxul.jsonEdges): the one place it reads JSON text, which it decodes at once with the payload's schema.
-import { operations, type OperationName } from "@capxul/blueprint";
+// a JSON file holding the payload or part of it; and, the other way, the arguments that make a given call
+// (`argsOf`). This is the command line's input edge (.oxlintrc.json, settings.capxul.jsonEdges): the one place it
+// reads JSON text, which it decodes at once with the payload's schema, and writes a field's value as JSON text.
+import { operations, servedBy, type CallOptions, type OperationName } from "@capxul/blueprint";
+import * as Sdk from "@capxul/sdk";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Option from "effect/Option";
+import * as Predicate from "effect/Predicate";
 import * as Rec from "effect/Record";
 import * as Schema from "effect/Schema";
 import * as SchemaAST from "effect/SchemaAST";
 import * as Str from "effect/String";
 import * as CliError from "effect/cli/CliError";
 
-/** The flags every command has besides its fields' own. A payload field may not take one of these names. */
-export const RESERVED = { input: "input", as: "as" } as const;
+/**
+ * The flags a command has besides its fields' own: `--input` and `--operator` on every command, `--as` and `--at` on
+ * a world's. A payload field may not take the name of one its command has.
+ */
+export const RESERVED = { input: "input", as: "as", operator: "operator", at: "at" } as const;
 
 /** One field of an operation's payload and the flag that sets it. */
 export interface Field {
@@ -98,4 +104,42 @@ export const payloadOf = (name: OperationName, given: Given) =>
     return yield* Effect.mapError(Schema.decodeUnknownEffect(payload)({ ...fromFile, ...fromFlags }), (issue) =>
       CliError.UserError.make({ cause: issue, userMessage: `${name}: ${String(issue)}` }),
     );
+  });
+
+/** `--<flag>=<value>`, when the value is given. */
+const option = (flag: string, value: string | undefined) => (value === undefined ? [] : [`--${flag}=${value}`]);
+
+/** A field's value as its flag's text: a string as itself where the flag reads it back so, anything else as JSON. */
+const flagText = (field: Field, value: unknown) =>
+  Predicate.isString(value) && valueOf(field, value) === value
+    ? Effect.succeed(value)
+    : Effect.orDie(Schema.encodeUnknownEffect(JsonText)(value));
+
+/**
+ * The arguments of the command that makes this call: the operation's path, `--<flag>=<text>` for each field of its
+ * payload, encoded with the operation's own payload schema, and `--as`, `--operator` and `--at` for its options. A
+ * payload that is not of its schema has no arguments: it is rejected as the SDK rejects it (`PayloadRejected`, with
+ * the SDK's own check), before the command line runs. A platform operation takes no `as` or `at`.
+ */
+export const argsOf = (name: OperationName, payload: unknown, options: CallOptions = {}) =>
+  Effect.gen(function* () {
+    yield* Sdk.checkPayload(name, payload);
+    if (servedBy(name) === "platform" && (options.as !== undefined || options.at !== undefined))
+      return yield* Effect.die(`${name} is served by the platform: its command takes no --as or --at`);
+    const encoded = yield* Effect.orDie(
+      Schema.encodeUnknownEffect(Schema.toCodecJson(operations[name].rpc.payloadSchema))(payload),
+    );
+    const fields = yield* Effect.forEach(fieldsOf(name), (field) => {
+      const value = Predicate.hasProperty(encoded, field.field) ? encoded[field.field] : undefined;
+      return value === undefined
+        ? Effect.succeed([])
+        : Effect.map(flagText(field, value), (text) => [`--${field.flag}=${text}`]);
+    });
+    return [
+      ...Str.split(name, "."),
+      ...Arr.flatten(fields),
+      ...option(RESERVED.as, options.as),
+      ...option(RESERVED.operator, options.operator),
+      ...option(RESERVED.at, options.at),
+    ];
   });
