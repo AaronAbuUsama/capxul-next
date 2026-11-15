@@ -64,7 +64,7 @@ Events:
 
 1. The founder seats a member as a Director: one approval, the founder's own, and its signature alone lands it. It is never a Board proposal. *(thin line)*
    - In: `founded`.
-   - Observes: org.director.add as dana of sam answers the change proposed, 2 Directors at 2 before and 3 at 2 after, and one approval, dana's, at her signer address. The record gains one board_change_proposed carrying only change, org and action, and the company Safe's owners are unchanged until it lands. approval.sign by dana answers Sent for the board change at once, never Collected: through the door's chain RPC its transaction is one UserOperation whose sender is dana's personal Safe, it minted the Director hat to sam's Safe (chain.hat details Director, chain.wears), and chain.safe of Northwind's Safe lists dana's, eli's and sam's Safes at threshold 2. org.member.list then lists sam among the Directors.
+   - Observes: org.director.add as dana of sam answers the change proposed, 2 Directors at 2 before and 3 at 2 after, and one approval, dana's, at her signer address. The record gains one board_change_proposed carrying only change, org and action, and the company Safe's owners are unchanged until it lands. approval.sign by dana answers Sent for the board change at once, never Collected: through the door's chain RPC its transaction is one UserOperation whose sender is dana's personal Safe, it minted the Director hat to sam's Safe (chain.hat details Director, chain.wears), and chain.safe of Northwind's Safe lists dana's, eli's and sam's Safes at threshold 2. member.list then lists sam among the Directors.
    - Old: none; this claim is new.
 2. A full Board takes one more seat before the hat is minted.
    - In: `founded`.

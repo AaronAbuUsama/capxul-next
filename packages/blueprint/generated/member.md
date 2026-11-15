@@ -10,12 +10,12 @@ runner checks on every call, and the starting worlds a promise is in, are in [in
 Commands:
 
 - `capxul org member grant`
-- `capxul org member list`
+- `capxul member list`
 
 SDK calls:
 
 - `capxul["org.member.grant"]`
-- `capxul["org.member.list"]`
+- `capxul["member.list"]`
 
 Refusals, with their exit codes (every call can also be refused by sign-in, `NotSignedIn`, exit 3):
 
@@ -37,7 +37,7 @@ Events:
 | Operation | Claims | Old, word for word | Old, rewritten | New | Old, not kept |
 |---|---|---|---|---|---|
 | `org.member.grant` | 7 | 3 | 4 | 0 | 1 |
-| `org.member.list` | 2 | 0 | 0 | 2 | 0 |
+| `member.list` | 2 | 0 | 0 | 2 | 0 |
 
 ## 1. `org.member.grant`
 
@@ -82,7 +82,7 @@ Old claims not kept:
 
 - `acc:org.member.grant/c-6fd22fa2a0774ed8`: "With the Director proposals gate off it is refused, and Manage books needs the books gate too." Why: Feature gates are not part of the thin line; they come back with the journey that switches parts on and off.
 
-## 2. `org.member.list`
+## 2. `member.list`
 
 - Served by: the world group.
 - Refusals: `OrgNotFound`, `NotAMember`, `NotImplemented`, and `NotSignedIn` from sign-in.
@@ -91,10 +91,10 @@ Old claims not kept:
 
 1. The company's people: its Directors in the board's order, then its members in the order they joined. *(thin line)*
    - In: `founded`.
-   - Observes: org.member.list as dana of Northwind answers dana and eli as Directors, then sam and pat as members, each with the email of their cast entry; after olga accepts, olga follows pat as a member, and she sees the same list. It reads only: the record gains no entry.
+   - Observes: member.list as dana of Northwind answers dana and eli as Directors, then sam and pat as members, each with the email of their cast entry; after olga accepts, olga follows pat as a member, and she sees the same list. It reads only: the world's history gains no entry.
    - Old: none; this claim is new.
 2. Only the company's own people, and the world's owner, see it.
    - In: `founded`.
-   - Observes: org.member.list as the world's owner answers what it answers dana. As olga before she accepts it is refused with NotAMember naming Northwind and olga; of a company nobody founded, with OrgNotFound. record.export shows no new entry.
+   - Observes: member.list as the world's owner answers what it answers dana. As olga before she accepts it is refused with NotAMember naming Northwind and olga; of a company nobody founded, with OrgNotFound. The world's history shows no new entry.
    - Refusals: `NotAMember`, `OrgNotFound`.
    - Old: none; this claim is new.

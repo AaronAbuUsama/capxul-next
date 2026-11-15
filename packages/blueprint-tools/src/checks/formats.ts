@@ -6,9 +6,10 @@ import * as Arr from "effect/Array";
 import * as Predicate from "effect/Predicate";
 import * as Rec from "effect/Record";
 import { refusalsOf, type EventClass, type Operation } from "../language/operation.ts";
+import { named, type Declared as DeclaredMachine } from "../language/lifecycle.ts";
 import type { ClaimsOf } from "../language/promise.ts";
 import type { Format } from "./format.ts";
-import { machineFormat, type Declared, type DomainShape, type MachineShape } from "./machine-format.ts";
+import { machineFormat, type Declared, type DomainShape } from "./machine-format.ts";
 import {
   allowedFormat,
   budgetFormat,
@@ -27,7 +28,7 @@ export type FormatName = (typeof FORMATS)[number];
 /** One of the blueprint's domains, as the formats read it. */
 export interface Domain {
   readonly operations: { readonly [operation: string]: Operation };
-  readonly machines: { readonly [machine: string]: MachineShape };
+  readonly machines: { readonly [machine: string]: DeclaredMachine };
   readonly stateless?: unknown;
 }
 
@@ -53,7 +54,7 @@ const shapeOf = (domain: Domain): DomainShape => ({
   operations: Rec.map(domain.operations, (operation) =>
     Arr.map(refusalsOf(operation), (refusal) => refusal.identifier),
   ),
-  machines: domain.machines,
+  machines: Rec.map(domain.machines, named),
   stateless: isReasons(domain.stateless) ? domain.stateless : undefined,
 });
 
