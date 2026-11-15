@@ -14,13 +14,16 @@
 import type { CallOptions, OperationName } from "@capxul/blueprint";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
-import type { Capxul, Failure, Given, Payload, Refusal, Success } from "../client.ts";
+import type { Capxul, Failure, Given, Payload, Refusal, Success, ThisCall } from "../client.ts";
 import type { ExpectationFailed } from "../expectation.ts";
 import type { Journal } from "../journal.ts";
 import { same } from "../support/expect.ts";
 
-/** What a check may read: the client, the starting world's facts, and the journey's own memory. */
+/** What a read before the call may read: the client, the starting world's facts, and the journey's own memory. */
 export type Looks = Capxul | Given | Journal;
+
+/** What a check may read: what a read before the call may, and the call it judges (its trace). */
+export type Judging = Looks | ThisCall;
 
 /** What a check, or a read before the call, may fail with. */
 export type Failed = ExpectationFailed | Failure;
@@ -28,7 +31,7 @@ export type Failed = ExpectationFailed | Failure;
 /** One check of one call: what it says, and the Effect that fails when it does not hold. */
 export interface Check {
   readonly says: string;
-  readonly holds: Effect.Effect<void, Failed, Looks>;
+  readonly holds: Effect.Effect<void, Failed, Judging>;
 }
 
 /** One call of an operation as a step made it. */
@@ -86,7 +89,7 @@ export const checks = <N extends OperationName, B>(set: CheckSet<N, B>): Checks<
 });
 
 /** A check: `says` holds when `holds` succeeds. */
-export const check = (says: string, holds: Effect.Effect<void, Failed, Looks>): Check => ({ says, holds });
+export const check = (says: string, holds: Effect.Effect<void, Failed, Judging>): Check => ({ says, holds });
 
 /** Every operation's checks, by name: one set each, and the compiler holds that every operation has its set. */
 export type AllChecks = { readonly [N in OperationName]: Checks<N> };
