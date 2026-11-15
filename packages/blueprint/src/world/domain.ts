@@ -12,6 +12,9 @@ import * as World from "./operations.ts";
 export * from "./operations.ts";
 export * from "./inventory.ts";
 
+/** Its machines, by name (src/machine.ts): none yet. */
+export const machines = {} as const;
+
 /** Its operations, by name. */
 export const operations = {
   "world.create": World.create,
@@ -23,6 +26,13 @@ export const operations = {
   "world.snapshot.list": Inventory.snapshotList,
   "world.snapshot.delete": Inventory.snapshotDelete,
 } as const;
+
+/** Its operations that move no thing with a lifecycle (src/machine-format.ts), each with why. */
+export const stateless: { readonly [Name in keyof typeof operations]?: string } = {
+  "world.show": "a read: shows one world and changes nothing",
+  "world.list": "a read: lists the caller's worlds and changes nothing",
+  "world.snapshot.list": "a read: lists a world's snapshots and changes nothing",
+};
 
 /** What the platform's world service serves of it (`PlatformRpcs`). */
 export const platformRpcs = RpcGroup.make(

@@ -1,7 +1,7 @@
 // org.member.invite and org.member.list: a company's founder invites a person by email to be a member, and its
 // people (and the world's owner) list who belongs. An invitation is pending at once: a Seat is off the chain and off
 // the site, so nothing is signed and nothing but Core's database and the world's record is written.
-import { Errors, type People } from "@capxul/blueprint";
+import { Errors, machines, type People } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -47,7 +47,7 @@ export const memberInvite = Effect.fn("org.member.invite.send")(function* (invit
     email: invite.email,
     role: invite.role,
     invitedBy: who.name,
-    state: "pending",
+    state: machines.invitation.start.state,
     invitedAt: instant(now.timestampMs),
   };
   yield* sql.withTransaction(

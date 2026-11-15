@@ -27,6 +27,7 @@ import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import { HubMissing, LifetimeTooLong, WorldsStillExist } from "../failures.ts";
 import { describeFailure } from "../lifecycle/describe.ts";
 import { expiryOf, lifetimeAllowed } from "../lifecycle/expiry.ts";
+import { forgetHub } from "../lifecycle/kept.ts";
 import { checkOwner } from "../lifecycle/validate.ts";
 import { forgetStage, recordedOutput, recordedStages, recordOutput, secretOf, SharedState } from "../stack/engine.ts";
 import { openedState } from "../stack/stack.ts";
@@ -177,6 +178,7 @@ export const hubUp = Effect.fn("world.hub.up")(function* (spec: {
     Effect.provideService(HubSettings, Option.some({ owner, expiresAt })),
     Effect.scoped,
   );
+  yield* forgetHub(spec.stage);
   return yield* Schema.decodeEffect(HubOutput)(output);
 });
 
@@ -194,5 +196,6 @@ export const hubDown = Effect.fn("world.hub.down")(function* (stage: string) {
   const plan = yield* Alchemist.plan({ stack: hubStack(openedState(store)), operation: "destroy", stage });
   yield* Alchemist.apply(plan);
   yield* forgetStage(stage, HUB_STACK);
+  yield* forgetHub(stage);
   return { hub: stage, resourcesDestroyed: plan.summary.delete };
 }, Effect.scoped);

@@ -23,11 +23,14 @@ The plan this line follows is [docs/roadmap.md](docs/roadmap.md).
 - **The blueprint** (`packages/blueprint`) says what Capxul does: its operations, refusals, events and starting worlds,
   as Effect declarations the product imports.
 - **The world** (`packages/world`) says what runs where: the Alchemy stacks that create and destroy a world.
-- **Run records**, made by checks and scenario runs, say what is proven. Nobody writes one by hand.
+- **Verdicts** say what is proven: made only by CI, kept on the orphan branch `proofs`, each notarised by a GitHub
+  check (roadmap step 4.5). What happened is **telemetry**, in the sink. Until 4.5 lands, run records made by checks and
+  scenario runs stand in for verdicts; nobody writes one by hand, and a run from an agent's container is never proof.
 
 Every fact has one owner in code. Everything else that needs it imports it, generates it from it, or is checked
 against it, so two places cannot disagree (`docs/roadmap.md`, "One source for every fact"). Which owner holds which
-fact, and how it will be checked, is in "How a feature is built" below. Nothing checks this as a whole yet: roadmap
+fact, and how it will be checked, is in "How a feature is built" below; the design behind it is
+[docs/design/blueprint.md](docs/design/blueprint.md). Nothing checks this as a whole yet: roadmap
 steps 3.1 and 3.3 add the checks.
 
 ## Worlds
@@ -51,8 +54,8 @@ A world is created, used and destroyed as one unit, with an owner and an expiry.
   everything else it needs, the world and the runner's plumbing included (readiness, caching, connections), and every
   such change shows in its diff. Nothing checks this yet; the reviewer reads the diff.
 - Measure first. Every run record holds every operation's timings, caller and server, with the spans of each step. A
-  budget stays provisional and is never enforced until it is set from measured runs, so nothing fails on speed until
-  then. Nothing checks this yet.
+  budget is a target: nothing ever fails on speed, and a measured p95 over 1.5 times its budget raises an architecture
+  review as a task (roadmap, "Budgets are targets"). Nothing checks this yet.
 - CI (`.github/workflows/check.yml`, job `gate`) runs rungs 1 to 5 of the ladder on every pull request and every
   push to `master`. `.github/workflows/world.yml`, job `thin-line`, runs rung 6 on slice pull requests into `master`
   and once a day on `master`.
@@ -136,14 +139,17 @@ them by reading the diff.
 | Operations, payloads, answers, refusals and exit codes, events, claims, starting worlds | The blueprint, in the operation's domain | Core's server, the SDK, the CLI, `claims.md`, the types of the scenarios' checks |
 | A thing's lifecycle (3.4) | The blueprint, the domain's `machines.ts` | The state schema, the closing refusal's `state` field, the `step` function Core moves state with, the SQL CHECK constraint (in a new migration whenever the states change: an applied migration is never edited), the diagram in `claims.md`, the runner's path check, coverage |
 | Who may call an operation (5.1) | The blueprint: roles declared once, `allowed` on each operation | Core's one standing check, the generated refusal steps |
-| An operation's steps and logs (4.1) | The blueprint, the domain's `steps.ts` | The generic checks, the waits a budget leaves out |
+| An operation's steps and logs (4.1) | The blueprint, the operation's own file (3.6) | The generic checks, the waits a budget leaves out |
+| The pipeline's own work: worlds, resets, sites, starting worlds, journeys, the checks, proofs (3.6) | The blueprint, the domain `pipeline` | The runner's and the world's spans (4.7), the proof names in the roadmap |
+| Telemetry names: the envelope, producers, step kinds, metrics, datasets, monitors (3.6) | The blueprint, `src/telemetry/` | The attribute constants, each process's resource, the datasets and routing `packages/platform` creates, Axiom's monitors and dashboards |
+| Ratchets (3.6) | The blueprint's registry | `pnpm ratchets`, the dashboard's lines |
 | Contract events and functions (3.1) | The compiled contracts in `packages/contracts` (`forge build`; Foundry runs in CI and in the agents' environment) | One generated ABI module, imported by the blueprint, Core and the indexer |
 | Contract addresses on the seeded chain (3.1) | `packages/contracts/deployments/devnet.json` | One generated table, imported by Core and `packages/world` |
 | The seeded chain state (3.2) | The contracts and their deploy script | `packages/contracts/state/core.json`, rebuilt by one command and checked in CI |
 | A person's account (5.2) | The blueprint: grade groups, account version, the email's normalisation, the derivation | The salt Core sends to `claim`; checked against the contract's `safeAddressFor` |
 | Capxul's own names on a company's site (3.1) | The blueprint, `src/documents/site.ts` | A generated Python module in `packages/frappe-app` |
-| What runs where | `packages/world` | |
-| What is proven | Run records | The roadmap's step states |
+| What runs where, and where telemetry goes | `packages/world`, `packages/platform` | |
+| What is proven | Verdicts on `proofs` (4.5); run records until then | The roadmap's step states |
 
 These rules make "typed once" and "measured" checks rather than hopes (3.3, 4.1), each with its ratchet:
 
@@ -199,15 +205,17 @@ What counts as good, in this order:
    they recovered, and speed and cost per journey across runs. These are trends to read, not thresholds.
 
 Coverage is reported with every run: which moves of each machine, and which refused pairs of a state and an
-operation, some journey step reached. It is the scenario author's target, not a gate. A budget stays provisional and is
-never enforced until it is set from measured runs.
+operation, some journey step reached. Every newly declared move, refusal and outcome must be reached by a journey before
+its slice merges into `master`; existing declarations sit on ratchet R9's list (3.7). A budget is a target and never
+fails a run.
 
 ### A new format reaches old work by a ratchet
 
 A new or changed operation uses a new format from the day it lands. Existing declarations are moved to it in the same
 slice where that is cheap; the rest are listed in the format's `unmigrated` list, which a test allows only to shrink,
 and the format's roadmap step closes when the list is empty. New work is born compliant; old work catches up in
-parallel and blocks nothing. A migration changes no behaviour: every journey stays
+parallel and blocks nothing. Every ratchet is declared once in the blueprint's registry, and `pnpm ratchets` fails a pull
+request whose list grew (3.6; `docs/design/blueprint.md`, part 4). A migration changes no behaviour: every journey stays
 green. Generic checks added by such a slice are written by a different agent from the one that migrates Core.
 
 ## The ladder
@@ -218,11 +226,11 @@ Run `pnpm check` before you open a pull request. It runs rungs 1 to 5 in order a
 | Rung | Command | What fails it |
 |---|---|---|
 | 1. Shape | `pnpm shape` | An entry at the top level, a package or a file under `docs/` that `packages/lint/src/shape.ts` does not list; a package or spike with no `README.md`; a source file under `packages/` over 300 lines; the two lists of entry files in `.oxlintrc.json` naming different paths |
-| 2. Format | `pnpm format:check`, `pnpm generate:check` | TypeScript or JavaScript under `packages/` that oxfmt would change (config: `packages/lint/oxfmt.json`); a generated file that `pnpm generate` would write differently (it builds the contracts with Foundry first, `packages/generate`) |
+| 2. Format | `pnpm format:check`, `pnpm generate:check`, `pnpm seed:check` | TypeScript or JavaScript under `packages/` that oxfmt would change (config: `packages/lint/oxfmt.json`); a generated file that `pnpm generate` would write differently (it builds the contracts with Foundry first, `packages/generate`); a seeded chain state (`packages/contracts/state/core.json`, `deployments/devnet.json`) that `pnpm seed` would rebuild differently |
 | 3. Lint | `pnpm lint` | Any finding of `.oxlintrc.json`, every rule an error: oxlint's correctness and suspicious rules and a few more, all of Effect's rules from `@effect/tsgo` but two (each off with its reason), and ours from `packages/lint` (below) |
 | 4. Types | `pnpm types` | A type error in any TypeScript package, or an Effect language service error or warning (`effect-tsgo tsc`) |
-| 5. Tests | `pnpm test` | A failing unit test in any package (`pnpm frappe:test` and `pnpm status:test` included). Foundry's tests in `packages/contracts` are not in it: CI builds only the contracts, not their tests |
-| 6. Proof | `packages/runner/run.sh scenarios` | A scenario that fails in a fresh world. CI runs it in `.github/workflows/world.yml` once the bootstrap has given CI its Cloudflare and Neon keys (roadmap step 1.8) |
+| 5. Tests | `pnpm test`, then `pnpm delta:check` (and `pnpm ratchets` from 3.6) | A failing unit test in any package (`pnpm frappe:test` and `pnpm status:test` included). Foundry's tests in `packages/contracts` are not in it: CI builds only the contracts, not their tests. Then the delta check: an operation that lacks a format that exists and is not on that format's `unmigrated` list (`packages/blueprint/src/formats.ts`). From 3.6, a ratchet whose list grew |
+| 6. Proof | `packages/runner/run.sh scenarios` (and `prove.yml` from 4.5) | A scenario that fails in a fresh world; from 3.7, a newly declared move, refusal or outcome no journey reaches. CI runs it in `.github/workflows/world.yml` once the bootstrap has given CI its Cloudflare and Neon keys (roadmap step 1.8) |
 
 Our lint rules, each tested in `packages/lint/test/rules.test.ts`:
 
@@ -234,6 +242,18 @@ Our lint rules, each tested in `packages/lint/test/rules.test.ts`:
 - `capxul/import-door`: another package is imported only through its door, `src/door.ts`, or by its bare name.
 - `capxul/no-json-text`: no `JSON.parse`, `JSON.stringify`, `Schema.parseJson` or string schema documented as JSON
   outside entry files and the edges listed under `settings.capxul.jsonEdges`.
+- `capxul/owned-values`: a raw schema (`Schema.String`, `Schema.Literals`, ...) only in the blueprint's values files
+  and machines, and there only as a named value, never as a field; elsewhere only in entry files and the edges listed
+  under `settings.capxul.schemaEdges`, each with its reason.
+- `capxul/declared-names`: a name the blueprint declares (an operation, a refusal, an event, an outcome, a starting
+  world) is imported, never written as a string outside the blueprint, except where the compiler checks it (an
+  object's key, a computed member, the tag given to `catchTag`, `Match.tag` or `isTagged`).
+- `capxul/decoded-rows`: no `sql<Row>` cast outside the blueprint; rows are decoded with the blueprint's schemas.
+
+These three are ratcheted: what each found when it was turned on is on its list in `packages/lint/src/unmigrated.ts`,
+a file with a count that may only fall (`packages/lint/README.md` says how to lower it). New files are never added.
+Each skips generated files: a file whose first line is a comment starting `// Generated`, written by `pnpm generate`
+and never edited.
 
 What the ladder does not cover: `spikes/` (temporary code, deleted when its step graduates it; only its README is
 checked), Ponder's files in `packages/indexer` (type-checked only), the Solidity in `packages/contracts`, and the

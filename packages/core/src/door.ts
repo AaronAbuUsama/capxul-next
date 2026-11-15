@@ -11,6 +11,7 @@ export { ENV as CORE_ENV } from "./env.ts";
 export { HEALTH_PATH, PROBE_PATH } from "./probe.ts";
 export { SiteDoor, SiteDoorFailed, type SiteAnswer, type SiteCall } from "./site/SiteDoor.ts";
 export { SpanSink, SqlSpanSink } from "./telemetry/sink.ts";
+export { Placement, SPAN_ATTRIBUTES, SpanAttributes, type Where } from "./telemetry/attributes.ts";
 export { keepingTracer, outcomeOf, type KeptSpan, type SpanOutcome } from "./telemetry/spans.ts";
 
 /** Core's Worker module, as Alchemy bundles it: what a local Core (packages/runner, `--core=local`) builds too. */

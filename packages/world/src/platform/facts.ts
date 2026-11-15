@@ -12,7 +12,7 @@ import * as Rec from "effect/Record";
 import type * as Redacted from "effect/Redacted";
 import * as Schema from "effect/Schema";
 import { Values } from "@capxul/blueprint";
-import { query, transaction, type Statement } from "../database/sql.ts";
+import { transaction, type Statement } from "../database/sql.ts";
 import { PlatformFailed } from "../failures.ts";
 import { describeFailure } from "../lifecycle/describe.ts";
 import type { Member } from "./cast.ts";
@@ -188,12 +188,18 @@ export const factsOf = Effect.fnUntraced(function* (rows: unknown, cast: unknown
   };
 });
 
-/** Everything the world's database says of the world, its clock read at `hostMs`. */
+const FACTS: ReadonlyArray<Statement> = [
+  { query: ONE, params: [] },
+  { query: CAST, params: [] },
+  { query: COMPANIES, params: [] },
+];
+
+/**
+ * Everything the world's database says of the world, its clock read at `hostMs`: its three reads sent as one request
+ * (one round trip, and one snapshot of the database).
+ */
 export const readFacts = Effect.fn("platform.facts")(function* (database: Redacted.Redacted, hostMs: number) {
-  const [rows, cast, companies] = yield* Effect.all(
-    [query(database, ONE), query(database, CAST), query(database, COMPANIES)],
-    { concurrency: 3 },
-  );
+  const [rows = [], cast = [], companies = []] = yield* transaction(database, FACTS);
   return yield* factsOf(rows, cast, companies, hostMs);
 }, Effect.mapError(failed));
 

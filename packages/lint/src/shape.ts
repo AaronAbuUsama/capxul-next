@@ -11,6 +11,8 @@ export const TOP_LEVEL: Readonly<Record<string, string>> = {
   "CLAUDE.md": "a link to AGENTS.md, for Claude",
   "README.md": "what this is and where things are",
   "GROUNDING.md": "Aaron's strategy",
+  "notes.md":
+    "Aaron's working notes (the CLI as the one surface, the names of things), until the blueprint session folds them into docs/",
   "package.json": "the root scripts: the ladder",
   "pnpm-workspace.yaml": "the workspace and its one version catalog",
   "pnpm-lock.yaml": "the exact versions installed",
@@ -20,7 +22,7 @@ export const TOP_LEVEL: Readonly<Record<string, string>> = {
   ".github": "CI and the pull request template",
   ".claude":
     "Claude Code's settings for every session: the tools agents may run without asking, and what they may never run",
-  docs: "only docs/roadmap.md, the plan this line follows",
+  docs: "docs/roadmap.md, the plan this line follows, and docs/design/blueprint.md, the blueprint's design",
   packages: "the code, one package per component",
   spikes: "throwaway code that proves a risk, deleted when its step graduates it",
 };
@@ -45,8 +47,8 @@ export const PACKAGES: Readonly<Record<string, string>> = {
     "`pnpm generate`: writes every derived file from its owner, the compiled contracts, the seed and the blueprint",
 };
 
-/** The only file allowed under docs/. */
-export const DOCS: ReadonlyArray<string> = ["docs/roadmap.md"];
+/** The only files allowed under docs/. */
+export const DOCS: ReadonlyArray<string> = ["docs/roadmap.md", "docs/design/blueprint.md"];
 
 /** Longest source file allowed, in lines. The lint rule max-lines says the same for TypeScript. */
 export const MAX_LINES = 300;

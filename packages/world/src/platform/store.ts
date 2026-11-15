@@ -2,7 +2,7 @@
 // the registry of world names: the spans of every platform call, which world each successful call acted on (its
 // events are in that world's record), and every snapshot a world has saved. The world group's spans stay in each
 // world's own database, where its Core keeps them.
-import { type KeptSpan, SpanSink } from "@capxul/core";
+import { type KeptSpan, SPAN_ATTRIBUTES, SpanAttributes, SpanSink } from "@capxul/core";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -21,6 +21,8 @@ const TABLES = [
   "create schema if not exists platform",
   "create table if not exists platform.spans (id bigint generated always as identity primary key, trace_id text not null, span_id text not null, parent_span_id text, name text not null, outcome text not null, duration_ms double precision not null, ended_ms double precision not null)",
   "create index if not exists platform_spans_trace on platform.spans (trace_id)",
+  // A span's declared attributes (Core's src/telemetry/attributes.ts), as in Core's app.spans (its migration 0008).
+  "alter table platform.spans add column if not exists attributes jsonb",
   "create table if not exists platform.calls (trace_id text primary key, stage text not null)",
   "create table if not exists platform.snapshots (stage text not null, snapshot text not null, branch_id text not null, record_seq integer not null, clock_mode text not null, clock_ms double precision not null, template boolean not null, saved_at text not null, companies integer not null, migrations text not null, primary key (stage, snapshot))",
 ];
@@ -32,6 +34,13 @@ export const prepareStore = Effect.flatMap(registry, (database) =>
     Arr.map(TABLES, (statement) => ({ query: statement, params: [] })),
   ),
 ).pipe(Effect.asVoid, Effect.mapError(failed("telemetry")));
+
+/**
+ * A span's declared attributes as jsonb, built by Postgres from one typed parameter each, so no JSON text is written
+ * here: an attribute not set is left out, and a span with none keeps null.
+ */
+const attributesFrom = (colo: string, queryMs: string, queryCount: string) =>
+  `nullif(jsonb_strip_nulls(jsonb_build_object('${SPAN_ATTRIBUTES.colo}', ${colo}::text, '${SPAN_ATTRIBUTES.queryMs}', ${queryMs}::float8, '${SPAN_ATTRIBUTES.queryCount}', ${queryCount}::int)), '{}'::jsonb)`;
 
 /** Keeps every platform call's spans in `platform.spans`, as Core keeps a world call's in `app.spans`. */
 export const PlatformSpanSink = (database: Redacted.Redacted) =>
@@ -52,15 +61,16 @@ export const PlatformSpanSink = (database: Redacted.Redacted) =>
                 span.outcome,
                 span.durationMs,
                 span.endedMs,
+                span.attributes?.[SPAN_ATTRIBUTES.colo] ?? null,
+                span.attributes?.[SPAN_ATTRIBUTES.queryMs] ?? null,
+                span.attributes?.[SPAN_ATTRIBUTES.queryCount] ?? null,
               );
-              return `(${Arr.join(
-                Arr.makeBy(7, (index) => `$${base + index + 1}`),
-                ", ",
-              )})`;
+              const at = (index: number) => `$${base + index + 1}`;
+              return `(${Arr.join(Arr.makeBy(7, at), ", ")}, ${attributesFrom(at(7), at(8), at(9))})`;
             });
             yield* query(
               database,
-              `insert into platform.spans (trace_id, span_id, parent_span_id, name, outcome, duration_ms, ended_ms) values ${Arr.join(rows, ", ")}`,
+              `insert into platform.spans (trace_id, span_id, parent_span_id, name, outcome, duration_ms, ended_ms, attributes) values ${Arr.join(rows, ", ")}`,
               params,
             );
           }).pipe(Effect.provide(context), Effect.orDie),
@@ -86,6 +96,7 @@ const SpanRows = Schema.Array(
     outcome: Schema.String,
     duration_ms: Schema.Finite,
     ended_ms: Schema.Finite,
+    attributes: Schema.NullOr(SpanAttributes),
   }),
 );
 const CallRows = Schema.Array(Schema.Struct({ trace_id: Schema.String, stage: Schema.String }));
@@ -96,7 +107,7 @@ export const keptOf = (traceIds: ReadonlyArray<string>) =>
     const database = yield* registry;
     const spans = yield* query(
       database,
-      "select trace_id, span_id, parent_span_id, name, outcome, duration_ms, ended_ms from platform.spans where trace_id = any($1) order by id",
+      "select trace_id, span_id, parent_span_id, name, outcome, duration_ms, ended_ms, attributes from platform.spans where trace_id = any($1) order by id",
       [traceIds],
     ).pipe(Effect.flatMap(Schema.decodeUnknownEffect(SpanRows)));
     const calls = yield* query(database, "select trace_id, stage from platform.calls where trace_id = any($1)", [

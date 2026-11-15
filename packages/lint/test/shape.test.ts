@@ -33,7 +33,9 @@ test("an entry at the top level that is not listed is a problem", () => {
 
 test("only the roadmap lives under docs", () => {
   const problems = shapeProblems({ files: [...clean, "docs/philosophy.md"], lines: short, entries });
-  assert.deepEqual(problems, ['docs: "docs/philosophy.md" is not allowed; only docs/roadmap.md lives under docs/']);
+  assert.deepEqual(problems, [
+    'docs: "docs/philosophy.md" is not allowed; only docs/roadmap.md, docs/design/blueprint.md lives under docs/',
+  ]);
 });
 
 test("a package not in the allowlist is a problem", () => {

@@ -9,12 +9,21 @@ import * as Budgets from "./operations.ts";
 
 export * from "./operations.ts";
 
+/** Its machines, by name (src/machine.ts): none yet. */
+export const machines = {} as const;
+
 /** Its operations, by name. */
 export const operations = {
   "org.budget.create": Budgets.create,
   "org.budget.show": Budgets.show,
   "org.budget.list": Budgets.list,
 } as const;
+
+/** Its operations that move no thing with a lifecycle (src/machine-format.ts), each with why. */
+export const stateless: { readonly [Name in keyof typeof operations]?: string } = {
+  "org.budget.show": "a read: shows one budget from the chain and changes nothing",
+  "org.budget.list": "a read: lists a company's budgets and changes nothing",
+};
 
 /** What the platform's world service serves of it (`PlatformRpcs`). */
 export const platformRpcs = RpcGroup.make();

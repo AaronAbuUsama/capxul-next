@@ -37,7 +37,8 @@ import { nameOf } from "../stack/names.ts";
 import { liftBranchExpiry } from "./account.ts";
 import { extendClaim, registry } from "./claim.ts";
 import { renewalOf } from "./expiry.ts";
-import { handle, WorldOutput } from "./parts.ts";
+import { handle, WorldOutput } from "./handle.ts";
+import { forgetWorld } from "./kept.ts";
 import { Limits } from "./spec.ts";
 import { mustExist } from "./world.ts";
 
@@ -110,6 +111,8 @@ export const renew = Effect.fn("world.renew")(function* (name: string, lifetime:
       deployStage(stage, Option.some(settings)).pipe(Effect.flatMap(Schema.decodeUnknownEffect(WorldOutput))),
     );
     yield* timed("migrate", migrate(connectionUri, CORE_MIGRATIONS));
+    // What was kept of the world was worked out for its old expiry; the handle keeps what the renewal made.
+    yield* forgetWorld(stage);
     const renewed = yield* handle(deployed, { token: doorToken, database: connectionUri });
     yield* timed("core", steady(renewed.coreUrl));
     return renewed;
