@@ -1,5 +1,5 @@
 // A company's site, as the blueprint's operations will reach it (doc.*, report.run;
-// packages/blueprint/docs/decisions.md, entry 40): ERPNext's own REST calls, through the site door of the world's bench
+// packages/blueprint, src/common/site.ts): ERPNext's own REST calls, through the site door of the world's bench
 // (packages/platform, door/door.py), on the site's own credential, never with the bench's admin. The door checks the
 // world's site token on every call and carries a call only to a site of that world.
 //

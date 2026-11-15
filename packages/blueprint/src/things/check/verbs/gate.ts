@@ -17,6 +17,8 @@ export const checkGate = work({
     types: span("check.gate.types", StepKind.compute),
     test: span("check.gate.test", StepKind.compute),
     delta: span("check.gate.delta", StepKind.compute),
+    ratchets: span("check.gate.ratchets", StepKind.compute),
+    words: span("check.gate.words", StepKind.compute),
   },
   logs: { failed: log("check.gate.failed", { rung: Rung }) },
   budget: {

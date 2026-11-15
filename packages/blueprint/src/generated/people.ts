@@ -12,27 +12,34 @@ import * as InvitationVerbsDecline from "../things/invitation/verbs/decline.ts";
 import * as MemberVerbsList from "../things/member/verbs/list.ts";
 import { Invitation as InvitationLifecycle } from "../things/invitation/lifecycle.ts";
 
-export { Email, InvitationId, InvitedRole, InvitationState, Invitation } from "../things/invitation/values.ts";
+export {
+  Email,
+  InvitationId,
+  InvitedRole,
+  RefusalRule,
+  InvitationState,
+  Invitation,
+} from "../things/invitation/values.ts";
 export { MemberInvited, InvitationAccepted, InvitationDeclined } from "../things/invitation/events.ts";
 export { MemberRole, Member } from "../things/member/values.ts";
-export { memberInvite } from "../things/invitation/verbs/send.ts";
-export { inviteList } from "../things/invitation/verbs/list.ts";
-export { Accepted, AlreadyAccepted, inviteAccept } from "../things/invitation/verbs/accept.ts";
-export { inviteDecline } from "../things/invitation/verbs/decline.ts";
+export { invitationSend } from "../things/invitation/verbs/send.ts";
+export { invitationList } from "../things/invitation/verbs/list.ts";
+export { Accepted, AlreadyAccepted, invitationAccept } from "../things/invitation/verbs/accept.ts";
+export { invitationDecline } from "../things/invitation/verbs/decline.ts";
 export { memberList } from "../things/member/verbs/list.ts";
 
 /** Its operations, by name. */
 export const operations = {
-  "org.member.invite": InvitationVerbsSend.memberInvite,
-  "invite.list": InvitationVerbsList.inviteList,
-  "invite.accept": InvitationVerbsAccept.inviteAccept,
-  "invite.decline": InvitationVerbsDecline.inviteDecline,
+  "invitation.send": InvitationVerbsSend.invitationSend,
+  "invitation.list": InvitationVerbsList.invitationList,
+  "invitation.accept": InvitationVerbsAccept.invitationAccept,
+  "invitation.decline": InvitationVerbsDecline.invitationDecline,
   "org.member.list": MemberVerbsList.memberList,
 } as const;
 
 /** Its operations that move no thing with a lifecycle, each with why: each such verb's `stateless`. */
 export const stateless: { readonly [Name in keyof typeof operations]?: string } = {
-  "invite.list": InvitationVerbsList.stateless,
+  "invitation.list": InvitationVerbsList.stateless,
   "org.member.list": MemberVerbsList.stateless,
 };
 
@@ -46,18 +53,18 @@ export const platformRpcs = RpcGroup.make();
 
 /** What a world's Core serves of it, through the world's door (`WorldRpcs`). */
 export const worldRpcs = RpcGroup.make(
-  InvitationVerbsSend.memberInvite.rpc,
-  InvitationVerbsList.inviteList.rpc,
-  InvitationVerbsAccept.inviteAccept.rpc,
-  InvitationVerbsDecline.inviteDecline.rpc,
+  InvitationVerbsSend.invitationSend.rpc,
+  InvitationVerbsList.invitationList.rpc,
+  InvitationVerbsAccept.invitationAccept.rpc,
+  InvitationVerbsDecline.invitationDecline.rpc,
   MemberVerbsList.memberList.rpc,
 );
 
 /** The promises of each of its operations: each verb's `promises`. */
 export const claims: { readonly [Name in keyof typeof operations]: ClaimsOf } = {
-  "org.member.invite": InvitationVerbsSend.promises,
-  "invite.list": InvitationVerbsList.promises,
-  "invite.accept": InvitationVerbsAccept.promises,
-  "invite.decline": InvitationVerbsDecline.promises,
+  "invitation.send": InvitationVerbsSend.promises,
+  "invitation.list": InvitationVerbsList.promises,
+  "invitation.accept": InvitationVerbsAccept.promises,
+  "invitation.decline": InvitationVerbsDecline.promises,
   "org.member.list": MemberVerbsList.promises,
 };

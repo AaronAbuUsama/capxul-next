@@ -8,7 +8,7 @@
 import * as Schema from "effect/Schema";
 import * as Struct from "effect/Struct";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, claim } from "@capxul/blueprint-tools";
+import { verb, claim } from "@capxul/blueprint-tools";
 import { NotImplemented } from "../../../common/refusals.ts";
 import { OperatorName, WorldView } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
@@ -21,7 +21,7 @@ export const ListedWorld = Schema.Struct({
   snapshots: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
 });
 
-export const list = declare({
+export const list = verb({
   rpc: Rpc.make("world.list", {
     payload: {},
     success: Schema.Struct({

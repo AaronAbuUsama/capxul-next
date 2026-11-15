@@ -10,8 +10,8 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 ## `src/approvals/`
 
 - [`landed.ts`](../src/approvals/landed.ts): What a subject's landing means beyond its transaction, by kind, and what must hold before it is sent.
-- [`payments.ts`](../src/approvals/payments.ts): The approval of a payment from a company Safe, which doc.submit holds (packages/blueprint/docs/decisions.md, entries 23 and 28): one UserOperation of the member's own Safe, `Budgets.spend` from the company's top budget, whose hat (Books) the member's Safe wears, so Budgets pays from the company Safe through its Roles and Gate, and Payments sends it with the document's hash.
-- [`sign.ts`](../src/approvals/sign.ts): approval.sign: a signer's signature of the digest their approval names (packages/blueprint/docs/decisions.md, entry 42), checked and kept.
+- [`payments.ts`](../src/approvals/payments.ts): The approval of a payment from a company Safe, which doc.submit holds (packages/blueprint, src/things/approval/values.ts and src/things/document/verbs/submit.ts): one UserOperation of the member's own Safe, `Budgets.spend` from the company's top budget, whose hat (Books) the member's Safe wears, so Budgets pays from the company Safe through its Roles and Gate, and Payments sends it with the document's hash.
+- [`sign.ts`](../src/approvals/sign.ts): approval.sign: a signer's signature of the digest their approval names (packages/blueprint, src/common/values.ts), checked and kept.
 - [`store.ts`](../src/approvals/store.ts): The approvals an operation opened and the subjects they authorise (migrations/0005_approvals.sql).
 
 ## `src/board/`
@@ -26,7 +26,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 ## `src/budgets/`
 
 - [`chain.ts`](../src/budgets/chain.ts): A company's budgets as the world's chain holds them now (Budgets.sol, `budgetOf`, `leftOf` and `childrenOf` at the latest block), and the people of the cast whose Safe wears a budget's hat.
-- [`create.ts`](../src/budgets/create.ts): org.budget.create: a budget is a Directors' proposal (packages/blueprint/docs/decisions.md, entry 53).
+- [`create.ts`](../src/budgets/create.ts): org.budget.create: a budget is a Directors' proposal (packages/blueprint, src/things/budget/values.ts).
 - [`handlers.ts`](../src/budgets/handlers.ts): The handlers of the world group's budgets operations, as src/domains/budgets.ts names them.
 - [`landed.ts`](../src/budgets/landed.ts): What the landing of a budget's creation means beyond its transaction (src/approvals/landed.ts gathers it with every other domain's): the creation is created, as the budget its transaction's BudgetCreated log names, so the budget is known by the name it was proposed with.
 - [`read.ts`](../src/budgets/read.ts): org.budget.show and org.budget.list: a company's budgets as the chain holds them now (./chain.ts), with the people whose Safe wears each one's hat, named as Core keeps them: the top budget as its company is, any other as it was proposed.
@@ -34,14 +34,14 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 
 ## `src/cast/`
 
-- [`Cast.ts`](../src/cast/Cast.ts): A world's cast as Core's operations read it: each person's email, the address that signs for them and their claimed personal Safe (packages/blueprint/docs/decisions.md, entry 25).
+- [`Cast.ts`](../src/cast/Cast.ts): A world's cast as Core's operations read it: each person's email, the address that signs for them and their claimed personal Safe (packages/blueprint, src/starting-points/cast.ts).
 
 ## `src/`
 
-- [`chain.ts`](../src/chain.ts): The world's chain, read through Core's world door at the blueprint's `CHAIN_PATH` (packages/blueprint/docs/decisions.md, entry 34): JSON-RPC that answers only `CHAIN_READ_METHODS`, signed in as the world door is (the door token, or the owner's token), and carried to the world's own chain door (packages/world) over a service binding.
+- [`chain.ts`](../src/chain.ts): The world's chain, read through Core's world door at the blueprint's `CHAIN_PATH` (packages/blueprint, src/common/chain/reads.ts): JSON-RPC that answers only `CHAIN_READ_METHODS`, signed in as the world door is (the door token, or the owner's token), and carried to the world's own chain door (packages/world) over a service binding.
 - [`door.ts`](../src/door.ts): The package's door.
 - [`doors.ts`](../src/doors.ts): Core's two doors on one Worker: the platform group at `/platform` and the world group at `/world`, each an HTTP POST of Effect Rpc in JSON, as the SDK's transport calls them (a trailing slash is the same door).
-- [`empty-handlers.ts`](../src/empty-handlers.ts): Core's empty-handler mode: every operation of both groups refuses with the blueprint's `NotImplemented`, naming itself (packages/blueprint/docs/decisions.md, entry 33), whatever is built in src/handlers.ts.
+- [`empty-handlers.ts`](../src/empty-handlers.ts): Core's empty-handler mode: every operation of both groups refuses with the blueprint's `NotImplemented`, naming itself (packages/blueprint, src/common/refusals.ts), whatever is built in src/handlers.ts.
 - [`env.ts`](../src/env.ts): What a deploy of Core binds into its Worker's environment, by name, and how the running Worker reads it back.
 - [`failures.ts`](../src/failures.ts): Core's own failures, declared here once: faults of the infrastructure Core reaches, not refusals of the contract, which are the blueprint's.
 - [`handlers.ts`](../src/handlers.ts): The handlers of every blueprint operation, gathered from Core's handlers of each blueprint domain (src/domains/, one file per domain, each with its share of the groups it serves).
@@ -74,7 +74,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 ## `src/organizations/`
 
 - [`caller.ts`](../src/organizations/caller.ts): Who a call through the world's door acts as, by the name its refusals use, and world time as the blueprint writes it.
-- [`found.ts`](../src/organizations/found.ts): org.create: a company founded in one step (packages/blueprint/docs/decisions.md, entry 26).
+- [`found.ts`](../src/organizations/found.ts): org.create: a company founded in one step (packages/blueprint, src/things/company/verbs/create.ts).
 - [`grant.ts`](../src/organizations/grant.ts): org.member.grant: a permission is a Director proposal (org.member.grant 1).
 - [`handlers.ts`](../src/organizations/handlers.ts): The handlers of the world group's chain operations, as src/handlers.ts names them: org.create, org.member.grant and approval.sign.
 - [`ids.ts`](../src/organizations/ids.ts): New ids for what Core's operations make: a prefix the blueprint's value names (`org_`, `apr_`, `chg_`, `prp_`, `req_`, `inv_`, `bch_`, `bcr_`) and twelve random letters and digits, from Effect's Random.
@@ -85,9 +85,10 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 
 ## `src/people/`
 
-- [`answer.ts`](../src/people/answer.ts): invite.list, invite.accept and invite.decline: the person who signs in with an invitation's email lists it and answers it.
+- [`answer.ts`](../src/people/answer.ts): invitation.list, invitation.accept and invitation.decline: the person who signs in with an invitation's email lists it and answers it.
 - [`handlers.ts`](../src/people/handlers.ts): The handlers of the world group's people operations, as src/domains/people.ts names them.
-- [`invite.ts`](../src/people/invite.ts): org.member.invite and org.member.list: a company's founder invites a person by email to be a member, and its people (and the world's owner) list who belongs.
+- [`invite.ts`](../src/people/invite.ts): invitation.send and org.member.list: a company's founder invites a person by email to be a member, and its people (and the world's owner) list who belongs.
+- [`refused.ts`](../src/people/refused.ts): Where an invitation's verb refuses: it writes the log its declaration names for that refusal (the blueprint's `refusals`, each to one of its `logs`), naming the rule or the state that decided, then fails with the refusal.
 - [`roster.ts`](../src/people/roster.ts): Who belongs to a company: its Directors in the board's order, then its members, the founding ones first and then those who joined by an invitation, in the order they joined.
 - [`store.ts`](../src/people/store.ts): What Core keeps of the domain "people" (migrations/0006_people_invitations.sql): the invitations a company's founder sent and the members who joined by accepting one.
 
@@ -103,20 +104,20 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 
 - [`cast.ts`](../src/site-ops/cast.ts): Who a person of the world is on a company's site: their site user, the cast's email for them (the blueprint's `CastMember.email`).
 - [`chain-time.ts`](../src/site-ops/chain-time.ts): Moving the world's chain with its clock: the next block is set to the warp's instant and mined, so the chain's head is at or after the world's new time (claims.md, world.clock.warp 1).
-- [`clock.ts`](../src/site-ops/clock.ts): The world's clock, as Core keeps it in the world's database (`app.clock`, migrations/0002_site_ops.sql): frozen at an instant, or running at rate 1 from host time plus an offset (packages/blueprint/docs/decisions.md, entry 20).
+- [`clock.ts`](../src/site-ops/clock.ts): The world's clock, as Core keeps it in the world's database (`app.clock`, migrations/0002_site_ops.sql): frozen at an instant, or running at rate 1 from host time plus an offset (packages/blueprint, src/things/world/verbs/create.ts).
 - [`documents.ts`](../src/site-ops/documents.ts): doc.create, doc.submit and report.run: a company's documents and reports on its site, run as the caller's own site user through the Capxul app's `capxul.core_api` (sites.ts).
 - [`door.ts`](../src/site-ops/door.ts): The door of Core's document, report, clock and record operations (doc.create, doc.submit, report.run, world.clock.warp, record.export): their handlers, what they run on, and the seams other parts of Core fill.
-- [`hashes.ts`](../src/site-ops/hashes.ts): The hash doc.create answered for each document it made, kept in the world's database (`app.documents`, migrations/0002_site_ops.sql): a payment held for the document names this hash (packages/blueprint/docs/decisions.md, entry 28).
+- [`hashes.ts`](../src/site-ops/hashes.ts): The hash doc.create answered for each document it made, kept in the world's database (`app.documents`, migrations/0002_site_ops.sql): a payment held for the document names this hash (packages/blueprint, src/things/document/verbs/submit.ts).
 - [`live.ts`](../src/site-ops/live.ts): The five operations of this part of Core, and what they run on: in a deployed Core, the world's database, its site door, its chain and its cast; in a test, all of it in memory.
 - [`memory.ts`](../src/site-ops/memory.ts): What the five operations run on in a test: everything in memory, with a site door that answers as the test says.
-- [`payments.ts`](../src/site-ops/payments.ts): The approval a held payment waits for (packages/blueprint/docs/decisions.md, entries 23 and 28).
-- [`record.ts`](../src/site-ops/record.ts): The world's record (packages/blueprint/docs/decisions.md, entry 8): the ordered list of every event emitted in the world, kept as rows of `app.events` (migrations/0001_telemetry.sql), the rows the runner's `events` check reads under each call's trace.
+- [`payments.ts`](../src/site-ops/payments.ts): The approval a held payment waits for (packages/blueprint, src/things/approval/values.ts and src/things/document/verbs/submit.ts).
+- [`record.ts`](../src/site-ops/record.ts): The world's record (packages/blueprint, src/things/history/verbs/export.ts): the ordered list of every event emitted in the world, kept as rows of `app.events` (migrations/0001_telemetry.sql), the rows the runner's `events` check reads under each call's trace.
 - [`sites.ts`](../src/site-ops/sites.ts): A company's site, as the document, report and clock operations reach it: the Capxul app's `capxul.core_api` methods (packages/frappe-app), called through the world's site door (`SiteDoor`) as the site's own API user.
 - [`world.ts`](../src/site-ops/world.ts): world.clock.warp and record.export: the world's clock and its record, the world owner's alone.
 
 ## `src/site/`
 
-- [`SiteDoor.ts`](../src/site/SiteDoor.ts): A company's site, as the blueprint's operations will reach it (doc.*, report.run; packages/blueprint/docs/decisions.md, entry 40): ERPNext's own REST calls, through the site door of the world's bench (packages/platform, door/door.py), on the site's own credential, never with the bench's admin.
+- [`SiteDoor.ts`](../src/site/SiteDoor.ts): A company's site, as the blueprint's operations will reach it (doc.*, report.run; packages/blueprint, src/common/site.ts): ERPNext's own REST calls, through the site door of the world's bench (packages/platform, door/door.py), on the site's own credential, never with the bench's admin.
 
 ## `src/stack/`
 

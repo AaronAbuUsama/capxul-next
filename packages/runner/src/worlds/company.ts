@@ -1,12 +1,15 @@
-// The makers of the starting worlds with a company (packages/blueprint/docs/decisions.md, entries 26 to 28, 38 to 41;
+// The makers of the starting worlds with a company (packages/blueprint, src/things/company/verbs/create.ts,
+// src/starting-points/points.ts, src/things/document/verbs/submit.ts, src/starting-points/facts.ts and
+// src/common/site.ts;
 // step 1.12): `founded`, `office-holder`, `payment-drafted`, `payment-held` and `paid`, each made by its declaration's
 // steps (packages/blueprint, src/starting-points/points.ts) through the door of the world the steps run in, from the
 // one before. Every answer a step names becomes its fact, encoded as the blueprint encodes it.
 //
 // Signatures are made with the cast's keys, the blueprint's `CAST_KEYS`, as a person's agent would: the digest an
-// approval names, signed as it is (packages/blueprint/docs/decisions.md, entries 23 and 42), with viem
-// (packages/blueprint/docs/decisions.md, entry 34). A wait polls an operation until it answers differently
-// (packages/blueprint/docs/decisions.md, entry 27).
+// approval names, signed as it is (packages/blueprint, src/things/approval/values.ts and src/common/values.ts), with
+// viem
+// (packages/blueprint, src/common/chain/reads.ts). A wait polls an operation until it answers differently
+// (packages/blueprint, src/starting-points/points.ts).
 import { Site, Values, startingWorlds } from "@capxul/blueprint";
 import { Capxul } from "@capxul/scenarios";
 import * as Arr from "effect/Array";

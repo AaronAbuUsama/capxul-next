@@ -1,7 +1,7 @@
 // `capxul document submit` (today `doc.submit`): posting a document, or holding a payment for its signer.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declareOutcomes, outcome, claim, kept } from "@capxul/blueprint-tools";
+import { verb, outcome, claim, kept } from "@capxul/blueprint-tools";
 import {
   InsufficientBalance,
   NoSiteUser,
@@ -17,6 +17,10 @@ import { heldPayment, postedInvoice } from "../examples.ts";
 import { NotADraft } from "../refusals.ts";
 import { Doctype, Held, Posted } from "../values.ts";
 
+// Two kinds of success, because the document decides, not the caller: a document is posted, or a payment is held
+// for its signer. The hold reads the payee, the amount and the asset from the Payment Entry, the payee's address
+// from the Supplier, and the document's hash from what `doc.create` stored; its sponsorship is done before this
+// answers, so the approval's digest is known.
 const submitRpc = Rpc.make("doc.submit", {
   payload: { org: OrgId, doctype: Doctype, name: Schema.String },
   success: Schema.Union([Posted, Held]),
@@ -31,7 +35,7 @@ const submitRpc = Rpc.make("doc.submit", {
   ]),
 });
 
-export const submit = declareOutcomes({
+export const submit = verb({
   rpc: submitRpc,
   outcomes: {
     Posted: outcome(submitRpc, "Posted", [

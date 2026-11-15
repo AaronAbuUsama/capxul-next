@@ -134,7 +134,6 @@ export const unmigrated: {
     "packages/core/src/domains/world.ts": 7,
     "packages/core/src/organizations/found.ts": 1,
     "packages/core/src/organizations/grant.ts": 1,
-    "packages/core/src/people/invite.ts": 1,
     "packages/core/src/site-ops/memory.ts": 1,
     "packages/core/src/site-ops/record.ts": 1,
     "packages/core/test/board-sql.test.ts": 31,

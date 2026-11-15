@@ -1,14 +1,14 @@
 // `capxul world show` (today `world.show`): one world as it is now.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, claim, kept } from "@capxul/blueprint-tools";
+import { verb, claim, kept } from "@capxul/blueprint-tools";
 import { NotImplemented } from "../../../common/refusals.ts";
 import { WorldName, WorldView } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
 import { exampleWorld } from "../examples.ts";
 import { WorldNotFound } from "../refusals.ts";
 
-export const show = declare({
+export const show = verb({
   rpc: Rpc.make("world.show", {
     payload: { world: WorldName },
     success: WorldView,

@@ -1,5 +1,6 @@
 // The world's clock, as Core keeps it in the world's database (`app.clock`, migrations/0002_site_ops.sql): frozen at
-// an instant, or running at rate 1 from host time plus an offset (packages/blueprint/docs/decisions.md, entry 20). No
+// an instant, or running at rate 1 from host time plus an offset (packages/blueprint,
+// src/things/world/verbs/create.ts). No
 // row is a running clock at host time. Every event's time is read from it, and world.clock.warp moves it.
 import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";

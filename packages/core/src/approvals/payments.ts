@@ -1,5 +1,6 @@
-// The approval of a payment from a company Safe, which doc.submit holds (packages/blueprint/docs/decisions.md, entries
-// 23 and 28): one UserOperation of the member's own Safe, `Budgets.spend` from the company's top budget, whose hat
+// The approval of a payment from a company Safe, which doc.submit holds (packages/blueprint,
+// src/things/approval/values.ts and src/things/document/verbs/submit.ts): one UserOperation of the member's own Safe,
+// `Budgets.spend` from the company's top budget, whose hat
 // (Books) the member's Safe wears, so Budgets pays from the company Safe through its Roles and Gate, and Payments sends
 // it with the document's hash. It is prepared now, so its digest is known before doc.submit answers; approval.sign
 // sends it with the member's signature. The payment's id on the chain is what `spend` answers, read by simulating it

@@ -44,8 +44,9 @@ const doorFor = (name: OperationName, own: Door, reach: Reach | null, options?: 
 const unreached: Door = { send: () => Effect.fail(Errors.NotSignedIn.make({ reason: "no_credential" })) };
 
 /**
- * The payload, checked against its operation's schema before anything is sent (packages/blueprint/docs/decisions.md,
- * entry 43). The command line runs the same check on a call before it writes the call's arguments (packages/cli,
+ * The payload, checked against its operation's schema before anything is sent (packages/blueprint,
+ * src/common/refusals.ts). The command line runs the same check on a call before it writes the call's arguments
+ * (packages/cli,
  * `argsOf`).
  */
 export const checkPayload = (name: OperationName, payload: unknown): Effect.Effect<void, Errors.PayloadRejected> =>

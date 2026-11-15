@@ -1,17 +1,25 @@
 // `capxul snapshot restore` (today `world.snapshot.restore`): a new world made from a snapshot.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, claim, kept, dropped } from "@capxul/blueprint-tools";
+import { verb, claim, kept, dropped } from "@capxul/blueprint-tools";
 import { NotImplemented, NotWorldOwner } from "../../../common/refusals.ts";
 import { SnapshotName, WorldName, WorldView } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
-import { created, WorldCreated } from "../../world/events.ts";
+import { WorldCreated } from "../../world/events.ts";
+import { created } from "../../world/values.ts";
 import { WorldExists, WorldNotFound, WorldQuotaReached } from "../../world/refusals.ts";
 import { Lifetime } from "../../world/values.ts";
 import { restoredWorld } from "../examples.ts";
 import { ExpiryBeyondSource, SnapshotNotFound } from "../refusals.ts";
 
-export const snapshotRestore = declare({
+// A restore always makes a new world, a fork: it is cheap, keeps the record append-only, and needs no epochs. Each
+// site is made again in the new world from the snapshot's backup (`bench new-site --source-sql`, with the backup's
+// encryption key), joined to the new world and its clock, and the new world's companies point at their new sites; the
+// site service restores only backups of the world whose token is shown beside the new world's. The running code is
+// deployed and its pending migrations applied to the fork; a snapshot whose migrations are not a prefix of the
+// code's fails as a fault, not a refusal (no journey could make one through the door), and the templates are remade
+// on every change to the code. It answers once the new world's Core has answered its health check ten times in a row.
+export const snapshotRestore = verb({
   rpc: Rpc.make("world.snapshot.restore", {
     payload: { world: WorldName, snapshot: SnapshotName, as: WorldName, lifetimeMinutes: Lifetime },
     success: WorldView,
@@ -48,6 +56,9 @@ export const server = "platform";
 export const promises: ClaimsOf = {
   operation: snapshotRestore,
   claims: [
+    // Read where the promise is silent (R9): both worlds continue one naming series, so a document can have the same
+    // name in each; the journey checks that each world's books, record head and Safe balances are unchanged by the
+    // other world's calls, rather than "in that world's General Ledger only".
     claim(
       "A restore into a separate world leaves the first world untouched and the two never see each other.",
       w.withSnapshot,
