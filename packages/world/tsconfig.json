@@ -11,7 +11,8 @@
         // and migrations), child processes (the proofs run the command line as a person does) and Bun's runtime,
         // which Alchemy needs, and Rpc, with which the platform serves the blueprint's platform group (src/platform);
         // paths and digests too, with which a deploy fingerprints an image's inputs (src/stack/images.ts), and Node's
-        // platform services, which the tests that read files run on.
+        // platform services, which the tests that read files run on; and SQL, with which test/old-rows.test.ts reads
+        // rows written by earlier code from a real Postgres, as Core does.
         // The catalog's exact pin of effect is the guard.
         "allowedUnstableApis": [
           "effect/http",
@@ -23,7 +24,8 @@
           "effect/process",
           "@effect/platform-bun",
           "@effect/platform-node",
-          "effect/rpc"
+          "effect/rpc",
+          "effect/sql"
         ]
       }
     ]
