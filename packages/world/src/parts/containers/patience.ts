@@ -5,7 +5,7 @@
 // tried again until the container is ready, with backoff, within a declared window, and every try is written down
 // with how long it took. The chain, the index and the bundler each start their containers through here.
 //
-// Each window is a declared limit (roadmap lifecycle rule 6), set from measured runs (README, Timings), and sits
+// Each window is a declared limit (roadmap lifecycle rule 6), set from measured runs (records/README.md, "Before the cluster"), and sits
 // inside the declared timeout of the world step that waits on it (src/things/world/values.ts, checked by
 // test/patience.test.ts), so a refused start fails as the part's own failure, with its tries, before the step's
 // timeout would cut it off.
@@ -30,7 +30,7 @@ export interface Patience {
 }
 
 /**
- * The chain: anvil answers within 1 to 3 s of an accepted start (README, Timings: the chain step's median is 2.5 s).
+ * The chain: anvil answers within 1 to 3 s of an accepted start (records/README.md, "Before the cluster": the chain step's median is 2.5 s).
  * Two minutes is far past any start seen, and leaves a minute of the chain step's 3 for the rest of it.
  */
 export const CHAIN_START: Patience = {
@@ -43,7 +43,7 @@ export const CHAIN_START: Patience = {
  * The index: in the twenty creates recorded before this window (packages/runner/records, run-717645 and run-e710b3),
  * Cloudflare refused the index's first start for 0 to 54 s in nineteen and for all of the 180 s the step then had in
  * one. Four minutes, as long as the bundler, which is refused in the same way on the same kind of application, has
- * always had; the index step adds a minute for Ponder's own start (README, Timings).
+ * always had; the index step adds a minute for Ponder's own start (records/README.md, "Before the cluster").
  */
 export const INDEX_START: Patience = {
   within: Duration.minutes(4),
@@ -51,7 +51,7 @@ export const INDEX_START: Patience = {
   most: Duration.seconds(4),
 };
 
-/** The bundler: alto on a new container application took 2 to 13 start calls and up to 44.6 s (README, Timings). */
+/** The bundler: alto on a new container application took 2 to 13 start calls and up to 44.6 s (records/README.md, "Before the cluster"). */
 export const BUNDLER_START: Patience = {
   within: Duration.minutes(4),
   first: Duration.seconds(1),
