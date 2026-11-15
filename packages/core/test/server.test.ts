@@ -7,8 +7,10 @@ import {
   Errors,
   operations,
   PERSON_HEADER,
+  PlatformRpcs,
   TRACE_HEADER,
   servedBy,
+  WorldRpcs,
   type OperationName,
 } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
@@ -81,7 +83,7 @@ const failureOf = (exit: Exit.Exit<unknown, unknown>): unknown =>
   Exit.isFailure(exit) ? exit.cause.pipe(Cause.findErrorOption, Option.getOrUndefined) : undefined;
 
 test("every unbuilt operation answers NotImplemented, naming itself, under one span kept with the caller's trace id", async () => {
-  assert.equal(names.length, 12);
+  assert.equal(names.length, PlatformRpcs.requests.size + WorldRpcs.requests.size);
   for (const [index, name] of Arr.map(unbuilt, (each, i) => [i, each] as const)) {
     const traceId = trace(index + 1);
     const { exit, kept } = await Effect.runPromise(

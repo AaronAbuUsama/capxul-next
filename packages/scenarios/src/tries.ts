@@ -13,15 +13,14 @@ import * as Exit from "effect/Exit";
 import * as Option from "effect/Option";
 import * as Predicate from "effect/Predicate";
 import * as Ref from "effect/Ref";
-import { operationChecks } from "./checks/all.ts";
-import type { Answer, Asked, Check } from "./checks/format.ts";
+import { OperationChecks, type AllChecks, type Answer, type Asked, type Check } from "./checks/format.ts";
 import { Capxul, type CapxulClient, type Failure, type Payload, type Refusal, type Success } from "./client.ts";
 import { ExpectationFailed } from "./expectation.ts";
 import { Journal, Steps, type CheckOutcome } from "./journal.ts";
 import { said, shown } from "./said.ts";
 import { WAIT } from "./support/wait.ts";
 
-type Needs = Capxul | import("./client.ts").Given | Steps | Journal;
+type Needs = Capxul | import("./client.ts").Given | Steps | Journal | OperationChecks;
 type Failed = ExpectationFailed | Failure;
 type KindOf<N extends OperationName> = Success<N> extends { readonly _tag: infer T extends string } ? T : never;
 
@@ -91,9 +90,9 @@ const callOf = (capxul: CapxulClient, name: OperationName) =>
   capxul[name] as unknown as (payload: unknown, options?: CallOptions) => Effect.Effect<unknown, Failure>;
 
 /** The checks of `name`, typed loosely, as `callOf`. */
-const checksOf = (name: OperationName) =>
+const checksOf = (all: AllChecks, name: OperationName) =>
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the checks of an operation judge that operation's calls only; a try hands them the call it made of it
-  operationChecks[name] as unknown as {
+  all[name] as unknown as {
     readonly prepare: (
       asked: Asked<OperationName>,
     ) => Effect.Effect<(answer: Answer<OperationName>) => ReadonlyArray<Check>, Failed, Needs>;
@@ -115,7 +114,8 @@ const attempt = (step: number, asked: Asked<OperationName>, expected: Expected, 
     const capxul = yield* Capxul;
     const steps = yield* Steps;
     const journal = yield* Journal;
-    const prepared = yield* Effect.exit(checksOf(asked.operation).prepare(asked));
+    const checks = yield* OperationChecks;
+    const prepared = yield* Effect.exit(checksOf(checks, asked.operation).prepare(asked));
     const call = callOf(capxul, asked.operation)(asked.payload, asked.options);
     let exit = yield* Effect.exit(call);
     for (let left = WAIT.attempts; left > 1 && repeats(again, exit); left -= 1) {
