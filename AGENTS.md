@@ -164,7 +164,7 @@ them by reading the diff.
 These rules make "typed once" and "measured" checks rather than hopes (3.3, 4.1), each with its ratchet:
 
 - In the blueprint, a raw schema (`Schema.String`, `Schema.Literals`, `Schema.Number`, ...) appears only in a values
-  file or a machine; every field of an operation, event or refusal is a named value. Outside the blueprint, raw schemas
+  file, a machine or the telemetry vocabulary (`src/telemetry/`); every field of an operation, event or refusal is a named value. Outside the blueprint, raw schemas
   appear only in edge files listed in `.oxlintrc.json`, each with its reason, and stored rows are decoded with the
   blueprint's schemas.
 - A declared name (an operation, event, refusal, state or span) is imported, never written as a string.
@@ -259,8 +259,8 @@ Our lint rules, each tested in `packages/lint/test/rules.test.ts`:
   blueprint and its toolkit), or by its bare name.
 - `capxul/no-json-text`: no `JSON.parse`, `JSON.stringify`, `Schema.parseJson` or string schema documented as JSON
   outside entry files and the edges listed under `settings.capxul.jsonEdges`.
-- `capxul/owned-values`: a raw schema (`Schema.String`, `Schema.Literals`, ...) only in the blueprint's values files
-  and machines, and there only as a named value, never as a field; elsewhere only in entry files and the edges listed
+- `capxul/owned-values`: a raw schema (`Schema.String`, `Schema.Literals`, ...) only in the blueprint's values files,
+  machines and telemetry vocabulary, and there only as a named value, never as a field; elsewhere only in entry files and the edges listed
   under `settings.capxul.schemaEdges`, each with its reason.
 - `capxul/declared-names`: a name the blueprint declares (an operation, a refusal, an event, an outcome, a starting
   world) is imported, never written as a string outside the blueprint, except where the compiler checks it (an
