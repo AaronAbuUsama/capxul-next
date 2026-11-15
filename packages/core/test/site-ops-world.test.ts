@@ -2,13 +2,15 @@
 // warp moves, and the record an export answers.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { Errors } from "@capxul/blueprint";
+import { Errors, World } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
+import * as Option from "effect/Option";
 import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
 import { madeFromNothing, memoryChainTime } from "../src/site-ops/door.ts";
 import { WARP_STEP_MS, warpSteps } from "../src/site-ops/world.ts";
+import { SPAN_ATTRIBUTES, type KeptSpan } from "../src/door.ts";
 import { fields, ORG, refusal, run, site, START, value, world, type Asked } from "./support/site-ops.ts";
 
 /** What a site answers a warp of a week. */
@@ -89,6 +91,78 @@ test("a long warp moves the sites in stretches of at most 14 days, the clock wri
       assert.equal(bodies[0]?.from_ms, START);
       assert.equal(bodies[bodies.length - 1]?.to_ms, end);
       assert.equal(yield* Ref.get(chain.head), end / 1000);
+    }),
+  ));
+
+/** What a site answers a warp when it says where its time went (capxul/core_api.py, `warp`). */
+const timedWarp = (body: Record<string, unknown>) => ({
+  site: "s",
+  stops: 2,
+  jobs: 190,
+  ms: 1900.5,
+  setup_ms: 120,
+  stop_ms: [880, 900.5],
+  stop_jobs: [95, 95],
+  slowest: [
+    { job: "erpnext.daily_maintenance", runs: 2, ms: 700 },
+    { job: "capxul.clock.daily", runs: 2, ms: 60 },
+  ],
+  asked: body["to_ms"],
+});
+
+test("a warp's record says where its time went: a span per stretch, under it a span per site with the site's times", () =>
+  run(
+    Effect.gen(function* () {
+      const asked: Array<Asked> = [];
+      const spans: Array<KeptSpan> = [];
+      const chain = yield* memoryChainTime(Math.floor(START / 1000) - 60);
+      const { call } = yield* world({
+        chain: chain.layer,
+        record: [madeFromNothing("town", "ci", START)],
+        sites: [site("a-town.w", ORG, asked, { warp: timedWarp }), site("b-town.w", "org_b00001", asked, { warp })],
+        spans,
+      });
+      value(yield* call(World.clockWarp.rpc._tag, { target: { _tag: "by", seconds: 20 * 24 * 3600 } }));
+      const named = (name: string) => Arr.filter(spans, (span) => span.name === name);
+      const stretches = named("world.clock.warp.stretch");
+      const warped = Arr.findFirst(spans, (span) => span.spanId === stretches[0]?.parentSpanId).pipe(
+        Option.getOrUndefined,
+      );
+      assert.equal(warped?.name, World.clockWarp.rpc._tag);
+      const calls = named("world.clock.warp.site");
+      assert.equal(stretches.length, 2, "20 days: a stretch of 14 days and one of 6");
+      assert.ok(Arr.every(stretches, (stretch) => stretch.parentSpanId === warped?.spanId));
+      assert.deepEqual(
+        Arr.map(stretches, (stretch) => [
+          stretch.attributes?.[SPAN_ATTRIBUTES.warpFrom],
+          stretch.attributes?.[SPAN_ATTRIBUTES.warpTo],
+        ]),
+        [
+          ["2026-11-13T09:00:00.000Z", "2026-11-27T09:00:00.000Z"],
+          ["2026-11-27T09:00:00.000Z", "2026-12-03T09:00:00.000Z"],
+        ],
+      );
+      assert.equal(calls.length, 4, "each stretch through both sites");
+      const stretchIds = Arr.map(stretches, (stretch) => stretch.spanId);
+      assert.ok(Arr.every(calls, (one) => stretchIds.includes(one.parentSpanId ?? "")));
+      const timed = Arr.filter(calls, (one) => one.attributes?.[SPAN_ATTRIBUTES.site] === "a-town.w");
+      assert.equal(timed.length, 2);
+      assert.deepEqual(timed[0]?.attributes, {
+        [SPAN_ATTRIBUTES.site]: "a-town.w",
+        [SPAN_ATTRIBUTES.siteMs]: 1900.5,
+        [SPAN_ATTRIBUTES.warpSetupMs]: 120,
+        [SPAN_ATTRIBUTES.warpStopMs]: [880, 900.5],
+        [SPAN_ATTRIBUTES.warpStopJobs]: [95, 95],
+        [SPAN_ATTRIBUTES.warpJobs]: ["erpnext.daily_maintenance", "capxul.clock.daily"],
+        [SPAN_ATTRIBUTES.warpJobRuns]: [2, 2],
+        [SPAN_ATTRIBUTES.warpJobMs]: [700, 60],
+      });
+      const untimed = Arr.filter(calls, (one) => one.attributes?.[SPAN_ATTRIBUTES.site] === "b-town.w");
+      assert.deepEqual(
+        untimed[0]?.attributes,
+        { [SPAN_ATTRIBUTES.site]: "b-town.w" },
+        "a site that answers no times still names itself",
+      );
     }),
   ));
 
