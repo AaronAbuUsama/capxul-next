@@ -143,6 +143,7 @@ them by reading the diff.
 | The pipeline's own work: worlds, resets, sites, starting worlds, journeys, the checks, proofs (3.6) | The blueprint, the domain `pipeline` | The runner's and the world's spans (4.7), the proof names in the roadmap |
 | Telemetry names: the envelope, producers, step kinds, metrics, datasets, monitors (3.6) | The blueprint, `src/telemetry/` | The attribute constants, each process's resource, the datasets and routing `packages/platform` creates, Axiom's monitors and dashboards |
 | Ratchets (3.6) | The blueprint's registry | `pnpm ratchets`, the dashboard's lines |
+| The words for things (3.8) | The blueprint's glossary | Folder, package and command names, the docs, lint |
 | Contract events and functions (3.1) | The compiled contracts in `packages/contracts` (`forge build`; Foundry runs in CI and in the agents' environment) | One generated ABI module, imported by the blueprint, Core and the indexer |
 | Contract addresses on the seeded chain (3.1) | `packages/contracts/deployments/devnet.json` | One generated table, imported by Core and `packages/world` |
 | The seeded chain state (3.2) | The contracts and their deploy script | `packages/contracts/state/core.json`, rebuilt by one command and checked in CI |

@@ -588,3 +588,91 @@ Phase 3 is Done when 3.1 to 3.7 are Done; phase 4 when 4.1 to 4.8 are.
 - "How it is measured": coverage gates new declarations; budgets are targets with the 1.5× review.
 - The ladder: `pnpm ratchets` and `pnpm delta:check` in rung 5; rung 6 names `prove.yml` beside `world.yml`.
 - The rules-only rewrite of `AGENTS.md` is the docs session's, following part 7; these are changes of fact it carries.
+
+## 12. Things, then verbs; the names; the CLI (15 November 2026)
+
+**Agreed with Aaron, 15 November 2026: the blueprint is organised as things, then verbs.** Capxul is made of things (a
+company, a person, an invitation, a document, an approval, a budget, a payment; and, for building it, a world, a run,
+a journey, a proof). Each thing has a life, and operations are the verbs done to it. The blueprint has one folder per
+thing and one file per verb, the thing's lifecycle, values, events and refusals beside its verbs, and how an outside
+system (Frappe, the chain) serves the thing kept with the thing. The command, the file, the docs page and the trace
+share one shape: `capxul invitation accept` is `invitation/accept.ts`, the page "invitation › accept" and the span
+`invitation.accept`. A new verb is a new file and a new thing a new folder, so new work lands in place without anyone
+deciding where. The machinery that declares and checks the blueprint lives in a separate toolkit package. This amends
+part 7, whose "domain folders" become thing folders; user-facing renames of operations go side by side, by ratchet.
+
+**Decision 7, the names: agreed with Aaron, 15 November 2026, every recommendation as offered** (the glossary page
+"Capxul Glossary"). One word, one meaning, owned by a glossary in the blueprint that folders, commands, docs and lint
+take their words from; the rename runs as a ratchet, user-facing names side by side.
+
+| Concept | Today | Becomes |
+|---|---|---|
+| The server that carries out a world's operations | core, Core | **api** (`packages/api`) |
+| The address a world answers at | door, `CAPXUL_DOOR_URL`, `--at` | **endpoint** (the CLI takes `--world <name>`) |
+| Calls outside any world; where a person's sign-in lives | platform (group), "at the platform" | **account** |
+| One whole, isolated Capxul | world | **world** (kept) |
+| Private, shared or real | grade | **grade** (kept) |
+| Test or real | grade group | **realm** |
+| A company's Frappe site | site | **site** (kept; other uses renamed) |
+| A test world's people | cast | **cast** (kept) |
+| Who owns and runs worlds | operator, owner | **operator** (the faucet's account is the **faucet**) |
+| The shared containers worlds run on | hub, fleet, fleet hub | **cluster** |
+| Its single address | the hub's door | **gateway** |
+| What hosts company sites | platform, `packages/platform` | **sites** (`packages/sites`); **bench** stays Frappe's word |
+| The bench service that makes, takes, saves and resets sites | site door | **site service** |
+| The Capxul app's side that accepts signed calls | `door.py` | **site API** |
+| Where telemetry is sent and routed | telemetry door | **collector** |
+| A deployed instance of a stack | stage | **stage** (kept, internal) |
+| A saved state of a world | snapshot, point, backup, chain snapshot | **snapshot** (a site's part: **site snapshot**) |
+| A named state a journey begins from | starting world, template snapshot | **starting point** |
+| A ready copy of a starting point's sites on the bench | template | **site template** |
+| Giving a world sites from the pool | claim | **take** |
+| Holding a world's name | claim | **reserve** |
+| A written story of operations that must pass | journey, scenario | **journey** (`packages/journeys`) |
+| What runs and judges journeys | runner | **runner** (kept); the thing it makes is a **run** |
+| One world of a run's several | lane | **shard** |
+| A sentence an operation guarantees | claim | **promise** |
+| What judges one call or run | check | **check** (only this) |
+| The pass every pull request clears | `pnpm check`, gate, ladder | **gate** (`pnpm gate`; its levels are rungs) |
+| What a CI run proved | run record, proof record, verdict | **verdict** |
+| A world's ordered history | record, `record.export` | **history** |
+| A timed piece of work inside an operation | step (declared) | **span** |
+| One move of a journey | step | **step** (journeys only) |
+| A test world's own telemetry copy | tap | **tap** (kept) |
+| The cluster's list of worlds | ledger | **registry** (ledger stays the invoice ledger) |
+| The file other packages import from | `door.ts` | **`index.ts`** |
+| The blueprint's gathering files | hubs | **generated index** |
+| One line of the roadmap | step | **item** |
+| A chain of roadmap items led by one lead | lane | **lane** (kept) |
+| An integration branch for one effort | slice | **slice** (kept) |
+
+**Decision 8, the CLI as the one surface: agreed with Aaron, 15 November 2026, every recommendation as offered.**
+The CLI is Capxul's one surface, generated from the blueprint and the built code. It amends "One public surface,
+Frappe where it owns the data".
+
+1. **Grammar:** `capxul <thing> <verb>`, following things then verbs. `capxul login` signs into an account;
+   `capxul use <world>` sets the current world, so `--world` may be left out; `--as <person>` acts as one of the cast.
+   Output is a readable table on a terminal and JSON when piped or with `--json`; exit codes stay the blueprint's.
+2. **The scripts become commands:** every `run.sh` job is a pipeline operation in the blueprint, and so a generated
+   command (`capxul world create|destroy|reset|renew|sweep`, `capxul snapshot …`, `capxul cluster up|down|show`,
+   `capxul sites deploy|drift`, `capxul run start --shards N`, `capxul journey run`, `capxul verdict show`). Build tools
+   that are not operations of Capxul (the bench image's build, vendoring contract libraries, the one-off credential
+   bootstrap) stay package scripts, each listed with its reason on a ratchet.
+3. **Frappe, generated from its own metadata (option B):** the blueprint declares the generic verbs once (list, get,
+   create, update, submit, cancel, amend, delete, run a report, call a function); `pnpm generate` reads every document
+   type, field, report and function of the pinned app versions and writes typed commands under each app
+   (`capxul erp purchase-invoice create`, `capxul hr leave-application submit`, `capxul crm lead list`). Permissions are
+   Frappe's own, from the caller's hat on that company's site. Capxul's own things (invoices, payments, approvals) stay
+   declared by hand. A coverage check lists every document type and function as exposed or not exposed with its
+   reason, a list that may only shrink. Rejected: declaring everything by hand (never finishes); a raw passthrough
+   (untyped, drifts).
+4. **The Safe, through a `safe` thing whose verbs are generated from the contracts' ABI (option B):**
+   `capxul safe call budgets.allocate --safe <safe> --args …`; Capxul checks the caller's roles allow that call on that
+   Safe (5.1), turns it into an approval for the Safe's signers, and sends it through the bundler at the threshold.
+   Authority is the caller's roles plus the Safe's own threshold, which the chain enforces; every call is in the
+   world's history and traced. "Nobody calls the chain directly" becomes "nobody reaches the chain except through
+   Capxul's `safe` verbs, within their roles". Rejected: signing only what Capxul proposes (too narrow); handing people
+   their key (bypasses history, checks and telemetry).
+
+**`notes.md`:** agreed with Aaron, 15 November 2026, to fold it into decisions 7 and 8 and delete the file in the
+restack.
