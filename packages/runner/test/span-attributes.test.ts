@@ -2,6 +2,7 @@
 // never checked, and absent when the span has none.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
+import { operations } from "@capxul/blueprint";
 import { SPAN_ATTRIBUTES } from "@capxul/core";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -14,7 +15,7 @@ import { SpanRow } from "../src/world/database.ts";
 const TRACE = Str.repeat(32)("b");
 
 const call: Call = {
-  operation: "record.export",
+  operation: operations["record.export"].rpc._tag,
   traceId: TRACE,
   at: null,
   outcome: "success",
@@ -32,7 +33,7 @@ const row = (attributes: unknown) =>
     trace_id: TRACE,
     span_id: "s1",
     parent_span_id: null,
-    name: "record.export",
+    name: operations["record.export"].rpc._tag,
     outcome: "success",
     duration_ms: 250,
     ended_ms: 1_000_250,

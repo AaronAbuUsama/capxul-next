@@ -11,6 +11,8 @@ export const TOP_LEVEL: Readonly<Record<string, string>> = {
   "CLAUDE.md": "a link to AGENTS.md, for Claude",
   "README.md": "what this is and where things are",
   "GROUNDING.md": "Aaron's strategy",
+  "notes.md":
+    "Aaron's working notes (the CLI as the one surface, the names of things), until the blueprint session folds them into docs/",
   "package.json": "the root scripts: the ladder",
   "pnpm-workspace.yaml": "the workspace and its one version catalog",
   "pnpm-lock.yaml": "the exact versions installed",

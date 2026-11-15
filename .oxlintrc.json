@@ -53,6 +53,7 @@
       // Places where raw schemas describe a format of their own, not the contract's values, each with its reason
       // (capxul/owned-values). Anything else the rule finds is on its unmigrated list (packages/lint/src/unmigrated.ts).
       "schemaEdges": {
+        "packages/core/src/telemetry/attributes.ts": "the attributes Core puts on each call's span (where it ran, its query time): telemetry vocabulary that moves into the blueprint's telemetry module in the blueprint's stage 2 (docs/design/blueprint.md, part 10)",
         "packages/world/src/failures.ts": "the world's own infrastructure failures (a step timed out, a part not ready): faults the contract does not promise, so the blueprint does not name their fields",
         "packages/core/src/failures.ts": "Core's own failure in reaching a site through its door: a fault of the infrastructure, mapped to the blueprint's refusals before it reaches a caller",
         "packages/runner/src/record.ts": "a run record is a JSON file on disk, written by the runner and read by the dashboard and the speed climb; its schema is that file's format",

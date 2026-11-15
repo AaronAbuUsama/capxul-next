@@ -2,7 +2,7 @@
 // the request names one, and the sum and count of its Postgres round trips. No other span carries them.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { CREDENTIAL_HEADER, WorldRpcs } from "@capxul/blueprint";
+import { CREDENTIAL_HEADER, operations, WorldRpcs } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -115,7 +115,11 @@ const served = (placement: Where | null) =>
       Effect.gen(function* () {
         const client = yield* RpcTest.makeClient(CoreRpcs, { flatten: true });
         return yield* Effect.exit(
-          client("record.export", { from: null, to: null }, { headers: { [CREDENTIAL_HEADER]: "Bearer door-token" } }),
+          client(
+            operations["record.export"].rpc._tag,
+            { from: null, to: null },
+            { headers: { [CREDENTIAL_HEADER]: "Bearer door-token" } },
+          ),
         );
       }),
     ).pipe(
@@ -126,7 +130,7 @@ const served = (placement: Where | null) =>
         ),
       ),
     );
-    return Arr.filter(kept, (span) => span.name === "record.export");
+    return Arr.filter(kept, (span) => span.name === operations["record.export"].rpc._tag);
   });
 
 test("a call served in memory carries the attributes on its one span, and the colo its Core was given", async () => {
