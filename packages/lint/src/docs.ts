@@ -83,6 +83,8 @@ const placed = (file: string): boolean =>
   under("docs")(file) ||
   isReadme(file) ||
   file in MARKDOWN_ELSEWHERE ||
+  // Claude Code reads its agents and skills from .claude/; their place is its, not ours.
+  under(".claude")(file) ||
   // Everything inside the blueprint is the blueprint session's; its own layout check covers it.
   under("packages/blueprint")(file) ||
   Str.includes("/records/")(file) ||

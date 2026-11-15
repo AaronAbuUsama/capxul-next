@@ -1,6 +1,6 @@
 import * as assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { timelineOf } from "../src/index/timeline.ts";
+import { timelineOf } from "../src/parts/indexer/timeline.ts";
 
 const METRICS = `# HELP process_start_time_seconds Start time of the process since unix epoch in seconds.
 # TYPE process_start_time_seconds gauge

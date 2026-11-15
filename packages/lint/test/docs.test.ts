@@ -36,6 +36,7 @@ test("Markdown lives in a README, a package's docs/, records/, generated/ or a l
     "packages/world/generated/index.md",
     "packages/platform/bootstrap/BOOTSTRAP.md",
     "packages/blueprint/decisions.md",
+    ".claude/skills/conductor/SKILL.md",
     "packages/contracts/lib/forge-std/CONTRIBUTING.md",
   ];
   assert.deepEqual(problems(fine), []);
