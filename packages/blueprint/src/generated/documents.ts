@@ -5,18 +5,18 @@
 // glossary's renames (roadmap item 3.8).
 import * as RpcGroup from "effect/rpc/RpcGroup";
 import type { ClaimsOf } from "../starting-points/points.ts";
-import * as DocumentCreate from "../things/document/create.ts";
-import * as DocumentSubmit from "../things/document/submit.ts";
+import * as DocumentVerbsCreate from "../things/document/verbs/create.ts";
+import * as DocumentVerbsSubmit from "../things/document/verbs/submit.ts";
 
 export { Posted, Held } from "../things/document/values.ts";
 export { DocCreated, DocSubmitted, PaymentHeld } from "../things/document/events.ts";
-export { create } from "../things/document/create.ts";
-export { submit } from "../things/document/submit.ts";
+export { create } from "../things/document/verbs/create.ts";
+export { submit } from "../things/document/verbs/submit.ts";
 
 /** Its operations, by name. */
 export const operations = {
-  "doc.create": DocumentCreate.create,
-  "doc.submit": DocumentSubmit.submit,
+  "doc.create": DocumentVerbsCreate.create,
+  "doc.submit": DocumentVerbsSubmit.submit,
 } as const;
 
 /** Its operations that move no thing with a lifecycle, each with why: each such verb's `stateless`. */
@@ -29,10 +29,10 @@ export const machines = {} as const;
 export const platformRpcs = RpcGroup.make();
 
 /** What a world's Core serves of it, through the world's door (`WorldRpcs`). */
-export const worldRpcs = RpcGroup.make(DocumentCreate.create.rpc, DocumentSubmit.submit.rpc);
+export const worldRpcs = RpcGroup.make(DocumentVerbsCreate.create.rpc, DocumentVerbsSubmit.submit.rpc);
 
 /** The promises of each of its operations: each verb's `promises`. */
 export const claims: { readonly [Name in keyof typeof operations]: ClaimsOf } = {
-  "doc.create": DocumentCreate.promises,
-  "doc.submit": DocumentSubmit.promises,
+  "doc.create": DocumentVerbsCreate.promises,
+  "doc.submit": DocumentVerbsSubmit.promises,
 };

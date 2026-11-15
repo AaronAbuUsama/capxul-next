@@ -38,7 +38,10 @@ export interface WorldSpec {
    * everything that makes the world, the caller's `onChain` included (src/things/world/cast.ts, `mineStart`).
    */
   readonly startAtMs?: number;
-  /** The token of the operator who owns the world, which its Core accepts as the owner's (decisions.md, 36). */
+  /**
+   * The token of the operator who owns the world, which its Core accepts as the owner's
+   * (packages/blueprint, src/protocol/headers.ts).
+   */
   readonly operatorToken?: Redacted.Redacted;
   /**
    * Keep a world whose run did not pass, stopped, for this long, so it can be looked into. Never applies to a
@@ -103,7 +106,8 @@ export interface World {
   readonly doorToken: Redacted.Redacted;
   /**
    * The token the world minted for its owner operator: Core's platform door, and the world's door as its owner
-   * (decisions.md, 36). A world the platform made binds its owner's own token instead, and this one is unused.
+   * (packages/blueprint, src/protocol/headers.ts). A world the platform made binds its owner's own token instead,
+   * and this one is unused.
    */
   readonly operatorToken: Redacted.Redacted;
   /** The chain's JSON-RPC address. It carries the world's token, so it is a secret. */

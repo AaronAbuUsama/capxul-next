@@ -13,6 +13,7 @@
     "@capxul/blueprint": "workspace:*",
     "@capxul/cli": "workspace:*",
     "@capxul/core": "workspace:*",
+    "@capxul/platform": "workspace:*",
     "@capxul/scenarios": "workspace:*",
     "@capxul/sdk": "workspace:*",
     "@capxul/world": "workspace:*",

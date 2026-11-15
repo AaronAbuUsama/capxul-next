@@ -15,7 +15,7 @@ const filesUnder = (folder: string): ReadonlyArray<string> =>
     /\.[a-z]+$/.test(path),
   );
 
-/** The files a thing's folder may hold beside its verbs; `examples.ts` until stage 2b folds it into the verbs. */
+/** The files a thing's folder may hold beside its `verbs/`; `examples.ts` until stage 2b folds it into the verbs. */
 const THING_FILES = ["values.ts", "events.ts", "refusals.ts", "lifecycle.ts", "examples.ts"];
 
 /** The fixed files of src/, by folder. `things/` and `generated/` are checked by their own rules. */
@@ -40,10 +40,15 @@ const misfit = (file: string): string | null => {
   const text = (): string => readFileSync(new URL(`src/${file}`, ROOT), "utf8");
   if (Str.startsWith("things/")(file)) {
     const parts = Str.split(file, "/");
-    if (parts.length !== 3) return "a thing is one folder of files, things/<thing>/<file>";
-    const name = parts[2] ?? "";
-    if (Arr.contains(THING_FILES, name)) return null;
+    const name = parts[parts.length - 1] ?? "";
+    if (parts.length === 3)
+      return Arr.contains(THING_FILES, name)
+        ? null
+        : "a thing's folder holds values.ts, events.ts, refusals.ts, lifecycle.ts, examples.ts and verbs/; a verb's file lives in verbs/";
+    if (parts.length !== 4 || parts[2] !== "verbs")
+      return "a thing is things/<thing>/<file> and things/<thing>/verbs/<verb>.ts";
     if (!/^[a-z][a-z-]*\.ts$/.test(name)) return "a verb's file is named by its verb, in lower case";
+    if (Arr.contains(THING_FILES, name)) return "verbs/ holds only verbs; a thing's own files sit beside it";
     const operations = Str.split(text(), "Rpc.make(").length - 1;
     const works = Str.split(text(), " = work({").length - 1;
     return operations + works === 1

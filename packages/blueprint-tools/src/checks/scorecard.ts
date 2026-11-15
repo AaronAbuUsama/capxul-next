@@ -43,7 +43,7 @@ const columns = (inputs: ScorecardInputs): ReadonlyArray<Column> => [
     cell: (thing) => (thing.lifecycle !== null ? YES : Arr.every(thing.verbs, (verb) => verb.stateless) ? NONE : NO),
   },
   {
-    heading: "Full format (R5)",
+    heading: "Full format (R5, R17 to R19)",
     means: "every verb of it has every format of the delta check (`src/checks/formats.ts`), none on an unmigrated list",
     cell: (thing) =>
       mark(

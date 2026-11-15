@@ -1,6 +1,6 @@
-// Reading a world's chain through its door (decisions.md, 34): balances of the world's USDC, the hats a transaction
-// minted, and the payments the Payments contract sent. Every read takes its addresses from the world's view, and goes
-// to the door and as the operator a look at that world goes (`whereOf`).
+// Reading a world's chain through its door (packages/blueprint/docs/decisions.md, entry 34): balances of the world's
+// USDC, the hats a transaction minted, and the payments the Payments contract sent. Every read takes its addresses from
+// the world's view, and goes to the door and as the operator a look at that world goes (`whereOf`).
 import type { Chain } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";

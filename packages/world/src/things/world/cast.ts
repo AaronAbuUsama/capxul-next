@@ -1,8 +1,9 @@
-// A new world's cast and its clock's start on its chain (decisions.md, 20, 25 and 42). Every private and shared world
-// is born with dana, eli, sam and olga, each with a personal Safe claimed through Companies House and funded with
-// 10,000 test USDC from the faucet, and pat, who has not finished signing up and has no Safe. Each signs with one of
-// the public test mnemonic's accounts (the blueprint's `CAST_KEYS`): 4 to 8, clear of the faucet's operator (0),
-// Companies House's Directors (0 to 2), its claim service (3) and the bundler's keys (9 and 10).
+// A new world's cast and its clock's start on its chain (packages/blueprint, src/things/world/verbs/create.ts,
+// src/starting-points/cast.ts and src/common/values.ts).
+// Every private and shared world is born with dana, eli, sam and olga, each with a personal Safe claimed through
+// Companies House and funded with 10,000 test USDC from the faucet, and pat, who has not finished signing up and has no
+// Safe. Each signs with one of the public test mnemonic's accounts (the blueprint's `CAST_KEYS`): 4 to 8, clear of the
+// faucet's operator (0), Companies House's Directors (0 to 2), its claim service (3) and the bundler's keys (9 and 10).
 //
 // Beside them, every journey the blueprint declares has a cast of its own (roadmap step 4.11, "a cast per journey";
 // packages/blueprint, src/starting-points/cast.ts), so journeys run side by side in one world without sharing a
@@ -261,7 +262,10 @@ export const makeCast = Effect.fn("platform.cast")(function* <E, R>(call: Call<E
   return members satisfies ReadonlyArray<Member>;
 });
 
-/** Mines the world's first block of its own at its start, so the chain's head shows the world's clock (decisions.md, 34). */
+/**
+ * Mines the world's first block of its own at its start, so the chain's head shows the world's clock
+ * (packages/blueprint, src/common/chain/reads.ts).
+ */
 export const mineStart = <E, R>(call: Call<E, R>, startMs: number) =>
   Effect.gen(function* () {
     yield* call("evm_setNextBlockTimestamp", [Math.floor(startMs / 1000)]);

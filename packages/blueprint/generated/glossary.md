@@ -86,3 +86,4 @@ No writer can choose these, so an entry's old words are not counted in them. Nor
 - **history**: `logRecords`, OpenTelemetry's OTLP wire format names it, not Capxul.
 - **history**: `rejectedLogRecords`, OpenTelemetry's OTLP wire format names it, not Capxul.
 - **history**: `log_record`, OpenTelemetry's OTLP wire format names it, not Capxul.
+- **history**: `DoorRecord`, a resource already deployed under this name: renaming it replaces the resource.
