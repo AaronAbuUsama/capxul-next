@@ -187,11 +187,12 @@ the declined speed option (#306, this pull request).
 
 **On `slice/blueprint`, not yet on `master`.** Stage 2a, the move into part 13's layout (#282 the layout record, #291
 the move: `src/things/<thing>/<verb>.ts`, `src/common/`, `src/starting-points/`, `src/protocol/`, `src/generated/`, the
-new package `packages/blueprint-tools`, `src/index.ts` as the entry). Its pull request into `master` is **#295**: it
-passed the 🔍 reviewer and `gate` on head `adcb697`; `thin-line` was still running on that head (slower than usual: the
-bench's site templates rebuild once, since the fingerprint now includes blueprint-tools). `master` has since moved
-(#310 and later), so before merging: merge `master` into `slice/blueprint`, wait for `gate` and `thin-line` green on
-that head, check #295 is not conflicting, merge.
+new package `packages/blueprint-tools`, `src/index.ts` as the entry). Its pull request into `master` is **#295**: it passed the 🔍 reviewer, and `gate` and `thin-line` on head
+`adcb697`. `master` then moved (the world-layout slice and others), so `master` was merged into `slice/blueprint` again
+at `77f94ff` (one conflict, `packages/generate/src/main.ts`, resolved by keeping both: the blueprint's generated indexes
+and the world's generated map; `pnpm check` passes locally), and `gate` and `thin-line` were re-running on that head
+at hand-over. To land it: confirm both green on the head that includes the current `master`, check #295 is not
+conflicting, merge. If `master` moved again, merge it into the slice first and wait once more.
 
 **Open pull requests into `slice/blueprint`** (each green on its own; held only so that #295's head did not move under
 its journey run and review; merge each after #295 lands, then merge `master` into the slice again):
