@@ -100,7 +100,8 @@ export const servesEntryPoint = Effect.fn("world.bundler.servesEntryPoint")(func
 export const UntilStarted: Schedule.Schedule<unknown, BundlerFailed> = Schedule.spaced("2 seconds");
 
 /**
- * How long a reset waits for the bundler it kept up: every second, 60 looks at most, well inside the reset's own
+ * How long a reset waits for the bundler it kept up: every second, 61 looks at most (the first and 60 more, as
+ * `Schedule.recurs(60)` under `Effect.retry` allows), well inside the reset's own
  * timeout (WORLD_TIMEOUT_RESET, 5 minutes). Its first look normally passes; the rest ride out a dropped connection
  * through the shared hub's door.
  */
@@ -118,8 +119,11 @@ export const AfterReset: Schedule.Schedule<unknown, BundlerFailed> = Schedule.ma
 export const bundlerAnswers = Effect.fn("world.bundler.answers")(function* (
   world: Reach,
   patience: Schedule.Schedule<unknown, BundlerFailed> = UntilStarted,
+  // The declared span each look runs in, when the caller has one (a reset's `world.reset.bundler.serving`).
+  look?: string,
 ) {
-  const served = yield* supportedEntryPoints(world).pipe(
+  const once = supportedEntryPoints(world);
+  const served = yield* (look === undefined ? once : once.pipe(Effect.withSpan(look))).pipe(
     Effect.tapError((error) => Effect.logDebug(`bundler not ready: ${describeFailure(error)}`)),
     Effect.retry(patience),
   );

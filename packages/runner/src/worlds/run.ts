@@ -5,6 +5,7 @@
 // run through the door with its operations' checks and the generic checks on every call, and every other world it
 // made destroyed after it, whatever happened, with the accounts read before and after for anything of them. The one
 // world and the hub go when the run ends, however it ends. Every part is timed into the summary (`timings`).
+import { Pipeline } from "@capxul/blueprint";
 import type { Journey } from "@capxul/scenarios";
 import * as World from "@capxul/world";
 import * as Arr from "effect/Array";
@@ -197,7 +198,7 @@ const runOne = (
       if (Exit.isFailure(done) && Exit.hasInterrupts(done)) return yield* Effect.interrupt;
       return record;
     }),
-  ).pipe(Effect.withSpan("runner.world.scenario", { attributes: { scenario: scenario.name } }));
+  ).pipe(Effect.withSpan(Pipeline.journeyRun.name, { attributes: { scenario: scenario.name } }));
 
 /**
  * Destroys the run's one world, timed; what could not be done, one line each. Whatever ends the run, this runs. The

@@ -16,6 +16,7 @@
 // The door's reset puts the world's clock entry back as it was saved (a running clock at its saved offset), while a
 // reset world's clock reads the snapshot's time at the reset (src/things/world/reset.ts), so the entry is set to the
 // world's clock right after (`POST /clock`): Core, the chain and the bench then read one clock.
+import { Pipeline } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -125,7 +126,7 @@ const setClock = (stage: string, bench: string, clock: BenchClock) =>
  * the point still holds them and by claim from the bench template `template` (the one the world kept of the
  * snapshot) where it does not; then its clock entry to `clock`.
  */
-export const resetSites = Effect.fn("world.site.reset")(function* (
+export const resetSites = Effect.fn(Pipeline.siteReset.name)(function* (
   stage: string,
   bench: string,
   snapshot: string,
@@ -174,7 +175,7 @@ export const resetSites = Effect.fn("world.site.reset")(function* (
  * changes a template that exists; one that exists already must be this world's, since its sites hold this world's
  * company facts and no other's.
  */
-export const keepTemplate = Effect.fn("world.site.keepTemplate")(function* (
+export const keepTemplate = Effect.fn(Pipeline.siteSave.spans.keepTemplate.name)(function* (
   stage: string,
   bench: string,
   template: string,
