@@ -2,7 +2,7 @@
   "generated": "By `pnpm generate` (packages/blueprint-tools, src/checks/ratchets.entry.ts): each counted ratchet's count, never raised by generating again. Do not edit.",
   "counts": {
     "R1": 667,
-    "R2": 766,
+    "R2": 744,
     "R3": 38,
     "R5": 13
   }
