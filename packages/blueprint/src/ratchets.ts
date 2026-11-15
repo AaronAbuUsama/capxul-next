@@ -4,14 +4,16 @@
 // ratchet named here by its `count`, fails a pull request whose count grew over the committed counts
 // (generated/ratchets.json) and prints the rest; `pnpm generate` writes those counts and the scorecard,
 // generated/scorecard.md. A ratchet not yet countable says so, with the roadmap item that will count it: no count is
-// guessed.
+// guessed. A ratchet gated by a command of its own names it in `gate`: `pnpm ratchets` then reports its count, and
+// neither commits nor fails on it, so no list has two gates.
 
 /**
  * How a ratchet is counted, by the toolkit's counter of that name: a typed-once lint rule's unmigrated list
- * (packages/lint/src/unmigrated.ts, its findings in all), or the delta check's formats' unmigrated lists
- * (packages/blueprint-tools/src/checks/formats.ts, their operations in all).
+ * (packages/lint/src/unmigrated.ts, its findings in all), the delta check's formats' unmigrated lists
+ * (packages/blueprint-tools/src/checks/formats.ts, their operations in all), or the glossary's old words
+ * (generated/old-words.json, which `pnpm generate` writes: every old word's count, in all).
  */
-export type Counter = "lint:owned-values" | "lint:declared-names" | "lint:decoded-rows" | "formats";
+export type Counter = "lint:owned-values" | "lint:declared-names" | "lint:decoded-rows" | "formats" | "words:old-words";
 
 /** One ratchet. */
 export interface Ratchet {
@@ -25,9 +27,17 @@ export interface Ratchet {
   readonly count: Counter | "not yet counted";
   /** For a ratchet not yet counted: the roadmap item that will count it. */
   readonly countedBy?: string;
+  /**
+   * For a ratchet gated by a command of its own, not by `pnpm ratchets`: that command. `pnpm ratchets` reports its
+   * count and leaves it out of generated/ratchets.json, so only that command fails when its list grows.
+   */
+  readonly gate?: string;
 }
 
-/** Every ratchet, R1 to R14 as agreed on 15 November 2026; new ones take the next number. */
+/**
+ * Every ratchet: R1 to R14 as agreed on 15 November 2026, and R15, the glossary's old words (roadmap item 3.8, #302);
+ * new ones take the next number.
+ */
 export const ratchets: ReadonlyArray<Ratchet> = [
   {
     id: "R1",
@@ -137,5 +147,14 @@ export const ratchets: ReadonlyArray<Ratchet> = [
     closes: "4.4",
     count: "not yet counted",
     countedBy: "4.4",
+  },
+  {
+    id: "R15",
+    name: "Old words",
+    holds:
+      "The glossary's old words still written as names in code, counted per word in generated/old-words.json; its count is their total.",
+    closes: "3.8",
+    count: "words:old-words",
+    gate: "pnpm words",
   },
 ];

@@ -3,7 +3,7 @@
 # made, every time, even when a journey fails or the job is cancelled (world lifecycle rule 1). Runs of different
 # branches run at once.
 #
-# The run is the runner's own (packages/runner/README.md, "A run in one world"; step 1.18): `run.sh scenarios` makes
+# The run is the runner's own (packages/runner/src/worlds/run.ts; step 1.18): `run.sh scenarios` makes
 # one world on the fleet hub, makes and saves the starting worlds, resets the world in place before each journey,
 # records everything, and takes down at its end what it made. The steps after it are the guarantee for when it could
 # not: they destroy every world this run's operators own, take down a hub of the run's own, and sweep the expired

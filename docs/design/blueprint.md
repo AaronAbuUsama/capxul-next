@@ -135,6 +135,7 @@ behaviour: every journey stays green.
 | R12 | Proofs by file path | Proof column entries naming files, steps not yet Done | Every open step | 4.5 |
 | R13 | Provisional budgets | Budgets not yet set from a measured verdict | Every budget | 4.1 and the measured runs |
 | R14 | Own telemetry tables | `app.spans` readers and the runner's JSON records beside OTLP | Core, runner | 4.4 |
+| R15 | Old words | The glossary's old words still written as names in code, counted per word by `pnpm words` (`generated/old-words.json`) | Every package | 3.8 |
 
 **Measures, climbed by trend, never a gate until the data sets a threshold:**
 

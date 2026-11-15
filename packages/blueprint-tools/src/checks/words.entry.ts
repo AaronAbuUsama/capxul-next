@@ -1,4 +1,5 @@
-// `pnpm words`, the rename ratchet R15 "old words" (docs/roadmap.md, item 3.8): counts every old word of the glossary
+// `pnpm words`, the gate of the rename ratchet R15 "Old words" (its entry in packages/blueprint/src/ratchets.ts;
+// docs/roadmap.md, item 3.8; `pnpm ratchets` only reports its total): counts every old word of the glossary
 // (old-words.ts says what counts) and fails when one grew past its committed count, in
 // packages/blueprint/generated/old-words.json, which `pnpm generate` writes. With `--base <ref>` (CI passes the pull
 // request's base branch) it fails too when a count grew past that branch's committed count, so a count raised by
