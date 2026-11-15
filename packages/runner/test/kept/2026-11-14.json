@@ -1,0 +1,239 @@
+{
+  "name": "payment-drafted",
+  "facts": {
+    "calls": [
+      {
+        "as": null,
+        "trace": "3e904715ad78e568fbb137df88f4eaef",
+        "world": "shared",
+        "answer": {
+          "cast": [
+            {
+              "safe": "0x53cf3e053b2c7ae3f4009f318d8ec66eae48669c",
+              "email": "dana@cast.test",
+              "person": "dana",
+              "signer": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65"
+            },
+            {
+              "safe": "0x90c388a1d9bf2218204d6a5de9654b3260369be8",
+              "email": "eli@cast.test",
+              "person": "eli",
+              "signer": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"
+            },
+            {
+              "safe": "0xf6aeafa0dab7b6d9fc54537ceb1550ce956a11cc",
+              "email": "sam@cast.test",
+              "person": "sam",
+              "signer": "0x976EA74026E726554dB657fA54763abd0C3a0aa9"
+            },
+            {
+              "safe": null,
+              "email": "pat@cast.test",
+              "person": "pat",
+              "signer": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955"
+            },
+            {
+              "safe": "0x532a1193802e3bbab0597f713c61639f7285f2bb",
+              "email": "olga@cast.test",
+              "person": "olga",
+              "signer": "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f"
+            }
+          ],
+          "door": "https://capxulworld-core-w-shared-jkhbyh44uomeulxg.thedao.workers.dev",
+          "clock": {
+            "now": "2026-11-14T13:39:14.831Z",
+            "mode": "frozen"
+          },
+          "grade": "shared",
+          "owner": "staging",
+          "state": "running",
+          "world": "shared",
+          "parent": null,
+          "chainId": 84532,
+          "companies": [],
+          "contracts": {
+            "hats": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+            "usdc": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+            "payments": "0x468241C0CFaB01eD410D8f9A281Ace9b8D4E30e3",
+            "entryPoint": "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
+            "companiesHouse": "0x38d9772b87a52Ed4615E2c804414f0cDD4854F2F",
+            "companyNamespace": "capxul:devnet:company:v1",
+            "companySafeMinter": "0x27e3faE904527BcA73C39683D2a1239020915c71"
+          },
+          "expiresAt": "2026-11-21T13:39:14.833Z",
+          "recordHead": 1
+        },
+        "outcome": "success",
+        "payload": {
+          "clock": {
+            "mode": "frozen",
+            "startAt": null
+          },
+          "grade": "shared",
+          "world": "shared",
+          "lifetimeMinutes": 10080
+        },
+        "operator": "first",
+        "operation": "world.create"
+      },
+      {
+        "as": null,
+        "trace": "8e44e49923e2239a06e0d0d2119305a5",
+        "world": "shared",
+        "answer": {
+          "cast": [
+            {
+              "safe": "0x53cf3e053b2c7ae3f4009f318d8ec66eae48669c",
+              "email": "dana@cast.test",
+              "person": "dana",
+              "signer": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65"
+            },
+            {
+              "safe": "0x90c388a1d9bf2218204d6a5de9654b3260369be8",
+              "email": "eli@cast.test",
+              "person": "eli",
+              "signer": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"
+            },
+            {
+              "safe": "0xf6aeafa0dab7b6d9fc54537ceb1550ce956a11cc",
+              "email": "sam@cast.test",
+              "person": "sam",
+              "signer": "0x976EA74026E726554dB657fA54763abd0C3a0aa9"
+            },
+            {
+              "safe": null,
+              "email": "pat@cast.test",
+              "person": "pat",
+              "signer": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955"
+            },
+            {
+              "safe": "0x532a1193802e3bbab0597f713c61639f7285f2bb",
+              "email": "olga@cast.test",
+              "person": "olga",
+              "signer": "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f"
+            }
+          ],
+          "door": "https://capxulworld-core-w-shared-jkhbyh44uomeulxg.thedao.workers.dev",
+          "clock": {
+            "now": "2026-11-14T13:39:14.831Z",
+            "mode": "frozen"
+          },
+          "grade": "shared",
+          "owner": "staging",
+          "state": "running",
+          "world": "shared",
+          "parent": null,
+          "chainId": 84532,
+          "companies": [
+            {
+              "org": "org_ck4tb63berwj",
+              "name": "Northwind Trading",
+              "site": {
+                "url": null,
+                "state": "creating"
+              },
+              "handle": "northwind"
+            }
+          ],
+          "contracts": {
+            "hats": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+            "usdc": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+            "payments": "0x468241C0CFaB01eD410D8f9A281Ace9b8D4E30e3",
+            "entryPoint": "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
+            "companiesHouse": "0x38d9772b87a52Ed4615E2c804414f0cDD4854F2F",
+            "companyNamespace": "capxul:devnet:company:v1",
+            "companySafeMinter": "0x27e3faE904527BcA73C39683D2a1239020915c71"
+          },
+          "expiresAt": "2026-11-21T13:39:14.833Z",
+          "recordHead": 6
+        },
+        "outcome": "success",
+        "payload": {
+          "world": "shared"
+        },
+        "operator": "first",
+        "operation": "world.show"
+      },
+      {
+        "as": "dana",
+        "trace": "c351305f3b92f22ec627885fe4f3a145",
+        "world": "shared",
+        "answer": {
+          "_tag": "Collected",
+          "signer": "dana",
+          "subject": {
+            "id": "org_ck4tb63berwj",
+            "kind": "org_setup"
+          },
+          "approval": "apr_b1pzkwxmqz7d",
+          "threshold": 2,
+          "signatures": 1
+        },
+        "outcome": "success",
+        "payload": {
+          "approval": "apr_b1pzkwxmqz7d",
+          "signature": "0xaad8598e67dfdea30c67f0762ac3e2ed9e4b0761aef9ab5b470daefee343fc25597ca2a19c3491f88dbc096abc9789509a6dac30a8b6a9395c1a458f04393b581b"
+        },
+        "operator": "first",
+        "operation": "approval.sign"
+      }
+    ],
+    "world": {
+      "cast": [
+        {
+          "safe": "0x53cf3e053b2c7ae3f4009f318d8ec66eae48669c",
+          "email": "dana@cast.test",
+          "person": "dana",
+          "signer": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65"
+        },
+        {
+          "safe": "0x90c388a1d9bf2218204d6a5de9654b3260369be8",
+          "email": "eli@cast.test",
+          "person": "eli",
+          "signer": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"
+        },
+        {
+          "safe": "0xf6aeafa0dab7b6d9fc54537ceb1550ce956a11cc",
+          "email": "sam@cast.test",
+          "person": "sam",
+          "signer": "0x976EA74026E726554dB657fA54763abd0C3a0aa9"
+        },
+        {
+          "safe": null,
+          "email": "pat@cast.test",
+          "person": "pat",
+          "signer": "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955"
+        },
+        {
+          "safe": "0x532a1193802e3bbab0597f713c61639f7285f2bb",
+          "email": "olga@cast.test",
+          "person": "olga",
+          "signer": "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f"
+        }
+      ],
+      "door": "https://capxulworld-core-w-shared-jkhbyh44uomeulxg.thedao.workers.dev",
+      "clock": {
+        "now": "2026-11-14T13:39:14.831Z",
+        "mode": "frozen"
+      },
+      "grade": "shared",
+      "owner": "staging",
+      "state": "running",
+      "world": "shared",
+      "parent": null,
+      "chainId": 84532,
+      "companies": [],
+      "contracts": {
+        "hats": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+        "usdc": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+        "payments": "0x468241C0CFaB01eD410D8f9A281Ace9b8D4E30e3",
+        "entryPoint": "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
+        "companiesHouse": "0x38d9772b87a52Ed4615E2c804414f0cDD4854F2F",
+        "companyNamespace": "capxul:devnet:company:v1",
+        "companySafeMinter": "0x27e3faE904527BcA73C39683D2a1239020915c71"
+      },
+      "expiresAt": "2026-11-21T13:39:14.833Z",
+      "recordHead": 1
+    }
+  }
+}

@@ -39,7 +39,7 @@ import { nothingOf, recorder, targetOf, type MakingCall } from "../worlds/making
 import { Platform } from "../worlds/platform.ts";
 import { destroyAll } from "../worlds/teardown.ts";
 import { stepsOf } from "../worlds/starting.ts";
-import { keepFacts, keptNames } from "./facts.ts";
+import { keepFacts, keptNames, moveKept } from "./facts.ts";
 import { templateOf } from "./starting.ts";
 
 export const SharedRecord = Schema.Struct({
@@ -211,6 +211,10 @@ export const makeOrRenew = (settings: Settings, journeys: ReadonlyArray<Journey>
         (answer) => ({ parts: answer.ms }),
       )
       .pipe(Effect.exit);
+    // The facts it keeps, moved to the format the blueprint decodes now (shared/facts.ts, MOVES).
+    const moved = yield* Effect.exit(
+      Option.isNone(found) ? Effect.void : timings.timed("move kept facts", { of: name }, moveKept(found.value)),
+    );
     const shown = yield* Effect.exit(
       timings.timed("world.show", { of: name }, record(startingWorlds.nothing, showOf(name), nothing)),
     );
@@ -239,6 +243,7 @@ export const makeOrRenew = (settings: Settings, journeys: ReadonlyArray<Journey>
             )}; a journey of it cannot run on it until the world is made again`,
           ]),
       ...(Exit.isFailure(renewed) ? [`the renewal failed: ${describe(renewed.cause)}`] : []),
+      ...(Exit.isFailure(moved) ? [`its kept facts were not moved: ${describe(moved.cause)}`] : []),
       ...(Exit.isFailure(shown) ? [`world.show failed: ${describe(shown.cause)}`] : []),
       ...(Exit.isFailure(listed) ? [`its sites were not read from the bench: ${describe(listed.cause)}`] : []),
       ...Arr.flatMap(sites, (site) => (site.state === "ready" ? [] : [`${site.site} is ${site.state}`])),
