@@ -26,6 +26,12 @@ export const Settings = Config.all({
    * which destroys every world the run's operators own; each world's expiry and the hub's lifetime back it up.
    */
   teardown: Config.Literals(["run", "job"], "RUNNER_TEARDOWN").pipe(Config.withDefault("run")),
+  /**
+   * How a run in one world runs its journeys: `serial`, one after another in the one world, reset in place before each
+   * (the default); `shared`, every journey at once, each company journey building its own company in one shared world
+   * and each journey about worlds in a world of its own (roadmap 4.8, decision D8), which is not built yet.
+   */
+  shape: Config.Literals(["serial", "shared"], "RUNNER_SHAPE").pipe(Config.withDefault("serial")),
   destroyTimeout: Config.Duration("WORLD_DESTROY_TIMEOUT").pipe(Config.withDefault(Duration.minutes(4))),
   /**
    * A stage is ready after this many answers in a row from its Core (warmup.ts). Five since no run has ever recorded
