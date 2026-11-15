@@ -1,5 +1,6 @@
-// The collector without Cloudflare: its claims, who it lets in, how it stamps every resource whatever the caller
+// The collector without Cloudflare: its grant, who it lets in, how it stamps every resource whatever the caller
 // sent, what it sends the sink (through OtlpProxy) and what it counts. The sink is a stand-in HttpClient.
+import { Producers } from "@capxul/blueprint";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import * as Arr from "effect/Array";
@@ -11,8 +12,8 @@ import * as Str from "effect/String";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
-import { boundClaimOf, verifierOf } from "../src/collector/caller.ts";
-import { type CollectorClaims, mintClaim } from "../src/collector/claims.ts";
+import { boundTokenOf, verifierOf } from "../src/collector/caller.ts";
+import { type CollectorGrant, mintCollectorToken } from "../src/collector/tokens.ts";
 import { countsExport, outcomeOf } from "../src/collector/counts.ts";
 import { STAMPED } from "../src/collector/forward.ts";
 import { datasetsOf, forward, type Forwarding, sinkHeadersOf } from "../src/collector/forward.ts";
@@ -22,58 +23,59 @@ import { cryptoLayer } from "../src/token.ts";
 const KEY = Redacted.make(Str.repeat(32)("c3"));
 const OTHER = Redacted.make(Str.repeat(32)("d4"));
 const NOW = 1_800_000_000;
-const WORLD: CollectorClaims = {
+const WORLD: CollectorGrant = {
   operator: "ci-1-1",
   world: Option.some("acme"),
   grade: Option.some("private"),
   expires: NOW + 3600,
 };
-const OPERATOR: CollectorClaims = { operator: "amp-7", world: Option.none(), grade: Option.none(), expires: NOW + 60 };
+const OPERATOR: CollectorGrant = { operator: "amp-7", world: Option.none(), grade: Option.none(), expires: NOW + 60 };
 
 const run = <A, E>(effect: Effect.Effect<A, E, Layer.Success<typeof cryptoLayer>>) =>
   Effect.runPromise(Effect.provide(effect, cryptoLayer));
-const claimOf = (key: Redacted.Redacted, c: CollectorClaims) => run(Effect.map(mintClaim(key, c), Redacted.value));
+const tokenOf = (key: Redacted.Redacted, c: CollectorGrant) =>
+  run(Effect.map(mintCollectorToken(key, c), Redacted.value));
 
 const traces = (attributes: ReadonlyArray<unknown>) => ({
   resourceSpans: [
     {
       resource: { attributes, droppedAttributesCount: 0 },
-      scopeSpans: [{ scope: { name: "core" }, spans: [{ name: "a" }, { name: "b" }] }],
+      scopeSpans: [{ scope: { name: "api" }, spans: [{ name: "a" }, { name: "b" }] }],
     },
     { scopeSpans: [{ spans: [{ name: "c" }] }] },
   ],
 });
 const lying = [
-  { key: "service.name", value: { stringValue: "core" } },
+  { key: "service.name", value: { stringValue: Producers.producers.api.service } },
   { key: STAMPED.world, value: { stringValue: "someone-else" } },
   { key: STAMPED.grade, value: { stringValue: "real" } },
   { key: STAMPED.stage, value: { stringValue: "production" } },
 ];
 
-test("a binding's claim names its world and grade; it is refused without them, expired or under another key", async () => {
-  const good = await claimOf(KEY, WORLD);
-  const id = (claim: string, key = KEY) => run(Redacted.make(claim).pipe(verifierOf(key, "staging", NOW, true)));
+test("a binding's token names its world and grade; it is refused without them, expired or under another key", async () => {
+  const good = await tokenOf(KEY, WORLD);
+  const id = (token: string, key = KEY) => run(Redacted.make(token).pipe(verifierOf(key, "staging", NOW, true)));
   assert.deepEqual(Option.getOrNull(await id(good)), { world: "acme", grade: "private", stage: "staging" });
-  assert.ok(Option.isNone(await id(await claimOf(KEY, OPERATOR))));
+  assert.ok(Option.isNone(await id(await tokenOf(KEY, OPERATOR))));
   assert.ok(Option.isNone(await id(good, OTHER)));
-  assert.ok(Option.isNone(await id(await claimOf(KEY, { ...WORLD, expires: NOW - 1 }))));
+  assert.ok(Option.isNone(await id(await tokenOf(KEY, { ...WORLD, expires: NOW - 1 }))));
   assert.ok(Option.isNone(await id(`${Str.slice(0, -1)(good)}0`)));
 });
 
-test("a binding's claim is read from its props; a public request has none", () => {
-  assert.ok(Option.isSome(boundClaimOf({ claim: "c1.x" })));
-  assert.ok(Option.isNone(boundClaimOf({})));
+test("a binding's token is read from its props; a public request has none", () => {
+  assert.ok(Option.isSome(boundTokenOf({ token: "c1.x" })));
+  assert.ok(Option.isNone(boundTokenOf({})));
 });
 
-test("an operator's claim, as a public caller's token, names no world: only the stage is stamped", async () => {
-  const id = (claim: string) => run(Redacted.make(claim).pipe(verifierOf(KEY, "staging", NOW, false)));
-  assert.deepEqual(Option.getOrNull(await id(await claimOf(KEY, OPERATOR))), {
+test("an operator's token, as a public caller's token, names no world: only the stage is stamped", async () => {
+  const id = (token: string) => run(Redacted.make(token).pipe(verifierOf(KEY, "staging", NOW, false)));
+  assert.deepEqual(Option.getOrNull(await id(await tokenOf(KEY, OPERATOR))), {
     world: "",
     grade: "",
     stage: "staging",
   });
   assert.ok(Option.isNone(await id("nonsense")));
-  assert.ok(Option.isNone(await id(await claimOf(OTHER, OPERATOR))));
+  assert.ok(Option.isNone(await id(await tokenOf(OTHER, OPERATOR))));
 });
 
 test("stamping drops what the caller sent under the stamped keys and adds the collector's, on every resource", () => {
@@ -88,7 +90,7 @@ test("stamping drops what the caller sent under the stamped keys and adds the co
   assert.equal(countItems("traces", stamped), 3);
 });
 
-test("metric data points are counted under each metric's kind", () => {
+test("metric samples are counted under each metric's kind", () => {
   const body = {
     resourceMetrics: [
       {
@@ -196,7 +198,7 @@ test("a body that is not OTLP JSON is refused and never reaches the sink", async
 test("the counts are a delta sum under OpenTelemetry's exporter metric, with the reason on what was refused", () => {
   const body = countsExport(
     outcomeOf("logs", 5, 200, 2),
-    { script: "cx-platform-staging-collector", own: [], stamp: [] },
+    { script: "cx-sites-staging-collector", own: [], stamp: [] },
     { startNanos: 1n, endNanos: 2n },
   );
   const metric = body.resourceMetrics[0]?.scopeMetrics[0]?.metrics[0];

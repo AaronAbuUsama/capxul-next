@@ -67,7 +67,7 @@
         "packages/core/src/telemetry/attributes.ts": "the attributes of a kept span as OpenTelemetry and effect/sql set them: an outside format, decoded where it is read",
         "packages/blueprint-tools/src/language/lifecycle.ts": "the machine format: builds each machine's state schema from the states its declaration names",
         "packages/platform/src/collector/otlp-json.ts": "OTLP/HTTP's JSON encoding, an outside format, decoded only to stamp each resource and count its items",
-        "packages/platform/src/collector/claims.ts": "a collector claim's text is the platform's own format, as the site token's is (src/token.ts): its expiry is Unix seconds",
+        "packages/platform/src/collector/tokens.ts": "a collector token's text is the platform's own format, as the site token's is (src/token.ts): its expiry is Unix seconds",
         "packages/runner/src/telemetry/otlp.ts": "OTLP JSON as OpenTelemetry defines it and Effect's OtlpSerialization writes it: an outside format, decoded where the runner reads the tap and the sink"
       }
     }

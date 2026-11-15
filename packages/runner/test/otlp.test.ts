@@ -72,14 +72,14 @@ test("the logs Effect exports decode, each written in a span carrying its trace 
   const bodies = bodiesTo(posted, "/v1/logs");
   assert.ok(bodies.length > 0, "Effect exported no log");
   const logs = await run(Effect.forEach(bodies, (body) => decodeLogs(body)));
-  const records = Arr.flatMap(logs, (each) =>
+  const entries = Arr.flatMap(logs, (each) =>
     Arr.flatMap(each.resourceLogs, (resource) => Arr.flatMap(resource.scopeLogs, (scope) => scope.logRecords ?? [])),
   );
-  const record = Arr.findFirst(records, (each) => each.body?.stringValue === "inside the call");
-  assert.ok(record._tag === "Some");
-  assert.equal(record.value.severityText, "Info");
-  assert.equal(record.value.traceId?.length, 32);
-  assert.ok(record.value.spanId);
+  const entry = Arr.findFirst(entries, (each) => each.body?.stringValue === "inside the call");
+  assert.ok(entry._tag === "Some");
+  assert.equal(entry.value.severityText, "Info");
+  assert.equal(entry.value.traceId?.length, 32);
+  assert.ok(entry.value.spanId);
 });
 
 test("the metrics Effect exports decode: a counter, a gauge, a histogram and a summary", async () => {

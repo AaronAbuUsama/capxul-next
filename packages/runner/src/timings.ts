@@ -53,13 +53,13 @@ type Extra = Partial<Pick<Timing, "journey" | "of" | "parts" | "note" | "steps">
  * pipeline (#301). The run, its journeys and their steps are spans too (`RUN_SPANS`).
  */
 export const PART_SPANS = [
-  ["hub up", "runner.hub.up"],
-  ["hub down", "runner.hub.down"],
+  ["hub up", "runner.cluster.up"],
+  ["hub down", "runner.cluster.down"],
   ["world create", "runner.world.create"],
   ["world destroy", "runner.world.destroy"],
   ["make ", "runner.make"],
   ["save ", "runner.save"],
-  ["bench template ", "runner.template.keep"],
+  ["bench template ", "runner.site-template.keep"],
   ["bench sites", "runner.sites.list"],
   ["reset", "runner.reset"],
   ["restore", "runner.restore"],
@@ -83,8 +83,6 @@ export const spanOf = (part: string): string =>
 export const RUN_SPANS = {
   /** The root of a run's trace (main.ts); the door's and the stage runs' own (run.ts, scenario-runs.ts) too. */
   run: "runner.run",
-  /** One journey in the run's world (worlds/run.ts). */
-  journey: "runner.world.scenario",
   /** One step of a journey, from the journey's `begin` to its `end` (steps.ts). */
   step: "runner.journey.step",
 } as const;

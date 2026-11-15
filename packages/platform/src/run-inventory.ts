@@ -10,7 +10,7 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import { HOST_STACK, STACK } from "./names.ts";
 import { withState } from "./state.ts";
-import { exportFromConfig, platformTelemetry } from "./telemetry.ts";
+import { exportFromConfig, sitesTelemetry } from "./telemetry.ts";
 
 Effect.gen(function* () {
   const only = process.argv[2];
@@ -30,6 +30,6 @@ Effect.gen(function* () {
   );
 }).pipe(
   // With OTLP export, as OpenTelemetry's standard settings ask (src/telemetry.ts); flushed when the command ends.
-  Effect.provide(Layer.mergeAll(Alchemist.layer(), BunServices.layer, exportFromConfig(platformTelemetry))),
+  Effect.provide(Layer.mergeAll(Alchemist.layer(), BunServices.layer, exportFromConfig(sitesTelemetry))),
   BunRuntime.runMain,
 );

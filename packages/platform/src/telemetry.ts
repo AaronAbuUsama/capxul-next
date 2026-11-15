@@ -1,6 +1,6 @@
 // Where a process of ours sends its telemetry (roadmap 4.4): OTLP/HTTP JSON, through Effect's own exporter
 // (`effect/observability`, no OpenTelemetry SDK), to the collector. Each producer has its layer, named by the producer
-// and given where to send and the code's revision: `platformTelemetry` here, the runner's `runnerTelemetry`
+// and given where to send and the code's revision: `sitesTelemetry` here, the runner's `runnerTelemetry`
 // (packages/runner, src/telemetry/export.ts) and the world's `worldTelemetry` (packages/world,
 // src/common/telemetry.ts), each built by `exportLayer`. Each entry provides its producer's once, through
 // `exportFromConfig`, which reads OpenTelemetry's standard settings:
@@ -103,7 +103,7 @@ export const exportLayer = (producer: Producer, options: ExportOptions): ExportL
 };
 
 /** Provides the platform client's OTLP export (its entries, run-*.ts). */
-export const platformTelemetry = (options: ExportOptions): ExportLayer =>
+export const sitesTelemetry = (options: ExportOptions): ExportLayer =>
   exportLayer(Producers.producers.sites.service, options);
 
 const optional = (name: string) => Config.option(Config.String(name));
@@ -176,7 +176,7 @@ const Settings = Config.all({
   metrics: isOn("METRICS"),
 });
 
-/** Where an entry sends, when it knows better than the settings: a collector it found, and the claim it minted. */
+/** Where an entry sends, when it knows better than the settings: a collector it found, and the token it minted. */
 export interface Target {
   readonly baseUrl: string;
   readonly headers: Headers.Input;

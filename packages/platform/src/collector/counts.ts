@@ -71,16 +71,16 @@ export const countsExport = (
   window: { readonly startNanos: bigint; readonly endNanos: bigint },
 ) => {
   const metric = COUNT_METRICS[outcome.signal];
-  const point = (value: number, attributes: ReadonlyArray<StringAttribute>) => ({
+  const sample = (value: number, attributes: ReadonlyArray<StringAttribute>) => ({
     attributes: [stringAttribute(COMPONENT, resource.script), ...resource.stamp, ...attributes],
     startTimeUnixNano: `${window.startNanos}`,
     timeUnixNano: `${window.endNanos}`,
     asInt: `${value}`,
   });
-  const points = [
-    ...(outcome.forwarded > 0 ? [point(outcome.forwarded, [])] : []),
+  const samples = [
+    ...(outcome.forwarded > 0 ? [sample(outcome.forwarded, [])] : []),
     ...(outcome.refused > 0
-      ? [point(outcome.refused, Option.toArray(Option.map(outcome.reason, (r) => stringAttribute(ERROR_TYPE, r))))]
+      ? [sample(outcome.refused, Option.toArray(Option.map(outcome.reason, (r) => stringAttribute(ERROR_TYPE, r))))]
       : []),
   ];
   return {
@@ -90,12 +90,12 @@ export const countsExport = (
         scopeMetrics: [
           {
             scope: { name: resource.script },
-            metrics: Arr.isReadonlyArrayNonEmpty(points)
+            metrics: Arr.isReadonlyArrayNonEmpty(samples)
               ? [
                   {
                     name: metric.name,
                     unit: metric.unit,
-                    sum: { aggregationTemporality: DELTA, isMonotonic: true, dataPoints: points },
+                    sum: { aggregationTemporality: DELTA, isMonotonic: true, dataPoints: samples },
                   },
                 ]
               : [],

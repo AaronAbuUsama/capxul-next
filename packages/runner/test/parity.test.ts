@@ -1,5 +1,6 @@
 // Parity (src/telemetry/parity.ts): one call's spans as `app.spans` keeps them against the same spans read from the
 // tap. They agree only when the tap holds every kept span with the same name, parent, outcome and declared attributes.
+import { Producers } from "@capxul/blueprint";
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import * as Arr from "effect/Array";
@@ -52,7 +53,7 @@ const tapped: ReadonlyArray<FlatSpan> = [
       "rpc.method": OPERATION,
     },
     events: [{ name: "exception", atMs: 1_800_000_000_119, attributes: {} }],
-    service: "core",
+    service: Producers.producers.api.service,
   },
   {
     name: "postgres",
@@ -65,7 +66,7 @@ const tapped: ReadonlyArray<FlatSpan> = [
     endedMs: 1_800_000_000_060,
     attributes: { "db.system.name": "postgresql" },
     events: [],
-    service: "core",
+    service: Producers.producers.api.service,
   },
 ];
 

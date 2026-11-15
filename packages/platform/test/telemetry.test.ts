@@ -8,12 +8,12 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import { Conventions, Envelope } from "@capxul/blueprint";
-import { exportFromConfig, platformTelemetry, RunAttributes } from "../src/telemetry.ts";
+import { exportFromConfig, sitesTelemetry, RunAttributes } from "../src/telemetry.ts";
 
 const under =
   (env: Record<string, string>) =>
   <A, E>(effect: Effect.Effect<A, E>) =>
-    Effect.provideService(effect, ConfigProvider.ConfigProvider, ConfigProvider.fromEnvRecord(env));
+    Effect.provideService(effect, ConfigProvider.ConfigProvider, ConfigProvider.fromUnknown(env));
 
 /** The run's attributes, as an entry reads them. */
 const attributesOf = Effect.gen(function* () {
@@ -56,7 +56,7 @@ test("with no endpoint set, an entry exports nothing and keeps the tracer it had
   const same = await Effect.runPromise(
     Effect.gen(function* () {
       const before = yield* Effect.tracer;
-      const after = yield* Effect.tracer.pipe(Effect.provide(Layer.fresh(exportFromConfig(platformTelemetry))));
+      const after = yield* Effect.tracer.pipe(Effect.provide(Layer.fresh(exportFromConfig(sitesTelemetry))));
       return before === after;
     }).pipe(under({})),
   );
@@ -78,16 +78,16 @@ test("an entry given a collector and no endpoint posts there, with the collector
   await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
   const address = server.address();
   const port = address !== null && typeof address === "object" ? address.port : 0;
-  const target = Option.some({ baseUrl: `http://127.0.0.1:${port}`, headers: { authorization: "Bearer c1.claim" } });
+  const target = Option.some({ baseUrl: `http://127.0.0.1:${port}`, headers: { authorization: "Bearer c1.token" } });
   await Effect.runPromise(
     Effect.void.pipe(
-      Effect.withSpan("platform.export.probe"),
-      Effect.provide(exportFromConfig(platformTelemetry, target)),
+      Effect.withSpan("sites.export.probe"),
+      Effect.provide(exportFromConfig(sitesTelemetry, target)),
       under({ OTEL_LOGS_EXPORTER: "none", OTEL_METRICS_EXPORTER: "none" }),
     ),
   );
   await new Promise<void>((done) => server.close(() => done()));
-  assert.deepEqual(seen, [{ url: "/v1/traces", authorization: "Bearer c1.claim" }]);
+  assert.deepEqual(seen, [{ url: "/v1/traces", authorization: "Bearer c1.token" }]);
   const sent: { readonly resourceSpans: ReadonlyArray<{ readonly schemaUrl?: string }> } = JSON.parse(
     bodies[0] ?? "{}",
   );

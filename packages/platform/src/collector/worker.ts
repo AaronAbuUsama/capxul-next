@@ -5,8 +5,8 @@
 //                                            the sink's dataset of that signal, answered with the sink's answer
 //   GET  /health                             `{collector, stage}`
 //
-// A world's Core reaches it by service binding (its claim in the binding's props); anyone else on its public route,
-// the Worker's workers.dev URL over HTTPS (the platform's output `collectorUrl`), with an operator's claim. The sink's ingest key is a Worker secret that platform.yml sets
+// A world's Core reaches it by service binding (its token in the binding's props); anyone else on its public route,
+// the Worker's workers.dev URL over HTTPS (the platform's output `collectorUrl`), with an operator's token. The sink's ingest key is a Worker secret that platform.yml sets
 // from CI; a deploy without it (a rehearsal) forwards with no key, and the sink refuses: the counts say so.
 //
 // After each answer, in `waitUntil`, the collector sends its counts (counts.ts) to the sink's metrics dataset and logs
@@ -34,7 +34,7 @@ import { cryptoLayer } from "../token.ts";
 import { COLLECTOR } from "../names.ts";
 import { names } from "../stage.ts";
 import { type Caller, makeCollector } from "../collector.ts";
-import { boundClaimOf, verifierOf } from "./caller.ts";
+import { boundTokenOf, verifierOf } from "./caller.ts";
 import { collectorKeyId } from "./key.ts";
 import { countsExport, type Outcome } from "./counts.ts";
 import { AXIOM_EDGE, datasetsOf, type Identity, sinkHeadersOf, STAMPED, stampOf } from "./forward.ts";
@@ -154,20 +154,20 @@ export default class Collector extends Cloudflare.Worker<Collector>()(
       const key = textOf(env[COLLECTOR_ENV.key]);
       if (Option.isNone(key)) return answer(503, { error: "no-collector-key" });
       const ctx = yield* Cloudflare.WorkerExecutionContext;
-      const bound = boundClaimOf(yield* ctx.props);
+      const bound = boundTokenOf(yield* ctx.props);
       const now = Math.floor((yield* Clock.currentTimeMillis) / 1000);
-      const verifyAs = (needsWorld: boolean) => (claim: Redacted.Redacted) =>
+      const verifyAs = (needsWorld: boolean) => (token: Redacted.Redacted) =>
         verifierOf(
           Redacted.make(key.value),
           stage,
           now,
           needsWorld,
-        )(claim).pipe(
-          // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the Worker's fetch is its entry point: WebCrypto's HMAC for the claim
+        )(token).pipe(
+          // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the Worker's fetch is its entry point: WebCrypto's HMAC for the token
           Effect.provide(cryptoLayer),
           Effect.orDie,
         );
-      // A binding's claim is checked here; a public caller's bearer claim by the collector, through `verify`.
+      // A binding's token is checked here; a public caller's bearer token by the collector, through `verify`.
       const caller: Caller = Option.isSome(bound)
         ? yield* Effect.map(verifyAs(true)(bound.value), (identity) =>
             Option.match(identity, {
@@ -176,7 +176,7 @@ export default class Collector extends Cloudflare.Worker<Collector>()(
             }),
           )
         : { _tag: "Public" };
-      if (Option.isSome(bound) && caller._tag === "Public") return answer(403, { error: "binding-claim-refused" });
+      if (Option.isSome(bound) && caller._tag === "Public") return answer(403, { error: "binding-token-refused" });
       const sinkUrl = Option.getOrElse(textOf(env[COLLECTOR_ENV.sinkUrl]), () => AXIOM_EDGE);
       const headers = sinkHeadersOf(
         datasetsOf(Option.getOrElse(textOf(env[COLLECTOR_ENV.datasets]), () => "capxul-test")),

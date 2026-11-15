@@ -7,15 +7,22 @@
 // Where it sends (`runnerExport`):
 //
 //   OTEL_EXPORTER_OTLP_ENDPOINT   set: there, with OTEL_EXPORTER_OTLP_HEADERS, as any entry does (a local receiver)
-//   RUNNER_COLLECTOR=<stage>      otherwise: the public route of that platform stage's collector, with a claim minted
+//   RUNNER_COLLECTOR=<stage>      otherwise: the public route of that platform stage's collector, with a token minted
 //                                 for the run's operator (WORLD_OWNER) under the collector's key, read from the shared
 //                                 state. In GitHub Actions it is `staging` unless set; elsewhere, unset, nothing.
 //
 // A stage with no collector yet, or a state that cannot be read, exports nothing and fails nothing: the run goes on,
-// and says so in one log line. The claim is never logged.
+// and says so in one log line. The token is never logged.
 import { Producers } from "@capxul/blueprint";
-import { exportFromConfig, exportLayer, publicCollector, STAGING } from "@capxul/platform";
-import type { ExportLayer, ExportOptions, Target } from "@capxul/platform";
+import {
+  exportFromConfig,
+  exportLayer,
+  publicCollector,
+  STAGING,
+  type ExportLayer,
+  type ExportOptions,
+  type Target,
+} from "@capxul/platform";
 import * as BunServices from "@effect/platform-bun/BunServices";
 import * as Alchemist from "alchemy/Alchemist";
 import * as Cause from "effect/Cause";
@@ -34,8 +41,8 @@ export type { ExportOptions };
 export const runnerTelemetry = (options: ExportOptions): ExportLayer =>
   exportLayer(Producers.producers.runner.service, options);
 
-/** How long a run's claim is good for: longer than any run (its hub lives four hours). */
-export const CLAIM_LIFETIME = Duration.hours(6);
+/** How long a run's token is good for: longer than any run (its hub lives four hours). */
+export const TOKEN_LIFETIME = Duration.hours(6);
 
 /** The collector the run sends to, when the settings name none: `RUNNER_COLLECTOR`, or `staging` in CI. */
 const CollectorSettings = Config.all({
@@ -55,13 +62,13 @@ export const collectorStage = (settings: {
     () => (settings.actions ? Option.some(STAGING) : Option.none()),
   );
 
-/** The collector's public route and the run's claim, or none: no stage chosen, no collector there, or no state. */
+/** The collector's public route and the run's token, or none: no stage chosen, no collector there, or no state. */
 const collectorTarget = Effect.gen(function* () {
   const settings = yield* CollectorSettings;
   if (Option.isSome(settings.endpoint)) return Option.none<Target>();
   const stage = collectorStage(settings);
   if (Option.isNone(stage)) return Option.none<Target>();
-  const expires = Math.floor((yield* Clock.currentTimeMillis) / 1000 + Duration.toSeconds(CLAIM_LIFETIME));
+  const expires = Math.floor((yield* Clock.currentTimeMillis) / 1000 + Duration.toSeconds(TOKEN_LIFETIME));
   const found = yield* publicCollector(stage.value, settings.operator, expires).pipe(
     Effect.catchCause((cause) =>
       Effect.as(
@@ -79,7 +86,7 @@ const collectorTarget = Effect.gen(function* () {
   yield* Effect.logInfo(`telemetry: exporting to the collector of ${stage.value} as ${settings.operator}`);
   return Option.some<Target>({
     baseUrl: found.value.url,
-    headers: { authorization: `Bearer ${Redacted.value(found.value.claim)}` },
+    headers: { authorization: `Bearer ${Redacted.value(found.value.token)}` },
   });
 }).pipe(Effect.orElseSucceed(() => Option.none<Target>()));
 

@@ -129,7 +129,7 @@ export const keepingTracer = (keep: (span: KeptSpan) => void, inner: Tracer.Trac
  * sink keeps is exported too, and only those. With none, the tracer of the process around the call: a process that
  * serves calls itself and exports through its own tracer (the runner's platform) exports them too.
  */
-export const CallTracer = Context.Reference<Option.Option<Tracer.Tracer>>("capxul/core/CallTracer", {
+export const CallTracer = Context.Reference<Option.Option<Tracer.Tracer>>("capxul/api/CallTracer", {
   defaultValue: () => Option.none(),
 });
 

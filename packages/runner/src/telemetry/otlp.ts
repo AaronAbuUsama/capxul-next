@@ -94,7 +94,7 @@ export type TraceExport = typeof TraceExport.Type;
 
 // ---- Logs ---------------------------------------------------------------------------------------------------------
 
-export const LogRecord = Schema.Struct({
+export const LogEntry = Schema.Struct({
   timeUnixNano: Fixed64,
   observedTimeUnixNano: Fixed64,
   severityNumber: Schema.optionalKey(Schema.Finite),
@@ -105,7 +105,7 @@ export const LogRecord = Schema.Struct({
   traceId: Schema.optionalKey(Schema.String),
   spanId: Schema.optionalKey(Schema.String),
 });
-export type LogRecord = typeof LogRecord.Type;
+export type LogEntry = typeof LogEntry.Type;
 
 export const LogsExport = Schema.Struct({
   resourceLogs: Schema.Array(
@@ -114,7 +114,7 @@ export const LogsExport = Schema.Struct({
       scopeLogs: Schema.Array(
         Schema.Struct({
           scope: Schema.optionalKey(Scope),
-          logRecords: LogRecord.pipe(Schema.Array, Schema.optionalKey),
+          logRecords: LogEntry.pipe(Schema.Array, Schema.optionalKey),
         }),
       ),
     }),
@@ -124,7 +124,7 @@ export type LogsExport = typeof LogsExport.Type;
 
 // ---- Metrics ------------------------------------------------------------------------------------------------------
 
-const NumberPoint = Schema.Struct({
+const NumberSample = Schema.Struct({
   attributes: Attributes,
   startTimeUnixNano: Schema.optionalKey(Fixed64),
   timeUnixNano: Schema.optionalKey(Fixed64),
@@ -132,7 +132,7 @@ const NumberPoint = Schema.Struct({
   asInt: Schema.optionalKey(Fixed64),
 });
 
-const HistogramPoint = Schema.Struct({
+const HistogramSample = Schema.Struct({
   attributes: Schema.optionalKey(Attributes),
   startTimeUnixNano: Schema.optionalKey(Fixed64),
   timeUnixNano: Schema.optionalKey(Fixed64),
@@ -144,7 +144,7 @@ const HistogramPoint = Schema.Struct({
   max: Schema.optionalKey(Fixed64),
 });
 
-const SummaryPoint = Schema.Struct({
+const SummarySample = Schema.Struct({
   attributes: Schema.optionalKey(Attributes),
   startTimeUnixNano: Schema.optionalKey(Fixed64),
   timeUnixNano: Schema.optionalKey(Fixed64),
@@ -161,21 +161,21 @@ export const Metric = Schema.Struct({
   name: Schema.String,
   description: Schema.optionalKey(Schema.String),
   unit: Schema.optionalKey(Schema.String),
-  gauge: Schema.optionalKey(Schema.Struct({ dataPoints: Schema.Array(NumberPoint) })),
+  gauge: Schema.optionalKey(Schema.Struct({ dataPoints: Schema.Array(NumberSample) })),
   sum: Schema.optionalKey(
     Schema.Struct({
-      dataPoints: Schema.Array(NumberPoint),
+      dataPoints: Schema.Array(NumberSample),
       aggregationTemporality: Schema.Finite,
       isMonotonic: Schema.Boolean,
     }),
   ),
   histogram: Schema.optionalKey(
     Schema.Struct({
-      dataPoints: Schema.Array(HistogramPoint),
+      dataPoints: Schema.Array(HistogramSample),
       aggregationTemporality: Schema.optionalKey(Schema.Finite),
     }),
   ),
-  summary: Schema.optionalKey(Schema.Struct({ dataPoints: Schema.Array(SummaryPoint) })),
+  summary: Schema.optionalKey(Schema.Struct({ dataPoints: Schema.Array(SummarySample) })),
 });
 export type Metric = typeof Metric.Type;
 

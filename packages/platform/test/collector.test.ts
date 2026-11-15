@@ -1,5 +1,6 @@
 // The collector's own work (src/collector.ts; roadmap 4.4): it stamps who called it on every resource, refuses a
 // public call without a valid platform token, and forwards the body to the sink with the sink's headers.
+import { Producers } from "@capxul/blueprint";
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import * as Arr from "effect/Array";
@@ -22,16 +23,16 @@ const HEADERS = {
 
 const BOUND: Identity = { world: "w-bound", grade: "private", stage: "staging" };
 const OPERATOR: Identity = { world: "w-operator", grade: "shared", stage: "staging" };
-const GOOD_TOKEN = "platform-token-good";
+const GOOD_TOKEN = "operator-token-good";
 const verify = (token: Redacted.Redacted) =>
   Effect.succeed(Redacted.value(token) === GOOD_TOKEN ? Option.some(OPERATOR) : Option.none());
 
-/** What a body claims about itself, which the collector must overwrite. */
+/** What a body grant about itself, which the collector must overwrite. */
 const LIES = [
   { key: KEYS.world, value: { stringValue: "w-real" } },
   { key: KEYS.grade, value: { stringValue: "real" } },
   { key: KEYS.stage, value: { stringValue: "production" } },
-  { key: "service.name", value: { stringValue: "core" } },
+  { key: "service.name", value: { stringValue: Producers.producers.api.service } },
 ];
 const resource = (attributes: ReadonlyArray<unknown>) => ({ attributes, droppedAttributesCount: 0 });
 
@@ -132,7 +133,7 @@ for (const signal of ["traces", "logs", "metrics"] as const) {
       assert.equal(status, 200, ACCEPTED);
       assert.equal(posted.length, 1, "the collector did not forward the body once");
       const [lied, silent] = stampsOf(signal, posted[0]!);
-      assert.deepEqual({ ...lied }, { ...stamped(BOUND), "service.name": "core" });
+      assert.deepEqual({ ...lied }, { ...stamped(BOUND), "service.name": Producers.producers.api.service });
       assert.deepEqual({ ...silent }, stamped(BOUND));
     }).pipe(Effect.runPromise));
 }
@@ -144,14 +145,14 @@ test("a public call with no token is refused, and nothing is forwarded", () =>
     assert.equal(posted.length, 0, "a refused call was forwarded");
   }).pipe(Effect.runPromise));
 
-test("a public call with a token that is not a platform token is refused, and nothing is forwarded", () =>
+test("a public call with a token that is not the operator's token is refused, and nothing is forwarded", () =>
   Effect.gen(function* () {
-    const { status, posted } = yield* call("logs", { _tag: "Public" }, "platform-token-forged");
+    const { status, posted } = yield* call("logs", { _tag: "Public" }, "operator-token-forged");
     assert.equal(status, 401, REFUSED);
     assert.equal(posted.length, 0, "a refused call was forwarded");
   }).pipe(Effect.runPromise));
 
-test("a public call with a valid platform token is stamped with whom the token names", () =>
+test("a public call with the operator's valid token is stamped with whom the token names", () =>
   Effect.gen(function* () {
     const { status, posted } = yield* call("metrics", { _tag: "Public" }, GOOD_TOKEN);
     assert.equal(status, 200, ACCEPTED);

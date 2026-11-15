@@ -22,7 +22,7 @@ test("with no endpoint and no collector chosen, the runner exports nothing and k
       const before = yield* Effect.tracer;
       const after = yield* Effect.tracer.pipe(Effect.provide(Layer.fresh(runnerExport)));
       return before === after;
-    }).pipe(Effect.provideService(ConfigProvider.ConfigProvider, ConfigProvider.fromEnvRecord({}))),
+    }).pipe(Effect.provideService(ConfigProvider.ConfigProvider, ConfigProvider.fromUnknown({}))),
   );
   assert.ok(same, "the tracer changed though nothing chose where to send");
 });

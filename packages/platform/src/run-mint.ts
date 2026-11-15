@@ -12,7 +12,7 @@ import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
 import { doorKey } from "./door.ts";
 import { cryptoLayer, fingerprint, mint } from "./token.ts";
-import { exportFromConfig, platformTelemetry } from "./telemetry.ts";
+import { exportFromConfig, sitesTelemetry } from "./telemetry.ts";
 
 Effect.gen(function* () {
   const [stage = "", world = "", quota = "", expires = "", out = ""] = process.argv.slice(2);
@@ -25,8 +25,6 @@ Effect.gen(function* () {
 }).pipe(
   Effect.scoped,
   // With OTLP export, as OpenTelemetry's standard settings ask (src/telemetry.ts); flushed when the command ends.
-  Effect.provide(
-    Layer.mergeAll(Alchemist.layer(), BunServices.layer, cryptoLayer, exportFromConfig(platformTelemetry)),
-  ),
+  Effect.provide(Layer.mergeAll(Alchemist.layer(), BunServices.layer, cryptoLayer, exportFromConfig(sitesTelemetry))),
   BunRuntime.runMain,
 );

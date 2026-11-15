@@ -99,7 +99,7 @@ export interface Forwarded {
  * Stamps and forwards the request being served, as `signal`, for `identity`. A body that is not OTLP JSON is
  * refused (415 for another content type, 400 for one that does not decode) and not counted: nothing of it is known.
  */
-export const forward = Effect.fn("platform.collector.forward")(function* (
+export const forward = Effect.fn("sites.collector.forward")(function* (
   options: Forwarding,
   signal: Signal,
   identity: Identity,

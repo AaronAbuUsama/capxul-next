@@ -166,7 +166,7 @@ export const jsonWithSchema = Layer.effect(
  * Nothing is posted before its scope closes: the intervals are longer than any request, and the flush runs as the
  * scope closes. It provides the tracer as Effect's ambient one; the Worker moves it to `CallTracer` (below).
  */
-export const coreTelemetry = (options: ExportOptions) =>
+export const apiTelemetry = (options: ExportOptions) =>
   Otlp.layer({
     baseUrl: options.baseUrl,
     headers: options.headers,
@@ -210,7 +210,7 @@ export const requestExport = (env: Record<string, unknown>, database: Effect.Eff
     const revision = Option.getOrElse(textOf(env[ENV.revision]), () => "unknown");
     const client = transport(collector, hold);
     const built = yield* Layer.build(
-      coreTelemetry({ baseUrl: BINDING_URL, revision }).pipe(
+      apiTelemetry({ baseUrl: BINDING_URL, revision }).pipe(
         Layer.provide(Layer.succeed(HttpClient.HttpClient, client)),
       ),
     );

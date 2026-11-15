@@ -9,27 +9,27 @@ through it to the sink. One Worker, `src/collector/worker.ts`, built on Effect's
 | `POST /v1/traces`, `/v1/logs`, `/v1/metrics` | OTLP **JSON** (`OtlpSerialization.layerJson`; protobuf answers 415, a body that does not decode 400). Every resource is stamped (below), then the body goes to Axiom's edge `eu-central-1.aws.edge.axiom.co` with the ingest key and the signal's dataset in `x-axiom-dataset` (`capxul-test-traces`, `-logs`, `-metrics`). The caller gets the sink's answer, as `OtlpProxy` returns it |
 | `GET /health` | `{collector, stage}` |
 
-**Who may call, and what is stamped.** A caller holds a **claim** signed under the stage's collector key
-(`src/collector/claims.ts`): `c1.<operator>.<world or ->.<grade or ->.<expires>.<HMAC-SHA256 in hex>`. The key is an
-`Alchemy.Random` of the stage (`CollectorKey-g<n>`, `PLATFORM_COLLECTOR_KEY_GENERATION`), kept in the shared state,
+**Who may call, and what is stamped.** A caller holds a **token** signed under the stage's collector key
+(`src/collector/tokens.ts`): `c1.<operator>.<world or ->.<grade or ->.<expires>.<HMAC-SHA256 in hex>`. The key is an
+`Alchemy.Random` of the stage (`CollectorKey-g<n>`, `SITES_COLLECTOR_KEY_GENERATION`), kept in the shared state,
 bound to the Worker as a secret and recorded by id as the output `collectorKeyId`, never as a value: whoever holds the
 Cloudflare key reads it and signs, as with the site door's key.
 
-- **A world's Core, by service binding.** packages/world signs the world's claim (its owner, world, grade and expiry)
+- **A world's Core, by service binding.** packages/world signs the world's token (its owner, world, grade and expiry)
   when it deploys the world and puts it in the **props of Core's binding** to the collector:
-  `env: { <name>: yield* collectorBinding(stage, claim) }` (`src/door.ts`). Cloudflare hands a binding's props to the
+  `env: { <name>: yield* collectorBinding(stage, token) }`. Cloudflare hands a binding's props to the
   collector as `ctx.props`; the deployer sets them and a request on the public route has none, so only the binding
-  path can carry a world's claim that way. Core itself sends nothing for it. A binding's claim must name a world
-  and a grade (403 `binding-claim-refused` otherwise).
+  path can carry a world's token that way. Core itself sends nothing for it. A binding's token must name a world
+  and a grade (403 `binding-token-refused` otherwise).
 - **Anyone else, on the public route**: the Worker's workers.dev URL over HTTPS (the platform's output
   `collectorUrl`; no route, record or certificate on the zone, so CI's token needs nothing new; a name under
-  `worlds.abuusama.dev` can come later): `Authorization: Bearer <claim>`, signed for the caller's
+  `worlds.abuusama.dev` can come later): `Authorization: Bearer <token>`, signed for the caller's
   operator, naming the world it drives when it drives one. None, or one that is not the key's, expired or malformed:
   401 `token-required`, and nothing is forwarded.
 
 The collector then drops whatever the caller sent under the stamped keys on every resource and writes its own
 (`src/collector/envelope.ts`, interim until the blueprint's envelope, #301, reaches master): `capxul.world` and the
-grade under `deployment.environment.name` (`private`, `shared` or `real`) from the claim when it names them, and
+grade under `deployment.environment.name` (`private`, `shared` or `real`) from the token when it names them, and
 `capxul.stage`, the collector's stage. So no producer can misstate where its records came from.
 
 **Counts.** After each answer, in `waitUntil`, the collector sends what became of the request's items to the sink's

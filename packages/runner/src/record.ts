@@ -58,7 +58,7 @@ export const SpanSummary = Schema.Struct({
  * which fails nothing; `on`, with each call's spans in both records and their parity, a disagreement failing the run
  * as the runner's plumbing; `unreadable` when the tap is on but could not be read, which fails it too.
  */
-export const TapRecord = Schema.Struct({
+export const TapReport = Schema.Struct({
   state: Schema.Literals(["absent", "on", "unreadable"]),
   /** Why the tap could not be read. */
   reason: Schema.optional(Schema.String),
@@ -85,7 +85,7 @@ export const TapRecord = Schema.Struct({
     }),
   ),
 });
-export type TapRecord = typeof TapRecord.Type;
+export type TapReport = typeof TapReport.Type;
 
 export const RunRecord = Schema.Struct({
   /**
@@ -133,7 +133,7 @@ export const RunRecord = Schema.Struct({
   /** What its calls reached of each machine (checks/paths.ts); absent in records made before step 3.4. */
   coverage: Coverage.pipe(Schema.optional),
   /** The tap beside `app.spans`, call by call; absent in records made before the tap was read. */
-  tap: TapRecord.pipe(Schema.optional),
+  tap: TapReport.pipe(Schema.optional),
   afterwards: Schema.Struct({
     /** `left to its owner`: a world made by `world create`, which the runner neither made nor destroys. */
     stage: Schema.Literals(["destroying", "destroyed", "destroy failed", "left to its owner"]),
@@ -155,7 +155,7 @@ export const RunRecord = Schema.Struct({
 export type RunRecord = typeof RunRecord.Type;
 
 /** A journey's steps and the first that failed, for its run record; nothing for the door. */
-export const stepsFor = (plan: Pick<RunRecord, "kind">, steps: ReadonlyArray<StepRecord>) =>
+export const stepsFor = (plan: { readonly kind: string }, steps: ReadonlyArray<StepRecord>) =>
   plan.kind === "journey" ? { steps, failedStep: failedStepOf(steps) } : {};
 
 /** A run record's `via`: only a run through the command line names it. */
