@@ -7,8 +7,8 @@ change, and the change is written here with its date.
 
 ## What was decided on 13 November 2026
 
-The decisions, from 13 November 2026 on, each with its date, are in
-[docs/decisions.md](decisions.md). A citation of the roadmap's decision by its name finds it there.
+The decisions, from 13 November 2026 on, are in [docs/decisions.md](decisions.md); a row without a date there was
+agreed on 13 November 2026. A citation of the roadmap's decision by its name finds it there.
 
 ## World lifecycle rules, enforced by code
 

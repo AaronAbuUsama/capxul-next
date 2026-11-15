@@ -1,8 +1,9 @@
 # Decisions
 
-Status of this page: every decision Aaron agreed for the rebuild line, one row each with its date, moved word for word
-from `docs/roadmap.md` on 15 November 2026. A decision is added or changed here only with Aaron's written yes
-(`AGENTS.md`, "Standing rules"). A citation of "the roadmap's decision" by its name finds the decision here.
+Status of this page: every decision the roadmap recorded for the rebuild line, one row each, moved word for word from
+`docs/roadmap.md` on 15 November 2026. A row without a date in its text was agreed on 13 November 2026. A decision is
+added or changed here only with Aaron's written yes (`AGENTS.md`, "Standing rules"). A citation of "the roadmap's
+decision" by its name finds the decision here.
 
 Decisions Aaron agreed that are recorded elsewhere, such as the blueprint's notes folded into its code, are added
 here, in his words and with their dates, once he has approved recording them.
