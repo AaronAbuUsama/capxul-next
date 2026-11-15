@@ -44,7 +44,7 @@ const exportsTheProbe = Effect.gen(function* () {
   assert.equal(attribute("service.version"), REVISION);
 });
 
-// Fails until "🔨 Core exports OTLP and writes the tap" (PR #317, item 2) replaces the stub, which exports nothing.
+// Fails until the Core builder's pull request (branch `work/telemetry-core`; PR #317, item 2) replaces the stub, which exports nothing.
 test("Core's OTLP layer posts a traced effect's spans, with its service and revision", async () => {
   const reason = await exportsTheProbe.pipe(failsUntilBuilt, Effect.runPromise);
   assert.match(reason, /no export reached the endpoint/);

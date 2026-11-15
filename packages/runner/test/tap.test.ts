@@ -25,7 +25,7 @@ const standIn = (rows: ReadonlyArray<unknown>) =>
     ),
   );
 
-// Fails until "🔨 the runner reads the tap beside app.spans" (PR #317, item 5) replaces the stub: it reads nothing.
+// Fails until the pull request of the builder who reads the tap beside app.spans (PR #317, item 5; not yet started) replaces the stub: it reads nothing.
 test("the tap read returns the spans Core wrote under a call's trace id", async () => {
   const reason = await Effect.gen(function* () {
     const posted = yield* Effect.void.pipe(Effect.withSpan("call.op", { kind: "server" }), exported);

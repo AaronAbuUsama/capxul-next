@@ -36,7 +36,7 @@ export interface CollectorOptions {
   readonly sinkUrl: string;
   /** The headers sent with each signal's forward: the sink's key and the signal's dataset. Applied last. */
   readonly headers: { readonly [S in Signal]: Headers.Input };
-  /** The resource attribute keys stamped with the caller's world, grade and stage (the blueprint's envelope, #301). */
+  /** The resource attribute keys stamped with the caller's world, grade and stage: the envelope's (#301). */
   readonly keys: { readonly [K in keyof Identity]: string };
   /** Whom a public caller's platform token names: none when it is not a valid platform token. */
   readonly verify: (token: Redacted.Redacted) => Effect.Effect<Option.Option<Identity>>;

@@ -1,8 +1,8 @@
 // The collector's own work (src/collector.ts; roadmap 4.4): it stamps who called it on every resource, refuses a
 // public call without a valid platform token, and forwards the body to the sink with the sink's headers.
 //
-// Every test here fails until "🔨 the collector on staging, and the test sink" (PR #317, item 3) replaces the stub,
-// which answers 501 and forwards nothing.
+// Every test here fails until the collector builder's pull request (branch `work/telemetry-collector`; PR #317,
+// item 3) replaces the stub, which answers 501 and forwards nothing; that pull request makes each a plain test.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import * as Arr from "effect/Array";
@@ -13,18 +13,18 @@ import * as Rec from "effect/Record";
 import * as Str from "effect/String";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import { type Caller, type Identity, makeCollector, type Signal } from "../src/collector.ts";
+import { KEYS } from "./support/envelope.ts";
 import { capturing, failsUntilBuilt, type Posted } from "./support/otlp-endpoint.ts";
 
 const SINK = "https://sink.test";
-const KEYS = { world: "test.world", grade: "test.grade", stage: "test.stage" } as const;
 const HEADERS = {
   traces: { authorization: "Bearer sink-key", "x-axiom-dataset": "capxul-test-traces" },
   logs: { authorization: "Bearer sink-key", "x-axiom-dataset": "capxul-test-logs" },
   metrics: { authorization: "Bearer sink-key", "x-axiom-dataset": "capxul-test-metrics" },
 } as const;
 
-const BOUND: Identity = { world: "w-bound", grade: "test", stage: "staging" };
-const OPERATOR: Identity = { world: "w-operator", grade: "test", stage: "staging" };
+const BOUND: Identity = { world: "w-bound", grade: "private", stage: "staging" };
+const OPERATOR: Identity = { world: "w-operator", grade: "shared", stage: "staging" };
 const GOOD_TOKEN = "platform-token-good";
 const verify = (token: Redacted.Redacted) =>
   Effect.succeed(Redacted.value(token) === GOOD_TOKEN ? Option.some(OPERATOR) : Option.none());

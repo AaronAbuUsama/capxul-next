@@ -44,7 +44,7 @@ const exportsTheProbe = Effect.gen(function* () {
   assert.equal(attribute("service.version"), REVISION);
 });
 
-// Fails until "🔨 the runner, the world and the platform client export OTLP" (PR #317, item 4) replaces the stub, which exports nothing.
+// Fails until the export builder's pull request (branch `work/telemetry-export`; PR #317, item 4) replaces the stub, which exports nothing.
 test("the world's OTLP layer posts a traced effect's spans, with its service and revision", async () => {
   const reason = await exportsTheProbe.pipe(failsUntilBuilt, Effect.runPromise);
   assert.match(reason, /no export reached the endpoint/);
