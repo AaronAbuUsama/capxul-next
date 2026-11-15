@@ -52,5 +52,25 @@ export const RECORD = `${CONTRACTS}/deployments/devnet.json`;
 export const SEED = `${CONTRACTS}/state/core.json`;
 export const OUT = `${CONTRACTS}/out`;
 
+/**
+ * What `pnpm seed` rebuilds the seed from (the compiled contracts, the manifest, Companies House's configuration and
+ * the pinned third-party state) and what it writes: the seed, the deployment record and the state's checksums.
+ */
+export const SEED_INPUTS = {
+  manifest: `${CONTRACTS}/deploy/manifest.json`,
+  house: `${CONTRACTS}/deploy/devnet.json`,
+  pin: `${CONTRACTS}/state/pin.genesis.json`,
+} as const;
+export const CHECKSUMS = `${CONTRACTS}/state/CHECKSUMS`;
+
+/** The chain id of every world's chain, Base Sepolia's, which the seed is deployed on. */
+export const CHAIN_ID = 84532;
+
+/**
+ * The mnemonic of anvil's public test accounts, the only keys the seed signs with: the deployer is account 0 and
+ * Companies House's Directors are accounts 0 to 2 (`deploy/devnet.json`). Published by Foundry; holds nothing real.
+ */
+export const TEST_MNEMONIC = "test test test test test test test test test test test junk";
+
 /** Anvil's first test account: the account a world's faucet sends from (packages/world, src/chain/faucet.ts). */
 export const FIRST_ACCOUNT = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
