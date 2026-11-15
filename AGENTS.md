@@ -232,6 +232,18 @@ Our lint rules, each tested in `packages/lint/test/rules.test.ts`:
 - `capxul/import-door`: another package is imported only through its door, `src/door.ts`, or by its bare name.
 - `capxul/no-json-text`: no `JSON.parse`, `JSON.stringify`, `Schema.parseJson` or string schema documented as JSON
   outside entry files and the edges listed under `settings.capxul.jsonEdges`.
+- `capxul/owned-values`: a raw schema (`Schema.String`, `Schema.Literals`, ...) only in the blueprint's values files
+  and machines, and there only as a named value, never as a field; elsewhere only in entry files and the edges listed
+  under `settings.capxul.schemaEdges`, each with its reason.
+- `capxul/declared-names`: a name the blueprint declares (an operation, a refusal, an event, an outcome, a starting
+  world) is imported, never written as a string outside the blueprint, except where the compiler checks it (an
+  object's key, a computed member, the tag given to `catchTag`, `Match.tag` or `isTagged`).
+- `capxul/decoded-rows`: no `sql<Row>` cast outside the blueprint; rows are decoded with the blueprint's schemas.
+
+These three are ratcheted: what each found when it was turned on is on its list in `packages/lint/src/unmigrated.ts`,
+a file with a count that may only fall (`packages/lint/README.md` says how to lower it). New files are never added.
+Each skips generated files: a file whose first line is a comment starting `// Generated`, written by `pnpm generate`
+and never edited.
 
 What the ladder does not cover: `spikes/` (temporary code, deleted when its step graduates it; only its README is
 checked), Ponder's files in `packages/indexer` (type-checked only), the Solidity in `packages/contracts`, and the

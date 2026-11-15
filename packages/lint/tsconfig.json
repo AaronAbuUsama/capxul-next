@@ -1,4 +1,15 @@
 {
   "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        // The plugin reads the names the blueprint declares from its door (capxul/declared-names), and the door's
+        // types show the blueprint's Rpc declarations (effect/rpc, which Effect 4 marks unstable with no stable
+        // replacement). The catalog's exact pin of effect is the guard, as in packages/blueprint.
+        "allowedUnstableApis": ["effect/rpc"]
+      }
+    ]
+  },
   "include": ["src", "test"]
 }

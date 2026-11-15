@@ -47,6 +47,15 @@
         "packages/cli/src/input.ts": "the command line's input: a flag's JSON value and the --input file, decoded at once with the payload's schema",
         "packages/cli/src/output.ts": "the command line's output: one line of JSON per answer, encoded with the operation's own schemas",
         "packages/world/src/lifecycle/record.ts": "run records and proof records are JSON files, written to be read by people and by scoring, and read back by the proofs; the command line prints its results as the same JSON text"
+      },
+      // Places where raw schemas describe a format of their own, not the contract's values, each with its reason
+      // (capxul/owned-values). Anything else the rule finds is on its unmigrated list (packages/lint/src/unmigrated.ts).
+      "schemaEdges": {
+        "packages/world/src/failures.ts": "the world's own infrastructure failures (a step timed out, a part not ready): faults the contract does not promise, so the blueprint does not name their fields",
+        "packages/core/src/failures.ts": "Core's own failure in reaching a site through its door: a fault of the infrastructure, mapped to the blueprint's refusals before it reaches a caller",
+        "packages/runner/src/record.ts": "a run record is a JSON file on disk, written by the runner and read by the dashboard and the speed climb; its schema is that file's format",
+        "packages/runner/src/summary.ts": "a run's summary is the JSON file a step's Proof names; its schema is that file's format",
+        "packages/world/src/lifecycle/record.ts": "run records and proof records are JSON files outside the world; their schemas are those files' format"
       }
     }
   },
@@ -68,6 +77,9 @@
     "capxul/effect-only": "error",
     "capxul/import-door": "error",
     "capxul/no-json-text": "error",
+    "capxul/owned-values": "error",
+    "capxul/declared-names": "error",
+    "capxul/decoded-rows": "error",
     "effecttsgo/abort-controller-in-effect": "error",
     "effecttsgo/acquire-release-disposable": "error",
     "effecttsgo/all-of-map-to-for-each": "error",
@@ -303,6 +315,14 @@
       "files": ["packages/core/src/failures.ts"],
       "rules": {
         "capxul/blueprint-owns-names": "off"
+      }
+    },
+    {
+      // The lint rules' own tests: the declared names they hold are code under test, written as text on purpose to
+      // prove capxul/declared-names finds them, not names the tests use.
+      "files": ["packages/lint/test/**"],
+      "rules": {
+        "capxul/declared-names": "off"
       }
     },
     {
