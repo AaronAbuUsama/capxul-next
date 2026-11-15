@@ -14,6 +14,7 @@
         // platform services, which the tests that read files run on; and SQL, with which test/old-rows.test.ts reads
         // rows written by earlier code from a real Postgres, as Core does.
         // The catalog's exact pin of effect is the guard.
+        // Effect's OTLP exporter (`effect/observability`, roadmap 4.4) is unstable too: the world exports its telemetry with it.
         "allowedUnstableApis": [
           "effect/http",
           "effect/cli",
@@ -25,7 +26,8 @@
           "@effect/platform-bun",
           "@effect/platform-node",
           "effect/rpc",
-          "effect/sql"
+          "effect/sql",
+          "effect/observability"
         ]
       }
     ]

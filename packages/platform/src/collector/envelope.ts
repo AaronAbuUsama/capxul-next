@@ -1,19 +1,21 @@
-// The resource attributes the collector stamps on every resource it forwards, whatever the caller sent. Named once
-// here until the blueprint's telemetry envelope (#301) reaches master; then these come from it and this file goes.
-// The stage takes OpenTelemetry's own name for where a service is deployed.
+// INTERIM. The resource attribute keys the collector stamps, and the runner's run attribute, named once here until
+// the blueprint's telemetry envelope (#301, `packages/blueprint/src/telemetry/envelope.ts`) reaches master; then they
+// are imported from it and this file goes. The names are #301's (docs/design/blueprint.md, part 10); the lead allowed
+// them here as the one exception to "no new `capxul.*` string".
 import * as Rec from "effect/Record";
 
-/** The keys the collector owns: a caller's value under any of them is dropped before the collector's is added. */
+/** The keys the collector owns on every resource: a caller's value under any of them is dropped for the collector's. */
 export const STAMPED = {
-  /** The world the record came from: from the binding's claim, or from the operator's token when it names one. */
+  /** The world the record came from. */
   world: "capxul.world",
-  /** The world's grade: private, shared or real. */
-  grade: "capxul.grade",
-  /** The platform stage whose collector took the record: the collector's own. */
-  stage: "deployment.environment.name",
-  /** The operator whose token or whose world sent it. */
-  operator: "capxul.operator",
+  /** The platform stage whose collector took it. */
+  stage: "capxul.stage",
+  /** The world's grade, `private`, `shared` or `real`, under OpenTelemetry's name for a deployment environment. */
+  grade: "deployment.environment.name",
 } as const;
 
-/** Every stamped key, for dropping what a caller sent under them. */
+/** Every stamped key. */
 export const STAMPED_KEYS: ReadonlyArray<string> = Rec.values(STAMPED);
+
+/** On the runner's resource: `true` for a run in CI, `false` from an agent's container (a boolean attribute). */
+export const RUN_TRUSTED = "capxul.run.trusted";

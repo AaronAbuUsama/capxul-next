@@ -10,7 +10,6 @@ import * as Num from "effect/Number";
 import * as Option from "effect/Option";
 import * as Predicate from "effect/Predicate";
 import * as Schema from "effect/Schema";
-import { STAMPED_KEYS } from "./envelope.ts";
 
 /** An OTLP signal, as OtlpProxy names its routes. */
 export type Signal = "traces" | "logs" | "metrics";
@@ -58,10 +57,15 @@ export const decodeExport = (signal: Signal, text: string): Effect.Effect<Option
 export const encodeExport = (body: Json): string => JSON.stringify(body);
 
 /**
- * The export request with every resource's stamped keys dropped and `stamp` added in their place. A resource list
- * entry with no resource gets one. Nothing else changes.
+ * The export request with every resource's attributes under `owned` dropped and `stamp` added in their place. A
+ * resource list entry with no resource gets one. Nothing else changes.
  */
-export const stampExport = (signal: Signal, body: Json, stamp: ReadonlyArray<StringAttribute>): Json => {
+export const stampExport = (
+  signal: Signal,
+  body: Json,
+  owned: ReadonlyArray<string>,
+  stamp: ReadonlyArray<StringAttribute>,
+): Json => {
   const key = SHAPE[signal].resources;
   const resources = arrayAt(body, key);
   return {
@@ -71,7 +75,7 @@ export const stampExport = (signal: Signal, body: Json, stamp: ReadonlyArray<Str
       const resource = isJson(kept.resource) ? kept.resource : {};
       const attributes = Arr.filter(
         arrayAt(resource, "attributes"),
-        (a) => !(isJson(a) && Predicate.isString(a.key) && STAMPED_KEYS.includes(a.key)),
+        (a) => !(isJson(a) && Predicate.isString(a.key) && owned.includes(a.key)),
       );
       return { ...kept, resource: { ...resource, attributes: [...attributes, ...stamp] } };
     }),

@@ -14,6 +14,7 @@
 // them, so Workers Logs (exported to Cloudflare's destination) hold them too.
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Alchemy from "alchemy";
+import { RuntimeContext } from "alchemy/RuntimeContext";
 import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
 import * as Config from "effect/Config";
@@ -33,12 +34,13 @@ import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import { cryptoLayer } from "../token.ts";
 import { COLLECTOR } from "../names.ts";
 import { names } from "../stage.ts";
-import { identify } from "./caller.ts";
+import { type Caller, makeCollector } from "../collector.ts";
+import { boundClaimOf, verifierOf } from "./caller.ts";
 import { collectorKeyId } from "./key.ts";
 import { countsExport, type Outcome } from "./counts.ts";
 import { STAMPED } from "./envelope.ts";
-import { AXIOM_EDGE, datasetsOf, forward, type Sink, sinkHeaders, stampOf } from "./forward.ts";
-import { SIGNALS, stringAttribute, type StringAttribute } from "./otlp-json.ts";
+import { AXIOM_EDGE, datasetsOf, type Identity, sinkHeadersOf, stampOf } from "./forward.ts";
+import { SIGNALS, stringAttribute } from "./otlp-json.ts";
 
 /** The Worker's environment: its own facts, its key, and the sink's. */
 export const COLLECTOR_ENV = {
@@ -52,7 +54,7 @@ export const COLLECTOR_ENV = {
 
 /**
  * Cloudflare's own logs and traces of the Worker, exported to the account's Axiom destinations: a second view of the
- * platform, read by people, never by a check. Core and the hub's door set the same.
+ * platform, read by people, never by a check. Core and the hub's door take the same once slice/placement lands.
  */
 export const CLOUDFLARE_OBSERVABILITY = {
   enabled: true,
@@ -69,19 +71,20 @@ const textOf = (value: unknown): Option.Option<string> => {
 
 const answer = (status: number, body: Record<string, unknown>) => HttpServerResponse.jsonUnsafe(body, { status });
 
+/** What the counts need besides the outcome: where they go, and who the collector is. */
+interface Reporting {
+  readonly sinkUrl: string;
+  readonly headers: Record<string, string>;
+  readonly script: string;
+  readonly stage: string;
+  readonly startNanos: bigint;
+}
+
 /** Sends one request's counts to the sink's metrics dataset, and logs them. Never fails: a lost count is logged. */
-const report = (
-  sink: Sink,
-  outcome: Outcome,
-  who: {
-    readonly script: string;
-    readonly own: ReadonlyArray<StringAttribute>;
-    readonly stamp: ReadonlyArray<StringAttribute>;
-  },
-  startNanos: bigint,
-) =>
+const report = (to: Reporting, outcome: Outcome, identity: Identity) =>
   Effect.gen(function* () {
     const endNanos = yield* Clock.currentTimeNanos;
+    const stamp = stampOf(STAMPED, identity);
     yield* Effect.logInfo("collector counts").pipe(
       Effect.annotateLogs({
         signal: outcome.signal,
@@ -89,13 +92,14 @@ const report = (
         forwarded: outcome.forwarded,
         refused: outcome.refused,
         reason: Option.getOrElse(outcome.reason, () => ""),
-        ...Rec.fromEntries(Arr.map(who.stamp, (a) => [a.key, a.value.stringValue] as const)),
+        ...Rec.fromEntries(Arr.map(stamp, (a) => [a.key, a.value.stringValue] as const)),
       }),
     );
+    const who = { script: to.script, own: [stringAttribute(STAMPED.stage, to.stage)], stamp };
     const client = yield* HttpClient.HttpClient;
-    const request = HttpClientRequest.post(`${sink.url}/v1/metrics`).pipe(
-      HttpClientRequest.setHeaders(sinkHeaders(sink, "metrics")),
-      HttpClientRequest.bodyJsonUnsafe(countsExport(outcome, who, { startNanos, endNanos })),
+    const request = HttpClientRequest.post(`${to.sinkUrl}/v1/metrics`).pipe(
+      HttpClientRequest.setHeaders(to.headers),
+      HttpClientRequest.bodyJsonUnsafe(countsExport(outcome, who, { startNanos: to.startNanos, endNanos })),
     );
     const sent = yield* client.execute(request);
     if (sent.status < 200 || sent.status > 299) {
@@ -154,33 +158,50 @@ export default class Collector extends Cloudflare.Worker<Collector>()(
       const key = textOf(env[COLLECTOR_ENV.key]);
       if (Option.isNone(key)) return answer(503, { error: "no-collector-key" });
       const ctx = yield* Cloudflare.WorkerExecutionContext;
-      const props = yield* ctx.props;
+      const bound = boundClaimOf(yield* ctx.props);
       const now = Math.floor((yield* Clock.currentTimeMillis) / 1000);
-      const claim = { props, authorization: request.headers.authorization };
-      const caller = yield* identify(Redacted.make(key.value), claim, now).pipe(
-        // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the Worker's fetch is its entry point: WebCrypto's HMAC for the claim
-        Effect.provide(cryptoLayer),
-        Effect.orDie,
+      const verifyAs = (needsWorld: boolean) => (claim: Redacted.Redacted) =>
+        verifierOf(
+          Redacted.make(key.value),
+          stage,
+          now,
+          needsWorld,
+        )(claim).pipe(
+          // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the Worker's fetch is its entry point: WebCrypto's HMAC for the claim
+          Effect.provide(cryptoLayer),
+          Effect.orDie,
+        );
+      // A binding's claim is checked here; a public caller's bearer claim by the collector, through `verify`.
+      const caller: Caller = Option.isSome(bound)
+        ? yield* Effect.map(verifyAs(true)(bound.value), (identity) =>
+            Option.match(identity, {
+              onNone: (): Caller => ({ _tag: "Public" }),
+              onSome: (i): Caller => ({ _tag: "Bound", identity: i }),
+            }),
+          )
+        : { _tag: "Public" };
+      if (Option.isSome(bound) && caller._tag === "Public") return answer(403, { error: "binding-claim-refused" });
+      const sinkUrl = Option.getOrElse(textOf(env[COLLECTOR_ENV.sinkUrl]), () => AXIOM_EDGE);
+      const headers = sinkHeadersOf(
+        datasetsOf(Option.getOrElse(textOf(env[COLLECTOR_ENV.datasets]), () => "capxul-test")),
+        Option.map(textOf(env[COLLECTOR_ENV.sinkKey]), (k) => Redacted.make(k)),
       );
-      if (caller._tag === "Refused") return answer(caller.status, { error: caller.error });
-      const sink: Sink = {
-        url: Option.getOrElse(textOf(env[COLLECTOR_ENV.sinkUrl]), () => AXIOM_EDGE),
-        key: Option.map(textOf(env[COLLECTOR_ENV.sinkKey]), (k) => Redacted.make(k)),
-        datasets: datasetsOf(Option.getOrElse(textOf(env[COLLECTOR_ENV.datasets]), () => "capxul-test")),
-      };
-      const done = yield* forward(sink, stage, signal.value, caller.claims).pipe(
+      const runtime = yield* RuntimeContext;
+      const reporting: Reporting = { sinkUrl, headers: headers.metrics, script, stage, startNanos };
+      const collector = yield* makeCollector({
+        sinkUrl,
+        headers,
+        keys: STAMPED,
+        verify: verifyAs(false),
+        onOutcome: (outcome, identity) =>
+          Cloudflare.waitUntil(report(reporting, outcome, identity)).pipe(
+            Effect.provideService(RuntimeContext, runtime),
+          ),
+      }).pipe(
         // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the Worker's fetch is its entry point: the client that reaches the sink
         Effect.provide(FetchHttpClient.layer),
       );
-      if (Option.isSome(done.outcome)) {
-        const who = {
-          script,
-          own: [stringAttribute(STAMPED.stage, stage)],
-          stamp: stampOf(stage, caller.claims),
-        };
-        yield* Cloudflare.waitUntil(report(sink, done.outcome.value, who, startNanos));
-      }
-      return done.response;
+      return yield* collector[signal.value](caller);
     }),
   }),
 ) {}

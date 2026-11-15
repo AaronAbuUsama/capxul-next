@@ -11,11 +11,11 @@ import * as Str from "effect/String";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
-import { identify } from "../src/collector/caller.ts";
+import { boundClaimOf, verifierOf } from "../src/collector/caller.ts";
 import { type CollectorClaims, mintClaim } from "../src/collector/claims.ts";
 import { countsExport, outcomeOf } from "../src/collector/counts.ts";
 import { STAMPED } from "../src/collector/envelope.ts";
-import { datasetsOf, forward, type Sink } from "../src/collector/forward.ts";
+import { datasetsOf, forward, type Forwarding, sinkHeadersOf } from "../src/collector/forward.ts";
 import { countItems, resourceAttributes, stampExport } from "../src/collector/otlp-json.ts";
 import { cryptoLayer } from "../src/token.ts";
 
@@ -52,33 +52,28 @@ const lying = [
 
 test("a binding's claim names its world and grade; it is refused without them, expired or under another key", async () => {
   const good = await claimOf(KEY, WORLD);
-  const id = (props: Record<string, unknown>, authorization?: string, key = KEY) =>
-    run(identify(key, { props, authorization }, NOW));
-  const ok = await id({ claim: good });
-  assert.equal(ok._tag, "Caller");
-  assert.ok(ok._tag === "Caller" && ok.path === "binding" && Option.contains(ok.claims.world, "acme"));
-  assert.deepEqual(await id({ claim: await claimOf(KEY, OPERATOR) }), {
-    _tag: "Refused",
-    status: 403,
-    error: "binding-claim-refused",
-  });
-  assert.equal((await id({ claim: good }, undefined, OTHER))._tag, "Refused");
-  const expired = await claimOf(KEY, { ...WORLD, expires: NOW - 1 });
-  assert.equal((await id({ claim: expired }))._tag, "Refused");
-  assert.equal((await id({ claim: `${Str.slice(0, -1)(good)}0` }))._tag, "Refused");
+  const id = (claim: string, key = KEY) => run(Redacted.make(claim).pipe(verifierOf(key, "staging", NOW, true)));
+  assert.deepEqual(Option.getOrNull(await id(good)), { world: "acme", grade: "private", stage: "staging" });
+  assert.ok(Option.isNone(await id(await claimOf(KEY, OPERATOR))));
+  assert.ok(Option.isNone(await id(good, OTHER)));
+  assert.ok(Option.isNone(await id(await claimOf(KEY, { ...WORLD, expires: NOW - 1 }))));
+  assert.ok(Option.isNone(await id(`${Str.slice(0, -1)(good)}0`)));
 });
 
-test("a public call needs an operator's claim as its bearer token", async () => {
-  const id = (authorization?: string) => run(identify(KEY, { props: {}, authorization }, NOW));
-  assert.deepEqual(await id(), { _tag: "Refused", status: 401, error: "claim-required" });
-  assert.deepEqual(await id("Bearer nonsense"), { _tag: "Refused", status: 403, error: "claim-refused" });
-  assert.deepEqual(await id(`Bearer ${await claimOf(OTHER, OPERATOR)}`), {
-    _tag: "Refused",
-    status: 403,
-    error: "claim-refused",
+test("a binding's claim is read from its props; a public request has none", () => {
+  assert.ok(Option.isSome(boundClaimOf({ claim: "c1.x" })));
+  assert.ok(Option.isNone(boundClaimOf({})));
+});
+
+test("an operator's claim, as a public caller's token, names no world: only the stage is stamped", async () => {
+  const id = (claim: string) => run(Redacted.make(claim).pipe(verifierOf(KEY, "staging", NOW, false)));
+  assert.deepEqual(Option.getOrNull(await id(await claimOf(KEY, OPERATOR))), {
+    world: "",
+    grade: "",
+    stage: "staging",
   });
-  const ok = await id(`Bearer ${await claimOf(KEY, OPERATOR)}`);
-  assert.ok(ok._tag === "Caller" && ok.path === "public" && ok.claims.operator === "amp-7");
+  assert.ok(Option.isNone(await id("nonsense")));
+  assert.ok(Option.isNone(await id(await claimOf(OTHER, OPERATOR))));
 });
 
 test("stamping drops what the caller sent under the stamped keys and adds the collector's, on every resource", () => {
@@ -86,7 +81,7 @@ test("stamping drops what the caller sent under the stamped keys and adds the co
     { key: STAMPED.world, value: { stringValue: "acme" } },
     { key: STAMPED.stage, value: { stringValue: "staging" } },
   ];
-  const stamped = stampExport("traces", traces(lying), stamp);
+  const stamped = stampExport("traces", traces(lying), [STAMPED.world, STAMPED.grade, STAMPED.stage], stamp);
   const [first, second] = resourceAttributes("traces", stamped);
   assert.deepEqual(first, [lying[0], ...stamp]);
   assert.deepEqual(second, stamp);
@@ -129,10 +124,10 @@ const standIn = (status: number, body: string) => {
   return { seen, layer: Layer.succeed(HttpClient.HttpClient, client) };
 };
 
-const SINK: Sink = {
-  url: "https://sink.invalid",
-  key: Option.some(Redacted.make("ingest")),
-  datasets: datasetsOf("capxul-test"),
+const SINK: Forwarding = {
+  sinkUrl: "https://sink.invalid",
+  headers: sinkHeadersOf(datasetsOf("capxul-test"), Option.some(Redacted.make("ingest"))),
+  keys: STAMPED,
 };
 
 const post = (body: string, contentType = "application/json") =>
@@ -142,7 +137,7 @@ const post = (body: string, contentType = "application/json") =>
 
 const forwardTo = (sink: ReturnType<typeof standIn>, request: HttpServerRequest.HttpServerRequest) =>
   Effect.runPromise(
-    forward(SINK, "staging", "traces", WORLD).pipe(
+    forward(SINK, "traces", { world: "acme", grade: "private", stage: "staging" }).pipe(
       Effect.provideService(HttpServerRequest.HttpServerRequest, request),
       Effect.provide(sink.layer),
     ),
@@ -167,7 +162,6 @@ test("a request is forwarded stamped, to its signal's dataset with the sink's ke
     assert.deepEqual(value(STAMPED.world), ["acme"]);
     assert.deepEqual(value(STAMPED.grade), ["private"]);
     assert.deepEqual(value(STAMPED.stage), ["staging"]);
-    assert.deepEqual(value(STAMPED.operator), ["ci-1-1"]);
   }
   assert.deepEqual(Option.getOrNull(done.outcome), {
     signal: "traces",

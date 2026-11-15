@@ -316,7 +316,8 @@ were not timed apart. Resets are faster than the spike's 0.5 s, with MariaDB's c
 ## The collector (roadmap step 4.4)
 
 Telemetry's one way in for a platform stage (`docs/design/blueprint.md`, the glossary): every producer's OTLP goes
-through it to the sink. One Worker, `src/collector/worker.ts`, built on Effect's `OtlpProxy`.
+through it to the sink. One Worker, `src/collector/worker.ts`, built on Effect's `OtlpProxy`; its handlers are
+`makeCollector` (`src/collector.ts`, the interface the ✍️ author's tests in `test/collector.test.ts` hold it to).
 
 | Call | What |
 |---|---|
@@ -333,17 +334,17 @@ Cloudflare key reads it and signs, as with the site door's key.
   when it deploys the world and puts it in the **props of Core's binding** to the collector:
   `env: { <name>: yield* collectorBinding(stage, claim) }` (`src/door.ts`). Cloudflare hands a binding's props to the
   collector as `ctx.props`; the deployer sets them and a request on the public route has none, so only the binding
-  path can carry a world's claim that way. A binding's claim must name a world and a grade (403
-  `binding-claim-refused` otherwise).
+  path can carry a world's claim that way. Core itself sends nothing for it. A binding's claim must name a world
+  and a grade (403 `binding-claim-refused` otherwise).
 - **Anyone else, on the public route** `http://<stage>-collector.<domain>` (HTTP, as the site door: the name is two
   levels under the zone, and no certificate is made): `Authorization: Bearer <claim>`, signed for the caller's
-  operator, naming the world it drives when it drives one. None: 401 `claim-required`; not the key's, expired or
-  malformed: 403 `claim-refused`.
+  operator, naming the world it drives when it drives one. None, or one that is not the key's, expired or malformed:
+  401 `token-required`, and nothing is forwarded.
 
 The collector then drops whatever the caller sent under the stamped keys on every resource and writes its own
-(`src/collector/envelope.ts`): `capxul.world` and `capxul.grade` from the claim when it names them,
-`deployment.environment.name` the collector's stage, `capxul.operator` the claim's operator. So no producer can
-misstate where its records came from.
+(`src/collector/envelope.ts`, interim until the blueprint's envelope, #301, reaches master): `capxul.world` and the
+grade under `deployment.environment.name` (`private`, `shared` or `real`) from the claim when it names them, and
+`capxul.stage`, the collector's stage. So no producer can misstate where its records came from.
 
 **Counts.** After each answer, in `waitUntil`, the collector sends what became of the request's items to the sink's
 metrics dataset as OTLP metrics of its own, under OpenTelemetry's names for an exporter
@@ -357,9 +358,9 @@ Neither the repository nor an agent's container holds it: a deploy from a contai
 forward (Axiom answers 401, and the counts say so). `COLLECTOR_SINK_URL` and `COLLECTOR_DATASETS` change the sink's
 base URL and the datasets' prefix, for a rehearsal.
 
-**Cloudflare's own view.** The collector, Core's Worker (packages/core) and the hub's door (packages/world) export
-Workers Logs and traces to the account's Axiom destinations `axiom-capxul-logs` and `axiom-capxul-traces`: a second
-view of the platform, never read by a check.
+**Cloudflare's own view.** The collector exports Workers Logs and traces to the account's Axiom destinations
+`axiom-capxul-logs` and `axiom-capxul-traces`: a second view of the platform, never read by a check. Core's Worker and
+the hub's door take the same setting once `slice/placement` (which edits Core's Worker) has landed.
 
 **CI's token** needs `Workers Routes Write` on the zone for the route (`bootstrap/src/cloudflare-policy.ts`); it takes
 effect once the bootstrap is run again.

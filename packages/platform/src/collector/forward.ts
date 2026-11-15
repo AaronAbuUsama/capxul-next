@@ -1,17 +1,18 @@
 // One request to the collector, once its caller is known: stamp every resource with who sent it, forward it to the
-// sink with Effect's OtlpProxy (which adds the sink's key and dataset, and returns the sink's answer), and say what
-// became of its items. The Worker (worker.ts) finds the caller and sends the counts; this file knows neither
-// Cloudflare nor where the counts go, so the tests drive it with a stand-in sink.
+// sink with Effect's OtlpProxy (which adds the sink's headers last, sends nothing of the caller's but the body and its
+// content type, and returns the sink's answer), and say what became of its items. src/collector.ts calls it for each
+// caller; this file knows neither Cloudflare nor where the counts go.
+import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
+import * as Rec from "effect/Record";
 import * as Redacted from "effect/Redacted";
 import * as Str from "effect/String";
+import type * as Headers from "effect/http/Headers";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import * as OtlpProxy from "effect/observability/OtlpProxy";
-import type { CollectorClaims } from "./claims.ts";
 import { notSent, type Outcome, outcomeOf } from "./counts.ts";
-import { STAMPED } from "./envelope.ts";
 import {
   countItems,
   decodeExport,
@@ -23,13 +24,18 @@ import {
   type StringAttribute,
 } from "./otlp-json.ts";
 
-/** Where the collector forwards to: Axiom's OTLP endpoints at its edge, one dataset per signal. */
-export interface Sink {
-  /** The edge's base URL; OtlpProxy appends `/v1/<signal>`. */
-  readonly url: string;
-  /** The ingest key; none when the deploy had none (a rehearsal), and then the sink refuses what is sent. */
-  readonly key: Option.Option<Redacted.Redacted>;
-  readonly datasets: Record<Signal, string>;
+/** Who sent the telemetry: what the collector stamps on it. An empty value is dropped and not stamped. */
+export interface Identity {
+  readonly world: string;
+  readonly grade: string;
+  readonly stage: string;
+}
+
+/** Where and how a request is forwarded, and under which keys its sender is stamped. */
+export interface Forwarding {
+  readonly sinkUrl: string;
+  readonly headers: { readonly [S in Signal]: Headers.Input };
+  readonly keys: { readonly [K in keyof Identity]: string };
 }
 
 /** Axiom's edge in Frankfurt, where the test datasets are. */
@@ -44,22 +50,27 @@ export const datasetsOf = (prefix: string): Record<Signal, string> => ({
   metrics: `${prefix}-metrics`,
 });
 
-/** The headers the collector sends the sink for a signal: its dataset, and its key when it has one. */
-export const sinkHeaders = (sink: Sink, signal: Signal): Record<string, string> => ({
-  [DATASET_HEADER]: sink.datasets[signal],
-  ...Option.match(sink.key, {
+/** The headers sent to the sink for each signal: its dataset, and the ingest key when there is one. */
+export const sinkHeadersOf = (
+  datasets: Record<Signal, string>,
+  key: Option.Option<Redacted.Redacted>,
+): { readonly [S in Signal]: Record<string, string> } => {
+  const auth = Option.match(key, {
     onNone: () => ({}),
-    onSome: (key) => ({ authorization: `Bearer ${Redacted.value(key)}` }),
-  }),
-});
+    onSome: (k): Record<string, string> => ({ authorization: `Bearer ${Redacted.value(k)}` }),
+  });
+  return {
+    traces: { [DATASET_HEADER]: datasets.traces, ...auth },
+    logs: { [DATASET_HEADER]: datasets.logs, ...auth },
+    metrics: { [DATASET_HEADER]: datasets.metrics, ...auth },
+  };
+};
 
-/** What the collector stamps on every resource of a caller's request: the claim's world, grade and operator, and the stage. */
-export const stampOf = (stage: string, claims: CollectorClaims): ReadonlyArray<StringAttribute> => [
-  ...Option.toArray(Option.map(claims.world, (world) => stringAttribute(STAMPED.world, world))),
-  ...Option.toArray(Option.map(claims.grade, (grade) => stringAttribute(STAMPED.grade, grade))),
-  stringAttribute(STAMPED.stage, stage),
-  stringAttribute(STAMPED.operator, claims.operator),
-];
+/** The attributes stamped for an identity, under the given keys; empty values are left out. */
+export const stampOf = (keys: Forwarding["keys"], identity: Identity): ReadonlyArray<StringAttribute> =>
+  Arr.flatMap(["world", "grade", "stage"] as const, (field) =>
+    Str.isNonEmpty(identity[field]) ? [stringAttribute(keys[field], identity[field])] : [],
+  );
 
 const JSON_TYPE = "application/json";
 const isJson = (contentType: string | undefined) =>
@@ -77,15 +88,13 @@ export interface Forwarded {
 }
 
 /**
- * Stamps and forwards the request being served, as `signal`, for a caller whose claim the Worker has verified.
- * A body that is not OTLP JSON is refused (415 for another content type, 400 for one that does not decode) and
- * not counted: nothing of it can be known.
+ * Stamps and forwards the request being served, as `signal`, for `identity`. A body that is not OTLP JSON is
+ * refused (415 for another content type, 400 for one that does not decode) and not counted: nothing of it is known.
  */
 export const forward = Effect.fn("platform.collector.forward")(function* (
-  sink: Sink,
-  stage: string,
+  options: Forwarding,
   signal: Signal,
-  claims: CollectorClaims,
+  identity: Identity,
 ) {
   const request = yield* HttpServerRequest.HttpServerRequest;
   if (!isJson(request.headers["content-type"])) {
@@ -96,8 +105,9 @@ export const forward = Effect.fn("platform.collector.forward")(function* (
     return { response: refuse(400, "not-otlp-json"), outcome: Option.none() } satisfies Forwarded;
   }
   const items = countItems(signal, decoded.value);
-  const stamped = encodeExport(stampExport(signal, decoded.value, stampOf(stage, claims)));
-  const handlers = yield* OtlpProxy.make({ baseUrl: sink.url, headers: sinkHeaders(sink, signal) });
+  const owned = Rec.values(options.keys);
+  const stamped = encodeExport(stampExport(signal, decoded.value, owned, stampOf(options.keys, identity)));
+  const handlers = yield* OtlpProxy.make({ baseUrl: options.sinkUrl, headers: options.headers[signal] });
   const outbound = HttpServerRequest.fromWeb(
     new Request(`http://collector/v1/${signal}`, {
       method: "POST",

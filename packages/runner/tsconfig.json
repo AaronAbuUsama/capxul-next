@@ -13,6 +13,8 @@
         // too, Bun's through the shared Node ones. A test serves the SDK's TestDoor with
         // @effect/platform-node's HTTP server, as the SDK's and the command line's tests do. test/kept-facts.test.ts
         // reads kept facts from a real Postgres through SQL, as Core does.
+        // Effect's OTLP exporter (`effect/observability`, roadmap 4.4) is unstable too: the runner exports its run over
+        // OTLP, and its tests make their OTLP fixtures with it.
         "allowedUnstableApis": [
           "effect/rpc",
           "effect/http",
@@ -24,7 +26,8 @@
           "@effect/platform-bun",
           "@effect/platform-node",
           "@effect/platform-node-shared",
-          "effect/sql"
+          "effect/sql",
+          "effect/observability"
         ]
       }
     ]
