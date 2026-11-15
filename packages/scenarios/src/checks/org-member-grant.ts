@@ -9,7 +9,7 @@ import * as Order from "effect/Order";
 import * as Rec from "effect/Record";
 import { expect } from "../expectation.ts";
 import { same, sameAddress } from "../support/expect.ts";
-import { castMember, entriesAfter, objectOf, type Json } from "../support/world.ts";
+import { castMember, entriesOfCall, objectOf, type Json } from "../support/world.ts";
 import { callerOf, nothingRecorded, worldBefore, type Before } from "./common.ts";
 import { check, checks, type Asked, type Check } from "./format.ts";
 
@@ -67,7 +67,7 @@ export const orgMemberGrant = checks<"org.member.grant", Before>({
     check(
       "the record gains one officer_change_proposed carrying only change, org, permission and proposal, then its proposal_opened",
       Effect.gen(function* () {
-        const added = yield* entriesAfter(before.head, before.where);
+        const added = yield* entriesOfCall(before.head, before.where);
         yield* same(
           "the events the grant added",
           Arr.map(added, (each) => each.event),

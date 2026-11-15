@@ -25,7 +25,7 @@ never changes this package.
 | `src/domains.ts` | Every domain's file, once, by the blueprint's name for it. The compiler asks for an entry for each domain of the blueprint. |
 | `src/registry.ts` | `journeys`, every journey the runner runs, in order: each domain's, domain by domain, each given every operation's checks. |
 | `src/coverage.ts` | Where each claim of claims.md is checked, by which operations' checks and which journeys' steps: each domain's places, gathered. |
-| `src/client.ts` | `Capxul`, the one client a journey and a check call through, and `Given`, its starting world's facts. |
+| `src/client.ts` | `Capxul`, the one client a journey and a check call through; `Given`, its starting world's facts; `CallTraces`, where the client tells a try the trace id of its call, and `ThisCall`, that trace as a check reads it. |
 | `src/expectation.ts` | `ExpectationFailed`, `expect` and `given`. |
 | `src/support/` | Reads of a world shared by checks and journeys: its view and record (`world.ts`), its chain (`chain.ts`, `hats.ts`), a company's Board (`board.ts`), its books (`site.ts`), signing with the cast's keys (`signing.ts`), waits (`wait.ts`). |
 | `src/support/` | Reads of a world shared by checks and journeys: its view and record (`world.ts`), its chain (`chain.ts`, `hats.ts`, `budgets.ts`), its books (`site.ts`), signing with the cast's keys (`signing.ts`), waits (`wait.ts`). |
@@ -77,6 +77,12 @@ List it in its domain's `journeys` (`src/domains/<domain>.ts`), and place the cl
 - `yield* given(startingWorlds.paymentDrafted)` answers the facts of the starting world, or of one it is made from.
 
 ## Writing an operation's checks
+
+A check judges only what its own call caused, so journeys can run side by side in one world (roadmap step 4.11): the
+record by the call's trace (`entriesOfCall`, `unchangedRecord`, `recordedOnly`: the entries carrying the trace the
+client told the try), the chain by the journey's own accounts (`chainUntouched`: no user operation from its people's
+or its company's Safes, no log naming its company, since the block before the call). When the client tells no trace,
+the record checks take every entry after the head read before the call, as when a journey ran alone in its world.
 
 `src/checks/<operation>.ts` declares `checks({ before, success, refusals })`: what it reads before every call, and
 the checks of a success and of each refusal, each a sentence and the Effect that fails when it does not hold. A
