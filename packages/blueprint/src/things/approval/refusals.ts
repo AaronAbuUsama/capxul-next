@@ -47,7 +47,7 @@ export class ApprovalClosed extends Schema.TaggedError<ApprovalClosed, { readonl
   },
 ) {}
 
-/** The transaction was sent and the chain reverted it. Nothing moved. */
+/** The transaction was sent and the chain reverted it. Nothing moved. A fault a caller can act on, so it is typed. */
 export class TransactionReverted extends Schema.TaggedError<TransactionReverted, { readonly brand: unique symbol }>()(
   "TransactionReverted",
   {

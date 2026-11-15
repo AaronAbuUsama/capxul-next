@@ -100,6 +100,11 @@ export const ratchets: ReadonlyArray<Ratchet> = [
     count: "not yet counted",
     countedBy: "3.6",
   },
+  // R9 also carries the points the journeys' author could not settle from the promises (folded here on 15 November
+  // 2026), each a comment on the declaration it is about: the snapshot's missing block (`Snapshot`, things/
+  // snapshot/values.ts); two worlds sharing one naming series (snapshot restore's first promise); a start time with
+  // milliseconds (world create's second promise); and the literal readings where a promise is silent (company create's
+  // third, member grant's fifth, world create's sixth and approval sign's first promises).
   {
     id: "R9",
     name: "Unreached declarations",

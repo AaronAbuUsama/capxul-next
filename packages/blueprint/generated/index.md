@@ -81,7 +81,7 @@ today until the glossary's renames (roadmap item 3.8).
 
 ## Starting worlds
 
-Declared in `src/starting-points/points.ts`. Each is made through the door from the one before it, then either saved as a template that a journey starting from it gets (the runner's one world reset in place to it), or made by its steps for each journey. A journey reads the facts of its world, and of every world it is made from, with `given` (decisions.md, 38).
+Declared in `src/starting-points/points.ts`. Each is made through the door from the one before it, then either saved as a template that a journey starting from it gets (the runner's one world reset in place to it), or made by its steps for each journey. A journey reads the facts of its world, and of every world it is made from, with `given` (src/starting-points/facts.ts).
 
 - `nothing`. The platform is deployed. No world has the name the journey uses. The journey's operator owns fewer live worlds than the limit, and a second operator exists. The facts name both operators. A journey from it gets it made by its steps. Facts it adds: `operators`, `calls`.
 - `quota-full`. Made from `nothing`. The journey's operator owns as many live private worlds as one owner may have. Steps: `world.create` as operator: creates private worlds until the limit is reached (fact `filled`). A journey from it gets it made by its steps. Facts it adds: `filled`.

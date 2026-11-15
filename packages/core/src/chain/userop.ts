@@ -1,6 +1,7 @@
 // One ERC-4337 v0.7 UserOperation from a Safe through the Safe4337Module, sponsored by the world's test paymaster and
 // sent to the world's bundler. It is prepared first, which fixes everything the signature covers and gives the digest
-// its signer signs (packages/blueprint/docs/decisions.md, entries 23 and 42: the module's operation hash, signed as it
+// its signer signs (packages/blueprint, src/things/approval/values.ts and src/common/values.ts: the module's operation
+// hash, signed as it
 // is), and sent later with that signature. The module's signature is validAfter and validUntil (6 bytes each, both
 // zero: the approval's own expiry is Core's to enforce, in world time, never alto's wall clock) and then the owner's 65
 // bytes.

@@ -201,7 +201,7 @@ const index = (layout: Layout): string =>
       "",
       "## Starting worlds",
       "",
-      "Declared in `src/starting-points/points.ts`. Each is made through the door from the one before it, then either saved as a template that a journey starting from it gets (the runner's one world reset in place to it), or made by its steps for each journey. A journey reads the facts of its world, and of every world it is made from, with `given` (decisions.md, 38).",
+      "Declared in `src/starting-points/points.ts`. Each is made through the door from the one before it, then either saved as a template that a journey starting from it gets (the runner's one world reset in place to it), or made by its steps for each journey. A journey reads the facts of its world, and of every world it is made from, with `given` (src/starting-points/facts.ts).",
       "",
       worlds(),
       "",

@@ -11,6 +11,10 @@ import { saved } from "../examples.ts";
 import { SnapshotExists, SnapshotInUse } from "../refusals.ts";
 import { Snapshot } from "../values.ts";
 
+// A snapshot is a Neon branch of the world's branch with no compute, the chain's whole state in the world's own R2
+// bucket under the snapshot's name, a backup of each of the world's sites on the bench (`bench backup`, kept by the
+// site service beside the world's sites), and the platform's row of it. It is named within its world and goes with
+// it: the world's destroy deletes the snapshot branches first.
 export const snapshotSave = declare({
   rpc: Rpc.make("world.snapshot.save", {
     payload: {

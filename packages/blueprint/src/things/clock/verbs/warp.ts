@@ -8,6 +8,8 @@ import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/poi
 import { ClockWarped } from "../events.ts";
 import { ClockBackwards } from "../refusals.ts";
 
+// A warp is by a number of seconds or to an instant, forward only, and runs the site's daily job (`Site.DAILY_JOB`)
+// once for every day it passes.
 export const clockWarp = declare({
   rpc: Rpc.make("world.clock.warp", {
     payload: {

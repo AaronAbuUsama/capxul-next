@@ -1,5 +1,6 @@
-// world.snapshot.save and world.snapshot.restore, as the platform serves them (packages/blueprint/docs/decisions.md,
-// entries 17 to 19, 46 and 51). A snapshot is a branch of the world's database, the chain's whole state saved under the
+// world.snapshot.save and world.snapshot.restore, as the platform serves them (packages/blueprint,
+// src/things/snapshot/verbs/save.ts, src/things/snapshot/verbs/restore.ts and src/things/world/values.ts). A snapshot
+// is a branch of the world's database, the chain's whole state saved under the
 // snapshot's name in the world's own bucket, and the platform's row of it; it belongs to its world and goes with it. A
 // restore always makes a new world: its database forks the snapshot's branch, its chain adopts the saved state, and its
 // record continues the snapshot's with its own `world_created`, naming its parent. Its clock is the snapshot's, read by

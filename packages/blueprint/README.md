@@ -24,7 +24,7 @@ these files or checked against them. Only facts about Capxul live here; how they
 | `src/generated/` | The indexes `pnpm generate` writes from the thing folders. Never edited |
 | `generated/` | The pages `pnpm claims` writes: `index.md`, the map of every thing and verb, and one page per thing, opening with its commands, SDK calls, refusals with exit codes, and events; and `pnpm generate`'s `glossary.md` and `old-words.json`, the count of each old word still written (`pnpm words` fails when one grows). Never edited |
 | `src/ratchets.ts` | The ratchet registry, R1 to R15 (R15 the old words, gated by `pnpm words`): what each list holds, how it is counted, what closes it |
-| `docs/` | `build-order.md`; `decisions.md` and `gaps.md` until they are folded |
+| `docs/` | `build-order.md` |
 
 To add a verb, add its file to its thing's `verbs/` and run `pnpm generate` and `pnpm claims`; a new thing is a new
 folder. A test fails any file under `src/` outside this layout. Today's names (`invite.accept`, `org`, claims) stay

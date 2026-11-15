@@ -3,7 +3,8 @@
 // use it. The shared world holds a template snapshot of each starting world its journeys start from, made once by its
 // steps when the shared world was made (shared/make.ts), with the facts its maker answered kept beside it
 // (shared/facts.ts). Before each journey whose starting world is made from a template, that snapshot is restored into
-// a new private world of the run (`world.snapshot.restore`, packages/blueprint/docs/decisions.md, entries 17, 18 and
+// a new private world of the run (`world.snapshot.restore`, packages/blueprint, src/things/snapshot/verbs/save.ts and
+// src/things/snapshot/verbs/restore.ts and
 // 27), which the run destroys after the journey as it destroys every world a journey makes. A starting world made by
 // its steps from nothing (`quota-full`) needs no template, and is made by its steps as in the one world.
 import { startingWorlds, type StartingWorld } from "@capxul/blueprint";
@@ -107,7 +108,8 @@ export const sharedStartingWorldsOf = Effect.fn("runner.sharedStartingWorlds")(f
       const kept = yield* factsIn(world, template.name);
       if (Option.isNone(kept)) return yield* failed(`${own.world} holds no facts of ${template.name}`);
       // The maker's facts as the template holds them, with the run's operators, the restore's answer as the world
-      // the journey runs in (packages/blueprint/docs/decisions.md, entry 39), and the restore after the calls that made
+      // the journey runs in (packages/blueprint, src/starting-points/points.ts), and the restore after the calls that
+      // made
       // the template.
       const facts = {
         ...kept.value,
