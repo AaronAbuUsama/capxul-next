@@ -23,3 +23,29 @@ A new outside contract that off-chain code calls is declared as an interface in
 deployed contract imports changes its metadata, so its code and its CREATE2 address), and listed in `src/sources.ts`.
 
 Files under a `generated/` folder are exempt from the 300-line limit of `pnpm shape`.
+
+## The seeded chain state: `pnpm seed` (roadmap step 3.2)
+
+`pnpm seed` rebuilds the state every world's chain starts from, `packages/contracts/state/core.json`, from its owners:
+the compiled contracts (`out/`), `deploy/manifest.json` (the 15 contracts, their salts and constructor arguments),
+`deploy/devnet.json` (Companies House's Directors, threshold and tiers) and the pinned third-party state
+`state/pin.genesis.json`. It also writes `deployments/devnet.json` (the deployment record) and `state/CHECKSUMS`, then
+runs `pnpm generate`, since `generated/seeded.ts` is derived from the record and the seed. `pnpm seed:check` rebuilds
+the same way, writes nothing in the repository, and fails naming each file that differs (its rebuilt copy is left in a
+temporary folder to compare); it is in `pnpm check` and in CI's `check` job after `pnpm generate:check`, and takes about
+a second once the contracts are built. Both need Foundry (anvil) and no network.
+
+`src/seed.ts`, the entry, starts anvil from the pin (chain id 84532) on a free local port and sends eight transactions,
+one per block, all from anvil's account 0: (1) the Safe proxy factory creates Companies House, (2) the
+ModuleProxyFactory makes its Roles module, (3-6) Companies House creates the manifest's contracts through CreateCall's
+CREATE2, four to a Safe transaction, (7) it wires Budgets to Agreements, (8) it enables Roles and scopes each tier's
+claim and company roles. It then dumps the state (`anvil_dumpState`, gunzipped) and reads each contract's runtime code
+hash for the record. The pure parts are in `src/seed/`: `plan.ts` (addresses and init codes), `steps.ts` (the eight
+transactions, block times and fees), `safe.ts` (Safe transaction hashes, signatures, MultiSend), `record.ts`.
+
+The rebuild is the same bytes every run because nothing in it is left to chance: each block's time is set
+(`evm_setNextBlockTimestamp`, at fixed offsets from the pin's head, `BLOCK_TIMES`), each transaction's nonce, gas
+(anvil's estimate, itself deterministic), fee cap (1.2 times the block's base fee plus a one-gwei tip, `maxFeePerGas`)
+and type (EIP-1559) are fixed, and every signature is RFC 6979 over a fixed hash with anvil's public test keys (derived
+from Foundry's `test test ... junk` mnemonic, `TEST_MNEMONIC`; no other key is ever used). anvil derives each block's
+`prevrandao` from the block, not at random.

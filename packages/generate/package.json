@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "generate": "node --experimental-strip-types --no-warnings src/main.ts",
+    "seed": "node --experimental-strip-types --no-warnings src/seed.ts",
     "types": "effect-tsgo tsc -p .",
     "test": "node --experimental-strip-types --no-warnings --test test/*.test.ts"
   },
