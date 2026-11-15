@@ -40,6 +40,7 @@
         "packages/platform/src/run-mint.ts": "mints a world's site token from the command line: reads its arguments, writes the token file, prints its print",
         "packages/world/src/main.ts": "the world command line: reads the arguments, prints results to standard output and the log to standard error, sets the exit code",
         "packages/generate/src/main.ts": "pnpm generate: reads the compiled contracts, the deployment record and the seed as JSON from disk, writes the generated files, prints what it wrote",
+        "packages/generate/src/seed.ts": "pnpm seed: starts anvil as a child process and talks to it, reads the compiled contracts and the deploy inputs as JSON from disk, writes the seed, the deployment record and the checksums, prints what it did, sets the exit code",
         "packages/*/test/**/*.test.ts": "a test file is run by the test runner as its own program"
       },
       // Places where JSON text is the format of the outside world, each with its reason.
@@ -223,6 +224,7 @@
         "packages/platform/src/run-mint.ts",
         "packages/world/src/main.ts",
         "packages/generate/src/main.ts",
+        "packages/generate/src/seed.ts",
         "packages/*/test/**/*.test.ts"
       ],
       "rules": {
