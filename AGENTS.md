@@ -95,6 +95,7 @@ Standing rules from Aaron, for the conductor and every lead (14 and 15 November 
 
 - Merge your own pull requests when CI is green. Push on until actually blocked.
 - Change a roadmap decision only with Aaron's written yes. A blueprint delta inside the decisions is the lead's call.
+  The decisions are in [docs/decisions.md](docs/decisions.md).
 - Ask Aaron only about money beyond the cap, credentials, production, or a decision nothing covers; batch the
   questions.
 - Spend at most $10 a day across Cloudflare and Neon, all lanes together.
