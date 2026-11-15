@@ -45,7 +45,7 @@ A world is created, used and destroyed as one unit, with an owner and an expiry.
   into that slice branch, merged by the lead when `check` (rungs 1 to 5, a few minutes) is green. A slice reaches
   `master` by one pull request from `slice/<name>`, merged only when `check` and `world` (the thin line's journeys in a
   fresh private world on staging, rung 6) are both green: every journey must still pass, and the slice's own journeys
-  pass or improve. Only pull requests from `slice/<name>` into `master` that change more than documents or records run `world`,
+  pass or improve. Only pull requests from `slice/<name>` into `master` that are not drafts and change more than documents or records run `world` (a lead keeps its slice's pull request a draft until it is ready to land, 15 November 2026),
   and `master` runs it once a day (Aaron, 14 and 15 November 2026: Actions minutes are spent on the journeys only at a
   slice's merge, and a run is not repeated under load). Nothing in the repository checks this beyond the workflows' triggers.
 - Never push to, merge into or open a pull request against `main` or `integration/build`. Never force-push. Nothing

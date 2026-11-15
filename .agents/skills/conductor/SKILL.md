@@ -61,7 +61,8 @@ Then check `master`'s next `check` run. If it goes red, fixing it comes before a
 is in flight stale: its run no longer counts and must be repeated on the new head (15 November 2026: a roadmap merge
 cost the docs slice a 30-minute run). So before you merge anything into `master`, check which slices are in their
 `world` run and hold small changes until those land. Leads tell you "landing #N now" before they merge, and you answer
-if another landing is under way.
+if another landing is under way. A slice's pull request stays a draft until it is ready to land: a draft runs no `world`. When
+several are ready at once, let them run `world` one or two at a time, so the shared bench is not overloaded.
 
 ## Keeping the view
 

@@ -27,6 +27,9 @@ on:
   workflow_dispatch:
   pull_request:
     branches: [master]
+    # A draft slice pull request runs nothing; marking it ready runs the journeys (15 November 2026: leads' early draft
+    # pull requests ran a 30-minute world on every builder merge, and four at once overloaded the staging bench).
+    types: [opened, synchronize, reopened, ready_for_review]
     paths-ignore: ["docs/**", "**/*.md", "packages/*/records/**"]
   schedule:
     - cron: "41 3 * * *"
@@ -52,7 +55,7 @@ env:
   WORLD_SECOND_OWNER: ci-${{ github.run_id }}-${{ github.run_attempt }}-2
 jobs:
   thin-line:
-    if: github.event_name == 'workflow_dispatch' || (vars.CAPXUL_CLOUD_READY == 'true' && (github.event_name != 'pull_request' || startsWith(github.head_ref, 'slice/')))
+    if: github.event_name == 'workflow_dispatch' || (vars.CAPXUL_CLOUD_READY == 'true' && (github.event_name != 'pull_request' || (startsWith(github.head_ref, 'slice/') && !github.event.pull_request.draft)))
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
