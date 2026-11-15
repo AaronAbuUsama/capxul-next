@@ -7,7 +7,7 @@ description: Thread types for Capxul's cloud sessions, each with its emoji, job 
 
 Every cloud session on this repository is one **thread type**. Its title starts with the type's emoji, so Aaron can see what each one is at a glance: `<emoji> <Type>: <subject>`, for example `🔨 Builder: invitation accept in the new format`. Tag it `thread:<type>`.
 
-The conductor starts threads, briefs them and lands what they make. Threads can't message the conductor, because its session is trusted-device only. Leave anything for it in a fenced block headed `TO THE CONDUCTOR`, and end each turn with a one-line status. The conductor reads threads directly.
+The conductor starts threads, briefs them and lands what they make. Report to it with send_message to the session id your brief names: when you finish, when you're blocked, and when a decision is needed. End each turn with a one-line status too, because the conductor also reads threads directly.
 
 `AGENTS.md` binds every type. That covers its standing rules, the ladder, and "Lanes, leads and the conductor".
 

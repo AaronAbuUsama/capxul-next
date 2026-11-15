@@ -19,12 +19,12 @@ for _ in $(seq 1 50); do cast chain-id --rpc-url "$rpc" >/dev/null 2>&1 && break
 op=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 send() { cast send --legacy --gas-price 2000000000 --gas-limit 6000000 --rpc-url "$rpc" --unlocked --from "$op" "$@" >/dev/null; }
 args=$(cast abi-encode "f(string,string,uint8)" "World test USD" "USDC" 6)
-send --create "0x$(tr -d '\n' <"$repo/packages/world/src/chain/test-usdc.hex")${args:2}"
+send --create "0x$(tr -d '\n' <"$repo/packages/world/src/parts/chain/test-usdc.hex")${args:2}"
 ep=0x0000000071727De22E5E9d8BAf0edAc6f37da032
 cast rpc --rpc-url "$rpc" anvil_setBalance 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720 0x8ac7230489e80000 >/dev/null
 cast rpc --rpc-url "$rpc" anvil_setBalance 0xBcd4042DE499D14e55001CcbB24a551F3b954096 0x8ac7230489e80000 >/dev/null
 epw=$(printf '%064s' "${ep:2}" | tr ' ' 0 | tr 'A-F' 'a-f')
-send 0x4e59b44847b379578588920ca78fbf26c0b4956c "0x$(printf '%064d' 0)$(tr -d '\n' <"${PAYMASTER_HEX:-$repo/packages/world/src/bundler/test-paymaster.hex}")$epw"
+send 0x4e59b44847b379578588920ca78fbf26c0b4956c "0x$(printf '%064d' 0)$(tr -d '\n' <"${PAYMASTER_HEX:-$repo/packages/world/src/parts/bundler/test-paymaster.hex}")$epw"
 send 0xE2dE380E3e8281e2cc458675102c3FC2277fC5A8 "deposit()" --value 1ether
 docker run -d --name chainops-alto --network host \
   -e ALTO_RPC_URL="$rpc" -e ALTO_ENTRYPOINTS=$ep \

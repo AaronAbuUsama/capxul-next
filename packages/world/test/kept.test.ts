@@ -1,4 +1,4 @@
-// What a world's handle is built from is kept for the life of the process (src/lifecycle/kept.ts): a second lookup
+// What a world's handle is built from is kept for the life of the process (src/things/world/kept.ts): a second lookup
 // does not call through, and a world whose branch or registration changed, or that was taken down or reset, misses.
 //
 // The handle runs against an in-memory state store (the hub's admin token, the platform's project and each world's
@@ -15,10 +15,10 @@ import * as Str from "effect/String";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
-import { OPERATOR_TOKEN_ID } from "../src/core/Core.ts";
-import { ADMIN_TOKEN_ID, HUB_STACK } from "../src/hub/names.ts";
-import { handle, type WorldOutput } from "../src/lifecycle/handle.ts";
-import { forgetWorld, kept, KeptHandles, makeKept } from "../src/lifecycle/kept.ts";
+import { OPERATOR_TOKEN_ID } from "../src/parts/api/Api.ts";
+import { ADMIN_TOKEN_ID, HUB_STACK } from "../src/things/cluster/values.ts";
+import { handle, type WorldOutput } from "../src/things/world/handle.ts";
+import { forgetWorld, kept, KeptHandles, makeKept } from "../src/things/world/kept.ts";
 import { SharedState } from "../src/stack/engine.ts";
 import { PLATFORM, STACK } from "../src/stack/names.ts";
 

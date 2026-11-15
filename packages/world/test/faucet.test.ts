@@ -2,7 +2,7 @@ import * as assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import * as Arr from "effect/Array";
 import * as Str from "effect/String";
-import { balanceOfCall, constructorArguments, mintCall } from "../src/chain/faucet.ts";
+import { balanceOfCall, constructorArguments, mintCall } from "../src/parts/chain/faucet.ts";
 
 const words = (hex: string): ReadonlyArray<string> =>
   Arr.map(Arr.fromIterable(Str.matchAll(/.{64}/g)(hex)), (found) => found[0]);

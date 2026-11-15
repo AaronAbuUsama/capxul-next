@@ -1,4 +1,4 @@
-// The fleet hub a run's one world lives on (packages/world, src/hub; roadmap 1.15 and 1.18). The hub is the one
+// The fleet hub a run's one world lives on (packages/world, src/things/cluster; roadmap 1.15 and 1.18). The hub is the one
 // `WORLD_HUB` names, which run.sh sets to a fresh name for each run unless it is given: a hub that does not exist yet
 // is brought up for the run, with the run's owner and `RUNNER_HUB_LIFETIME`, and taken down when the run ends,
 // whatever happened, once every world on it is gone. A hub that already exists is used as it is and left up.

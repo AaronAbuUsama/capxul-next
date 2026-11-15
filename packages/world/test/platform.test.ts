@@ -6,9 +6,9 @@ import { readFileSync } from "node:fs";
 import { describe, test } from "node:test";
 import * as Arr from "effect/Array";
 import * as Str from "effect/String";
-import { callData } from "../src/chain/abi.ts";
-import { CLAIMS, CONTRACTS, SEED_HEAD, SETUP_ROOM_SECONDS } from "../src/chain/contracts.ts";
-import { CAST, emailOf } from "../src/platform/cast.ts";
+import { callData } from "../src/parts/chain/abi.ts";
+import { CLAIMS, CONTRACTS, SEED_HEAD, SETUP_ROOM_SECONDS } from "../src/parts/chain/contracts.ts";
+import { CAST, emailOf } from "../src/things/world/cast.ts";
 
 const contracts = `${import.meta.dirname}/../../contracts/`;
 const read = (path: string) => JSON.parse(readFileSync(`${contracts}${path}`, "utf8"));

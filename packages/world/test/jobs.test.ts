@@ -1,4 +1,4 @@
-// A long call to a bench's site door (src/site/call.ts, `doorJob`): it asks for a job, follows a 202 to its end, asks
+// A long call to a bench's site door (src/things/site/client.ts, `doorJob`): it asks for a job, follows a 202 to its end, asks
 // again through an error page of Cloudflare's edge, reads a job's refusal as the call's own, and works unchanged
 // with a door from before jobs, which answers when done. The door here is a stand-in that scripts each answer;
 // packages/platform's door/tests/test_jobs.py and records/capacity prove the real door.
@@ -12,7 +12,7 @@ import * as Schema from "effect/Schema";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
-import { doorJob } from "../src/site/call.ts";
+import { doorJob } from "../src/things/site/client.ts";
 
 const DOOR = "https://bench-door.test";
 const Claimed = Schema.Struct({ sites: Schema.Array(Schema.Struct({ site: Schema.String })), ms: Schema.Finite });

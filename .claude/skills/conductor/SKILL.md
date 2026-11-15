@@ -20,9 +20,23 @@ You start threads, brief them, land what they make and keep Aaron's view current
    - **how it reports:** `TO THE CONDUCTOR` blocks and a one-line status, because it can't message you.
 4. **Tell the 🕒 keeper.**
 
+## Cloud and machine
+
+You run in the cloud and never connect to Aaron's computer: no `request_computer_folder`, no session started in a
+bridge environment. Connecting limits a session to his trusted devices for good, and then threads can't message you and
+scheduled check-ins can't wake you. When work needs his browser, Keychain or accounts, give Aaron a 🖥️ brief to paste
+into a session he starts on his Mac; that thread messages you when it's done.
+
+## Where the state lives
+
+- **Plan and decisions:** `docs/roadmap.md`, `docs/design/*.md` (blueprint, system, world, docs, pr-triage).
+- **Threads:** list_sessions with `mine: true`, tagged `capxul-lane` or titled with a type emoji.
+- **Aaron's views:** the Rebuild Sitrep page, kept by the 🕒 keeper thread you message; the status dashboard,
+  refreshed hourly by its own scheduled task.
+
 ## While threads run
 
-- **Read threads; they can't write to you.** Use list_sessions with `children: true`, and list_events with kinds `["result"]` or `["assistant"]`. Read before you answer Aaron about them.
+- **Threads report by message**, and you can read them too: list_events with kinds `["result"]` or `["assistant"]`. Read before you answer Aaron about them.
 - **Unblock them.** When a thread waits on a prompt or an answer, tell Aaron which thread and what, with its link `https://claude.ai/code/<session id>`.
 - **Route decisions.** Aaron decides in designer threads or with you. Pass each decision to every thread it touches, word for word.
 

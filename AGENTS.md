@@ -77,6 +77,12 @@ slice branch `slice/<lane>`. One more session, the **conductor**, starts leads a
   roadmap with the proof committed, in that same pull request. When a step it needs from another lane lands, it merges
   `master` into its slice.
 - **A builder** does one piece of work on one branch and one pull request into the slice, and is started by its lead.
+- **Every thread is one type**, titled with its emoji: 🎼 conductor, 🧭 lead, ✍️ author, 🔨 builder, 🔍 reviewer,
+  📐 designer, 🧹 triage, 🕒 keeper, 🖥️ local (`.claude/skills/threads`). The conductor's loop, and the rule that a
+  slice reaches `master` only with a 🔍 pass, a fresh `gate` and `world`, are in `.claude/skills/conductor`.
+- **The conductor runs in the cloud and never connects to Aaron's computer.** A session that does is limited to his
+  trusted devices for good, and then no cloud thread or scheduled task can reach it. Work that needs his browser,
+  Keychain or accounts is a 🖥️ thread Aaron starts on his Mac; it reports to the conductor by message.
 
 Standing rules from Aaron, for the conductor and every lead (14 and 15 November 2026):
 

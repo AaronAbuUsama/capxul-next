@@ -39,7 +39,7 @@
         "packages/platform/src/run-drift.ts": "the drift check's command line: reads its arguments, prints and writes the report as JSON, sets the exit code",
         "packages/platform/src/run-inventory.ts": "lists what the shared state holds for the platform's stacks from the command line: reads its argument, prints",
         "packages/platform/src/run-mint.ts": "mints a world's site token from the command line: reads its arguments, writes the token file, prints its print",
-        "packages/world/src/main.ts": "the world command line: reads the arguments, prints results to standard output and the log to standard error, sets the exit code",
+        "packages/world/src/cli/main.ts": "the world command line: reads the arguments, prints results to standard output and the log to standard error, sets the exit code",
         "packages/generate/src/main.ts": "pnpm generate: reads the compiled contracts, the deployment record and the seed as JSON from disk, writes the generated files, prints what it wrote",
         "packages/generate/src/seed.ts": "pnpm seed: starts anvil as a child process and talks to it, reads the compiled contracts and the deploy inputs as JSON from disk, writes the seed, the deployment record and the checksums, prints what it did, sets the exit code",
         "packages/*/test/**/*.test.ts": "a test file is run by the test runner as its own program"
@@ -49,17 +49,17 @@
         "packages/runner/src/record.ts": "run records are JSON files on disk, which the dashboard and the speed climb read",
         "packages/cli/src/input.ts": "the command line's input: a flag's JSON value and the --input file, decoded at once with the payload's schema",
         "packages/cli/src/output.ts": "the command line's output: one line of JSON per answer, encoded with the operation's own schemas",
-        "packages/world/src/lifecycle/record.ts": "run records and proof records are JSON files, written to be read by people and by scoring, and read back by the proofs; the command line prints its results as the same JSON text"
+        "packages/world/src/common/record.ts": "run records and proof records are JSON files, written to be read by people and by scoring, and read back by the proofs; the command line prints its results as the same JSON text"
       },
       // Places where raw schemas describe a format of their own, not the contract's values, each with its reason
       // (capxul/owned-values). Anything else the rule finds is on its unmigrated list (packages/lint/src/unmigrated.ts).
       "schemaEdges": {
-        "packages/world/src/failures.ts": "the world's own infrastructure failures (a step timed out, a part not ready): faults the contract does not promise, so the blueprint does not name their fields",
+        "packages/world/src/common/failures.ts": "the world's own infrastructure failures (a step timed out, a part not ready): faults the contract does not promise, so the blueprint does not name their fields",
         "packages/core/src/failures.ts": "Core's own failure in reaching a site through its door: a fault of the infrastructure, mapped to the blueprint's refusals before it reaches a caller",
         "packages/runner/src/record.ts": "a run record is a JSON file on disk, written by the runner and read by the dashboard and the speed climb; its schema is that file's format",
         "packages/runner/src/summary.ts": "a run's summary is the JSON file a step's Proof names; its schema is that file's format",
-        "packages/world/src/lifecycle/record.ts": "run records and proof records are JSON files outside the world; their schemas are those files' format",
-        "packages/world/src/lifecycle/handle.ts": "a deployed world's stack outputs as Alchemy stores them: the format of a file outside the world, read back as it was written",
+        "packages/world/src/common/record.ts": "run records and proof records are JSON files outside the world; their schemas are those files' format",
+        "packages/world/src/things/world/handle.ts": "a deployed world's stack outputs as Alchemy stores them: the format of a file outside the world, read back as it was written",
         "packages/core/src/telemetry/attributes.ts": "the attributes of a kept span as OpenTelemetry and effect/sql set them: an outside format, decoded where it is read",
         "packages/blueprint-tools/src/language/lifecycle.ts": "the machine format: builds each machine's state schema from the states its declaration names"
       }
@@ -239,7 +239,7 @@
         "packages/platform/src/run-drift.ts",
         "packages/platform/src/run-inventory.ts",
         "packages/platform/src/run-mint.ts",
-        "packages/world/src/main.ts",
+        "packages/world/src/cli/main.ts",
         "packages/generate/src/main.ts",
         "packages/generate/src/seed.ts",
         "packages/*/test/**/*.test.ts"
@@ -313,7 +313,7 @@
       // that could not be read. They are faults of the infrastructure, not refusals of the contract, so the
       // blueprint does not declare them. The contract's refusals (WorldExists, WorldQuotaReached, WorldNotFound)
       // are imported from the blueprint. This one file is where the world's failures are declared.
-      "files": ["packages/world/src/failures.ts"],
+      "files": ["packages/world/src/common/failures.ts"],
       "rules": {
         "capxul/blueprint-owns-names": "off"
       }
