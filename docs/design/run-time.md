@@ -216,7 +216,7 @@ reads them.
 | 7 | **Verdict before teardown.** The job reports the check when the journeys and their checks are done; a second job, which always runs, destroys and sweeps | About 1.5 min of wall clock to green | None | Small: `world.yml` | Nothing: the destroy still always happens, and a failed destroy still fails a job and raises a task | No, lifecycle rule 1 holds. The lead's call |
 | 8 | **Core deployed once per run, worlds as configuration.** One Core Worker per run serving every world of the run, instead of an Alchemy deploy per world (about 8 s per world, and the two quota journeys make about 10 worlds between them) | About 1 to 2 min serial | Slightly less | Medium: Core's routing, the world's stack | That each world's own deploy works, except in `world.create`'s own proof | Touches "a world is created and destroyed as one unit" if Core is no longer part of the unit. Not recommended now |
 | 9 | **A world in a box for every pull request.** Postgres, anvil, alto and Ponder in containers on the GitHub runner, Core under workerd, sites on the bench. A fast tier on pull requests into a slice, the real `world` at the slice's merge | Gives builders a journey run in minutes, before the merge | Actions minutes on every pull request | Large | Cloudflare, Neon and the hub are not exercised; it is not rung 6 | **Yes.** Aaron decided journeys run only at a slice's merge (14 and 15 November 2026). It does not shorten `world` itself. Not recommended now |
-| 10 | **Journeys at once in one world.** Journeys on different companies share a world | Like option 3, without extra worlds | Less than option 3 | Large: isolation between journeys, the quota journeys clash | Isolation: a green journey could depend on another's state | Changes "a journey starts from its starting world". Not recommended: worlds are cheap, isolation is not |
+| 10 | **Journeys at once in one world.** Journeys on different companies share a world (worked through in section 7) | Like option 3, without extra worlds | Less than option 3 | Large: isolation between journeys, the quota journeys clash | Isolation: a green journey could depend on another's state | Changes "a journey starts from its starting world". Superseded by section 7, Aaron's version: each journey with its own company and people, isolation from the data, checked by the runner. Recommended there |
 | 12 | **The whole world on one machine.** The `world` run makes its world on the CI runner itself: Core's own bundle in workerd (the runner already does this with `--core=local`), a local Postgres, anvil, alto and Ponder as processes, and Frappe from the bench image beside them (`packages/platform`'s local bench, `WORLD_BENCH=local`). The same code, the same journeys and checks; no network between the parts | Distance (14 min) and most of the start-up waits (7 to 8 min) go: **projected 4 to 8 min serial, 2 to 4 with lanes**, plus the bench image's start (about 1 to 2 min, beside the other setup) | No cloud spend at all; Actions minutes only, perhaps a larger runner | Large: the local database, chain, bundler and index as processes; the local bench in CI | That Core runs on Cloudflare itself, that Neon's branching and the hub's containers and gateway work, and real network latency. A daily cloud run on `master`, and a short cloud run at a slice's merge, would keep proving those | **Yes.** It redefines rung 6 ("a fresh private world on staging") and "Fleet hub" for the slice gate. Lifecycle rule 5 holds: a CI runner is not an agent's machine |
 | 11 | **Fake Frappe, or the chain in-process.** | Little: the site work on the critical path is `founded`'s 75 to 143 s and the site save and restore, and the hub's chain answers fast | — | Large | Frappe or the hub, the parts most likely to break | Yes. Not recommended |
 
@@ -280,9 +280,94 @@ Projected: setup 0.5 + restore about 0.6 + the longest journey about 3 to 3.5 + 
 Projected: **2 to 4 minutes** for the slice gate, without reopening "no to keeping founded", since making `founded`
 locally is fast. It is the most build work of the three paths.
 
-## 7. Decisions for Aaron
+## 7. One world, every journey at once, each with its own company
 
-Each is set out as options with a recommendation. Nothing here is decided until it is written in section 8 with its
+Aaron's idea (15 November 2026, about 17:35 UTC): "if it's one chain, why does it have to be the same company on the
+same journeys? Why can't they just be different companies? ... They could all be in the same block, no?" One world;
+every journey at once; each journey with its own company, its own people and its own keys. Isolation comes from the
+data, not from a world per lane or a reset between journeys.
+
+### What stops it today, one by one
+
+Read from the scenarios and the world on `master` (`packages/scenarios/src`, `packages/world/src`).
+
+| What | Real limit, or how the scenarios are written? | What it would take |
+|---|---|---|
+| **The record is one list per world.** Every refusal and read is checked by "the record's head is what it was" (`support/world.ts`, `unchangedRecord`), and a success by "the record gained exactly this one entry" (`support/people.ts`, `recordedOnly`). Another journey writing at the same moment fails both | How they are written. Every entry already carries the `trace` of the call that emitted it (`record/operations.ts`, `Entry`) | Judge by the call's own trace: "no entry carries this call's trace", "exactly one entry carries it". Stronger than today, as it names the cause. A background step (the index writing an event a chain log caused) must carry or link the trace of the call that caused it, or a wrong side effect could be missed |
+| **The chain check is the whole chain.** "The refused creation leaves the chain as it was" compares the chain's block number (`chainUntouched`). Any other journey's transaction moves it | How it is written | "No transaction from this journey's accounts, and no log naming its company, since before the call" |
+| **People are named once per world.** The cast (dana, sam, olga, pat, zed, ...) is made by `world.create`; every journey uses the same sam. Two journeys would share sam's Safe, its nonce and his invitations | Partly real: one Safe's nonce does take one user operation at a time | Each journey gets its own people (`sam` of journey 4 is not `sam` of journey 5): a cast per journey, or a step that enrols a journey's people. Then the nonces never meet |
+| **The bundler and paymaster** | Not a limit: alto bundles operations from different senders, many to a block, as Aaron says. One paymaster serves them all | Nothing, once people are per journey |
+| **The world's one clock** | Not a limit for today's journeys: the one warp (pay Brightside) is made on the world it restores from a snapshot, not on the run's world | A rule: no journey moves the shared world's clock; a journey that needs time to pass does it in a world of its own, as pay Brightside already does |
+| **Resets in place and shared starting worlds** | Not needed: they exist only because journeys share one company | Each journey builds its own starting company in the shared world (founded, office-holder, payment-drafted as steps, about 1.5 to 2.5 min today) and never resets |
+| **Journeys about the world itself**: the two quota journeys fill an owner's 5 worlds; the inventory lists them; pay Brightside saves and restores the world | Real: these act on worlds, not companies. A snapshot of the shared world would catch other journeys half done, and a save pauses its index for everyone | They keep worlds of their own, beside the shared one, each under its own owner (they already make their own; only their starting point moves). Pay Brightside's company part runs in the shared world; its snapshot round trip runs on a world of its own, or becomes a journey of its own |
+| **The index's lag** | Not a limit: one Ponder follows every company's logs; more logs, the same blocks | Waits stay per journey ("my company's event is indexed") |
+| **The bench's site pool and Frappe's load** | **Real.** Each company needs its own site. The pool holds 4 blank copies and refills one in 105 to 120 s; six companies founded at once empty it | A bigger pool (8 to 10 blank copies), and watching the bench's load and 5xx answers as the ratchet's measures |
+| **Checks of whole lists** ("its top budget alone", the world's companies, invitations) | Mostly scoped already: budgets, members and directors are listed per company. Lists of a world's companies would see others | Scope each to the journey's own company or people |
+
+So of the eight things on the list, two are real limits (the bench's pool and the journeys that act on whole worlds),
+one is half real (shared people), and the rest are how the scenarios were written.
+
+### A rule the scenarios can keep, and the runner can check
+
+"Every step of a journey acts on its own company and its own people; a journey that acts on a world uses a world of
+its own." The runner can check it on every call, as a generic check: the journey declares its company and its people;
+a call that names another company or person fails, unless it is a declared refusal about something nobody owns ("a
+company nobody founded"). At the end of the run, a second check reads the whole record once: every entry's trace
+belongs to a call of the journey whose company it names. That is a check of isolation between companies, which a world
+per journey can never make.
+
+### Time, projected
+
+The run becomes setup once, plus the slowest journey's own company, plus that journey: roughly the longest single
+journey, as Aaron says, with its starting company built in front of it.
+
+| | Today's speeds | After distance, observation and plumbing (options 1, 2, 6, 7) |
+|---|---|---|
+| CI and the shared world made | 1.3 min | 1 min |
+| Pay Brightside's company built (founded, office-holder, payment-drafted) | 2.5 min | 1.5 to 2 min |
+| Pay Brightside itself | 5 min | 3 to 3.5 min |
+| **The run** | **about 8.5 to 9 min** | **about 5.5 to 6.5 min** |
+
+Under 5 needs pay Brightside's snapshot round trip moved out of its critical path (about 2 min of it: two saves, a
+restore and a warp), or the world on one machine (option 12). Every other journey finishes inside that time.
+
+### What it costs in proof, and what it changes
+
+- **Lost:** a refusal is judged by what its own call caused, not by "nothing in the world changed". With traces carried
+  through background steps, nothing a single call does is missed; without them, a wrong side effect written by the
+  index under another trace could be.
+- **Lost:** resets in place are no longer exercised by the run; the world's own proof covers them. The same as lanes at
+  K = 7.
+- **Gained:** the run proves that companies in one Capxul are isolated from each other while they work at the same
+  time, which is how production runs and what a world per journey never tests. Races that would hit real customers
+  (two companies' operations in one block, the bundler and the index under load) show up in the run.
+- **Changed:** "One runner, K worlds" (agreed 15 November 2026) becomes "one shared world for company journeys, and a
+  world of its own for each journey about worlds". Journeys stop starting from a named starting world; each builds
+  its own company in the shared world, so the starting worlds become starting companies. "Bench templates never
+  change" and the world lifecycle rules stand: one world, made and destroyed by the run, nothing kept. "No to keeping
+  founded" stands too: nothing is kept.
+- **Who does it:** the scoped checks and a cast per journey are the scenario author's work, never the builder's; the
+  runner's isolation check is a generic check, written by a different agent from the one who changes the runner.
+
+### Recommendation
+
+Take it, in place of lanes for the company journeys. It needs less infrastructure than lanes (one world, one Core
+deploy, one database branch, one set of hub objects), it does not reopen "no to keeping founded", and it proves
+something lanes cannot. Order:
+
+1. Instrument first, as agreed.
+2. Distance and plumbing (options 1, 6, 7), which speed up any shape.
+3. The scenario author makes the checks trace-scoped and company-scoped, and gives each journey its own people and
+   company; the journeys still pass one after another in today's runner, so nothing breaks while it lands.
+4. The runner's isolation check, written by another agent.
+5. The runner starts every journey at once, with the world-level journeys in worlds of their own; the bench's pool
+   raised to match.
+
+Lanes stay the fallback if a race between companies turns out to be hard to make reliable.
+
+## 8. Decisions for Aaron
+
+Each is set out as options with a recommendation. Nothing here is decided until it is written in section 9 with its
 date.
 
 **D1. The target.** (a) Under 10 minutes in the cloud, inside today's decisions: within reach without reopening
@@ -314,9 +399,12 @@ stays at every slice's merge as well, so the one-machine run is for speed of fee
 recommendation: (b) first, so the one-machine run earns trust against the cloud run on the same commits, then (a) once
 they have agreed for a week of merges.
 
+**D8. One world, every journey at once, each with its own company** (section 7). (a) Yes, in place of lanes for
+the company journeys; lanes only as the fallback (recommended). (b) Lanes first as agreed, then this. (c) Not now.
+
 Not decisions for Aaron: observation from the tap (the scenario author's work, already agreed as change 6),
 the plumbing, and verdict before teardown (the speed lane's lead).
 
-## 8. Decided
+## 9. Decided
 
 None yet.
