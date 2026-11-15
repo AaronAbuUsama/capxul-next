@@ -2,6 +2,7 @@
 // the sink kept and how many it refused, sent to the sink's metrics dataset as OTLP metrics of the collector's own,
 // and logged (Workers Logs, exported to Cloudflare's destination). Named by OpenTelemetry's own conventions for an
 // exporter's counts (`otel.sdk.exporter.<item>.exported`, with `error.type` on what failed), so no name is ours.
+import { Producers } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Option from "effect/Option";
 import { type Signal, stringAttribute, type StringAttribute } from "./otlp-json.ts";
@@ -85,7 +86,7 @@ export const countsExport = (
   return {
     resourceMetrics: [
       {
-        resource: { attributes: [stringAttribute(SERVICE, resource.script), ...resource.own] },
+        resource: { attributes: [stringAttribute(SERVICE, Producers.producers.collector.service), ...resource.own] },
         scopeMetrics: [
           {
             scope: { name: resource.script },

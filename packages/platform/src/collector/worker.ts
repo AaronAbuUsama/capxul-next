@@ -37,8 +37,7 @@ import { type Caller, makeCollector } from "../collector.ts";
 import { boundClaimOf, verifierOf } from "./caller.ts";
 import { collectorKeyId } from "./key.ts";
 import { countsExport, type Outcome } from "./counts.ts";
-import { STAMPED } from "./envelope.ts";
-import { AXIOM_EDGE, datasetsOf, type Identity, sinkHeadersOf, stampOf } from "./forward.ts";
+import { AXIOM_EDGE, datasetsOf, type Identity, sinkHeadersOf, STAMPED, stampOf } from "./forward.ts";
 import { SIGNALS, stringAttribute } from "./otlp-json.ts";
 
 /** The Worker's environment: its own facts, its key, and the sink's. */

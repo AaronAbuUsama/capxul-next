@@ -14,7 +14,7 @@ import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import { boundClaimOf, verifierOf } from "../src/collector/caller.ts";
 import { type CollectorClaims, mintClaim } from "../src/collector/claims.ts";
 import { countsExport, outcomeOf } from "../src/collector/counts.ts";
-import { STAMPED } from "../src/collector/envelope.ts";
+import { STAMPED } from "../src/collector/forward.ts";
 import { datasetsOf, forward, type Forwarding, sinkHeadersOf } from "../src/collector/forward.ts";
 import { countItems, resourceAttributes, stampExport } from "../src/collector/otlp-json.ts";
 import { cryptoLayer } from "../src/token.ts";

@@ -12,9 +12,10 @@
 //   OTEL_EXPORTER_OTLP_HEADERS    headers for the collector, `key=value,key=value`, e.g. the operator's platform token
 //                                 for a caller outside Cloudflare; never logged
 //
-// The resource names the producer (`service.name`, #301's producers) and the revision (`service.version`), and says
+// The resource names the producer (`service.name`, the blueprint's producers) and the revision (`service.version`), and says
 // whether the run can be trusted: only a run in GitHub Actions is, which also names the pipeline's run, the commit and
-// the ref (collector/envelope.ts).
+// the ref (the blueprint's `Envelope`).
+import { Conventions, Envelope, Producers } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
@@ -32,15 +33,12 @@ import * as OtlpLogger from "effect/observability/OtlpLogger";
 import * as OtlpMetrics from "effect/observability/OtlpMetrics";
 import * as OtlpSerialization from "effect/observability/OtlpSerialization";
 import * as OtlpTracer from "effect/observability/OtlpTracer";
-import { RUN_ATTRIBUTES } from "./collector/envelope.ts";
 
-/** Each producer's `service.name`: the blueprint's `producers` (#301), named here until that reaches master. */
-export const PRODUCERS = {
-  runner: "capxul-runner",
-  world: "capxul-world",
-  sites: "capxul-sites-client",
-} as const;
-export type Producer = (typeof PRODUCERS)[keyof typeof PRODUCERS];
+/** A producer's `service.name`, as the blueprint's producers name it (`Producers.producers.<short>.service`). */
+export type Producer = (typeof Producers.producers)[keyof typeof Producers.producers]["service"];
+
+/** The envelope's attributes a run's resource carries. */
+const RUN = Envelope.attributes;
 
 /** The three signals, each on unless its exporter setting says `none`. */
 export interface Signals {
@@ -67,6 +65,24 @@ export interface ExportOptions {
 /** The layer each producer's export is: OTLP JSON to `baseUrl`, under a resource naming the producer and revision. */
 export type ExportLayer = Layer.Layer<OtlpExporter.Flusher, never, HttpClient.HttpClient>;
 
+/**
+ * OTLP JSON with every resource carrying the blueprint's convention version (`Conventions.SCHEMA_URL`), so the sink
+ * shapes what it receives by the version we pinned and not by its own default. Effect's exporters leave it out.
+ */
+export const jsonWithSchema = Layer.effect(
+  OtlpSerialization.OtlpSerialization,
+  Effect.gen(function* () {
+    const json = yield* OtlpSerialization.OtlpSerialization;
+    const schemaUrl = Conventions.SCHEMA_URL;
+    return {
+      traces: (data) => json.traces({ resourceSpans: Arr.map(data.resourceSpans, (each) => ({ ...each, schemaUrl })) }),
+      logs: (data) => json.logs({ resourceLogs: Arr.map(data.resourceLogs, (each) => ({ ...each, schemaUrl })) }),
+      metrics: (data) =>
+        json.metrics({ resourceMetrics: Arr.map(data.resourceMetrics, (each) => ({ ...each, schemaUrl })) }),
+    };
+  }),
+).pipe(Layer.provide(OtlpSerialization.layerJson));
+
 /** The export of `producer`, by `options`. */
 export const exportLayer = (producer: Producer, options: ExportOptions): ExportLayer => {
   const resource = {
@@ -83,11 +99,12 @@ export const exportLayer = (producer: Producer, options: ExportOptions): ExportL
     signals.traces ? OtlpTracer.layer({ ...common, url: url("/v1/traces") }) : Layer.empty,
     signals.logs ? OtlpLogger.layer({ ...common, url: url("/v1/logs") }) : Layer.empty,
     signals.metrics ? OtlpMetrics.layer({ ...common, url: url("/v1/metrics") }) : Layer.empty,
-  ).pipe(Layer.provide(OtlpSerialization.layerJson));
+  ).pipe(Layer.provide(jsonWithSchema));
 };
 
 /** Provides the platform client's OTLP export (its entries, run-*.ts). */
-export const platformTelemetry = (options: ExportOptions): ExportLayer => exportLayer(PRODUCERS.sites, options);
+export const platformTelemetry = (options: ExportOptions): ExportLayer =>
+  exportLayer(Producers.producers.sites.service, options);
 
 const optional = (name: string) => Config.option(Config.String(name));
 
@@ -109,8 +126,8 @@ export const RunAttributes = Config.all({
       () => "unknown",
     );
     const attributes: Record<string, unknown> = {
-      [RUN_ATTRIBUTES.trusted]: actions,
-      [RUN_ATTRIBUTES.revision]: revision,
+      [RUN.trusted.name]: actions,
+      [RUN.revision.name]: revision,
     };
     if (actions) {
       // A pull request's own branch is GITHUB_HEAD_REF; GITHUB_REF_NAME is then its merge ref.
@@ -118,8 +135,8 @@ export const RunAttributes = Config.all({
         Option.filter(headRef, (name) => name !== ""),
         () => refName,
       );
-      if (Option.isSome(ref)) attributes[RUN_ATTRIBUTES.ref] = ref.value;
-      if (Option.isSome(runId)) attributes[RUN_ATTRIBUTES.pipelineRun] = runId.value;
+      if (Option.isSome(ref)) attributes[RUN.ref.name] = ref.value;
+      if (Option.isSome(runId)) attributes[RUN.pipelineRun.name] = runId.value;
     }
     return { revision, attributes };
   }),

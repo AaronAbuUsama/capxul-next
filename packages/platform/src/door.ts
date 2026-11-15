@@ -15,7 +15,6 @@ export { Claims, cryptoLayer, fingerprint, mint } from "./token.ts";
 export { COLLECTOR, namesOf, STACK, STAGING } from "./names.ts";
 export { CLAIM_PROP } from "./collector/caller.ts";
 export { CollectorClaims, mintClaim } from "./collector/claims.ts";
-export { RUN_ATTRIBUTES, STAMPED } from "./collector/envelope.ts";
 export { PlatformOutputs, type StateStore } from "./state.ts";
 
 /** The platform's stack file; the state store is opened through it. */
@@ -90,7 +89,6 @@ export {
   exportFromConfig,
   exportLayer,
   platformTelemetry,
-  PRODUCERS,
   RunAttributes,
   type ExportLayer,
   type ExportOptions,

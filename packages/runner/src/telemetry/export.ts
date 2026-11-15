@@ -1,6 +1,6 @@
 // The runner's OTLP export (roadmap 4.4): the layer its entry (main.ts) provides once, so every span, log and metric it
-// makes is posted over OTLP/HTTP JSON to the collector, under a resource naming the producer (`service.name`:
-// "capxul-runner", #301's producer) and the code's revision (`service.version`). The world's code the runner runs in
+// makes is posted over OTLP/HTTP JSON to the collector, under a resource naming the producer (`service.name`, the
+// blueprint's producer) and the code's revision (`service.version`). The world's code the runner runs in
 // its own process (the platform it serves, the resets) exports through it too. Built by packages/platform's
 // `exportLayer`, the one implementation of every producer's.
 //
@@ -13,7 +13,8 @@
 //
 // A stage with no collector yet, or a state that cannot be read, exports nothing and fails nothing: the run goes on,
 // and says so in one log line. The claim is never logged.
-import { exportFromConfig, exportLayer, PRODUCERS, publicCollector, STAGING } from "@capxul/platform";
+import { Producers } from "@capxul/blueprint";
+import { exportFromConfig, exportLayer, publicCollector, STAGING } from "@capxul/platform";
 import type { ExportLayer, ExportOptions, Target } from "@capxul/platform";
 import * as BunServices from "@effect/platform-bun/BunServices";
 import * as Alchemist from "alchemy/Alchemist";
@@ -30,7 +31,8 @@ import * as FetchHttpClient from "effect/http/FetchHttpClient";
 export type { ExportOptions };
 
 /** Provides the runner's OTLP export. */
-export const runnerTelemetry = (options: ExportOptions): ExportLayer => exportLayer(PRODUCERS.runner, options);
+export const runnerTelemetry = (options: ExportOptions): ExportLayer =>
+  exportLayer(Producers.producers.runner.service, options);
 
 /** How long a run's claim is good for: longer than any run (its hub lives four hours). */
 export const CLAIM_LIFETIME = Duration.hours(6);
