@@ -17,7 +17,7 @@ type Kind = {
 type Name = OperationName | Errors.RefusalTag | Kind;
 
 /** Each declared name, keyed by itself. */
-// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- each entry is a declared name keyed by itself; the compiler cannot follow a record built from a set
+// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- each entry is a declared name keyed by itself; the compiler cannot follow an object built from a set
 export const named = Rec.fromEntries(
   Arr.map(Arr.fromIterable(declaredNames), (name) => [name, name] as const),
 ) as unknown as {

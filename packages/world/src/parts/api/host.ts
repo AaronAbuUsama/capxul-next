@@ -16,7 +16,7 @@ import type { BenchGrant } from "../../stack/settings.ts";
 /** What a hosted Core of one world is given: what a deploy would bind into the Worker (Core.ts). */
 export interface HostedCore {
   readonly world: World;
-  /** The token Core accepts as the owner operator's (decisions.md, 36). */
+  /** The token Core accepts as the owner operator's (packages/blueprint, src/protocol/headers.ts). */
   readonly operatorToken: Redacted.Redacted;
   /** The world's bench and its site token there; none for a world with no bench. */
   readonly bench: Option.Option<BenchGrant>;

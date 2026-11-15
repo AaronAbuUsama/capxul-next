@@ -5,19 +5,19 @@
 // glossary's renames (roadmap item 3.8).
 import * as RpcGroup from "effect/rpc/RpcGroup";
 import type { ClaimsOf } from "../starting-points/points.ts";
-import * as CompanyCreate from "../things/company/create.ts";
-import * as MemberGrant from "../things/member/grant.ts";
+import * as CompanyVerbsCreate from "../things/company/verbs/create.ts";
+import * as MemberVerbsGrant from "../things/member/verbs/grant.ts";
 
 export { Founded } from "../things/company/values.ts";
 export { OrgFounded, ProposalOpened } from "../things/company/events.ts";
 export { OfficerChangeProposed } from "../things/member/events.ts";
-export { Resumed, create } from "../things/company/create.ts";
-export { memberGrant } from "../things/member/grant.ts";
+export { Resumed, create } from "../things/company/verbs/create.ts";
+export { memberGrant } from "../things/member/verbs/grant.ts";
 
 /** Its operations, by name. */
 export const operations = {
-  "org.create": CompanyCreate.create,
-  "org.member.grant": MemberGrant.memberGrant,
+  "org.create": CompanyVerbsCreate.create,
+  "org.member.grant": MemberVerbsGrant.memberGrant,
 } as const;
 
 /** Its operations that move no thing with a lifecycle, each with why: each such verb's `stateless`. */
@@ -30,10 +30,10 @@ export const machines = {} as const;
 export const platformRpcs = RpcGroup.make();
 
 /** What a world's Core serves of it, through the world's door (`WorldRpcs`). */
-export const worldRpcs = RpcGroup.make(CompanyCreate.create.rpc, MemberGrant.memberGrant.rpc);
+export const worldRpcs = RpcGroup.make(CompanyVerbsCreate.create.rpc, MemberVerbsGrant.memberGrant.rpc);
 
 /** The promises of each of its operations: each verb's `promises`. */
 export const claims: { readonly [Name in keyof typeof operations]: ClaimsOf } = {
-  "org.create": CompanyCreate.promises,
-  "org.member.grant": MemberGrant.promises,
+  "org.create": CompanyVerbsCreate.promises,
+  "org.member.grant": MemberVerbsGrant.promises,
 };

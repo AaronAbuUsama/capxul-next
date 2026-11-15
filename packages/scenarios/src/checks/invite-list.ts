@@ -1,4 +1,4 @@
-// The checks of every invite.list (claims.md of people, invite.list 1): every invitation it answers was sent to the
+// The checks of every invitation.list (claims.md of people, invitation.list 1): every invitation it answers was sent to the
 // caller's own email, each once, oldest first, and reading them records nothing.
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
@@ -8,7 +8,7 @@ import { emailOf } from "../support/people.ts";
 import { callerOf, nothingRecorded, worldBefore, type Before } from "./common.ts";
 import { check, checks } from "./format.ts";
 
-export const inviteList = checks<"invite.list", Before>({
+export const invitationList = checks<"invitation.list", Before>({
   before: (asked) => worldBefore(asked.options),
   success: (asked, listed, before) => [
     check(
@@ -34,7 +34,7 @@ export const inviteList = checks<"invite.list", Before>({
         );
       }),
     ),
-    nothingRecorded("invite.list", before),
+    nothingRecorded("invitation.list", before),
   ],
   refusals: {},
 });

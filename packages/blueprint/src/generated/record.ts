@@ -5,18 +5,18 @@
 // glossary's renames (roadmap item 3.8).
 import * as RpcGroup from "effect/rpc/RpcGroup";
 import type { ClaimsOf } from "../starting-points/points.ts";
-import * as HistoryExport from "../things/history/export.ts";
+import * as HistoryVerbsExport from "../things/history/verbs/export.ts";
 
-export { Entry, exportRecord } from "../things/history/export.ts";
+export { Entry, exportRecord } from "../things/history/verbs/export.ts";
 
 /** Its operations, by name. */
 export const operations = {
-  "record.export": HistoryExport.exportRecord,
+  "record.export": HistoryVerbsExport.exportRecord,
 } as const;
 
 /** Its operations that move no thing with a lifecycle, each with why: each such verb's `stateless`. */
 export const stateless: { readonly [Name in keyof typeof operations]?: string } = {
-  "record.export": HistoryExport.stateless,
+  "record.export": HistoryVerbsExport.stateless,
 };
 
 /** Its machines, by name: its things' lifecycles. */
@@ -26,9 +26,9 @@ export const machines = {} as const;
 export const platformRpcs = RpcGroup.make();
 
 /** What a world's Core serves of it, through the world's door (`WorldRpcs`). */
-export const worldRpcs = RpcGroup.make(HistoryExport.exportRecord.rpc);
+export const worldRpcs = RpcGroup.make(HistoryVerbsExport.exportRecord.rpc);
 
 /** The promises of each of its operations: each verb's `promises`. */
 export const claims: { readonly [Name in keyof typeof operations]: ClaimsOf } = {
-  "record.export": HistoryExport.promises,
+  "record.export": HistoryVerbsExport.promises,
 };

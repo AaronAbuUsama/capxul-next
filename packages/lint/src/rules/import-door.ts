@@ -6,6 +6,10 @@ import * as Arr from "effect/Array";
 import * as Str from "effect/String";
 import { pathOf } from "./where.ts";
 
+/** What the rule finds, as AGENTS.md and packages/lint/README.md list it (written there by `pnpm generate`). */
+export const description =
+  "another package is imported only through its door, `src/door.ts` (`src/index.ts` in the blueprint and its toolkit), or by its bare name.";
+
 /** The file a package's door is: today `src/door.ts`, and `src/index.ts` once renamed by the glossary. */
 const DOORS = ["src/door.ts", "src/index.ts"];
 
@@ -61,7 +65,7 @@ const create = (context: Context) => {
 export const importDoor: Rule = {
   meta: {
     type: "problem",
-    docs: { description: "Another package is imported only through its door, src/door.ts or src/index.ts" },
+    docs: { description },
   },
   create,
 };

@@ -42,7 +42,10 @@ export const SEEDED = {
 export const TIER = {
   /** Personal Safes are claimed under this namespace, by email. */
   personalNamespace: Seeded.tiers[0].namespace,
-  /** Company Safes are minted under this namespace, by the Organization's id (decisions.md, 34). */
+  /**
+   * Company Safes are minted under this namespace, by the Organization's id
+   * (packages/blueprint, src/common/chain/reads.ts).
+   */
   companyNamespace: Seeded.tiers[0].companyNamespace,
   claimRole: "capxul.claim.devnet",
   companyRole: "capxul.company.devnet",

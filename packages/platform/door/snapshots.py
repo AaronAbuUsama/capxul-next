@@ -1,5 +1,5 @@
-"""A world's sites in its snapshots (blueprint decisions.md, 17): the bench's half of saving a world and restoring it
-into a new one. door.py checks the tokens; this does the work.
+"""A world's sites in its snapshots (packages/blueprint/docs/decisions.md, entry 17): the bench's half of saving a world
+and restoring it into a new one. door.py checks the tokens; this does the work.
 
 A backup is every ready site of a world, saved under the snapshot's name: `bench backup` of its database, and what
 its own site_config.json must carry over (the encryption key, which decrypts what the site stored encrypted). It lives

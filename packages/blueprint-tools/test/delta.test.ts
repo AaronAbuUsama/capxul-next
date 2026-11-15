@@ -1,5 +1,6 @@
 // Step 3.5's proof: the delta check (src/checks/delta.ts) and the machine format it reads
-// (src/checks/machine-format.ts), first on made-up domains and machines, then on the blueprint itself. Written before
+// (src/checks/machine-format.ts), on made-up domains and machines; the blueprint runs it on itself in its own tests
+// (packages/blueprint/test/delta.test.ts). Written before
 // the existing operations are classified, by another agent than the one who classifies them (AGENTS.md, "How a
 // feature is built"). Run with `pnpm test`.
 import { strict as assert } from "node:assert";
@@ -7,13 +8,9 @@ import { test } from "node:test";
 import * as Arr from "effect/Array";
 import * as Rec from "effect/Record";
 import * as Str from "effect/String";
-import { blueprint, deltaCheck, type Finding } from "../src/checks/delta.ts";
+import { deltaCheck, type Finding } from "../src/checks/delta.ts";
 import type { Format } from "../src/checks/format.ts";
-import { formats } from "../src/checks/formats.ts";
 import { machineFormat, type Declared, type DomainShape, type MachineShape } from "../src/checks/machine-format.ts";
-
-/** The most operations each format's `unmigrated` list may hold. Set by the lead; each may only fall. */
-const CEILINGS: { readonly [format: string]: number } = { machine: 13 };
 
 const closed = { refusal: "Closed" } as const;
 
@@ -143,18 +140,4 @@ test("every finding names its format", () => {
   const steps: Format = { missing: () => ["no steps declared"], unmigrated: [] };
   const findings = deltaCheck({ operations: ["ticket.list"], formats: { steps } });
   assert.deepEqual(findings, [{ operation: "ticket.list", format: "steps", reason: "no steps declared" }]);
-});
-
-test("the blueprint: every operation has every format, or is on its unmigrated list", () => {
-  assert.deepEqual(about(deltaCheck()), []);
-});
-
-test("the blueprint: every format's unmigrated list is under its ceiling, which may only fall, and has no repeats", () => {
-  assert.deepEqual(Rec.keys(formats), Rec.keys(CEILINGS), "every format has a ceiling, and only formats do");
-  for (const [name, format] of Rec.toEntries(formats)) {
-    const ceiling = CEILINGS[name] ?? 0;
-    assert.ok(format.unmigrated.length <= ceiling, `${name}: ${format.unmigrated.length} over ${ceiling}`);
-    assert.equal(Arr.dedupe(format.unmigrated).length, format.unmigrated.length, `${name}: an entry twice`);
-  }
-  assert.strictEqual(blueprint.formats, formats);
 });

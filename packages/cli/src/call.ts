@@ -4,6 +4,15 @@
 // answers what the line holds, the success or the refusal, so it can stand where the SDK's call stands: the runner
 // runs the thin line's journeys through it (packages/runner, `--via=cli`). No process is spawned per call; that the
 // process prints the same line is test/round-trip.test.ts's.
+//
+// Why in this process, by choice: the parsing, the call through the SDK and the printed line are the same code the
+// process runs; a journey makes hundreds of calls; and the runner's HTTP client (which resends what Cloudflare's edge
+// answers during a world's warm-up) and the call's trace reach the SDK's call unchanged, so the api's spans fall under
+// the trace the runner records and the generic checks find them.
+//
+// A payload not of its operation's schema has no arguments: `argsOf` rejects it with the SDK's own check
+// (`Sdk.checkPayload`, `PayloadRejected`) and the command line never runs. A person cannot type such a payload anyway:
+// the command line takes the payload's JSON form, which its schema decodes (trimming text, for one).
 import type { CallOptions, OperationName } from "@capxul/blueprint";
 import type * as Sdk from "@capxul/sdk";
 import * as Arr from "effect/Array";
