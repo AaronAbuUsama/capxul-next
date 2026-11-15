@@ -4,7 +4,8 @@
 import type { Approvals } from "@capxul/blueprint";
 import { approvalSign } from "../checks/approval-sign.ts";
 import { foundNorthwind } from "../journeys/found-northwind.ts";
-import { payAndBranch } from "../journeys/pay-and-branch.ts";
+import { branchTheBooks } from "../journeys/branch-the-books.ts";
+import { payBrightside } from "../journeys/pay-brightside.ts";
 import { at, type Domain } from "../domain.ts";
 
 /** The checks of each of its operations. */
@@ -18,10 +19,10 @@ export const journeys: Domain<typeof Approvals>["journeys"] = [];
 /** Where each claim of each of its operations is checked, in claims.md's order. */
 export const coverage: Domain<typeof Approvals>["coverage"] = {
   "approval.sign": [
-    at(["approval.sign"], [payAndBranch, 5], [payAndBranch, 6]),
-    at(["approval.sign"], [payAndBranch, 5]),
-    at(["approval.sign"], [payAndBranch, 5]),
-    at(["approval.sign", "world.clock.warp"], [payAndBranch, 8], [payAndBranch, 9]),
+    at(["approval.sign"], [payBrightside, 4], [payBrightside, 5]),
+    at(["approval.sign"], [payBrightside, 4]),
+    at(["approval.sign"], [payBrightside, 3]),
+    at(["approval.sign", "world.clock.warp"], [branchTheBooks, 6], [branchTheBooks, 7]),
     at(["approval.sign"], [foundNorthwind, 3], [foundNorthwind, 6]),
   ],
 };

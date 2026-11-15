@@ -4,22 +4,22 @@
   "what": "A registered journey run against a Capxul whose every operation fails with NotImplemented, as Core's empty handlers do. It must fail at its first step, on the NotImplemented it is answered, never pass and never die.",
   "outcome": "passed",
   "result": {
-    "name": "pay Brightside and branch the books",
+    "name": "branch the books of a held payment",
     "given": "payment-drafted",
-    "steps": 10,
+    "steps": 8,
     "began": [
       {
         "step": 1,
-        "operation": "doc.create",
-        "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"doc.create\"}"
+        "operation": "doc.submit",
+        "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"doc.submit\"}"
       }
     ],
     "calls": [
       "record.export",
-      "doc.create"
+      "doc.submit"
     ],
     "outcome": "failed",
     "failedWith": "NotImplemented",
-    "detail": "doc.create answered NotImplemented"
+    "detail": "doc.submit answered NotImplemented"
   }
 }

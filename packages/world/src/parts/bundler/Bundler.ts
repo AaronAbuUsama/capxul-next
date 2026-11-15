@@ -3,7 +3,9 @@
 // EntryPoint in eth_supportedEntryPoints, and forwards the call. The chain stops it before the chain is saved.
 //
 // Nothing is saved on stop: alto keeps its mempool in memory, and everything else it needs (its simulation
-// contracts, its executor's nonce, the paymaster's deposit) is on the chain, which is saved.
+// contracts, its executor's nonce, the paymaster's deposit) is on the chain, which is saved. A world's reset stops it
+// too, before the chain is rewound (src/parts/chain/Chain.ts, `reset`), and it starts again on its next call.
+// alto's debug methods are its own: a call from outside that names one is refused.
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
@@ -51,6 +53,8 @@ const settings = (rpcUrl: string) => ({
 });
 
 const SUPPORTED_ENTRY_POINTS = { jsonrpc: "2.0", id: 1, method: "eth_supportedEntryPoints", params: [] };
+/** alto's own debug methods, never forwarded from outside. */
+const DEBUG_METHOD = '"debug_';
 
 export default class Bundler extends Cloudflare.DurableObject<Bundler>()(
   "Bundler",
@@ -124,9 +128,12 @@ export default class Bundler extends Cloudflare.DurableObject<Bundler>()(
       return {
         /**
          * One bundler JSON-RPC body in, alto's answer out. Starts alto when it is stopped, against the chain address
-         * of its first start, or this one if it never started.
+         * of its first start, or this one if it never started. alto's debug methods are refused.
          */
-        rpc: (body: string, rpcUrl: string) => begin(rpcUrl).pipe(Effect.andThen(forward(body))),
+        rpc: (body: string, rpcUrl: string) =>
+          Str.includes(DEBUG_METHOD)(body)
+            ? Effect.fail(BundlerFailed.make({ step: "rpc", message: "alto's debug methods are not served" }))
+            : begin(rpcUrl).pipe(Effect.andThen(forward(body))),
         /** Stops alto. What it held in memory is gone; everything it needs again is on the chain. */
         stop: () =>
           Effect.gen(function* () {

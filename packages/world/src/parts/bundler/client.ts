@@ -70,23 +70,50 @@ export const bundlerStatus = (world: Reach) =>
 
 const EntryPoints = Schema.Array(Schema.String);
 
-/** The bundler's own answer to eth_supportedEntryPoints: it must name the seeded EntryPoint. */
-export const servesEntryPoint = (world: Reach) =>
+/** The EntryPoints the bundler says it serves (eth_supportedEntryPoints), whichever they are. */
+const supportedEntryPoints = (world: Reach) =>
   bundlerCall(world, "eth_supportedEntryPoints").pipe(
     Effect.flatMap(Schema.decodeUnknownEffect(EntryPoints)),
     Effect.mapError(asCallFailed),
-    Effect.filterOrFail(
-      (served) => Arr.some(served, (address) => Str.toLowerCase(address) === Str.toLowerCase(ENTRY_POINT)),
-      (served) => callFailed(`the bundler serves [${Arr.join(served, ", ")}], not ${ENTRY_POINT}`),
-    ),
   );
 
+/** An answer that names the seeded EntryPoint passes; one that names others is a wrong bundler, not a slow one. */
+const mustServe = (served: ReadonlyArray<string>) =>
+  Arr.some(served, (address) => Str.toLowerCase(address) === Str.toLowerCase(ENTRY_POINT))
+    ? Effect.succeed(served)
+    : Effect.fail(callFailed(`the bundler serves [${Arr.join(served, ", ")}], not ${ENTRY_POINT}`));
+
+/** The bundler's own answer to eth_supportedEntryPoints: it must name the seeded EntryPoint. One look. */
+export const servesEntryPoint = Effect.fn("world.bundler.servesEntryPoint")(function* (world: Reach) {
+  return yield* mustServe(yield* supportedEntryPoints(world));
+});
+
+/** How long a world's creation waits for alto's first start: every 2 s, for as long as the create's step allows. */
+export const UntilStarted: Schedule.Schedule<unknown, BundlerFailed> = Schedule.spaced("2 seconds");
+
 /**
- * Waits until the bundler serves the EntryPoint. The first call starts alto; a new container application can refuse
- * the start for a while, which the bundler's Durable Object waits out, so a call that fails is made again.
+ * How long a reset waits for the bundler it kept up: every second, 60 looks at most, well inside the reset's own
+ * timeout (WORLD_TIMEOUT_RESET, 5 minutes). Its first look normally passes; the rest ride out a dropped connection
+ * through the shared hub's door.
  */
-export const bundlerAnswers = (world: Reach) =>
-  servesEntryPoint(world).pipe(
+export const AfterReset: Schedule.Schedule<unknown, BundlerFailed> = Schedule.max([
+  Schedule.spaced("1 second"),
+  Schedule.recurs(60),
+]);
+
+/**
+ * Waits until the bundler serves the EntryPoint, looking again on `patience` while it cannot be reached or does not
+ * answer yet (a transport error, an HTTP error, an RPC error). The first call starts alto; a new container application
+ * can refuse the start for a while, which the bundler's Durable Object waits out. An answer naming another EntryPoint
+ * fails at once: asking again would not change it.
+ */
+export const bundlerAnswers = Effect.fn("world.bundler.answers")(function* (
+  world: Reach,
+  patience: Schedule.Schedule<unknown, BundlerFailed> = UntilStarted,
+) {
+  const served = yield* supportedEntryPoints(world).pipe(
     Effect.tapError((error) => Effect.logDebug(`bundler not ready: ${describeFailure(error)}`)),
-    Effect.retry(Schedule.spaced("2 seconds")),
+    Effect.retry(patience),
   );
+  return yield* mustServe(served);
+});
