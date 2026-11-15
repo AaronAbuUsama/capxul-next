@@ -9,8 +9,9 @@
 //   Worker on every run; binding a secret to a Worker needs Edit, Read is refused ("Secrets store binding
 //   authorization failed");
 // - Account Settings, read only: Alchemy resolves the account.
-// One zone only, the platform's (abuusama.dev, later capxul.com): its DNS records, and reading the zone. Cloudflare
-// cannot limit a token to the names under `worlds.`; the stacks create records only there (src/names.ts).
+// One zone only, the platform's (abuusama.dev, later capxul.com): its DNS records, its Worker routes (the collector's
+// public name, src/collector/stack.ts), and reading the zone. Cloudflare cannot limit a token to the names under
+// `worlds.`; the stacks create records and routes only there (src/names.ts).
 // Not granted: API tokens (CI can neither mint nor widen a token), Access, Zero Trust, the zone's settings or
 // certificates, billing, members.
 
@@ -29,7 +30,7 @@ export const ACCOUNT_PERMISSIONS: ReadonlyArray<Permission> = [
   "Secrets Store Write",
 ];
 
-export const ZONE_PERMISSIONS: ReadonlyArray<Permission> = ["Zone Read", "DNS Write"];
+export const ZONE_PERMISSIONS: ReadonlyArray<Permission> = ["Zone Read", "DNS Write", "Workers Routes Write"];
 
 /** The token's policies. An account-owned token names a zone nested under its account, as Cloudflare requires. */
 export const tokenPolicies = (accountId: string, zoneId: string): Array<Cloudflare.ApiToken.Policy> => [

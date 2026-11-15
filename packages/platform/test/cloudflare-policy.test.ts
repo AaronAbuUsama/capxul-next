@@ -10,7 +10,7 @@ test("the token is scoped to one account and one zone, nested as Cloudflare requ
   assert.deepEqual(zone?.resources, {
     "com.cloudflare.api.account.acc1": { "com.cloudflare.api.account.zone.zone1": "*" },
   });
-  assert.deepEqual(zone?.permissionGroups, ["Zone Read", "DNS Write"]);
+  assert.deepEqual(zone?.permissionGroups, ["Zone Read", "DNS Write", "Workers Routes Write"]);
 });
 
 test("the token cannot make tokens, change the zone's settings or certificates, or reach Access", () => {
