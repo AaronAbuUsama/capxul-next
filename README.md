@@ -1,7 +1,7 @@
 # Capxul Next
 
 This is `master`, the rebuild line of Capxul: a hosted, re-skinned Frappe with Capxul Core's on-chain authority,
-budgets, payments and banking built in ([GROUNDING.md](GROUNDING.md)). It is separate from `main` and
+budgets, payments and banking built in ([docs/grounding.md](docs/grounding.md)). It is separate from `main` and
 `integration/build`, and it follows [docs/roadmap.md](docs/roadmap.md). The rules for changing it are in
 [AGENTS.md](AGENTS.md).
 

@@ -1,6 +1,6 @@
 # Grounding: Aaron's strategy
 
-This is the strategy stated by Aaron on 9 November 2026, restated for the current direction. For live scope and sequence use [docs/roadmap.md](docs/roadmap.md); this document does not override it.
+This is the strategy stated by Aaron on 9 November 2026, restated for the current direction. For live scope and sequence use [docs/roadmap.md](roadmap.md); this document does not override it.
 
 ## The honest starting point
 
