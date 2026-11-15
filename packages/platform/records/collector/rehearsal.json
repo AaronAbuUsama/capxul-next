@@ -1,20 +1,170 @@
 {
   "what": "The collector alone on stage pr-col1 (collector.run.ts, stack CapxulCollectorRehearsal), from an agent's container, 15 November 2026, on the code after the merge of the author's stub (makeCollector) and the lead's keys. The bench was not deployed: the collector needs neither Docker nor the bench. Destroyed after: no Worker, record or route left.",
-  "deploy": { "seconds": 16.7, "resources": ["Collector (cx-platform-pr-col1-collector, route pr-col1-collector.worlds.abuusama.dev/*, workers.dev off, Cloudflare logs and traces to axiom-capxul-logs and axiom-capxul-traces)", "CollectorKey-g1", "CollectorRecord (AAAA 100::, proxied)"] },
+  "deploy": {
+    "seconds": 16.7,
+    "resources": [
+      "Collector (cx-platform-pr-col1-collector, Cloudflare logs and traces to axiom-capxul-logs and axiom-capxul-traces; at first on the route pr-col1-collector.worlds.abuusama.dev with a proxied AAAA record, then, as the lead asked, at its workers.dev URL)",
+      "CollectorKey-g1"
+    ]
+  },
   "claims": "minted from the shared state under CollectorKey-g1 (operator 'rehearsal'), one more under another key. Prints only: operator-only 303569f0, world acme/private fcc3b9b7, other key 52cfd248",
   "body": "one span; its resource said service.name=rehearsal, capxul.world=liar, deployment.environment.name=real, capxul.stage=production",
   "stand_ins": "sink: https://httpbin.org/anything, which echoes what it got (redeployed to Axiom's edge for the last call); a world's Core: a Worker whose service binding to the collector held a claim in its props, called with no Authorization header",
   "calls": [
-    { "call": "GET /health", "status": 200, "answer": { "collector": "cx-platform-pr-col1-collector", "stage": "pr-col1" } },
-    { "call": "public, no token", "status": 401, "answer": { "error": "token-required" } },
-    { "call": "public, claim under another key", "status": 401, "answer": { "error": "token-required" } },
-    { "call": "public, protobuf", "status": 415, "answer": { "error": "otlp-json-only" } },
-    { "call": "public, operator-only claim", "status": 200, "sink_saw": { "url": "https://httpbin.org/anything/v1/traces", "x-axiom-dataset": "capxul-test-traces", "authorization": "absent (no ingest key in a container deploy)", "resource": [["service.name", "rehearsal"], ["capxul.stage", "pr-col1"]] } },
-    { "call": "public, world claim acme/private", "status": 200, "sink_saw": { "resource": [["service.name", "rehearsal"], ["capxul.world", "acme"], ["deployment.environment.name", "private"], ["capxul.stage", "pr-col1"]] } },
-    { "call": "by service binding, world claim acme/private in the props", "status": 200, "sink_saw": { "resource": [["service.name", "rehearsal"], ["capxul.world", "acme"], ["deployment.environment.name", "private"], ["capxul.stage", "pr-col1"]] } },
-    { "call": "by service binding, operator-only claim (no world) in the props", "status": 403, "answer": { "error": "binding-claim-refused" } },
-    { "call": "public, world claim, sink = Axiom's edge eu-central-1.aws.edge.axiom.co, no ingest key", "status": 401, "answer": { "code": 401, "message": "auth token not provided" } }
+    {
+      "call": "GET /health",
+      "status": 200,
+      "answer": {
+        "collector": "cx-platform-pr-col1-collector",
+        "stage": "pr-col1"
+      }
+    },
+    {
+      "call": "public, no token",
+      "status": 401,
+      "answer": {
+        "error": "token-required"
+      }
+    },
+    {
+      "call": "public, claim under another key",
+      "status": 401,
+      "answer": {
+        "error": "token-required"
+      }
+    },
+    {
+      "call": "public, protobuf",
+      "status": 415,
+      "answer": {
+        "error": "otlp-json-only"
+      }
+    },
+    {
+      "call": "public, operator-only claim",
+      "status": 200,
+      "sink_saw": {
+        "url": "https://httpbin.org/anything/v1/traces",
+        "x-axiom-dataset": "capxul-test-traces",
+        "authorization": "absent (no ingest key in a container deploy)",
+        "resource": [
+          [
+            "service.name",
+            "rehearsal"
+          ],
+          [
+            "capxul.stage",
+            "pr-col1"
+          ]
+        ]
+      }
+    },
+    {
+      "call": "public, world claim acme/private",
+      "status": 200,
+      "sink_saw": {
+        "resource": [
+          [
+            "service.name",
+            "rehearsal"
+          ],
+          [
+            "capxul.world",
+            "acme"
+          ],
+          [
+            "deployment.environment.name",
+            "private"
+          ],
+          [
+            "capxul.stage",
+            "pr-col1"
+          ]
+        ]
+      }
+    },
+    {
+      "call": "by service binding, world claim acme/private in the props",
+      "status": 200,
+      "sink_saw": {
+        "resource": [
+          [
+            "service.name",
+            "rehearsal"
+          ],
+          [
+            "capxul.world",
+            "acme"
+          ],
+          [
+            "deployment.environment.name",
+            "private"
+          ],
+          [
+            "capxul.stage",
+            "pr-col1"
+          ]
+        ]
+      }
+    },
+    {
+      "call": "by service binding, operator-only claim (no world) in the props",
+      "status": 403,
+      "answer": {
+        "error": "binding-claim-refused"
+      }
+    },
+    {
+      "call": "public, world claim, sink = Axiom's edge eu-central-1.aws.edge.axiom.co, no ingest key",
+      "status": 401,
+      "answer": {
+        "code": 401,
+        "message": "auth token not provided"
+      }
+    }
   ],
   "counts": "Workers Logs, read back through Cloudflare's telemetry query API: 'collector counts' {signal: traces, items: 1, forwarded: 1, refused: 0, capxul.world: acme, capxul.stage: pr-col1, deployment.environment.name: private} for a forward the echo sink accepted; the same with forwarded 0, refused 1, reason '401' for Axiom without a key; and 'collector counts refused by the sink' {status: 401}, the counts' own send to capxul-test-metrics, which needs the key too",
-  "not_proven_here": "forwarding into Axiom with the ingest key (platform.yml sets it on staging, then the capxul-query read-back confirms arrival); Core's real binding (the Core builder's work)"
+  "not_proven_here": "forwarding into Axiom with the ingest key (platform.yml sets it on staging, then the capxul-query read-back confirms arrival); Core's real binding (the Core builder's work)",
+  "workers_dev": {
+    "url": "https://cx-platform-pr-col1-collector.thedao.workers.dev (the output collectorUrl)",
+    "calls": [
+      {
+        "call": "GET /health",
+        "status": 200
+      },
+      {
+        "call": "public, no token",
+        "status": 401,
+        "answer": {
+          "error": "token-required"
+        }
+      },
+      {
+        "call": "public, world claim acme/private, echo sink",
+        "status": 200,
+        "sink_saw": {
+          "x-axiom-dataset": "capxul-test-traces",
+          "resource": [
+            [
+              "service.name",
+              "rehearsal"
+            ],
+            [
+              "capxul.world",
+              "acme"
+            ],
+            [
+              "deployment.environment.name",
+              "private"
+            ],
+            [
+              "capxul.stage",
+              "pr-col1"
+            ]
+          ]
+        }
+      }
+    ],
+    "destroyed": "no Worker left"
+  }
 }

@@ -5,9 +5,8 @@
 //                                            the sink's dataset of that signal, answered with the sink's answer
 //   GET  /health                             `{collector, stage}`
 //
-// A world's Core reaches it by service binding (its claim in the binding's props); anyone else on the public route
-// `<stage>-collector.<domain>`, over HTTP like the site door (one level under the domain, which is all Cloudflare's
-// free certificate covers), with an operator's claim. The sink's ingest key is a Worker secret that platform.yml sets
+// A world's Core reaches it by service binding (its claim in the binding's props); anyone else on its public route,
+// the Worker's workers.dev URL over HTTPS (the platform's output `collectorUrl`), with an operator's claim. The sink's ingest key is a Worker secret that platform.yml sets
 // from CI; a deploy without it (a rehearsal) forwards with no key, and the sink refuses: the counts say so.
 //
 // After each answer, in `waitUntil`, the collector sends its counts (counts.ts) to the sink's metrics dataset and logs
@@ -119,7 +118,6 @@ export default class Collector extends Cloudflare.Worker<Collector>()(
     // Inside the running Worker the stack's files are evaluated again only to name bindings; nothing is read there.
     if ((yield* Alchemy.ALCHEMY_PHASE) === "runtime") return runtimeProps();
     const n = yield* names;
-    const zoneId = yield* Config.String("PLATFORM_ZONE_ID");
     const key = yield* Alchemy.Random(yield* collectorKeyId, { bytes: 32 });
     // platform.yml sets it from the CI secret AXIOM_INGEST_TEST. Never read in an agent's container.
     const sinkKey = Option.filter(yield* Config.option(Config.Redacted("COLLECTOR_SINK_KEY")), (k) =>
@@ -130,8 +128,7 @@ export default class Collector extends Cloudflare.Worker<Collector>()(
     return {
       ...runtimeProps(),
       name: n.collector,
-      workersDev: false,
-      routes: [{ pattern: `${n.collectorHost}/*`, zoneId }],
+      workersDev: true,
       observability: CLOUDFLARE_OBSERVABILITY,
       env: {
         [COLLECTOR_ENV.stage]: n.stage,

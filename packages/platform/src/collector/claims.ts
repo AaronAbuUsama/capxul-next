@@ -7,8 +7,8 @@
 //
 // - A world's Core: in the props of its service binding to the collector, which packages/world writes when it
 //   deploys the world (`ctx.props`, set by the deployer, empty on the public route), naming its world and grade.
-// - A public caller (the runner in CI or in a container, the CLI): as `Authorization: Bearer <claim>` on the route
-//   `<stage>-collector.<domain>`, minted for its operator, naming the world it drives when it drives one.
+// - A public caller (the runner in CI or in a container, the CLI): as `Authorization: Bearer <claim>` on its
+//   public route (the Worker's workers.dev URL), minted for its operator, naming the world it drives when it drives one.
 //
 // A caller cannot widen its own claim: the collector checks the signature and the expiry before anything.
 import { Values } from "@capxul/blueprint";

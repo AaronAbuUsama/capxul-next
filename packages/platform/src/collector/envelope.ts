@@ -17,5 +17,11 @@ export const STAMPED = {
 /** Every stamped key. */
 export const STAMPED_KEYS: ReadonlyArray<string> = Rec.values(STAMPED);
 
-/** On the runner's resource: `true` for a run in CI, `false` from an agent's container (a boolean attribute). */
-export const RUN_TRUSTED = "capxul.run.trusted";
+/** On a run's resource (the runner's): whether it may prove, and which code and CI run made it. */
+export const RUN_ATTRIBUTES = {
+  /** `true` for a run in CI, `false` from an agent's container (a boolean attribute). */
+  trusted: "capxul.run.trusted",
+  revision: "vcs.ref.head.revision",
+  ref: "vcs.ref.head.name",
+  pipelineRun: "cicd.pipeline.run.id",
+} as const;

@@ -37,9 +37,8 @@ export const namesOf = (stage: string, domain: string) => {
     hostname: (label: string) => `${label}.${domain}`,
     /** The DNS name of the site door. */
     doorHost: `${stage}-door.${domain}`,
-    /** The collector's Worker script name, and its public name: telemetry's way in (src/collector/). */
+    /** The collector's Worker script name: telemetry's way in (src/collector/). */
     collector: `${prefix}-collector`,
-    collectorHost: `${stage}-collector.${domain}`,
     /** The names every company site may take: one level under the domain. */
     siteWildcard: `*.${domain}`,
   };

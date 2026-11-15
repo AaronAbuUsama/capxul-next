@@ -43,7 +43,7 @@ export default Alchemy.Stack(
       collectorScript: collector.script,
       collectorUrl: collector.url,
       collectorKeyId: collector.keyId,
-      records: Arr.map([...edge.records, collector.record], (r) => r.name),
+      records: Arr.map(edge.records, (r) => r.name),
       zoneId: edge.zoneId,
       containers: Arr.map(
         edge.connector === undefined ? bench.containers : [...bench.containers, edge.connector],
