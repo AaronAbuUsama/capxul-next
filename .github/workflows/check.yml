@@ -1,7 +1,8 @@
 # The ladder (AGENTS.md): rungs 1 to 5 on every pull request and on every push to master. Rung 6, the scenarios in a
 # fresh world, is not here: it is world.yml. The job keeps the name `gate`, so the branch's history of checks stays
 # readable. Foundry builds the contracts, whose compiled ABIs `pnpm generate:check` checks the generated files against
-# (roadmap step 3.1); its output and the compiler are cached by the contracts' sources.
+# (roadmap step 3.1), and `pnpm seed:check` rebuilds the seeded chain state with anvil and compares it with the
+# committed one (3.2); forge's output and the compiler are cached by the contracts' sources.
 name: check
 on:
   pull_request:
@@ -43,6 +44,7 @@ jobs:
       - run: pnpm shape
       - run: pnpm format:check
       - run: pnpm generate:check
+      - run: pnpm seed:check
       - run: pnpm lint
       - run: pnpm types
       - run: pnpm test

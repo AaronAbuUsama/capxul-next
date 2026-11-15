@@ -1,5 +1,6 @@
 // The call's record carries the attributes of its operation's span (Core's src/telemetry/attributes.ts): recorded,
 // never checked, and absent when the span has none.
+import { operations } from "@capxul/blueprint";
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { SPAN_ATTRIBUTES } from "@capxul/core";
@@ -12,9 +13,10 @@ import { CheckedCall, checkCall } from "../src/checks/checks.ts";
 import { SpanRow } from "../src/world/database.ts";
 
 const TRACE = Str.repeat(32)("b");
+const RECORD_EXPORT = operations["record.export"].rpc._tag;
 
 const call: Call = {
-  operation: "record.export",
+  operation: RECORD_EXPORT,
   traceId: TRACE,
   at: null,
   outcome: "success",
@@ -32,7 +34,7 @@ const row = (attributes: unknown) =>
     trace_id: TRACE,
     span_id: "s1",
     parent_span_id: null,
-    name: "record.export",
+    name: RECORD_EXPORT,
     outcome: "success",
     duration_ms: 250,
     ended_ms: 1_000_250,
