@@ -422,6 +422,9 @@ importers:
       '@capxul/blueprint':
         specifier: workspace:*
         version: link:../blueprint
+      '@capxul/platform':
+        specifier: workspace:*
+        version: link:../platform
       effect:
         specifier: 'catalog:'
         version: 4.1.2
