@@ -57,6 +57,39 @@ A world is created, used and destroyed as one unit, with an owner and an expiry.
   push to `master`. `.github/workflows/world.yml`, job `thin-line`, runs rung 6 on slice pull requests into `master`
   and once a day on `master`.
 
+## Lanes, leads and the conductor
+
+A **lane** is a chain of roadmap steps, each step needing the one before (the `Needs` column of
+[docs/roadmap.md](docs/roadmap.md), "Steps to the goal"). Each lane is led by one cloud session, its **lead**, on one
+slice branch `slice/<lane>`. One more session, the **conductor**, starts leads and does not write feature code.
+
+- **The conductor** starts a lane's lead only when every step the lane's first step needs is Done on `master`, and
+  starts lanes whose needs are met at once, so independent lanes run in parallel. It watches the spend and the bench's
+  load, keeps the status dashboard, and archives a lead's session when its lane's last step is Done. Its state is the
+  roadmap and the leads' sessions, so a fresh conductor can take over from them alone.
+- **A lead** is started with one line naming its lane, its steps and its slice branch. It cuts the slice from
+  `master`; for each step it has the scenarios and checks written first by another agent, so they fail on empty
+  handlers, then has builders open pull requests into the slice; it merges each when `check` is green, opens the slice's
+  pull request into `master` and merges it when `check` and `world` are green; and it marks each step Done in the
+  roadmap with the proof committed, in that same pull request. When a step it needs from another lane lands, it merges
+  `master` into its slice.
+- **A builder** does one piece of work on one branch and one pull request into the slice, and is started by its lead.
+
+Standing rules from Aaron, for the conductor and every lead (14 and 15 November 2026):
+
+- Merge your own pull requests when CI is green. Push on until actually blocked.
+- Change a roadmap decision only with Aaron's written yes. A blueprint delta inside the decisions is the lead's call.
+- Ask Aaron only about money beyond the cap, credentials, production, or a decision nothing covers; batch the
+  questions.
+- Spend at most $10 a day across Cloudflare and Neon, all lanes together.
+- Every world, stage and site you make is destroyed; nothing is left running. Touch only your own resources. Never run
+  `alchemy nuke`.
+- On `abuusama.dev`, create records only under `worlds.abuusama.dev`, never edit or delete another record, and remove
+  what you made. No certificate changes without Aaron's yes.
+- Never print a key or connection string; the network proxy adds keys. Never create a cloud credential without
+  Aaron's written yes. Never give Cloudflare a route into an agent's container.
+- Keep people's emails and personal details private.
+
 ## How a feature is built
 
 Agreed with Aaron on 15 November 2026 (`docs/roadmap.md`, "How a feature is built" and the decisions after it).
