@@ -8,7 +8,7 @@ import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import { RunnerFailure, describe } from "../failure.ts";
 import type { Settings } from "../settings.ts";
-import type { Timings } from "../timings.ts";
+import { PART_SPANS, type Timings } from "../timings.ts";
 
 /** What the run did with its hub: its stage, and whether the run brought it up (and so takes it down). */
 export interface HubUse {
@@ -25,6 +25,7 @@ export const onHub = <A, E, R>(settings: Settings, timings: Timings, use: (hub: 
     const up = there
       ? Effect.void
       : timings.timed(
+          PART_SPANS.hubUp,
           "hub up",
           { of: stage },
           World.hubUp({ stage, owner: settings.owner, lifetime: settings.hubLifetime }).pipe(
@@ -35,6 +36,7 @@ export const onHub = <A, E, R>(settings: Settings, timings: Timings, use: (hub: 
       ? Effect.void
       : timings
           .timed(
+            PART_SPANS.hubDown,
             "hub down",
             { of: stage },
             World.hubDown(stage).pipe(

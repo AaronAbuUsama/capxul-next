@@ -8,7 +8,7 @@ import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import { describe, RunnerFailure } from "../failure.ts";
-import type { Timings } from "../timings.ts";
+import { PART_SPANS, type Timings } from "../timings.ts";
 import type { Inventory } from "../world/leftovers.ts";
 
 /** What the accounts hold of `stages`, by name, or null when they could not be read. */
@@ -86,7 +86,7 @@ export const takeDownWorlds = (stages: ReadonlyArray<string>, timings: Timings) 
       ? []
       : yield* failedAs(
           "world destroy failed",
-          timings.timed("world destroy", { of: Arr.join(stages, ", ") }, destroyEach(stages)),
+          timings.timed(PART_SPANS.worldDestroy, "world destroy", { of: Arr.join(stages, ", ") }, destroyEach(stages)),
         );
     return { failed, destroyMs: (yield* Clock.currentTimeMillis) - began };
   });

@@ -70,55 +70,61 @@ export const savePoint = Effect.fn("world.site.savePoint")(function* (stage: str
 });
 
 /** Removes `sites` of world `stage` from `bench`, one by one; the door drops them from the world's points too. */
-const removeEach = (stage: string, bench: string, sites: ReadonlyArray<string>) =>
-  Effect.gen(function* () {
-    const { door, token } = yield* tokenFor(bench, nameOf(stage), 0, yield* soon);
-    yield* Effect.forEach(sites, (site) =>
-      doorJob(door, token, HttpClientRequest.delete(`/sites/${site}`), Schema.Unknown),
-    );
-    return sites;
-  });
+const removeEach = Effect.fn("world.site.removeEach")(function* (
+  stage: string,
+  bench: string,
+  sites: ReadonlyArray<string>,
+) {
+  const { door, token } = yield* tokenFor(bench, nameOf(stage), 0, yield* soon);
+  yield* Effect.forEach(sites, (site) =>
+    doorJob(door, token, HttpClientRequest.delete(`/sites/${site}`), Schema.Unknown),
+  );
+  return sites;
+});
 
 /** The world's sites claimed from the bench's template `template`, ready, on the world's credential and clock. */
-const claimFrom = (stage: string, bench: string, template: string, clock: BenchClock) =>
-  Effect.gen(function* () {
-    const { maxSites } = yield* Limits;
-    const { door, token } = yield* tokenFor(bench, nameOf(stage), maxSites, yield* soon);
-    const listed = yield* doorCall(door, token, HttpClientRequest.get("/templates"), Templates);
-    if (!Arr.some(listed.templates, (each) => each.template === template))
-      return yield* SiteFailed.make({
-        step: "claim",
-        message: `the point holds none of the world's sites, and the bench keeps no template ${template} to claim them from`,
-      });
-    const key = yield* secretOf(stage, SITE_KEY_ID, "text");
-    const secret = yield* secretOf(stage, SITE_SECRET_ID, "text");
-    const claimed = yield* doorJob(
-      door,
-      token,
-      HttpClientRequest.post("/world/claim").pipe(
-        HttpClientRequest.bodyJsonUnsafe({
-          template,
-          api_key: Redacted.value(key),
-          api_secret: Redacted.value(secret),
-          clock,
-        }),
-      ),
-      Claimed,
-    );
-    return Arr.map(claimed.sites, (each) => each.site);
-  });
+const claimFrom = Effect.fn("world.site.claimFrom")(function* (
+  stage: string,
+  bench: string,
+  template: string,
+  clock: BenchClock,
+) {
+  const { maxSites } = yield* Limits;
+  const { door, token } = yield* tokenFor(bench, nameOf(stage), maxSites, yield* soon);
+  const listed = yield* doorCall(door, token, HttpClientRequest.get("/templates"), Templates);
+  if (!Arr.some(listed.templates, (each) => each.template === template))
+    return yield* SiteFailed.make({
+      step: "claim",
+      message: `the point holds none of the world's sites, and the bench keeps no template ${template} to claim them from`,
+    });
+  const key = yield* secretOf(stage, SITE_KEY_ID, "text");
+  const secret = yield* secretOf(stage, SITE_SECRET_ID, "text");
+  const claimed = yield* doorJob(
+    door,
+    token,
+    HttpClientRequest.post("/world/claim").pipe(
+      HttpClientRequest.bodyJsonUnsafe({
+        template,
+        api_key: Redacted.value(key),
+        api_secret: Redacted.value(secret),
+        clock,
+      }),
+    ),
+    Claimed,
+  );
+  return Arr.map(claimed.sites, (each) => each.site);
+});
 
 /** Sets the bench's clock entry of world `stage` to `clock`. */
-const setClock = (stage: string, bench: string, clock: BenchClock) =>
-  Effect.gen(function* () {
-    const { door, token } = yield* tokenFor(bench, nameOf(stage), 0, yield* soon);
-    yield* doorJob(
-      door,
-      token,
-      HttpClientRequest.post("/clock").pipe(HttpClientRequest.bodyJsonUnsafe(clock)),
-      Schema.Unknown,
-    );
-  });
+const setClock = Effect.fn("world.site.setClock")(function* (stage: string, bench: string, clock: BenchClock) {
+  const { door, token } = yield* tokenFor(bench, nameOf(stage), 0, yield* soon);
+  yield* doorJob(
+    door,
+    token,
+    HttpClientRequest.post("/clock").pipe(HttpClientRequest.bodyJsonUnsafe(clock)),
+    Schema.Unknown,
+  );
+});
 
 /**
  * Puts world `stage`'s sites on `bench` where its snapshot `snapshot` had them (`companies` of them), in place where

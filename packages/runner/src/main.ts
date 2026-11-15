@@ -8,6 +8,7 @@ import * as BunFileSystem from "@effect/platform-bun/BunFileSystem";
 import * as BunPath from "@effect/platform-bun/BunPath";
 import * as BunRuntime from "@effect/platform-bun/BunRuntime";
 import * as BunServices from "@effect/platform-bun/BunServices";
+import { exportLayer, PRODUCERS } from "@capxul/platform";
 import * as World from "@capxul/world";
 import { SharedState } from "@capxul/world";
 import { journeys } from "@capxul/scenarios";
@@ -21,7 +22,8 @@ import * as FetchHttpClient from "effect/http/FetchHttpClient";
 import { RunnerFailure } from "./failure.ts";
 import { runInWorld } from "./in-world.ts";
 import { chainJourney } from "./chain-journey.ts";
-import { door, journeyPlan, runPlan, type Plan } from "./run.ts";
+import { journeyPlan } from "./journey-plan.ts";
+import { door, runPlan, type Plan } from "./run.ts";
 import { OtherWorlds } from "./world/existing.ts";
 import { localCoreHost } from "./local/host.ts";
 import { platformFor } from "./worlds/platform.ts";
@@ -251,6 +253,9 @@ program.pipe(
       FetchHttpClient.layer,
       // Read by every fetch from the calling fiber's context, so it is provided to the whole program.
       noFetchTimeout,
+      // OTLP export, as OpenTelemetry's standard settings ask (packages/platform, src/telemetry.ts): the run's trace,
+      // its journeys, steps and parts and the world's own spans go through it; flushed when the run ends.
+      exportLayer(PRODUCERS.runner),
     ),
   ),
   BunRuntime.runMain,

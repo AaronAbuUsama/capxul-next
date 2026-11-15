@@ -2,6 +2,10 @@
 // the hub brought up, the world created, each starting world made, saved and kept on the bench, each reset before a
 // journey, each journey's steps, the worlds a journey made destroyed, the world destroyed and the hub taken down. A
 // part's time is recorded however it ended; nothing fails on speed.
+//
+// Each part timed here also runs in a span of its own, named in `PART_SPANS` and carrying the part, the journey and
+// what it acted on as attributes (roadmap 4.4), so the run's trace holds every part beside the JSON timings. Its
+// own steps are spans of the code that does them (the world's reset parts, a save's, a destroy's).
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
@@ -40,6 +44,46 @@ export type Timing = typeof Timing.Type;
 
 type Extra = Partial<Pick<Timing, "journey" | "of" | "parts" | "note" | "steps">>;
 
+/**
+ * The span each timed part runs in, by what it does. Kept stable: they become the blueprint's declared steps of the
+ * pipeline (#301). The run, its journeys and their steps are spans too (`RUN_SPANS`).
+ */
+export const PART_SPANS = {
+  hubUp: "runner.hub.up",
+  hubDown: "runner.hub.down",
+  worldCreate: "runner.world.create",
+  make: "runner.make",
+  save: "runner.save",
+  benchTemplate: "runner.template.keep",
+  reset: "runner.reset",
+  restore: "runner.restore",
+  journeyStart: "runner.journey.start",
+  keepFacts: "runner.facts.keep",
+  moveFacts: "runner.facts.move",
+  renew: "runner.renew",
+  show: "runner.world.show",
+  benchSites: "runner.sites.list",
+  worldDestroy: "runner.world.destroy",
+} as const;
+export type PartSpan = (typeof PART_SPANS)[keyof typeof PART_SPANS];
+
+/** The spans of the run itself: its root, each journey, what each journey does, and each of its steps. */
+export const RUN_SPANS = {
+  run: "runner.run",
+  journey: "runner.journey",
+  journeyCalls: "runner.journey.calls",
+  journeyChecks: "runner.journey.checks",
+  journeyDestroy: "runner.journey.destroy",
+  step: "runner.journey.step",
+} as const;
+
+/** A part's span attributes: what was timed, and the journey and the world it was for, when it was for one. */
+const attributesOf = (part: string, extra: Extra): Record<string, string> => ({
+  part,
+  ...(extra.journey === undefined ? {} : { journey: extra.journey }),
+  ...(extra.of === undefined ? {} : { of: extra.of }),
+});
+
 /** The run's clock: every timed part appended in order. */
 export const makeTimings = Effect.gen(function* () {
   const began = yield* Clock.currentTimeMillis;
@@ -47,10 +91,16 @@ export const makeTimings = Effect.gen(function* () {
   const add = (entry: Timing) => Ref.update(all, (was) => [...was, entry]);
 
   /**
-   * Runs `effect` as the part `part` and records how long it took and how it ended; `more` adds what its own answer
-   * says (its parts' times, a note). Its outcome is handed back unchanged.
+   * Runs `effect` as the part `part`, in the span `span`, and records how long it took and how it ended; `more` adds
+   * what its own answer says (its parts' times, a note). Its outcome is handed back unchanged.
    */
-  const timed = <A, E, R>(part: string, extra: Extra, effect: Effect.Effect<A, E, R>, more?: (value: A) => Extra) =>
+  const timed = <A, E, R>(
+    span: PartSpan,
+    part: string,
+    extra: Extra,
+    effect: Effect.Effect<A, E, R>,
+    more?: (value: A) => Extra,
+  ) =>
     Effect.gen(function* () {
       const start = yield* Clock.currentTimeMillis;
       const exit = yield* Effect.exit(effect);
@@ -65,7 +115,7 @@ export const makeTimings = Effect.gen(function* () {
         ...(Exit.isFailure(exit) ? { why: describe(exit.cause) } : {}),
       });
       return yield* exit;
-    });
+    }).pipe(Effect.withSpan(span, { attributes: attributesOf(part, extra) }));
 
   /** Records a part timed elsewhere: `ms` long, ending now. */
   const record = (part: string, ms: number, extra: Extra, ok = true) =>

@@ -19,7 +19,7 @@ import * as Option from "effect/Option";
 import * as Ref from "effect/Ref";
 import { describe, RunnerFailure } from "../failure.ts";
 import type { Settings } from "../settings.ts";
-import type { Timings } from "../timings.ts";
+import { PART_SPANS, type Timings } from "../timings.ts";
 import { nothingOf, recorder, targetOf, type MakingCall, type Needs } from "./making.ts";
 import { makers, waitsOn, type Making } from "./makers.ts";
 
@@ -99,6 +99,7 @@ export const startingWorldsOf = Effect.fn("runner.startingWorlds")(function* (
     Effect.gen(function* () {
       const name = after.own?.world ?? "";
       const saved = yield* timings.timed(
+        PART_SPANS.save,
         `save ${world.name}`,
         { of: name },
         run(
@@ -120,6 +121,7 @@ export const startingWorldsOf = Effect.fn("runner.startingWorlds")(function* (
       if (holdsFactsOf(world, startingWorlds.founded)) {
         const fingerprint = yield* code;
         const template = yield* timings.timed(
+          PART_SPANS.benchTemplate,
           `bench template ${world.name}`,
           { of: name },
           World.keepSitesAsTemplate(name, world.name, fingerprint).pipe(
@@ -153,6 +155,7 @@ export const startingWorldsOf = Effect.fn("runner.startingWorlds")(function* (
       const from = fromNothing(world) ? nothing : yield* templateOf(world.from ?? startingWorlds.nothing);
       const steps = yield* stepsOf(world);
       const after = yield* timings.timed(
+        fromNothing(world) ? PART_SPANS.worldCreate : PART_SPANS.make,
         fromNothing(world) ? "world create" : `make ${world.name}`,
         { of: world.name },
         run(world, steps, from),
@@ -205,6 +208,7 @@ export const startingWorldsOf = Effect.fn("runner.startingWorlds")(function* (
       const name = yield* oneWorld;
       const template = (yield* Ref.get(kept)).get(to);
       return yield* timings.timed(
+        PART_SPANS.reset,
         "reset",
         { journey, of: to },
         World.reset(name, to, template).pipe(

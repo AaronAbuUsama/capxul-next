@@ -28,3 +28,11 @@ export const doorKeyIn = Effect.fn("platform.doorKeyIn")(function* (state: State
   const outputs = yield* platformOutputsIn(state, stage);
   return yield* secretIn(state, STACK, stage, outputs.doorKeyId, "text");
 });
+export {
+  exportLayer,
+  PRODUCERS,
+  RESOURCE_ATTRIBUTES,
+  RunAttributes,
+  type Environment,
+  type Producer,
+} from "./telemetry.ts";

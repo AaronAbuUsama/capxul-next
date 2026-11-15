@@ -7,13 +7,16 @@ import { Steps, type StepOutline, type Tried } from "@capxul/scenarios";
 import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
 import { pipe } from "effect/Function";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
+import type * as Tracer from "effect/Tracer";
 import type { CheckedCall } from "./checks/checks.ts";
 import type { Call } from "./client.ts";
+import { RUN_SPANS } from "./timings.ts";
 
 /** One step as the runner heard it while the journey ran. */
 export interface Heard {
@@ -29,13 +32,24 @@ export interface Heard {
   readonly failure: string | null;
 }
 
-/** `Steps` for one run: every step heard into `heard`, its calls counted from `log`. */
-export const hearing = (heard: Ref.Ref<ReadonlyArray<Heard>>, log: Ref.Ref<ReadonlyArray<Call>>) =>
+/** The span of the step a journey is in, while it is in one: each call it makes is linked to it (client.ts). */
+export type OpenStep = Ref.Ref<Option.Option<Tracer.Span>>;
+
+/**
+ * `Steps` for one run: every step heard into `heard`, its calls counted from `log`. Each step is also a span of the
+ * journey's (`runner.journey.step`), open from its beginning to its end and failed when the step failed; `open`
+ * holds it meanwhile.
+ */
+export const hearing = (heard: Ref.Ref<ReadonlyArray<Heard>>, log: Ref.Ref<ReadonlyArray<Call>>, open: OpenStep) =>
   Layer.succeed(Steps, {
     begin: (step, outline) =>
       Effect.gen(function* () {
         const from = (yield* Ref.get(log)).length;
         const startedMs = yield* Clock.currentTimeMillis;
+        const span = yield* Effect.makeSpan(RUN_SPANS.step, {
+          attributes: { step, operation: outline.operation, does: outline.does },
+        });
+        yield* Ref.set(open, Option.some(span));
         yield* Ref.update(heard, (all) => [
           ...all,
           { step, outline, from, to: null, startedMs, endedMs: null, tries: [], failure: null },
@@ -49,6 +63,11 @@ export const hearing = (heard: Ref.Ref<ReadonlyArray<Heard>>, log: Ref.Ref<Reado
       Effect.gen(function* () {
         const to = (yield* Ref.get(log)).length;
         const endedMs = yield* Clock.currentTimeMillis;
+        const span = yield* Ref.getAndSet(open, Option.none());
+        if (Option.isSome(span)) {
+          const endedNanos = yield* Clock.currentTimeNanos;
+          span.value.end(endedNanos, failure === null ? Exit.void : Exit.fail(failure));
+        }
         yield* Ref.update(heard, (all) =>
           Arr.map(all, (each) => (each.step === step ? { ...each, to, endedMs, failure } : each)),
         );

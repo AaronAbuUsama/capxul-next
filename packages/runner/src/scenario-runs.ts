@@ -22,6 +22,7 @@ import { freshName, recordOf, runPlan, stageSpec, use, type Plan, type Used } fr
 import type { Settings } from "./settings.ts";
 import { summarize, Summary, type Expectation, type Mode } from "./summary.ts";
 import { runInStage, type Lifecycle, type Stage } from "./world/stage.ts";
+import { RUN_SPANS } from "./timings.ts";
 
 const now = Effect.map(DateTime.now, DateTime.formatIso);
 
@@ -81,7 +82,7 @@ const allInOneStage = (plans: ReadonlyArray<Plan>, settings: Settings, expect: E
               Effect.exit,
             );
             yield* Ref.update(done, (all) => [...all, { startedAt: started, used }]);
-          }).pipe(Effect.withSpan("runner.run", { attributes: { run: plan.name } })),
+          }).pipe(Effect.withSpan(RUN_SPANS.run, { attributes: { run: plan.name } })),
         { concurrency: 1, discard: true },
       );
     /** Each journey's record from the shared stage's lifecycle and its own use; undefined use when not reached. */

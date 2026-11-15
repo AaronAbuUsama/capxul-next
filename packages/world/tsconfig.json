@@ -25,7 +25,9 @@
           "@effect/platform-bun",
           "@effect/platform-node",
           "effect/rpc",
-          "effect/sql"
+          "effect/sql",
+          // OTLP export at the entry (packages/platform, src/telemetry.ts), shipped only under effect/observability.
+          "effect/observability"
         ]
       }
     ]

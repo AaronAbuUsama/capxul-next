@@ -18,7 +18,7 @@ import * as Ref from "effect/Ref";
 import { describe, RunnerFailure } from "../failure.ts";
 import { freshName } from "../run.ts";
 import type { Settings } from "../settings.ts";
-import type { Timings } from "../timings.ts";
+import { PART_SPANS, type Timings } from "../timings.ts";
 import { encodeAnswer } from "../worlds/encode.ts";
 import { SCENARIO_MINUTES, type Making, type Steps } from "../worlds/makers.ts";
 import { callsOf, nothingOf, recorder, targetOf, type MakingCall, type Needs } from "../worlds/making.ts";
@@ -123,9 +123,15 @@ export const sharedStartingWorldsOf = Effect.fn("runner.sharedStartingWorlds")(f
       onNone: () => Effect.void,
       onSome: (template) =>
         timings
-          .timed("restore", { journey, of: `${shared}/${template.name}` }, restore(template), (making) => ({
-            note: `into ${making.own.world}`,
-          }))
+          .timed(
+            PART_SPANS.restore,
+            "restore",
+            { journey, of: `${shared}/${template.name}` },
+            restore(template),
+            (making) => ({
+              note: `into ${making.own.world}`,
+            }),
+          )
           .pipe(Effect.flatMap((making) => Ref.update(restored, (all) => new Map([...all, [template.name, making]])))),
     });
 

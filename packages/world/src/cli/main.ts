@@ -13,6 +13,7 @@ import * as Layer from "effect/Layer";
 import * as Tracer from "effect/Tracer";
 import { appendFileSync } from "node:fs";
 import * as Command from "effect/cli/Command";
+import { exportLayer, PRODUCERS } from "@capxul/platform";
 import { Report, world } from "./commands.ts";
 import { asJsonText } from "../common/record.ts";
 import { SharedState } from "../stack/engine.ts";
@@ -40,31 +41,34 @@ const Services = SharedState.layer.pipe(
 
 // With WORLD_SPANS=<file>, every span that ends is appended to that file as one line of JSON: its name, its parent's,
 // when it began and how long it took, in milliseconds. How a command's time is split, Alchemy's own steps included.
+// It writes beside the tracer already in place, so the spans are also exported when OTLP export is on.
 const spansFile = process.env["WORLD_SPANS"];
 const nowMs = (nanos: bigint) => Number(nanos / 1_000_000n);
-const SpansToFile = Layer.succeed(
+const SpansToFile = Layer.effect(
   Tracer.Tracer,
-  Tracer.make({
-    span(options) {
-      const span = new Tracer.NativeSpan({ ...options });
-      const end = span.end.bind(span);
-      span.end = (endTime, exit) => {
-        end(endTime, exit);
-        const parent = options.parent._tag === "Some" ? options.parent.value : undefined;
-        const line = {
-          name: options.name,
-          id: span.spanId,
-          parent: parent?.spanId ?? null,
-          parentName: parent !== undefined && "name" in parent ? parent.name : null,
-          startMs: nowMs(options.startTime),
-          ms: nowMs(endTime - options.startTime),
-          ok: exit._tag === "Success",
+  Effect.map(Effect.tracer, (outer) =>
+    Tracer.make({
+      span(options) {
+        const span = outer.span(options);
+        const end = span.end.bind(span);
+        span.end = (endTime, exit) => {
+          end(endTime, exit);
+          const parent = options.parent._tag === "Some" ? options.parent.value : undefined;
+          const line = {
+            name: options.name,
+            id: span.spanId,
+            parent: parent?.spanId ?? null,
+            parentName: parent !== undefined && "name" in parent ? parent.name : null,
+            startMs: nowMs(options.startTime),
+            ms: nowMs(endTime - options.startTime),
+            ok: exit._tag === "Success",
+          };
+          if (spansFile !== undefined) appendFileSync(spansFile, `${JSON.stringify(line)}\n`);
         };
-        if (spansFile !== undefined) appendFileSync(spansFile, `${JSON.stringify(line)}\n`);
-      };
-      return span;
-    },
-  }),
+        return span;
+      },
+    }),
+  ),
 );
 
 Command.run(world, { version: "0.0.0" }).pipe(
@@ -74,5 +78,8 @@ Command.run(world, { version: "0.0.0" }).pipe(
   Effect.tapCause((cause) => Effect.logError(cause)),
   Effect.provide(ToStandardError),
   spansFile === undefined ? (effect) => effect : Effect.provide(SpansToFile),
+  // OTLP export, as OpenTelemetry's standard settings ask (packages/platform, src/telemetry.ts); outermost, so every
+  // span of the command, the file's included, goes through it, and it is flushed when the command ends.
+  Effect.provide(exportLayer(PRODUCERS.world)),
   BunRuntime.runMain({ disableErrorReporting: true }),
 );

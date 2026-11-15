@@ -25,6 +25,7 @@ import * as Schema from "effect/Schema";
 import * as HttpClient from "effect/http/HttpClient";
 import { RpcClientError } from "effect/rpc/RpcClientError";
 import { describe } from "./failure.ts";
+import type { OpenStep } from "./steps.ts";
 import { resendingWhileWarm } from "./world/warmup.ts";
 
 /**
@@ -115,8 +116,18 @@ const recording = (
   chain: CapxulClient["chain"],
   log: Ref.Ref<ReadonlyArray<Call>>,
   resent: Ref.Ref<number>,
+  open: OpenStep | undefined,
 ): CapxulClient => {
   const each = (name: OperationName) => (payload: unknown, options?: CallOptions) =>
+    Effect.gen(function* () {
+      // The call is a trace of its own, so Core's spans join it by `traceparent`; it is linked to the journey's step.
+      const step = open === undefined ? Option.none() : yield* Ref.get(open);
+      return yield* Effect.withSpan(sent(name, payload, options), `runner.call ${name}`, {
+        root: true,
+        links: Option.isSome(step) ? [{ span: step.value, attributes: {} }] : [],
+      });
+    });
+  const sent = (name: OperationName, payload: unknown, options?: CallOptions) =>
     Effect.gen(function* () {
       const span = yield* Effect.orDie(Effect.currentSpan);
       const before = yield* Ref.get(resent);
@@ -137,7 +148,7 @@ const recording = (
       };
       yield* Ref.update(log, (calls) => [...calls, call]);
       return yield* exit;
-    }).pipe(Effect.withSpan(`runner.call ${name}`, { root: true }));
+    });
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- one function per operation, built by name from the blueprint's own list, each the recorded call of the operation it is keyed by; the compiler cannot follow the mapping
   const calls = Rec.map(operations, (_operation, name) => each(name)) as unknown as Omit<CapxulClient, "chain">;
   // Chain reads are not operations: no span of Core's, no event, nothing for the generic checks. They pass through.
@@ -174,6 +185,7 @@ export const capxulFor = (
   target: Target,
   log: Ref.Ref<ReadonlyArray<Call>>,
   via: Via = "sdk",
+  open?: OpenStep,
 ): Layer.Layer<Capxul, never, HttpClient.HttpClient> =>
   Layer.unwrap(
     Effect.gen(function* () {
@@ -187,7 +199,7 @@ export const capxulFor = (
           : (name, payload, options) => Sdk.callByName(client, name, payload, options);
       return Layer.effect(
         Capxul,
-        Effect.map(Effect.service(Capxul), (client) => recording(sendOf(client), client.chain, log, resent)),
+        Effect.map(Effect.service(Capxul), (client) => recording(sendOf(client), client.chain, log, resent, open)),
       ).pipe(Layer.provide(Sdk.layer(Capxul)), Layer.provide(doors(target, http)));
     }),
   );
