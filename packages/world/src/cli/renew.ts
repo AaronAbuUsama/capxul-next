@@ -1,10 +1,10 @@
 // `renew <name> --lifetime "7 days"`: a world that is meant to last (a shared world) given a later expiry and deployed
-// again with the code that runs now (src/lifecycle/renew.ts). Its own file: the other commands fill commands.ts.
+// again with the code that runs now (src/things/world/renew.ts). Its own file: the other commands fill commands.ts.
 import * as Effect from "effect/Effect";
 import * as Argument from "effect/cli/Argument";
 import * as Command from "effect/cli/Command";
 import * as Flag from "effect/cli/Flag";
-import { renew } from "../lifecycle/renew.ts";
+import { renew } from "../things/world/renew.ts";
 import { durationOf, Report } from "./report.ts";
 
 export const renewCommand = Command.make(

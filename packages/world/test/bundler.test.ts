@@ -4,10 +4,16 @@ import { describe, test } from "node:test";
 import * as Str from "effect/String";
 import { concat, getContractAddress, isHex, pad } from "viem";
 import { privateKeyToAddress } from "viem/accounts";
-import { BUNDLER_ACCOUNTS, BUNDLER_KEYS, CREATE2_DEPLOYER, ENTRY_POINT, TEST_PAYMASTER } from "../src/bundler/Keys.ts";
-import { TEST_USDC } from "../src/chain/faucet.ts";
+import {
+  BUNDLER_ACCOUNTS,
+  BUNDLER_KEYS,
+  CREATE2_DEPLOYER,
+  ENTRY_POINT,
+  TEST_PAYMASTER,
+} from "../src/parts/bundler/Keys.ts";
+import { TEST_USDC } from "../src/parts/chain/faucet.ts";
 
-const creationCode = `0x${Str.trim(readFileSync(`${import.meta.dirname}/../src/bundler/test-paymaster.hex`, "utf8"))}`;
+const creationCode = `0x${Str.trim(readFileSync(`${import.meta.dirname}/../src/parts/bundler/test-paymaster.hex`, "utf8"))}`;
 
 describe("the bundler's addresses", () => {
   test("the test paymaster's address is where CREATE2 puts test-paymaster.hex with the EntryPoint", () => {

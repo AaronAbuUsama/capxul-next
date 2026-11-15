@@ -18,8 +18,10 @@ export const TOP_LEVEL: Readonly<Record<string, string>> = {
   ".oxlintrc.json": "the lint rules: built-in, Effect's and ours",
   ".gitignore": "what git never tracks",
   ".github": "CI and the pull request template",
+  ".agents":
+    "the agent kit every agent reads (Amp, Claude Code, Codex): the thread types, the conductor's loop, the review",
   ".claude":
-    "Claude Code's settings for every session: the tools agents may run without asking, and what they may never run",
+    "Claude Code's settings (the tools it may run without asking, and what it may never run) and links to the kit",
   docs: "docs/roadmap.md, the plan this line follows, and docs/design/blueprint.md, the blueprint's design",
   packages: "the code, one package per component",
   spikes: "throwaway code that proves a risk, deleted when its step graduates it",
@@ -48,7 +50,13 @@ export const PACKAGES: Readonly<Record<string, string>> = {
 };
 
 /** The only files allowed under docs/. */
-export const DOCS: ReadonlyArray<string> = ["docs/roadmap.md", "docs/design/blueprint.md"];
+export const DOCS: ReadonlyArray<string> = [
+  "docs/roadmap.md",
+  "docs/design/blueprint.md",
+  "docs/design/handoff.md",
+  "docs/design/system.md",
+  "docs/design/world.md",
+];
 
 /** Longest source file allowed, in lines. The lint rule max-lines says the same for TypeScript. */
 export const MAX_LINES = 300;

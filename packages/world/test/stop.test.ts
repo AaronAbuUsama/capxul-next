@@ -1,11 +1,11 @@
-// A container is stopped with SIGTERM and killed only if it outlives the grace (src/containers/stop.ts): how the
+// A container is stopped with SIGTERM and killed only if it outlives the grace (src/parts/containers/stop.ts): how the
 // index stops Ponder, so its schema lock is released.
 import * as assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Ref from "effect/Ref";
-import { SIGTERM, type Stoppable, stopGently } from "../src/containers/stop.ts";
+import { SIGTERM, type Stoppable, stopGently } from "../src/parts/containers/stop.ts";
 
 /** A container that exits `exitsAfter` looks after a SIGTERM (never, when null), and notes what was done to it. */
 const container = (exitsAfter: number | null, signalFails = false) =>

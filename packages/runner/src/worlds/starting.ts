@@ -4,7 +4,7 @@
 // Each one a journey starts from is saved there as a snapshot of its own name, and a world with a company also keeps
 // its sites as a bench template (with a pool of ready copies), so a reset whose point lost its sites claims them
 // instead of building them. The template is named by the starting world, the code that made it (`CODE`) and the one
-// world, whose company facts it holds (packages/world, src/site/Templates.ts): no other run asks for it, the bench
+// world, whose company facts it holds (packages/world, src/things/site-template/sweep.ts): no other run asks for it, the bench
 // never changes it, and no run drops it; the sweep removes it by age (docs/roadmap.md, "Bench templates never
 // change"). Before each journey the world is reset in place to its starting world's snapshot (`resetFor`), and a
 // starting world made "by its steps" (`quota-full`, `with-snapshot`, `restored`) is then made from there. Every call
