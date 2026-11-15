@@ -36,12 +36,17 @@ const RAW = new Set([
   "Json",
 ]);
 
-/** Where values are named: the blueprint's values files (each thing's and the common ones), its ids, and its lifecycles. */
+/**
+ * Where values are named: the blueprint's values files (each thing's and the common ones), its ids, its lifecycles,
+ * and its telemetry vocabulary, whose attributes and step kinds are values of their own (docs/design/blueprint.md,
+ * part 10).
+ */
 const NAMING = [
   "packages/blueprint/src/things/**/values.ts",
   "packages/blueprint/src/common/values.ts",
   "packages/blueprint/src/common/ids.ts",
   "packages/blueprint/src/things/**/lifecycle.ts",
+  "packages/blueprint/src/telemetry/*.ts",
 ];
 
 const message = (raw: string, naming: boolean): string =>

@@ -15,7 +15,7 @@ by its modification time), or from `frappe.local.conf["capxul_clock_override_ms"
 its stops; the site's world from its site_config.json (cached by modification time too, so a web process follows a change of
 world at once rather than after Frappe's 60 s). A frozen clock holds an absolute UTC instant; a running clock advances at its saved rate.
 
-Not followed (still the host's): see FINDINGS.md "What follows the clock".
+Not followed (still the host's): see docs/clock.md, "What still reads the host's time".
 """
 import json
 import sys
