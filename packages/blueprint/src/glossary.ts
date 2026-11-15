@@ -17,6 +17,7 @@ export const glossary: ReadonlyArray<Entry> = [
     replaces: ["core"],
     scope: "internal",
     lands: "packages/api",
+    deployed: ["core-db", "core-hyperdrive"],
   },
   {
     word: "endpoint",
@@ -24,12 +25,14 @@ export const glossary: ReadonlyArray<Entry> = [
     replaces: ["door", code("CAPXUL_DOOR_URL"), code("--at")],
     scope: "user-facing",
     lands: "--world <name>",
+    deployed: ["Door", "DoorImage", "DoorRecord", "cx-platform-door"],
   },
   {
     word: "account",
     meaning: "Calls outside any world, and where a person's sign-in lives.",
     replaces: ["platform", "at the platform"],
     scope: "user-facing",
+    deployed: ["CapxulPlatform", "cx-platform-bench", "cx-platform-door", "capxul-ci-platform"],
   },
   { word: "world", meaning: "One whole, isolated Capxul.", replaces: [], scope: "user-facing" },
   { word: "grade", meaning: "Whether a world is private, shared or real.", replaces: [], scope: "user-facing" },
@@ -57,6 +60,7 @@ export const glossary: ReadonlyArray<Entry> = [
     meaning: "The shared containers worlds run on.",
     replaces: ["hub", "fleet", "fleet hub"],
     scope: "user-facing",
+    deployed: ["CapxulWorldHub"],
   },
   { word: "gateway", meaning: "The cluster's single address.", replaces: ["hub door"], scope: "internal" },
   {

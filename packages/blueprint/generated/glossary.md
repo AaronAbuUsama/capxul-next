@@ -63,3 +63,12 @@ Each is spelled as a word the glossary keeps for another concept, so no count ca
 A word the glossary keeps, spelled as another entry's old word, is not counted where this exact code writes it.
 
 - **claim**: `CompaniesHouseClaimer.claim`, `claim(string,string,address)`, `capxul.claim`.
+
+## Deployed names not counted
+
+Resources already deployed keep their names until they are replaced, so an entry's old words are not counted in a string of exactly one of these names. Nor is a package's name where it is written as a package (`@capxul/core`, `packages/core`, `--core=local`): it changes only with its package.
+
+- **api**: `core-db`, `core-hyperdrive`.
+- **endpoint**: `Door`, `DoorImage`, `DoorRecord`, `cx-platform-door`.
+- **account**: `CapxulPlatform`, `cx-platform-bench`, `cx-platform-door`, `capxul-ci-platform`.
+- **cluster**: `CapxulWorldHub`.

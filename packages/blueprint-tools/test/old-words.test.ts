@@ -24,7 +24,6 @@ const count = (path: string, text: string): Counts => countFile(GLOSSARY, { path
 test("a word in an identifier counts, in any case and joined any way", () => {
   assert.equal(count("a.ts", "const widget = 1;")["widget"], 1);
   assert.equal(count("a.ts", "const myWidget = makeWidgets(WIDGET_URL);")["widget"], 3);
-  assert.equal(count("a.ts", 'import { x } from "@capxul/widget";')["widget"], 1);
   assert.equal(count("a.ts", "const sprocketHub = sprocket_hubs;")["sprocket hub"], 2);
 });
 
@@ -41,9 +40,9 @@ test("the same word in a comment does not count", () => {
 
 test("prose in a string does not count; a name in it does", () => {
   assert.equal(count("a.ts", 'fail("the widget broke");')["widget"], 0);
-  assert.equal(count("a.ts", 'fail("see packages/widget for why");')["widget"], 1);
+  assert.equal(count("a.ts", 'fail("see widget.make for why");')["widget"], 1);
   assert.equal(count("a.ts", 'const op = "widget.make";')["widget"], 1);
-  assert.equal(count("a.json", '{ "description": "a widget", "name": "@capxul/widget" }')["widget"], 1);
+  assert.equal(count("a.json", '{ "description": "a widget", "main": "widget.ts" }')["widget"], 1);
 });
 
 test("in Markdown only code counts", () => {
@@ -90,6 +89,40 @@ test("an old word spelled as a kept word is not counted in that word's `keptIn`"
   ];
   const text = 'call("Claimer.claim"); call("x.claim.y"); const claim = take; const claims = myClaimer.claim;';
   assert.equal(countFile(made, { path: "a.ts", text })["claim"], 3);
+});
+
+test("a package's name written as a package counts nothing; the rest of the token and other names still count", () => {
+  assert.equal(count("a.ts", 'import x from "@capxul/widget";')["widget"], 0);
+  assert.equal(count("a.ts", 'import { y } from "@capxul/widget/widget";')["widget"], 1);
+  assert.equal(count("a.ts", 'import "../../packages/widget/src/x.ts";')["widget"], 0);
+  assert.equal(count("README.md", "See `packages/widget/src/x.ts`.\n")["widget"], 0);
+  assert.equal(
+    count("package.json", '{ "name": "@capxul/widget", "dependencies": { "@capxul/widget": "1" } }')["widget"],
+    0,
+  );
+  assert.equal(count("a.yml", "run: pnpm --filter @capxul/widget test --widget=local\n")["widget"], 0);
+  assert.equal(count("a.ts", "const widgetClient = makeWidget(packagesWidget);")["widget"], 3);
+});
+
+test("a deployed resource's name, as a string of exactly that text, does not count", () => {
+  const made: ReadonlyArray<Entry> = [
+    { word: "gizmo", meaning: "A part.", replaces: ["widget"], scope: "internal", deployed: ["widget-db"] },
+  ];
+  const text = 'Neon.Project("widget-db"); Neon.Project("widget-db-2"); const widgetDb = "x";';
+  assert.equal(countFile(made, { path: "a.ts", text })["widget"], 2);
+});
+
+/** The count of `core` in one file, by the blueprint's own glossary. */
+const real = (text: string): number => countFile(glossary, { path: "a.ts", text })["core"] ?? -1;
+
+test("the blueprint's glossary: packages and deployed names count nothing, a chosen name still counts", () => {
+  assert.equal(real('import x from "@capxul/core";'), 0);
+  assert.equal(real('const p = "packages/core/src/x.ts";'), 0);
+  assert.equal(
+    real('yield* Neon.Project("core-db", {}); yield* Cloudflare.Hyperdrive.Connection("core-hyperdrive", {});'),
+    0,
+  );
+  assert.equal(real("const coreClient = 1;"), 1);
 });
 
 test("counts add up across files", () => {

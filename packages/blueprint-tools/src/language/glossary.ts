@@ -47,6 +47,11 @@ export interface Entry {
    * (`CompaniesHouseClaimer.claim` is claiming a Safe, not taking sites): that old word is not counted there.
    */
   readonly keptIn?: ReadonlyArray<string>;
+  /**
+   * Names of resources already deployed that hold this entry's old words (`core-db`), each exactly as written in a
+   * string: renaming one replaces the resource, so its old words are not counted in a string of exactly that text.
+   */
+  readonly deployed?: ReadonlyArray<string>;
 }
 
 /** An old word written as words; `except` lists longer names that keep it, `within` the only paths it is counted in. */

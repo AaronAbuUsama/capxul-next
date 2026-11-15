@@ -75,6 +75,23 @@ export const renderGlossary = (glossary: ReadonlyArray<Entry>): string => {
             ],
       ),
       "",
+      "## Deployed names not counted",
+      "",
+      "Resources already deployed keep their names until they are replaced, so an entry's old words are not counted " +
+        "in a string of exactly one of these names. Nor is a package's name where it is written as a package " +
+        "(`@capxul/core`, `packages/core`, `--core=local`): it changes only with its package.",
+      "",
+      ...Arr.flatMap(glossary, (entry) =>
+        entry.deployed === undefined || entry.deployed.length === 0
+          ? []
+          : [
+              `- **${entry.word}**: ${Arr.join(
+                Arr.map(entry.deployed, (text) => `\`${text}\``),
+                ", ",
+              )}.`,
+            ],
+      ),
+      "",
     ],
     "\n",
   );

@@ -24,6 +24,12 @@
 // - An old word with `within` (`lane`, a shard only in packages/runner) is counted only in files under those paths.
 // - An old word spelled as an agreed word is not counted in that entry's `keptIn`, the exact code where the agreed
 //   meaning is written (`claim` in `CompaniesHouseClaimer.claim` is claiming a Safe, not taking sites).
+// - Only words a writer can choose today count. A package's name is renamed only with its package, so it counts
+//   nothing where it is written by shape: a package specifier (`@capxul/core`, in an import, a `package.json` or
+//   `--filter @capxul/core`), a path's folder under `packages/` (`packages/core/src`), or a flag running a package
+//   locally (`--core=local`). The rest of the token still counts (`@capxul/core/door` counts `door`). Nor does a
+//   resource already deployed, named in its entry's `deployed` and written as a string of exactly that text
+//   (`"core-db"`): renaming it would replace the resource.
 import * as Arr from "effect/Array";
 import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
@@ -108,9 +114,19 @@ const countIn = (
 /** Whether a token in a string that holds a space is shaped as code. */
 const codeShaped = (token: string): boolean => /[/._@$:-]/.test(token) || /[a-z][A-Z]/.test(token);
 
+/**
+ * A piece's text with every package's name written by shape blanked, as no writer can choose it until its package is
+ * renamed: `@capxul/core` keeps `@capxul/`, `packages/core/src` keeps `packages//src`, `--core=local` goes.
+ */
+const withoutPackageNames = (text: string): string =>
+  Str.replace(
+    /(?<![A-Za-z0-9_$@.-])--[a-z][a-z0-9-]*=local(?![A-Za-z0-9_-])/g,
+    " ",
+  )(Str.replace(/(?<![A-Za-z0-9_$@-])(@capxul|packages)\/[a-z0-9][a-z0-9-]*/g, "$1/")(text));
+
 /** The segments of a piece's names, each as its words, other people's names left out. */
 const segmentsOf = (piece: Piece): ReadonlyArray<ReadonlyArray<string>> => {
-  const tokens = Arr.map(every(/[A-Za-z0-9_$@./:-]+/g)(piece.text), (token) =>
+  const tokens = Arr.map(every(/[A-Za-z0-9_$@./:-]+/g)(withoutPackageNames(piece.text)), (token) =>
     Str.replace(/^[.:]+|[.:-]+$/g, "")(token),
   );
   const prose = piece.kind === "string" && /\s/.test(piece.text);
@@ -149,6 +165,16 @@ const without = (piece: Piece, kept: ReadonlyArray<string>): Piece =>
     text: Str.replace(exactly(text), " ")(each.text),
   }));
 
+/** The names of resources already deployed, in which `text` as an old word is not counted (an entry's `deployed`). */
+const deployedOf = (glossary: ReadonlyArray<Entry>, text: string): ReadonlyArray<string> =>
+  Arr.flatMap(glossary, (entry) =>
+    Arr.some(entry.replaces, (old) => oldWordOf(old).text === text) ? (entry.deployed ?? []) : [],
+  );
+
+/** Whether `piece` is a string naming exactly one of `deployed`, so nothing in it is counted. */
+const namesDeployed = (piece: Piece, deployed: ReadonlyArray<string>): boolean =>
+  piece.kind === "string" && Arr.contains(deployed, piece.text);
+
 /** Whether a file at `path` is under one of `within`, none meaning everywhere. */
 const isWithin = (path: string, within: ReadonlyArray<string>): boolean =>
   within.length === 0 || Arr.some(within, (each) => Str.startsWith(each)(path));
@@ -170,7 +196,14 @@ export const countFile = (glossary: ReadonlyArray<Entry>, file: File): Counts =>
         ...OTHERS,
       ];
       const kept = keptInOf(glossary, old.text);
-      const read = kept.length === 0 ? segments : Arr.flatMap(pieces, (piece) => segmentsOf(without(piece, kept)));
+      const deployed = deployedOf(glossary, old.text);
+      const read =
+        kept.length === 0 && deployed.length === 0
+          ? segments
+          : Arr.flatMap(
+              Arr.filter(pieces, (piece: Piece) => !namesDeployed(piece, deployed)),
+              (piece: Piece) => segmentsOf(without(piece, kept)),
+            );
       return [keyOf(old), Arr.reduce(read, 0, (sum, segment) => sum + countIn(segment, words, hiding))] as const;
     }),
   );
