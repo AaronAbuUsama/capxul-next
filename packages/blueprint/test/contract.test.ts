@@ -1,8 +1,9 @@
 // What the compiler cannot hold about the contract: the thin line's twelve operations and every domain's in their
-// groups, each declared thing defined once, every example's events carrying exactly their event's fields, claims that
-// name only what their operation declares, and every claims.md matching its sources. Run with `pnpm test`.
+// groups, each declared thing defined once, every example's events carrying exactly their event's fields, and claims
+// that name only what their operation declares. That the pages in generated/ match their sources is the toolkit's
+// test (packages/blueprint-tools, test/pages.test.ts). Run with `pnpm test`.
 import { strict as assert } from "node:assert";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { test } from "node:test";
 import * as Arr from "effect/Array";
 import * as Exit from "effect/Exit";
@@ -13,26 +14,22 @@ import * as Rec from "effect/Record";
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import * as Struct from "effect/Struct";
-import * as ApprovalsOps from "../src/approvals/operations.ts";
-import * as BudgetsOps from "../src/budgets/operations.ts";
-import { allClaims } from "../src/claims/all.ts";
-import { renderClaims } from "../src/claims/render.ts";
-import * as DocumentsOps from "../src/documents/operations.ts";
-import { domains, operations, PlatformRpcs, WorldRpcs, type OperationName } from "../src/door.ts";
-import * as Errors from "../src/errors.ts";
-import { refusalsOf, type EventClass, type Operation } from "../src/operation.ts";
-import * as OrganizationsOps from "../src/organizations/operations.ts";
-import * as PeopleOps from "../src/people/operations.ts";
-import * as BoardOps from "../src/board/operations.ts";
-import * as RecordOps from "../src/record/operations.ts";
-import * as ReportsOps from "../src/reports/operations.ts";
-import * as Chain from "../src/chain/chain.ts";
-import { namesOf } from "../src/domains.ts";
-import { startingWorlds, type StartingWorld } from "../src/starting-worlds.ts";
-import * as Telemetry from "../src/telemetry.ts";
-import * as Values from "../src/values.ts";
-import * as WorldInventory from "../src/world/inventory.ts";
-import * as WorldOps from "../src/world/operations.ts";
+import { namesOf } from "../src/generated/domains.ts";
+import {
+  allClaims,
+  Chain,
+  domains,
+  Errors,
+  operations,
+  PlatformRpcs,
+  refusalsOf,
+  startingWorlds,
+  WorldRpcs,
+  type EventClass,
+  type Operation,
+  type OperationName,
+  type StartingWorld,
+} from "../src/index.ts";
 
 const names: ReadonlyArray<OperationName> = Rec.keys(operations);
 const all: ReadonlyArray<[OperationName, Operation]> = Arr.map(names, (name) => [name, operations[name]]);
@@ -105,22 +102,23 @@ test("every budget is declared once, on its operation, and says where its number
   }
 });
 
-/** Every value the package exports, with where it is exported from. */
-const modules = {
-  "errors.ts": Errors,
-  "values.ts": Values,
-  "telemetry.ts": Telemetry,
-  "world/operations.ts": WorldOps,
-  "world/inventory.ts": WorldInventory,
-  "organizations/operations.ts": OrganizationsOps,
-  "documents/operations.ts": DocumentsOps,
-  "approvals/operations.ts": ApprovalsOps,
-  "reports/operations.ts": ReportsOps,
-  "people/operations.ts": PeopleOps,
-  "board/operations.ts": BoardOps,
-  "budgets/operations.ts": BudgetsOps,
-  "record/operations.ts": RecordOps,
-};
+/** Every file under src/, loaded as the module the indexes import, by its path from src/. */
+const SRC = new URL("../src/", import.meta.url);
+const isModule = (value: unknown): value is Readonly<Record<string, unknown>> =>
+  typeof value === "object" && value !== null;
+const modules: Readonly<Record<string, Readonly<Record<string, unknown>>>> = Rec.fromEntries(
+  await Promise.all(
+    Arr.map(
+      Arr.filter(readdirSync(SRC, { recursive: true, encoding: "utf8" }), (file) => Str.endsWith(".ts")(file)),
+      async (file) => {
+        const loaded: unknown = await import(new URL(file, SRC).href);
+        assert.ok(isModule(loaded), `src/${file} did not load as a module`);
+        return [file, loaded] as const;
+      },
+    ),
+  ),
+);
+/** Every value a file under src/ exports, with the file it is exported from. */
 const exported: ReadonlyArray<{ file: string; name: string; value: unknown }> = Arr.flatMap(
   Rec.toEntries(modules),
   ([file, module]) => Arr.map(Rec.toEntries<string, unknown>(module), ([name, value]) => ({ file, name, value })),
@@ -146,17 +144,17 @@ test("no event, outcome, refusal or service is defined twice", () => {
   assert.deepEqual(twice, [], `defined more than once: ${Arr.join(twice, ", ")}`);
 });
 
-test("every refusal is declared in errors.ts and nowhere else, and every operation refuses only with those", () => {
+test("every refusal is in Errors.refusals, declared once, and every operation refuses only with those", () => {
   const declared = new Set<unknown>(Rec.values(Errors.refusals));
   for (const [tag, refusal] of Rec.toEntries(Errors.refusals)) assert.equal(refusal.identifier, tag);
   for (const { file, name, value } of exported) {
     const isError =
       typeof value === "function" && value.prototype instanceof Error && identifierOf(value) !== undefined;
-    if (isError) assert.ok(declared.has(value), `${file} defines the refusal ${name} outside errors.ts`);
+    if (isError) assert.ok(declared.has(value), `src/${file} exports the refusal ${name}, not in Errors.refusals`);
   }
   for (const [name, operation] of all) {
     for (const refusal of refusalsOf(operation))
-      assert.ok(declared.has(refusal), `${name} refuses with ${refusal.identifier}, not from errors.ts`);
+      assert.ok(declared.has(refusal), `${name} refuses with ${refusal.identifier}, not in Errors.refusals`);
   }
 });
 
@@ -185,13 +183,6 @@ test("starting worlds are declared once, and every claim and step names only dec
           `${name}: "${claim.says}" names ${refusal.identifier}, which ${name} does not declare`,
         );
     }
-  }
-});
-
-test("claims.md and every domain's claims.md are what the sources render", () => {
-  for (const { path, text } of renderClaims()) {
-    const onDisk = readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
-    assert.equal(onDisk, text, `${path} is out of date: run \`pnpm claims\``);
   }
 });
 
@@ -254,14 +245,23 @@ test("PayloadRejected is declared once and no operation's door refuses with it",
 /** The text of one cell of a Markdown table row. */
 const cell = (row: string, index: number): string => Str.split(row, "|")[index] ?? "";
 
-test("each domain's order.md names only declared starting worlds and each of its operations once", () => {
+/** The section of docs/build-order.md for one domain: from its heading to the next domain's. */
+const sectionOf = (order: string, domain: string): string => {
+  const sections = Str.split(order, /^## The domain /m);
+  return Option.getOrElse(
+    Arr.findFirst(sections, (section) => Str.startsWith(`\`${domain}\``)(section)),
+    () => "",
+  );
+};
+
+test("docs/build-order.md names only declared starting worlds and each domain's operations once, in its section", () => {
   const declared = new Set(Arr.map(Rec.values(startingWorlds), (world) => world.name));
   const listed: Array<string> = [];
+  const order = readFileSync(new URL("../docs/build-order.md", import.meta.url), "utf8");
   for (const [folder, domain] of Rec.toEntries(domains)) {
-    const order = readFileSync(new URL(`../src/${folder}/order.md`, import.meta.url), "utf8");
-    const rows = Arr.filter(Str.split(order, "\n"), (line) => /^\| \d+ \|/.test(line));
+    const rows = Arr.filter(Str.split(sectionOf(order, folder), "\n"), (line) => /^\| \d+ \|/.test(line));
     const own = Arr.map(rows, (row) => pipe(cell(row, 2), Str.trim, Str.replaceAll("`", "")));
-    assert.deepEqual(sorted(own), sorted(namesOf(domain)), `src/${folder}/order.md`);
+    assert.deepEqual(sorted(own), sorted(namesOf(domain)), `docs/build-order.md, the domain ${folder}`);
     listed.push(...own);
     for (const row of rows) {
       const given = Option.getOrElse(Str.match(/`([a-z-]+)`/g)(cell(row, 4)), () => []);
