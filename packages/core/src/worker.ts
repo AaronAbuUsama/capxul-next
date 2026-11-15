@@ -1,4 +1,4 @@
-// Core: the Capxul server. A Cloudflare Worker, deployed by Alchemy, that serves every blueprint operation at its
+// The api: the Capxul server. A Cloudflare Worker, deployed by Alchemy, that serves every blueprint operation at its
 // group's door with Effect's Rpc server, reads its world's chain at `CHAIN_PATH`, and keeps every call's spans in its
 // database, reached through Hyperdrive.
 //
@@ -30,6 +30,7 @@ import { Served, ServedEmpty } from "./server.ts";
 import { siteOpsLive } from "./site-ops/door.ts";
 import { SiteDoor } from "./site/SiteDoor.ts";
 import { CoreDeployment, ownDeployment } from "./stack/deployment.ts";
+import { API_PLACEMENT } from "./stack/region.ts";
 import { coloOf, Placement } from "./telemetry/attributes.ts";
 import { CoreIdentity } from "./telemetry/middleware.ts";
 import { requestExport } from "./telemetry/export.ts";
@@ -52,8 +53,13 @@ const revision = Effect.map(
   Option.match({ onNone: () => ({}), onSome: (text) => ({ [ENV.revision]: text }) }),
 );
 
-// The Postgres driver opens its socket through Node's `net` and `tls`.
-const props = () => ({ main: import.meta.url, compatibility: { flags: ["nodejs_compat"] } });
+// The Postgres driver opens its socket through Node's `net` and `tls`. Every deploy, each world's and staging's, runs
+// next to its database in Europe (D5, src/stack/region.ts).
+const props = () => ({
+  main: import.meta.url,
+  compatibility: { flags: ["nodejs_compat"] },
+  placement: API_PLACEMENT,
+});
 
 export default class Core extends Cloudflare.Worker<Core>()(
   "Core",

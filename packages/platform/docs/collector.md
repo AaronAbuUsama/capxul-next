@@ -28,7 +28,7 @@ Cloudflare key reads it and signs, as with the site door's key.
   401 `token-required`, and nothing is forwarded.
 
 The collector then drops whatever the caller sent under the stamped keys on every resource and writes its own
-(`src/collector/envelope.ts`, interim until the blueprint's envelope, #301, reaches master): `capxul.world` and the
+(the blueprint's `Envelope`): `capxul.world` and the
 grade under `deployment.environment.name` (`private`, `shared` or `real`) from the token when it names them, and
 `capxul.stage`, the collector's stage. So no producer can misstate where its records came from.
 
@@ -44,9 +44,9 @@ Neither the repository nor an agent's container holds it: a deploy from a contai
 forward (Axiom answers 401, and the counts say so). `COLLECTOR_SINK_URL` and `COLLECTOR_DATASETS` change the sink's
 base URL and the datasets' prefix, for a rehearsal.
 
-**Cloudflare's own view.** The collector and the hub's door (packages/world) export Workers Logs and traces to the
-account's Axiom destinations `axiom-capxul-logs` and `axiom-capxul-traces`: a second view of the platform, never read
-by a check. Core's Worker takes the same setting once the other changes to its declaration have landed.
+**Cloudflare's own view.** The collector exports Workers Logs and traces to the account's Axiom destinations
+`axiom-capxul-logs` and `axiom-capxul-traces`: a second view of the platform, never read by a check. Core's Worker
+and the hub's door take the same setting in a later pull request.
 
 `records/collector/rehearsal.json`: the collector alone on `pr-col1` from an agent's container, each refusal, the
 stamping on the public route and by service binding, Axiom's 401 without a key and the counts that said so; then
