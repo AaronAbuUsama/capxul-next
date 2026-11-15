@@ -472,3 +472,88 @@ Waiting on another session:
 - M5 and M6 (generated maps and blocks): after the generator mechanism is agreed with the blueprint session.
 - M23 (the design notes): each from its own thread.
 - Anything in `packages/world`: the world-layout session.
+
+## 12. Where it stands (15 November 2026, evening)
+
+This section is the hand-over. An agent that has never seen the docs thread can carry on from it, `AGENTS.md` and
+sections 0, 3 and 10 above.
+
+### What is done
+
+`slice/docs` holds every move that waits on no one else, each merged on a green `gate` against the then current
+`master`: #284, #286 to #290, #292 and #293 (section 11 lists what each did). Its pull request into `master`, **#304**,
+is open. At 16:40 UTC on 15 November its head was `5fe8e7ba`, with `master` (`72a5b0cf`, after #300) merged in and
+`pnpm check` green locally; `gate` and `world` were running.
+
+What it changed, in short:
+
+- `packages/lint/src/docs.ts`, run by `pnpm shape`, checks the docs' shape. It controls what lives under `docs/` and
+  where else Markdown may live: a `README.md`, `packages/<name>/docs/`, `records/`, `generated/`, `.claude/`, or the
+  two listed exceptions. It holds every README to 60 lines, with the remaining long ones on `LONG_READMES`, which may
+  only shrink. It requires every relative link to resolve, and a design note to say `Status: open | agreed |
+  superseded` in its first 10 lines, with `docs/design/blueprint.md` on `UNSTATED_NOTES` until its owner adds the
+  line. The tests in `packages/lint/test/docs.test.ts` cap both lists.
+- `GROUNDING.md` became `docs/grounding.md`.
+- Every package README is on one screen except the blueprint's. Detail moved to `packages/<name>/docs/` pages,
+  records READMEs and header comments; changes to code files are comments only.
+- Five spikes graduated and were deleted.
+- The root README is on one screen.
+
+### The rules a docs builder follows
+
+- Write new and moved prose in the glossary's words (`docs/design/blueprint.md`, part 12). Never rename a package,
+  folder, file, command or identifier: renames belong to the rename ratchet. Where a doc names something not yet
+  renamed, use its current name in code font and the new word in prose, for example "the api (`packages/core`)".
+- A README is at most 60 lines and lists no files by hand. Detail goes next to what it describes. A fact the code
+  holds is not copied. A fact in `AGENTS.md` or the roadmap is linked, not restated. "Not done" lists become TODOs on
+  the code or are deleted.
+- **Stay out of `packages/blueprint`**: it is the blueprint session's. **Stay out of `packages/world`**: it is the
+  world-layout session's. When `master` is merged into `slice/docs`, resolve every conflict inside either package in
+  `master`'s favour.
+- Change the roadmap only where a moved proof's path changes, and change nothing but the path.
+
+### What is left, in order
+
+1. **Land #304.** Before merging, merge `master` into `slice/docs` again if it has moved, taking `master`'s version
+   inside `packages/world` and `packages/blueprint`. Then merge once `gate` and `world` are both green on the head.
+2. **M22, after the blueprint's stage 2a** (`docs/design/blueprint.md`, part 5): repoint every citation of
+   `packages/blueprint/decisions.md` outside the blueprint (core, runner, scenarios and frappe-app comments, the
+   roadmap, READMEs) to where 2a put each entry.
+3. **M4, after the blueprint's stage 2b:** move the roadmap's decisions table to `docs/decisions.md`, word for word
+   and with its dates, and link it from the roadmap. Keep "Steps to the goal" byte-compatible, because
+   `packages/status-feed/feed.py` parses it. Add Aaron's decisions recorded elsewhere, with their own words and
+   dates:
+   - founding with a board, `packages/blueprint/decisions.md` entry 26, unless 2a has already moved it;
+   - entry 53's rule, "the chain's budget is the only gate on spending";
+   - "Answered by Aaron" 1 to 3;
+   - the Companies House signers, from `invoice-ledger.md` on branch `design/contracts-first-principles`.
+   The contracts thread was to rewrite "Every payment settles one sealed document" with Aaron's two answers of
+   15 November: a payer may no longer reject an invoice presented under an agreement, and Escrow becomes the held
+   payment of the invoice ledger (shape agreed 15 November 2026), still parked as a build item. If that has not
+   happened, raise it; do not reword it yourself.
+4. **M24, after 2b:** rewrite `AGENTS.md` to the rules only, keeping each rule's words, with reasons moved to `docs/`
+   and linked. It must also say that rung 1 now covers the docs' shape (`packages/lint/src/docs.ts`).
+5. **M5 and M6, the generated maps:** a generated `docs/design/README.md`; a generated package map in the root README;
+   the ladder table in `AGENTS.md` and the lint-rule list in `packages/lint/README.md`, generated as blocks between
+   markers; `packages/<name>/generated/index.md`, with a shape check that every package has one. Agree the one
+   generator mechanism with the blueprint session first, because its stage 2b generates indexes too.
+6. **M23, the design notes:** each lands under `docs/design/` from its own thread, with a status line. The notes are
+   `design/proof-telemetry`, `design/speed` and `design/contracts-first-principles` (`invoice-ledger.md`, and
+   `agreements-design.md` §2).
+7. **The last long READMEs:**
+   - `packages/blueprint/README.md`: the blueprint session's;
+   - `packages/world/records/spike-bundler/README.md`, `spikes/containers` and `spikes/world-speed`: the
+     world-layout session graduates them into `packages/world`, and `spikes/containers` holds item 0.6's only proof.
+   Each comes off `LONG_READMES` in the pull request that fixes it, with the test's ceiling lowered.
+
+### Open questions and loose ends
+
+- **The dashboard's date for item 0.8.** `packages/status-feed/feed.py`'s `landed()` dates a proof with `git log
+  --diff-filter=A` and no `--follow`, so item 0.8 will show the date #304 merges, not 13 November, because #292 moved
+  its proof. The fix is in `feed.py`, which belongs to whoever keeps the dashboard.
+- **`docs/grounding.md`** is the plan's choice. Part 7 of `docs/design/blueprint.md` does not list Aaron's strategy,
+  and the blueprint session never confirmed the path.
+- **Blueprint files that still cite deleted spike paths:** `src/world/operations.ts`, `src/world/claims.md`,
+  `src/operation.ts`, `src/telemetry.ts` and `decisions.md`. This is for the blueprint session's 2a.
+- **A flaky test:** `packages/world/test/patience.test.ts` ("the tries took 430 ms") failed once during a builder's
+  full `pnpm check` and passed alone. It is the world-layout session's.
