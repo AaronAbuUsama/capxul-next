@@ -71,3 +71,15 @@ export const isEmpty = (found: Inventory): boolean =>
   found.hyperdrives.length === 0 &&
   found.neonProjects.length === 0 &&
   (found.worlds ?? []).length === 0;
+
+/**
+ * What `found` holds but the worlds handed over to CI's teardown job (RUNNER_TEARDOWN=job): a name carries a world's
+ * stage as packages/world's `namesOfWorlds` reads it. Only what is left beyond those fails a run.
+ */
+export const butHandedOver = (found: Inventory, handedOver: ReadonlyArray<string> = []): Inventory => ({
+  ...found,
+  worlds: Arr.filter(
+    found.worlds ?? [],
+    (name) => !Arr.some(handedOver, (stage) => Str.includes(`-${stage}-`)(name) || Str.endsWith(`/${stage}`)(name)),
+  ),
+});
