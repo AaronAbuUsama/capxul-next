@@ -1,5 +1,5 @@
-"""A new site's scheduled jobs fall due on their cadence from the site's now (spikes/site-speed, "A new site's scheduler
-is idle for 5 h 30 min"): install stamps the job types in Frappe's default time zone, Asia/Kolkata, before the setup
+"""A new site's scheduled jobs fall due on their cadence from the site's now (packages/platform/records/site-speed,
+"A new site's scheduler is idle for 5 h 30 min"): install stamps the job types in Frappe's default time zone, Asia/Kolkata, before the setup
 wizard sets the site's own, and a site that joins a world behind the host keeps the host's stamps. capxul.jobs'
 settle_jobs brings every stamp ahead of the site's now back to now; the wizard and joining a world both run it."""
 import contextlib

@@ -21,7 +21,7 @@ export const CoreProject = Effect.gen(function* () {
 
 /**
  * Cloudflare's pooled way in to the stage's database; the Worker binds it and never sees the connection string. Its
- * query cache is off, so a read just after a write sees the write (spikes/pipeline/README.md, "Hardening", 2).
+ * query cache is off, so a read just after a write sees the write (docs/latency.md, "Hyperdrive's cache is off").
  */
 export const CoreDatabase = Effect.gen(function* () {
   const project = yield* CoreProject;
