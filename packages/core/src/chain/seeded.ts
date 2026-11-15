@@ -27,13 +27,13 @@ export const SEEDED = {
   safeModuleSetup: "0x2dd68b007B46fBe91B9A7c3EDa5A7a1063cB5b47",
   /** The Safe4337Module: every personal Safe's module and fallback handler (CompaniesHouseClaimer). */
   safe4337Module: Seeded.installer.safe4337Module,
-  /** ERC-4337's EntryPoint v0.7 (packages/world, src/bundler/Keys.ts, `ENTRY_POINT`). */
+  /** ERC-4337's EntryPoint v0.7 (packages/world, src/parts/bundler/Keys.ts, `ENTRY_POINT`). */
   entryPoint: "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
   /** The world's test paymaster, which sponsors every UserOperation (packages/world, `TEST_PAYMASTER`). */
   testPaymaster: "0xE2dE380E3e8281e2cc458675102c3FC2277fC5A8",
   /**
    * The world's test USDC, the faucet's token: the first contract the seed's first test account creates, which is the
-   * faucet's first transaction (packages/world, src/chain/faucet.ts, `TEST_USDC`).
+   * faucet's first transaction (packages/world, src/parts/chain/faucet.ts, `TEST_USDC`).
    */
   usdc: Seeded.firstAccount.nextContract,
 } as const;

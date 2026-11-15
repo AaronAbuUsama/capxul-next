@@ -19,7 +19,7 @@ export class Ponder extends Cloudflare.Container<Ponder>()(
       instanceType: "standard-1" as const,
       maxInstances: HUB_INSTANCES,
       // Next to the world's database (Neon's aws-eu-west-2, src/parts/database/Database.ts): Ponder's start is mostly round trips
-      // to it (README, Timings).
+      // to it (records/README.md, "Before the cluster").
       constraints: { regions: REGIONS },
       observability: { logs: { enabled: true } },
     };
