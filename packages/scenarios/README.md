@@ -1,52 +1,16 @@
 # scenarios
 
-The thin line's journeys and each operation's checks (roadmap step 1.14; docs/roadmap.md, "Scenarios are
-journeys", 14 November 2026). A journey is a story of operations in order, from one of the blueprint's starting
-worlds; every call a journey makes is judged by its operation's checks, written once, which run on every call of
-that operation in every journey. The runner (`packages/runner`) runs each journey in its one world, reset in place to
-the journey's starting world, and adds its generic checks to every call: declared events, spans, and the timings it
-records. So neither a journey nor a check judges those.
+The thin line's journeys and each operation's checks (this package; docs/roadmap.md, "Scenarios are
+journeys"). A journey is a story of operations in order, from one of the blueprint's starting points. Every call it
+makes is judged by its operation's checks, written once, which run on every call of that operation in every journey.
+The runner ([packages/runner](../runner/README.md)) makes the run and adds its generic checks to every call (events,
+spans, timings), so neither a journey nor a check judges those.
 
-The journeys and the checks are written by an agent other than the builder, from the blueprint, and each journey
-must fail at its first step against Core's empty handlers, which answer every call with `NotImplemented`. A builder
-never changes this package.
-
-| File | What it holds |
-|---|---|
-| `src/door.ts` | The door: everything below. The runner imports it. |
-| `src/journey.ts` | The format: `outline` (a journey's steps) and `journey`. |
-| `src/tries.ts` | How a step calls its operation: `succeeds`, `answers`, `refused`, `until`, `whileRefused`. Each try reads what the checks need, calls, holds the answer against what the step expects, then runs every check of the operation. |
-| `src/journal.ts` | `Steps`, the runner's ear (each step's beginning, each try with its checks' outcomes, each end), and `Journal`, what a journey keeps while it runs. |
-| `src/checks/` | One file per operation: its checks, on its successes and on each of its refusals. `format.ts` is the format and `OperationChecks`, the service a step's tries read them from; `all.ts` gathers every domain's, which the compiler holds complete. |
-| `src/journeys/` | One file per journey, and what journeys share (`signatures.ts`, `books.ts`). |
-| `src/domain.ts` | The format of one domain's scenarios: its operations' checks, the journeys it leads and its claims' places (`at`). |
-| `src/domains/` | One file per domain of the blueprint (`world.ts`, `organizations.ts`, `people.ts`, `board.ts`, `documents.ts`, `approvals.ts`, `reports.ts`, `record.ts`), in that format. |
-| `src/domains/` | One file per domain of the blueprint (`world.ts`, `organizations.ts`, `people.ts`, `budgets.ts`, `documents.ts`, `approvals.ts`, `reports.ts`, `record.ts`), in that format. |
-| `src/domains.ts` | Every domain's file, once, by the blueprint's name for it. The compiler asks for an entry for each domain of the blueprint. |
-| `src/registry.ts` | `journeys`, every journey the runner runs, in order: each domain's, domain by domain, each given every operation's checks. |
-| `src/coverage.ts` | Where each claim of claims.md is checked, by which operations' checks and which journeys' steps: each domain's places, gathered. |
-| `src/client.ts` | `Capxul`, the one client a journey and a check call through; `Given`, its starting world's facts; `CallTraces`, where the client tells a try the trace id of its call, and `ThisCall`, that trace as a check reads it. |
-| `src/expectation.ts` | `ExpectationFailed`, `expect` and `given`. |
-| `src/support/` | Reads of a world shared by checks and journeys: its view and record (`world.ts`), its chain (`chain.ts`, `hats.ts`), a company's Board (`board.ts`), its books (`site.ts`), signing with the cast's keys (`signing.ts`), waits (`wait.ts`). |
-| `src/support/` | Reads of a world shared by checks and journeys: its view and record (`world.ts`), its chain (`chain.ts`, `hats.ts`, `budgets.ts`), its books (`site.ts`), signing with the cast's keys (`signing.ts`), waits (`wait.ts`). |
-| `test/registry.test.ts` | Unique names; at least two journeys, each of 5 to 10 steps, from declared starting worlds; between them every operation. |
-| `test/coverage.test.ts` | Every claim of every operation has its place, and every step it names exists. |
-| `test/empty-handlers.test.ts` | Every journey fails at its first step against a Capxul whose every operation answers `NotImplemented`, on the `NotImplemented` its own operation answered, and none passes or dies. It checks `records/empty-handlers/` against the run: one file per registered journey, no other. |
-| `records/empty-handlers/` | The record of that run in memory, one file per journey (`<journey name>.json`), so slices adding journeys write different files. Written by `pnpm record`, never by hand. The deployed run is the runner's (`packages/runner/records/`). |
-
-## The journeys
-
-| Journey | Given | Steps |
-|---|---|---|
-| two operators and their worlds (`journeys/two-operators.ts`) | `quota-full` | 1 `world.create`: the first operator, at the limit, is refused (`WorldQuotaReached`). 2 `world.create`: the second is refused a real world (`GradeNotOffered`) and one before the seed (`ClockBeforeSeed`). 3 `world.create`: the second opens a world halfway between the seed and host time, and cannot open it twice (`WorldExists`). 4 `world.show`: the new world as made, the first operator's world as theirs, no world for an unknown name (`WorldNotFound`). 5 `record.export`: the owner reads it; each person of the cast is signed in at its door and refused (`NotWorldOwner`). 6 `world.clock.warp`: dana may not move the clock (`NotWorldOwner`). 7 `world.snapshot.save`: the first operator (`NotWorldOwner`) and an unknown world (`WorldNotFound`) are refused; m3 is saved, not twice (`SnapshotExists`), then replaced, and draft is saved. 8 `world.snapshot.restore`: `SnapshotNotFound`, `WorldExists`, `ExpiryBeyondSource`, and the first operator, at the limit, `WorldQuotaReached`. |
-| an operator's inventory (`journeys/world-inventory.ts`) | `quota-full` | 1 `world.list`: the first operator lists as many worlds as the limit, every one they filled; the second's list holds none of them. 2 `world.snapshot.save`: the first saves `base`, a template, then `scratch`, of a world they filled. 3 `world.snapshot.restore`: the second restores `base` as a world of their own. 4 `world.snapshot.list`: `base`, in use by that world, and `scratch`, each as saved; the second operator (`NotWorldOwner`) and an unknown world (`WorldNotFound`) are refused. 5 `world.snapshot.delete`: `base` (`SnapshotInUse`, naming the restored world), `m9` (`SnapshotNotFound`), the second operator (`NotWorldOwner`) and an unknown world (`WorldNotFound`) are refused. 6 `world.snapshot.delete`: `scratch` is deleted, then `SnapshotNotFound`. 7 `world.show`: the restored world names `base` as its parent; the first world's record head is three past `base`'s position. 8 `world.list`: the second lists the restored world; the first lists theirs with one snapshot. |
-| found Northwind and give sam the books (`journeys/found-northwind.ts`) | `fresh` | 1 `org.create`: `FounderNotReady` (pat), `PersonNotFound` (a Director, a member), `InsufficientBalance`, `PayloadRejected` (a bio of 281, and a typed payload with spaces around its bio and size). 2 `org.create`: dana founds Northwind as she typed it, decoded as the command line decodes it (bio and size trimmed); the same founding is `Resumed`; `FoundingChanged`, `HandleTaken`, `SetupUnfinished`. 3 `approval.sign`: dana `Collected`, eli `Sent`; the board and capital on the chain. 4 `world.show`: until the site is ready; everything the world was made with. 5 `org.member.grant`: `NotADirector`, `NotAMember`, `MemberHasNoSafe` (three permissions), manage-books for sam proposed with a note, `ChangeWaiting`; sam still has no site user. 6 `approval.sign`: dana `Collected`, eli `Sent`; the Books hat on sam's Safe. 7 `doc.create`: `NoSiteUser` (pat); sam, once his user reaches the site, makes Brightside; `SiteRefused` for validation and for permission. 8 `report.run`: the Supplier list is Brightside alone; `NoSiteUser`, `SiteRefused` (permission, not found). 9 `org.member.grant`: `AlreadyHeld`; manage-people for sam proposed. 10 `approval.sign`: the People hat on sam's Safe. |
-| branch the books of a held payment (`journeys/branch-the-books.ts`; a journey about worlds, which keeps a world of its own) | `payment-drafted` | 1 `doc.submit`: the drafted payment `Held` with doc.create's hash. 2 `world.snapshot.save`: m3 (a template) and draft while the payment is held; nothing else changes. 3 `world.snapshot.restore`: the second operator is refused draft (`NotWorldOwner`) and restores m3 into a world of their own, which holds its books, balances, clock and sam's hat. 4 `approval.sign`: sam's `Sent` in the first world; the branch sees none of it. 5 `doc.create`: a Supplier in the branch, which the first world never sees. 6 `world.clock.warp`: the branch a week on (its daily job runs seven times), `ClockBackwards`, then past the held approval's expiry. 7 `approval.sign`: `ApprovalExpired` in the branch; nothing sent. 8 `record.export`: every event once, in order; a range; past the head; the branch's lineage. |
-| pay Brightside (`journeys/pay-brightside.ts`) | `payment-drafted` | 1 `doc.create`: a second invoice and a payment of 5,000. 2 `doc.submit`: `InsufficientBalance`, the second invoice `Posted`, the drafted payment `Held` with doc.create's hash, `NotADraft`. 3 `approval.sign`: `SignatureInvalid`, `ApprovalNotFound`, `NotYourApproval`; nothing sent. 4 `approval.sign`: `Sent`, `AlreadySent`; one PaymentSent, Brightside gains and the company Safe loses the invoice's amount. 5 `report.run`: the books agree with the chain; the invoice is paid. |
-| invite olga to Northwind (`journeys/invite-olga.ts`) | `founded` | 1 `org.member.list`: dana and eli Directors, sam and pat members; the owner sees the same; olga `NotAMember`, `OrgNotFound`. 2 `org.member.invite`: `CannotManagePeople` (sam, olga), `AlreadyAMember` (sam, eli), `OrgNotFound`, `PayloadRejected`; dana invites olga, pending with nothing signed; `AlreadyInvited`; rex@elsewhere.test invited. 3 `invite.list`: olga's one invitation; sam none. 4 `invite.decline`: `NotYourInvitation` (sam), olga declines, `InvitationClosed`, `InvitationNotFound`. 5 `org.member.invite`: eli invites olga again. 6 `invite.accept`: `InvitationClosed`, `InvitationNotFound`, `NotYourInvitation`; olga `Accepted`, then `AlreadyAccepted`. 7 `invite.list`: dana's declined, eli's accepted; nobody lists rex's. 8 `org.member.list`: olga last, as a member. 9 `org.member.invite`: `AlreadyAMember` (olga). 10 `org.member.grant`: issue-invoices for olga proposed. |
-| seat sam on Northwind's Board (`journeys/seat-sam.ts`) | `founded` | 1 `org.director.list`: dana and eli, 2 of 2; the owner sees the same; olga `NotAMember`, `OrgNotFound`. 2 `org.director.add`: `CannotChangeBoard` (sam, eli), `NotAMember` (olga), `MemberHasNoSafe` (pat), `AlreadyADirector` (eli), `OrgNotFound`; dana proposes sam with her one approval, 2 of 2 to 3 at 2; `BoardChangeWaiting`; sam still has no site user. 3 `approval.sign`: `NotYourApproval` (eli); dana's `Sent` at once: the Director hat on sam's Safe after one more seat, the company Safe's owners dana, eli and sam at 2; sam a Director in `org.member.list`. 4 `org.director.list`: dana, eli and sam at 2, as sam and as the owner. 5 `report.run`: pat `NoSiteUser`; sam's user reaches the site. 6 `org.threshold.set`: `CannotChangeBoard` (sam), `PayloadRejected` (0), `ThresholdTooHigh` (4), `ThresholdUnchanged` (2), `OrgNotFound`; dana proposes 3; `BoardChangeWaiting`. 7 `approval.sign`: dana's `Sent`: 3 of 3 on the chain. 8 `org.member.grant`: manage-books for sam asks dana, eli and sam at 3. 9 `approval.sign`: dana and eli `Collected`, 1 and 2 of 3; sam `Sent`; the Books hat on sam's Safe. |
-| invite olga to Northwind (`journeys/invite-olga.ts`) | `founded` | 1 `org.member.list`: dana and eli Directors, sam and pat members; the owner sees the same; olga `NotAMember`, `OrgNotFound`. 2 `org.member.invite`: `CannotManagePeople` (sam, olga), `AlreadyAMember` (sam, eli), `OrgNotFound`, `PayloadRejected`; dana, the founder, invites olga, pending with nothing signed; `AlreadyInvited`; rex@elsewhere.test invited. 3 `invite.list`: olga's one invitation; sam none. 4 `invite.decline`: `NotYourInvitation` (sam), olga declines, `InvitationClosed`, `InvitationNotFound`. 5 `org.member.invite`: `CannotManagePeople` (eli, a Director but not the founder); dana invites olga again. 6 `invite.accept`: `InvitationClosed`, `InvitationNotFound`, `NotYourInvitation`; olga `Accepted`, then `AlreadyAccepted`. 7 `invite.list`: dana's first declined, her second accepted; nobody lists rex's. 8 `org.member.list`: olga last, as a member. 9 `org.member.invite`: `AlreadyAMember` (olga). 10 `org.member.grant`: issue-invoices for olga proposed. |
-| give sam a budget at Northwind (`journeys/budget-sam.ts`) | `founded` | 1 `org.budget.list`: the top budget alone, 1,000,000 USDC a month, all left, of the Books hat, held by nobody; the owner sees the same; olga `NotAMember`, `OrgNotFound`. 2 `org.budget.show`: the top budget as dana and sam read it; olga `NotAMember`, `BudgetNotFound`, `OrgNotFound`. 3 `org.budget.create`: `NotADirector` (sam), `NotAMember` (olga, zed), `MemberHasNoSafe` (pat), `BudgetNotFound`, `ExceedsParent` (1,000,000.000001), `PayloadRejected` (an amount of 0, an empty name), `OrgNotFound`. 4 `org.budget.create`: dana proposes Office costs, 1,000 for sam inside the top budget, monthly in USDC; not listed yet. 5 `approval.sign`: dana `Collected`, eli `Sent`; one BudgetCreated inside the top budget, of a hat minted to sam's Safe; 1,000 on the chain, the top budget 999,000 left. 6 `org.budget.show`: sam's budget, held by sam, as sam and dana read it. 7 `org.budget.list`: both, the top first, 999,000 left. 8 `org.budget.create`: `ExceedsParent` (999,000.000001); Cleaners, 200 for sam, proposed inside Office costs. |
+Journeys and checks are written from the blueprint by an agent other than the builder, and each journey must fail at
+its first step against the api's empty handlers, which answer every call `NotImplemented`. A builder never changes
+this package ([AGENTS.md](../../AGENTS.md), "How work flows"). Every journey, in order, is
+[`src/registry.ts`](src/registry.ts); why the lists are typed per domain is at the top of
+[`src/domains.ts`](src/domains.ts).
 
 ## Declaring a journey
 
@@ -59,109 +23,36 @@ const steps = outline({
 export const founding = journey(
   { name: "found Northwind", key: "found", story: "…", given: startingWorlds.fresh, steps },
   Effect.gen(function* () {
-    const founded = yield* steps.found.run((op) => op.answers("Founded", NORTHWIND_FOUNDING, { as: "dana" }));
+    yield* steps.found.run((op) => op.answers("Founded", NORTHWIND_FOUNDING, { as: "dana" }));
     yield* steps.sign.run((op) => /* op.answers("Collected", …), op.answers("Sent", …) */);
   }),
 );
 ```
 
-List it in its domain's `journeys` (`src/domains/<domain>.ts`), and place the claims it checks in that domain's
-`coverage`: see "Adding a journey".
+A step calls one operation and says what each call expects: `op.succeeds`, `op.answers(kind)`, `op.refused(tag)`, or
+a wait (`op.until`, `op.whileRefused`); anything else fails the step (`src/tries.ts`). `{ as: "dana" }` acts as a
+person of the cast, `{ operator: "second" }` as the second operator, `{ at: view.door }` at another world's endpoint.
+`yield* given(startingWorlds.paymentDrafted)` answers a starting point's facts. Reads after the tries (`expect`,
+`same`, `src/support/`) are looks: no operation's checks run on them.
 
-- A step calls one operation, once or a few times; each call says what it expects: `op.succeeds`, `op.answers(kind)`,
-  `op.refused(tag)`, or a wait (`op.until`, `op.whileRefused`). Anything else fails the step: a `NotImplemented` as
-  itself, anything else as `ExpectationFailed`. Steps run in the outline's order, each once.
-- After its tries a step may read the world to observe what the story alone knows (`expect`, `same`, reads in
-  `src/support/`). Those reads are looks: the runner checks them generically, but no operation's checks run on them.
-- A journey's people and company are its own (`src/cast.ts`, roadmap step 4.11): it declares a `key`, unique among
-  journeys, and reads who plays each role with `const cast = yield* Cast`, then acts as `{ as: cast.dana }` and names
-  its company `cast.company`. It never writes a person's name or the handle as text. The run casts each journey by its
-  key (`Casting`, provided by the runner); when it casts nobody, each role is the person of its name and the company
-  is `northwind`, so the journeys run one after another as before.
-- `{ as: "dana" }` acts as a person of the cast; `{ operator: "second" }` signs in as the second operator; `{ at:
-  view.door }` calls another world's door.
-- `yield* given(startingWorlds.paymentDrafted)` answers the facts of the starting world, or of one it is made from.
+Journeys run side by side (roadmap step 4.11). Each declares a `key` (`Cast.JOURNEY_KEYS`) and acts as its own people
+in its own company (`yield* Cast`: `{ as: cast.dana }`, `cast.company`, `src/cast.ts`). A check judges only what its own
+call caused: the world's history by the call's traces (`CallTraces`), the chain by the journey's own accounts.
 
-## Writing an operation's checks
+## Adding a journey or checks
 
-A check judges only what its own call caused, so journeys can run side by side in one world (roadmap step 4.11): the
-record by the call's trace (`entriesOfCall`, `unchangedRecord`, `recordedOnly`: the entries carrying the trace the
-client told the try), the chain by the journey's own accounts (`chainUntouched`: no user operation from its people's
-or its company's Safes, no log naming its company, since the block before the call). When the client tells no trace,
-the record checks take every entry after the head read before the call, as when a journey ran alone in its world.
+Each domain of the blueprint has one file, `src/domains/<domain>.ts`, with `checks`, `journeys` (in the order they
+run) and `coverage` (the place of each claim of its operations).
 
-`src/checks/<operation>.ts` declares `checks({ before, success, refusals })`: what it reads before every call, and
-the checks of a success and of each refusal, each a sentence and the Effect that fails when it does not hold. A
-claim about a refusal is a step of a journey that is refused, and the check of that refusal lives here.
-
-## Adding a journey
-
-Every list of this package is kept per domain of the blueprint, so several slices can add journeys and operations at
-once without editing the same file. Each domain of the blueprint has one file, `src/domains/<domain>.ts`, holding
-`checks` (each of its operations' checks), `journeys` (the journeys it leads, in the order they run) and `coverage`
-(the place of each claim of each of its operations, in claims.md's order). `checks/all.ts`, `registry.ts` and
-`coverage.ts` gather them; none of them names a journey or an operation.
-
-**A new journey** of a domain touches:
-
-1. `src/journeys/<journey>.ts`, a new file declaring it (above). What several journeys share goes in a file of its own
-   beside them, or in `src/support/`.
-2. `src/domains/<domain>.ts`: the journey in `journeys`, and in `coverage` the steps that check the claims of the
-   domain's operations.
-3. `records/empty-handlers/<journey name>.json`, a new file written by `pnpm record` (below).
-
-**A new operation's checks**, in an existing domain, touch:
-
-1. `src/checks/<operation>.ts`, a new file (above, "Writing an operation's checks").
-2. `src/domains/<domain>.ts`: the checks in `checks`, and one place per claim in `coverage`. The compiler fails until
-   both have the operation, once the blueprint declares it.
-
-**A new domain** is a new file `src/domains/<domain>.ts` with the three exports, `Domain<typeof Blueprint.<Domain>>`,
-and one import and one entry in `src/domains.ts`. The compiler asks for that entry as soon as the blueprint declares the
-domain. The journeys run domain by domain, in the order of `src/domains.ts`.
-
-Nothing is found by walking the disk. A typed list per domain keeps what the registry always held: a journey or a
-check that is not listed does not run, the compiler sees every one, and it holds that every operation has its checks
-and its claims' places. Discovery would need the disk at run time and a dynamic import, and would find only files,
-not whether each operation has its checks.
-
-A journey's file never imports an operation's checks: a step's tries read them from `OperationChecks`, which the
-registry provides to each journey it registers. So a domain's file can list both its checks and its journeys without
-the two importing each other.
+- **A journey**: a new file in `src/journeys/`; list it in its domain's `journeys`, and place the claims it checks in
+  `coverage`; then `pnpm record`.
+- **An operation's checks**: a new file `src/checks/<operation>.ts` declaring `checks({ before, success, refusals })`
+  (`src/checks/format.ts`), each a sentence and the Effect that fails when it does not hold; then the domain's `checks`
+  and one `coverage` place per claim. The compiler fails until both have every operation the blueprint declares.
+- **A domain**: a new `src/domains/<domain>.ts` with the three exports, and its entry in `src/domains.ts`.
 
 ## Checks
 
-`pnpm types` and `pnpm test`. `pnpm record` rewrites `records/empty-handlers/` from a run, one file per journey, and
-removes the files of journeys no longer registered; `pnpm test` fails when the committed files and a run differ.
-
-## For 4.8: what the runner's isolation check should check
-
-The journeys declare everything the check needs.
-- `Journey.key` and `Journey.world` are on the scenarios' door.
-- The journey's cast is `Cast.journeyCast(key, "northwind")` in the blueprint: its people, their emails, the accounts they sign with, and its company handle `northwind-j<n>`.
-- Every call the runner records has a trace id, a person it acts as (`as`) and a payload.
-
-**On every call of a `shared` journey:**
-1. **Acts only as its own people.** `as` is one of the journey's people, the world's owner (no `as`), or the second operator.
-2. **Names only its own people and company.** Every person a payload names is the journey's own: `members`, `directors`, `member`, `person`, `holder`, and an invite's `email` when it is a cast email. The same goes for every company it names (`org`, `handle`). The exception is a declared refusal about something nobody owns, and only when the call was refused with it:
-   - `PersonNotFound` for `zed`;
-   - `OrgNotFound` for `org_nowhere1`;
-   - `InvitationNotFound` for `inv_nobody01`;
-   - `ApprovalNotFound` for `apr_nobodyissuedthis`;
-   - an email at `elsewhere.test`.
-   Read these from the journeys' constants, never from a list kept by hand.
-
-**Over the whole run, once, from the tap and the record (the whole-run scan the telemetry lead offered):**
-3. **Every record entry belongs to its company's journey.** Each entry's trace is the trace of a call made by the journey whose company the entry names (`carried.org`, or the org of `carried.invitation` / `carried.proposal`).
-4. **Entries with no traced call are rare and explained.** Count the entries whose trace is no call's, or that carry no trace at all: an index write caused by a chain log, or a background step. Each must be explained, or it fails. This is review blind spot (2). The operation checks see only entries under their own call's traces, so a wrong side effect written under another trace, or none, shows up only here.
-5. **The chain stays inside each journey.** Every transaction of the run's blocks comes from the bundler for a user operation whose sender is one journey's Safe, or from an account the world declares as its own (faucet, Companies House, claim service). Then:
-   - each user operation's sender belongs to exactly one journey;
-   - every `CompanySafeMinted`, `BudgetCreated` and hat `TransferSingle` names only that journey's Safes and company.
-   This is review blind spot (1): `chainUntouched` checks only the journey's Safes and company, so a transaction from Core's own key, or from any account outside the journey, is caught only here.
-6. **`own` journeys never touch the shared world.** No call of an `own` journey goes to the shared world's door. Each `own` journey's worlds are owned by an owner of its own.
-
-**What the scenarios already promise, so the check can lean on it:**
-- No journey writes a person's name or a handle as text; all come from its cast or its facts.
-- Every record check judges by the call's traces, and by every attempt's trace (#348).
-- The chain checks judge by the journey's own Safes.
-- Looks are marked `Observing`; the call under test never is (#351).
+`pnpm types` and `pnpm test`. `pnpm record` rewrites `records/empty-handlers/` from an in-memory run against the
+empty handlers, one file per journey, and removes those of journeys no longer registered; `pnpm test` fails when the
+committed files and a run differ. Never edit them by hand.

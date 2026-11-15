@@ -45,6 +45,13 @@ export interface Journey {
    * side never share a person or a company. One of the blueprint's journey keys (`Cast.JOURNEY_KEYS`).
    */
   readonly key: JourneyKey;
+  /**
+   * Where it runs (roadmap step 4.11; docs/roadmap.md, "One shared world, every journey side by side"). `shared`: it
+   * acts on its own company and people only, so it runs in the run's one shared world beside the others. `own`: it acts
+   * on whole worlds (it fills an owner's quota, lists worlds, saves, restores or warps one), so it gets a world of its
+   * own under an owner of its own.
+   */
+  readonly world: "shared" | "own";
   /** The starting world it begins from: one of the blueprint's. */
   readonly given: StartingWorld;
   /** Its steps, in order. */
@@ -104,6 +111,7 @@ export const journey = (
     readonly name: string;
     readonly story: string;
     readonly key: JourneyKey;
+    readonly world: "shared" | "own";
     readonly given: StartingWorld;
     readonly steps: Readonly<Record<string, StepOutline & { readonly index: number }>>;
   },
@@ -117,6 +125,7 @@ export const journey = (
     name: declared.name,
     story: declared.story,
     key: declared.key,
+    world: declared.world,
     given: declared.given,
     outline: Arr.map(steps, (each) => ({ operation: each.operation, does: each.does })),
     run: Effect.gen(function* () {

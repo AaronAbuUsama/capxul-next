@@ -1,7 +1,8 @@
 // What the platform answers of a world, and the events it writes into a world's record. A world's view is put
 // together from the shared state (its owner, its expiry, whether it is parked, its door) and its own database (its
 // grade, contracts, parent, clock, record head, cast and companies). The events are the blueprint's own: what a
-// successful call's operation declares it emits, computed by the declaration from the call (decisions.md, 6).
+// successful call's operation declares it emits, computed by the declaration from the call
+// (packages/blueprint-tools, src/language/operation.ts).
 import { CurrentCall, operations, Values, type OperationName } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";

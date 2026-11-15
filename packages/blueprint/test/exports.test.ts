@@ -20,8 +20,8 @@ const TOP = named(`
   Approvals Board Budgets CHAIN_PATH CHAIN_READ_METHODS CREDENTIAL_HEADER Caller Cast Chain CurrentCall CurrentCaller
   CurrentOperator Documents Errors Machine MadeCall Organizations PERSON_HEADER PLATFORM_PATH People PlatformRpcs
   PlatformSignIn Record Reports Site TRACE_HEADER Telemetry Values WORLD_PATH World WorldRpcs WorldSignIn allClaims
-  declare declareOutcomes declaredNames domains eventNamesOf glossary holdsFactsOf isRefusal machines operations outcome
-  ratchets refusalsOf servedBy startingWorlds
+  declaredNames domains eventNamesOf glossary holdsFactsOf isRefusal machines operations outcome
+  ratchets refusalsOf roles servedBy startingWorlds undecided unmigrated verb
   Conventions Datasets Envelope Metrics Pipeline Producers StepKinds Watch
 `);
 
@@ -58,16 +58,16 @@ const NAMESPACES: { readonly [namespace: string]: ReadonlyArray<string> } = {
     WorldQuotaReached exitCode refusals
   `),
   Machine: named(`
-    make
+    madeBy make named
   `),
   Organizations: named(`
     Founded OfficerChangeProposed OrgFounded ProposalOpened Resumed claims create machines memberGrant operations
     platformRpcs stateless worldRpcs
   `),
   People: named(`
-    Accepted AlreadyAccepted Email Invitation InvitationAccepted InvitationDeclined InvitationId InvitationState
-    InvitedRole Member MemberInvited MemberRole claims inviteAccept inviteDecline inviteList machines memberInvite
-    memberList operations platformRpcs stateless worldRpcs
+    Accepted AlreadyAccepted ClosedState Email Invitation InvitationAccepted InvitationDeclined InvitationId
+    InvitationState InvitedRole Member MemberInvited MemberRefusalRule MemberRole RefusalRule claims invitationAccept
+    invitationDecline invitationList invitationSend machines memberList operations platformRpcs stateless worldRpcs
   `),
   Record: named(`
     Entry claims exportRecord machines operations platformRpcs stateless worldRpcs
@@ -76,7 +76,7 @@ const NAMESPACES: { readonly [namespace: string]: ReadonlyArray<string> } = {
     CallCheck CheckLayer CheckName ClusterRefusal ItemCount JourneyName JourneyStep LeftBehind Measure NotCounted
     PointStep PreparePart RatchetName Rung RunId RunPart Shard ShardCount StageName StartingPointName TakeRefusal
     Trusted checkCall checkConfirm checkGate checkWatch clusterDown clusterShow clusterUp journeyRun ratchetCount
-    runPrepare runRun runTeardown runVerdict siteReset siteSave siteTake startingPointMake work worldDestroy
+    runPrepare runStart runTeardown runVerdict siteReset siteSave siteTake startingPointMake work worldDestroy
     worldRenew worldReset worldSweep
   `),
   Reports: named(`
@@ -90,7 +90,7 @@ const NAMESPACES: { readonly [namespace: string]: ReadonlyArray<string> } = {
     Address Amount Approval ApprovalId Asset BoardChangeId BudgetCreationId CAST_KEYS CastMember ChainContracts
     ChangeId Clock ClockMode Company Fields Grade Hash HatId Instant Json Money OFFICER_HAT_DETAILS OperatorName
     OperatorRole OrgHandle OrgId Parent PaymentRequestId Permission PersonId ProposalId Seq Signature SmallUint
-    SnapshotName SolidityBool SolidityString SolidityValues Subject TraceId Uint WorldName WorldView
+    SnapshotName SolidityBool SolidityString SolidityValues Subject TraceId Uint WorldName WorldView roles
   `),
   World: named(`
     ClockWarped ListedSnapshot ListedWorld Snapshot SnapshotDeleted SnapshotSaved WORLD_LIMITS WorldCreated claims
@@ -101,7 +101,7 @@ const NAMESPACES: { readonly [namespace: string]: ReadonlyArray<string> } = {
 
 /** Every operation, in the order of `operations`. */
 const OPERATIONS = named(`
-  org.create org.member.grant org.member.invite invite.list invite.accept invite.decline org.member.list
+  org.create org.member.grant invitation.send invitation.list invitation.accept invitation.decline member.list
   org.director.list org.director.add org.threshold.set org.budget.create org.budget.show org.budget.list doc.create
   doc.submit approval.sign report.run world.create world.clock.warp world.snapshot.save world.snapshot.restore
   world.show world.list world.snapshot.list world.snapshot.delete record.export

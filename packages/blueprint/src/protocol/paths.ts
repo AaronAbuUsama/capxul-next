@@ -3,7 +3,7 @@
 /**
  * Where a door's parts answer, under its base address: the platform's group, a world's group, and a world's chain
  * JSON-RPC. A world's door (`WorldView.door`) is that base address. Declared here once; Core serves these paths and
- * the SDK calls them.
+ * the SDK builds every address from them, so a caller that holds only a world's view finds its operations and chain.
  */
 export const PLATFORM_PATH = "/platform";
 export const WORLD_PATH = "/world";

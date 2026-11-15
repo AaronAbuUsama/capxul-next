@@ -12,6 +12,8 @@ export interface Words {
   readonly text: string;
   /** Longer names that keep these words, each written as words (`invoice ledger` keeps `ledger`). */
   readonly except: ReadonlyArray<string>;
+  /** Where it is counted, as paths from the repository's root (a folder ends in `/`); none means everywhere. */
+  readonly within: ReadonlyArray<string>;
 }
 
 /** An old word written as code in the decision's table (`door.ts`, `--at`): counted as that exact text. */
@@ -40,10 +42,31 @@ export interface Entry {
   readonly scope: Scope;
   /** Where the word lands in the repository or the command line, when the decision names it (`packages/api`). */
   readonly lands?: string;
+  /**
+   * Exact code in which this word keeps its own meaning while another entry renames the same spelling
+   * (`CompaniesHouseClaimer.claim` is claiming a Safe, not taking sites): that old word is not counted there.
+   */
+  readonly keptIn?: ReadonlyArray<string>;
+  /**
+   * Exact text holding this entry's old words that no writer can choose, each with why: a resource already deployed
+   * (`core-db`, renaming it replaces it), a foreign protocol's key (OTLP's `dataPoints`). Not counted where it stands.
+   */
+  readonly exceptions?: ReadonlyArray<Exception>;
 }
 
-/** An old word written as words; `except` lists longer names that keep it. */
-export const words = (text: string, except: ReadonlyArray<string> = []): Words => ({ kind: "words", text, except });
+/** Exact text an entry's old words are not counted in, and why no writer can choose it. */
+export interface Exception {
+  readonly text: string;
+  readonly why: string;
+}
+
+/** An old word written as words; `except` lists longer names that keep it, `within` the only paths it is counted in. */
+export const words = (text: string, except: ReadonlyArray<string> = [], within: ReadonlyArray<string> = []): Words => ({
+  kind: "words",
+  text,
+  except,
+  within,
+});
 
 /** An old word written as code. */
 export const code = (text: string): Code => ({ kind: "code", text });

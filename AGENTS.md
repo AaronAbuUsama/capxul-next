@@ -45,7 +45,7 @@ A world is created, used and destroyed as one unit, with an owner and an expiry.
   into that slice branch, merged by the lead when `check` (rungs 1 to 5, a few minutes) is green. A slice reaches
   `master` by one pull request from `slice/<name>`, merged only when `check` and `world` (the thin line's journeys in a
   fresh private world on staging, rung 6) are both green: every journey must still pass, and the slice's own journeys
-  pass or improve. Only pull requests from `slice/<name>` into `master` that change more than documents or records run `world`,
+  pass or improve. Until the run is fast, only the speed lane's slice runs `world` and other slices land without it (roadmap, "Full runs paused until the run is fast", Aaron, 15 November 2026). Otherwise, only pull requests from `slice/<name>` into `master` that are not drafts and change more than documents or records run `world` (a lead keeps its slice's pull request a draft until it is ready to land, 15 November 2026),
   and `master` runs it once a day (Aaron, 14 and 15 November 2026: Actions minutes are spent on the journeys only at a
   slice's merge, and a run is not repeated under load). Nothing in the repository checks this beyond the workflows' triggers.
 - Never push to, merge into or open a pull request against `main` or `integration/build`. Never force-push. Nothing
@@ -239,6 +239,8 @@ green. Generic checks added by such a slice are written by a different agent fro
 Run `pnpm check` before you open a pull request. It runs rungs 1 to 5 in order and stops at the first that fails.
 `pnpm format` rewrites the code into shape; run it before `pnpm check`.
 
+<!-- generated:gate start -->
+<!-- Written by `pnpm generate` from `GATE` in packages/lint/src/gate.ts; never edit it. -->
 | Rung | Command | What fails it |
 |---|---|---|
 | 1. Shape | `pnpm shape` | An entry at the top level, a package or a file under `docs/` that `packages/lint/src/shape.ts` does not list; a package or spike with no `README.md`; a source file under `packages/` over 300 lines; the two lists of entry files in `.oxlintrc.json` naming different paths |
@@ -247,28 +249,36 @@ Run `pnpm check` before you open a pull request. It runs rungs 1 to 5 in order a
 | 4. Types | `pnpm types` | A type error in any TypeScript package, or an Effect language service error or warning (`effect-tsgo tsc`) |
 | 5. Tests | `pnpm test`, then `pnpm delta:check` and `pnpm words` (and `pnpm ratchets` from 3.6) | A failing unit test in any package (`pnpm frappe:test` and `pnpm status:test` included). Foundry's tests in `packages/contracts` are not in it: CI builds only the contracts, not their tests. Then the delta check: an operation that lacks a format that exists and is not on that format's `unmigrated` list (`packages/blueprint-tools/src/checks/formats.ts`). Then the old words: an old word of the glossary written more often than `packages/blueprint/generated/old-words.json` counts (3.8). From 3.6, a ratchet whose list grew |
 | 6. Proof | `packages/runner/run.sh scenarios` (and `prove.yml` from 4.5) | A scenario that fails in a fresh world; from 3.7, a newly declared move, refusal or outcome no journey reaches. CI runs it in `.github/workflows/world.yml` once the bootstrap has given CI its Cloudflare and Neon keys (roadmap step 1.8) |
+<!-- generated:gate end -->
 
 Our lint rules, each tested in `packages/lint/test/rules.test.ts`:
 
-- `capxul/blueprint-owns-names`: an operation, a refusal (a tagged error), an event or a starting world is declared
-  only in `packages/blueprint`.
-- `capxul/effect-only`: no `async`, `await`, `new Promise`, `try`, `throw`, `process.env`, `Date.now`, `new Date()`
-  or `console` in TypeScript outside entry files. Entry files are listed in `.oxlintrc.json` under
+<!-- generated:lint-rules start -->
+<!-- Written by `pnpm generate` from each rule's `description` in packages/lint/src/rules/; never edit it. -->
+- `capxul/blueprint-owns-names`: an operation, a refusal (a tagged error), an event or a starting world is declared only
+  in `packages/blueprint`.
+- `capxul/effect-only`: no `async`, `await`, `new Promise`, `try`, `throw`, `process.env`, `Date.now`, `new Date()` or
+  `console` in TypeScript outside entry files. Entry files are listed in `.oxlintrc.json` under
   `settings.capxul.entries`, each with its reason.
 - `capxul/import-door`: another package is imported only through its door, `src/door.ts` (`src/index.ts` in the
   blueprint and its toolkit), or by its bare name.
 - `capxul/no-json-text`: no `JSON.parse`, `JSON.stringify`, `Schema.parseJson` or string schema documented as JSON
   outside entry files and the edges listed under `settings.capxul.jsonEdges`.
 - `capxul/owned-values`: a raw schema (`Schema.String`, `Schema.Literals`, ...) only in the blueprint's values files,
-  machines and telemetry vocabulary, and there only as a named value, never as a field; elsewhere only in entry files and the edges listed
-  under `settings.capxul.schemaEdges`, each with its reason.
+  machines and telemetry vocabulary, and there only as a named value, never as a field; elsewhere only in entry files
+  and the edges listed under `settings.capxul.schemaEdges`, each with its reason.
 - `capxul/declared-names`: a name the blueprint declares (an operation, a refusal, an event, an outcome, a starting
-  world) is imported, never written as a string outside the blueprint, except where the compiler checks it (an
-  object's key, a computed member, the tag given to `catchTag`, `Match.tag` or `isTagged`).
+  world) is imported, never written as a string outside the blueprint, except where the compiler checks it (an object's
+  key, a computed member, the tag given to `catchTag`, `Match.tag` or `isTagged`).
 - `capxul/decoded-rows`: no `sql<Row>` cast outside the blueprint; rows are decoded with the blueprint's schemas.
+- `capxul/declared-steps`: every effectful function of Core, the world, the platform and the runner (outside its checks)
+  is `Effect.fn` named by a declared step, imported from the blueprint: no string name, and no top-level function
+  returning `Effect.gen(...)` without a span.
+<!-- generated:lint-rules end -->
 
-These three are ratcheted: what each found when it was turned on is on its list in `packages/lint/src/unmigrated.ts`,
-a file with a count that may only fall (`packages/lint/README.md` says how to lower it). New files are never added.
+These four are ratcheted: what each found when it was turned on is on its list in `packages/lint/src/unmigrated.ts`
+(`declared-steps`' in `packages/lint/src/unmigrated-steps.ts`), a file with a count that may only fall
+(`packages/lint/README.md` says how to lower it). New files are never added.
 Each skips generated files: a file whose first line is a comment starting `// Generated`, written by `pnpm generate`
 and never edited.
 

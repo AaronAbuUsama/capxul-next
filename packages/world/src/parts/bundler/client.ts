@@ -1,5 +1,13 @@
 // The world's bundler, reached from outside: one ERC-4337 JSON-RPC call through the world's door, and what the
 // bundler says about its own starts and stops. This is how a world's Core, a scenario or a proof reaches it.
+//
+// It is reached exactly as the chain is, through the world's door under the world's token: the chain at
+// `<door>/<token>/rpc`, the bundler beside it at `<door>/<token>/bundler` (BUNDLER_PATH). The world's handle carries
+// it as `world.bundlerUrl`, Redacted like `world.rpcUrl`, with `world.entryPoint` and `world.paymaster`; `show` and
+// `create` print all three, the token hidden unless `--reveal`. Core reaches it over the same service binding and
+// token as the chain: no new binding or secret. The EntryPoint and the test paymaster are the same in every world
+// (Keys.ts); a UserOperation the paymaster sponsors names it in `paymaster` with `paymasterData` `0x`. A call wakes a
+// stopped chain and starts alto if it is stopped (about 8 s, records/spike-bundler).
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Redacted from "effect/Redacted";

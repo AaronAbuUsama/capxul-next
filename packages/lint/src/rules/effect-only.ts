@@ -5,6 +5,10 @@ import type { Context, ESTree, Rule } from "@oxlint/plugins";
 import { isMember, memberName } from "./names.ts";
 import { isListed, isTypeScript } from "./where.ts";
 
+/** What the rule finds, as AGENTS.md and packages/lint/README.md list it (written there by `pnpm generate`). */
+export const description =
+  "no `async`, `await`, `new Promise`, `try`, `throw`, `process.env`, `Date.now`, `new Date()` or `console` in TypeScript outside entry files. Entry files are listed in `.oxlintrc.json` under `settings.capxul.entries`, each with its reason.";
+
 const MESSAGE = (what: string, instead: string): string =>
   `${what} is not Effect; use ${instead}, or list this file as an entry in settings.capxul.entries with a reason`;
 
@@ -41,7 +45,7 @@ const create = (context: Context) => {
 export const effectOnly: Rule = {
   meta: {
     type: "problem",
-    docs: { description: "TypeScript outside entry files uses Effect, not promises, exceptions or ambient reads" },
+    docs: { description },
   },
   create,
 };

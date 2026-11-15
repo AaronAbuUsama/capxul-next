@@ -43,7 +43,7 @@ const entries: EntryLists = {
   ),
 };
 
-const problems = shapeProblems({ files, lines, entries });
+const problems = shapeProblems({ files, lines, read, entries });
 for (const problem of problems) console.error(problem);
 console.log(problems.length === 0 ? `shape: ${files.length} files, 0 problems` : `shape: ${problems.length} problems`);
 process.exitCode = problems.length === 0 ? 0 : 1;

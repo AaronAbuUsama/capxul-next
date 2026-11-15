@@ -10,7 +10,7 @@ import type { Payload } from "../client.ts";
 import { expect, given } from "../expectation.ts";
 import { journey, outline } from "../journey.ts";
 import { hostNow, millis, present, same } from "../support/expect.ts";
-import { freshName, LIMITS, operators, ownCast, type View } from "../support/world.ts";
+import { freshName, LIMITS, operators, type View } from "../support/world.ts";
 
 const LONG_AGO = "2000-01-01T00:00:00Z";
 const SECOND = 1000;
@@ -62,6 +62,7 @@ const everyRecord = { from: null, to: null } as const;
 export const twoOperators = journey(
   {
     name: "two operators and their worlds",
+    world: "own",
     key: "twoop",
     story:
       "An operator at the limit of live worlds is refused another; a second operator opens one, shows it, keeps its record to themselves, saves it and cannot restore it where no restore may be made.",
@@ -119,7 +120,7 @@ export const twoOperators = journey(
     yield* steps.record.run((op) =>
       Effect.gen(function* () {
         yield* op.succeeds(everyRecord, there);
-        for (const person of yield* ownCast(made))
+        for (const person of made.cast)
           yield* op.refused("NotWorldOwner", everyRecord, { ...there, as: person.person });
       }),
     );

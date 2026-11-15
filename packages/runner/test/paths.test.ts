@@ -21,20 +21,20 @@ const DOOR: PathMachine = {
   name: "door",
   key: "door",
   states: ["shut", "open", "locked"],
-  start: { state: "shut", by: "door.fit", event: "door_fitted" },
+  start: { state: "shut", by: { rpc: { _tag: "door.fit" } }, event: { identifier: "door_fitted" } },
   moves: {
     open: {
       from: ["shut"],
       to: "open",
-      by: "door.open",
-      event: "door_opened",
-      otherwise: { open: "unchanged", locked: { refusal: "DoorLocked" } },
+      by: { rpc: { _tag: "door.open" } },
+      event: { identifier: "door_opened" },
+      otherwise: { open: "unchanged", locked: { refusal: { identifier: "DoorLocked" } } },
     },
     lock: {
       from: ["shut", "open"],
       to: "locked",
-      by: "door.lock",
-      event: "door_locked",
+      by: { rpc: { _tag: "door.lock" } },
+      event: { identifier: "door_locked" },
       otherwise: { locked: "unchanged" },
     },
   },
@@ -167,9 +167,9 @@ test("coverage counts each start, each move and each refused pair some call reac
 
 // The blueprint's own machines: the invitation's.
 const invitation = machines.invitation;
-const INVITE = People.memberInvite.rpc._tag;
-const ACCEPT = People.inviteAccept.rpc._tag;
-const DECLINE = People.inviteDecline.rpc._tag;
+const INVITE = People.invitationSend.rpc._tag;
+const ACCEPT = People.invitationAccept.rpc._tag;
+const DECLINE = People.invitationDecline.rpc._tag;
 const sendsInvitation = sentWith(invitation.key);
 const invited = (id: string) => sendsInvitation(INVITE, [People.MemberInvited.identifier, id]);
 const accepted = (id: string) => sendsInvitation(ACCEPT, [People.InvitationAccepted.identifier, id]);

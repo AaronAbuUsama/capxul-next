@@ -1,9 +1,9 @@
-// What the compiler cannot hold about the journeys: names and keys are unique, each is 5 to 10 steps from one of the
+// What the compiler cannot hold about the journeys: names are unique, each is 5 to 10 steps from one of the
 // blueprint's starting worlds, and between them they call every operation of the blueprint. There are at least the
 // thin line's two or three; each slice adds its own (docs/roadmap.md, phase 3), so there is no upper bound.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { operations, startingWorlds } from "@capxul/blueprint";
+import { Cast, operations, startingWorlds } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Order from "effect/Order";
@@ -19,10 +19,24 @@ test("every journey has its own name, a story and a run", () => {
   }
 });
 
-test("every journey has its own key, 2 to 6 lowercase letters and digits, by which the run casts its people", () => {
+test("the journeys about worlds run in worlds of their own, every other in the one shared world", () => {
+  const own = Arr.map(
+    Arr.filter(journeys, (each) => each.world === "own"),
+    (each) => each.name,
+  );
+  assert.deepEqual(Arr.sort(own, Order.String), [
+    "an operator's inventory",
+    "branch the books of a held payment",
+    "two operators and their worlds",
+  ]);
+  for (const each of journeys)
+    assert.ok(each.world === "own" || each.world === "shared", `${each.name}: ${each.world}`);
+});
+
+test("every journey has its own key, one of the blueprint's, by which the run casts its people", () => {
   const keys = Arr.map(journeys, (each) => each.key);
   assert.deepEqual(Arr.dedupe(keys), keys);
-  for (const each of journeys) assert.match(each.key, /^[a-z0-9]{2,6}$/, `${each.name}'s key ${each.key}`);
+  for (const each of journeys) assert.ok(Arr.contains(Cast.JOURNEY_KEYS, each.key), `${each.name}'s key ${each.key}`);
 });
 
 test("at least the thin line's journeys, each 5 to 10 steps from a starting world the blueprint declares", () => {

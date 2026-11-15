@@ -59,6 +59,7 @@ const EMPLOYEE: Fields = {
 export const foundNorthwind = journey(
   {
     name: "found Northwind and give sam the books",
+    world: "shared",
     key: "found",
     story:
       "dana founds Northwind with eli, the Directors sign its setup, its site becomes ready, sam is given the books and makes its first Supplier, and then is also given People; everyone who may not is refused.",

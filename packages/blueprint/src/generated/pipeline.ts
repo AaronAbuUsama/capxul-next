@@ -2,27 +2,27 @@
 // The pipeline's own work (docs/design/blueprint.md, part 8): every verb that is work no door serves, by its
 // name, and every name its things export for the package. No Rpc group holds any of it, so nothing serves it
 // at run time and the API needs no handler for it.
-import * as CheckCall from "../things/check/call.ts";
-import * as CheckConfirm from "../things/check/confirm.ts";
-import * as CheckGate from "../things/check/gate.ts";
-import * as CheckWatch from "../things/check/watch.ts";
-import * as ClusterDown from "../things/cluster/down.ts";
-import * as ClusterShow from "../things/cluster/show.ts";
-import * as ClusterUp from "../things/cluster/up.ts";
-import * as JourneyRun from "../things/journey/run.ts";
-import * as RatchetCount from "../things/ratchet/count.ts";
-import * as RunPrepare from "../things/run/prepare.ts";
-import * as RunRun from "../things/run/run.ts";
-import * as RunTeardown from "../things/run/teardown.ts";
-import * as RunVerdict from "../things/run/verdict.ts";
-import * as SiteReset from "../things/site/reset.ts";
-import * as SiteSave from "../things/site/save.ts";
-import * as SiteTake from "../things/site/take.ts";
-import * as StartingPointMake from "../things/starting-point/make.ts";
-import * as WorldDestroy from "../things/world/destroy.ts";
-import * as WorldRenew from "../things/world/renew.ts";
-import * as WorldReset from "../things/world/reset.ts";
-import * as WorldSweep from "../things/world/sweep.ts";
+import * as CheckVerbsCall from "../things/check/verbs/call.ts";
+import * as CheckVerbsConfirm from "../things/check/verbs/confirm.ts";
+import * as CheckVerbsGate from "../things/check/verbs/gate.ts";
+import * as CheckVerbsWatch from "../things/check/verbs/watch.ts";
+import * as ClusterVerbsDown from "../things/cluster/verbs/down.ts";
+import * as ClusterVerbsShow from "../things/cluster/verbs/show.ts";
+import * as ClusterVerbsUp from "../things/cluster/verbs/up.ts";
+import * as JourneyVerbsRun from "../things/journey/verbs/run.ts";
+import * as RatchetVerbsCount from "../things/ratchet/verbs/count.ts";
+import * as RunVerbsPrepare from "../things/run/verbs/prepare.ts";
+import * as RunVerbsStart from "../things/run/verbs/start.ts";
+import * as RunVerbsTeardown from "../things/run/verbs/teardown.ts";
+import * as RunVerbsVerdict from "../things/run/verbs/verdict.ts";
+import * as SiteVerbsReset from "../things/site/verbs/reset.ts";
+import * as SiteVerbsSave from "../things/site/verbs/save.ts";
+import * as SiteVerbsTake from "../things/site/verbs/take.ts";
+import * as StartingPointVerbsMake from "../things/starting-point/verbs/make.ts";
+import * as WorldVerbsDestroy from "../things/world/verbs/destroy.ts";
+import * as WorldVerbsRenew from "../things/world/verbs/renew.ts";
+import * as WorldVerbsReset from "../things/world/verbs/reset.ts";
+import * as WorldVerbsSweep from "../things/world/verbs/sweep.ts";
 
 export { CheckName, CheckLayer, Rung, CallCheck, Measure } from "../things/check/values.ts";
 export { StageName, ClusterRefusal } from "../things/cluster/values.ts";
@@ -40,51 +40,51 @@ export {
 } from "../things/run/values.ts";
 export { TakeRefusal } from "../things/site/values.ts";
 export { StartingPointName, PointStep } from "../things/starting-point/values.ts";
-export { checkCall } from "../things/check/call.ts";
-export { checkConfirm } from "../things/check/confirm.ts";
-export { checkGate } from "../things/check/gate.ts";
-export { checkWatch } from "../things/check/watch.ts";
-export { clusterDown } from "../things/cluster/down.ts";
-export { clusterShow } from "../things/cluster/show.ts";
-export { clusterUp } from "../things/cluster/up.ts";
-export { journeyRun } from "../things/journey/run.ts";
-export { ratchetCount } from "../things/ratchet/count.ts";
-export { runPrepare } from "../things/run/prepare.ts";
-export { runRun } from "../things/run/run.ts";
-export { runTeardown } from "../things/run/teardown.ts";
-export { runVerdict } from "../things/run/verdict.ts";
-export { siteReset } from "../things/site/reset.ts";
-export { siteSave } from "../things/site/save.ts";
-export { siteTake } from "../things/site/take.ts";
-export { startingPointMake } from "../things/starting-point/make.ts";
-export { worldDestroy } from "../things/world/destroy.ts";
-export { worldRenew } from "../things/world/renew.ts";
-export { worldReset } from "../things/world/reset.ts";
-export { worldSweep } from "../things/world/sweep.ts";
+export { checkCall } from "../things/check/verbs/call.ts";
+export { checkConfirm } from "../things/check/verbs/confirm.ts";
+export { checkGate } from "../things/check/verbs/gate.ts";
+export { checkWatch } from "../things/check/verbs/watch.ts";
+export { clusterDown } from "../things/cluster/verbs/down.ts";
+export { clusterShow } from "../things/cluster/verbs/show.ts";
+export { clusterUp } from "../things/cluster/verbs/up.ts";
+export { journeyRun } from "../things/journey/verbs/run.ts";
+export { ratchetCount } from "../things/ratchet/verbs/count.ts";
+export { runPrepare } from "../things/run/verbs/prepare.ts";
+export { runStart } from "../things/run/verbs/start.ts";
+export { runTeardown } from "../things/run/verbs/teardown.ts";
+export { runVerdict } from "../things/run/verbs/verdict.ts";
+export { siteReset } from "../things/site/verbs/reset.ts";
+export { siteSave } from "../things/site/verbs/save.ts";
+export { siteTake } from "../things/site/verbs/take.ts";
+export { startingPointMake } from "../things/starting-point/verbs/make.ts";
+export { worldDestroy } from "../things/world/verbs/destroy.ts";
+export { worldRenew } from "../things/world/verbs/renew.ts";
+export { worldReset } from "../things/world/verbs/reset.ts";
+export { worldSweep } from "../things/world/verbs/sweep.ts";
 
 /** Every piece of work no door serves, by its name. */
 export const work = {
-  "check.call": CheckCall.checkCall,
-  "check.confirm": CheckConfirm.checkConfirm,
-  "check.gate": CheckGate.checkGate,
-  "check.watch": CheckWatch.checkWatch,
-  "cluster.down": ClusterDown.clusterDown,
-  "cluster.show": ClusterShow.clusterShow,
-  "cluster.up": ClusterUp.clusterUp,
-  "journey.run": JourneyRun.journeyRun,
-  "ratchet.count": RatchetCount.ratchetCount,
-  "run.prepare": RunPrepare.runPrepare,
-  "run.run": RunRun.runRun,
-  "run.teardown": RunTeardown.runTeardown,
-  "run.verdict": RunVerdict.runVerdict,
-  "site.reset": SiteReset.siteReset,
-  "site.save": SiteSave.siteSave,
-  "site.take": SiteTake.siteTake,
-  "starting-point.make": StartingPointMake.startingPointMake,
-  "world.destroy": WorldDestroy.worldDestroy,
-  "world.renew": WorldRenew.worldRenew,
-  "world.reset": WorldReset.worldReset,
-  "world.sweep": WorldSweep.worldSweep,
+  "check.call": CheckVerbsCall.checkCall,
+  "check.confirm": CheckVerbsConfirm.checkConfirm,
+  "check.gate": CheckVerbsGate.checkGate,
+  "check.watch": CheckVerbsWatch.checkWatch,
+  "cluster.down": ClusterVerbsDown.clusterDown,
+  "cluster.show": ClusterVerbsShow.clusterShow,
+  "cluster.up": ClusterVerbsUp.clusterUp,
+  "journey.run": JourneyVerbsRun.journeyRun,
+  "ratchet.count": RatchetVerbsCount.ratchetCount,
+  "run.prepare": RunVerbsPrepare.runPrepare,
+  "run.start": RunVerbsStart.runStart,
+  "run.teardown": RunVerbsTeardown.runTeardown,
+  "run.verdict": RunVerbsVerdict.runVerdict,
+  "site.reset": SiteVerbsReset.siteReset,
+  "site.save": SiteVerbsSave.siteSave,
+  "site.take": SiteVerbsTake.siteTake,
+  "starting-point.make": StartingPointVerbsMake.startingPointMake,
+  "world.destroy": WorldVerbsDestroy.worldDestroy,
+  "world.renew": WorldVerbsRenew.worldRenew,
+  "world.reset": WorldVerbsReset.worldReset,
+  "world.sweep": WorldVerbsSweep.worldSweep,
 } as const;
 
 export type WorkName = keyof typeof work;

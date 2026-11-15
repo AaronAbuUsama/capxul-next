@@ -2,9 +2,12 @@
 // (packages/blueprint/src/ratchets.ts) tallied by its counter from the lists that hold it today, compared with the
 // committed counts (packages/blueprint/generated/ratchets.json). Pure: ratchets.entry.ts reads the lists and the file,
 // prints, and writes; the tests run it on made-up registries and lists.
-import type { Counter, Ratchet } from "../../../blueprint/src/index.ts";
+import type { Counter, Ratchet } from "../language/ratchet.ts";
 import * as Arr from "effect/Array";
 import * as Rec from "effect/Record";
+import { longOrMappedDocs, nonEffectCode, verbsWithExamplesApart, type RepositoryFiles } from "./ratchet-files.ts";
+
+export { NOT_LINTED, type RepositoryFiles } from "./ratchet-files.ts";
 
 /** Where `pnpm generate` writes the counts and the scorecard, from packages/blueprint. */
 export const OUTPUTS = { counts: "generated/ratchets.json", scorecard: "generated/scorecard.md" } as const;
@@ -17,6 +20,8 @@ export interface Lists {
   readonly formats: { readonly [format: string]: ReadonlyArray<string> };
   /** The glossary's old words as generated/old-words.json counts them (old-words.ts): a word, and its count. */
   readonly oldWords: { readonly [word: string]: number };
+  /** The repository's files R7, R8 and R10 are counted from (ratchet-files.ts). */
+  readonly files: RepositoryFiles;
 }
 
 /** One ratchet, counted: its count and the items behind it, or null when it is not yet counted. */
@@ -48,19 +53,41 @@ const formatLists = (lists: Lists): Omit<Tally, "ratchet"> => {
   return { count: items.length, items };
 };
 
+/** The lists of `formats` only: each operation on any of them once, one item each. */
+const someFormats =
+  (formats: ReadonlyArray<string>) =>
+  (lists: Lists): Omit<Tally, "ratchet"> => {
+    const items = Arr.dedupe(Arr.flatMap(formats, (format) => lists.formats[format] ?? []));
+    return { count: items.length, items };
+  };
+
 /** The old words still written: their count in all, one item per word still written. */
 const oldWordList = (lists: Lists): Omit<Tally, "ratchet"> => ({
   count: sum(Rec.values(lists.oldWords)),
   items: Arr.flatMap(Rec.toEntries(lists.oldWords), ([word, n]) => (n > 0 ? [`${word}: ${String(n)}`] : [])),
 });
 
+/** A ratchet's own list: its names in all, one item each. */
+const ownList = (_lists: Lists, ratchet: Ratchet): Omit<Tally, "ratchet"> => {
+  const items = ratchet.unmigrated ?? [];
+  return { count: items.length, items };
+};
+
 /** Each counter, by the name the registry gives it. */
-const counters: { readonly [C in Counter]: (lists: Lists) => Omit<Tally, "ratchet"> } = {
+const counters: { readonly [C in Counter]: (lists: Lists, ratchet: Ratchet) => Omit<Tally, "ratchet"> } = {
   "lint:owned-values": (lists) => lintList(lists, "owned-values"),
   "lint:declared-names": (lists) => lintList(lists, "declared-names"),
   "lint:decoded-rows": (lists) => lintList(lists, "decoded-rows"),
   formats: formatLists,
+  "formats:machine": someFormats(["machine"]),
+  "formats:allowed": someFormats(["allowed"]),
+  "formats:steps": someFormats(["spans", "logs"]),
+  "formats:promises": someFormats(["promises"]),
   "words:old-words": oldWordList,
+  "own-list": ownList,
+  "verbs:examples": (lists) => verbsWithExamplesApart(lists.files),
+  "docs:long-or-mapped": (lists, ratchet) => longOrMappedDocs(lists.files, ratchet.unmigrated ?? []),
+  "effect:non-effect": (lists) => nonEffectCode(lists.files),
 };
 
 /** Every ratchet of `registry`, counted from `lists`. */
@@ -68,7 +95,7 @@ export const tally = (registry: ReadonlyArray<Ratchet>, lists: Lists): ReadonlyA
   Arr.map(registry, (ratchet) =>
     ratchet.count === "not yet counted"
       ? { ratchet, count: null, items: [] }
-      : { ratchet, ...counters[ratchet.count](lists) },
+      : { ratchet, ...counters[ratchet.count](lists, ratchet) },
   );
 
 /**

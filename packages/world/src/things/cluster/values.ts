@@ -16,7 +16,7 @@ export const ADMIN_TOKEN_ID = "admin-token";
  * declared `admit` timeout, rather than meeting Cloudflare's "Maximum number of running container instances" half-way.
  * 24 is four CI runs at once, each peaking at six worlds (its own, four more of its first operator up to the quota
  * of five, and its second operator's). Cloudflare bills a container only while it runs: a full hub costs at most
- * about $2.62 an hour (README, "Capacity"), and only while every world on it is in use.
+ * about $2.62 an hour (docs/cluster.md, "What it costs"), and only while every world on it is in use.
  */
 export const HUB_CAPACITY = 24;
 

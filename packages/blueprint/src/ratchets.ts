@@ -7,36 +7,15 @@
 // guessed. A ratchet gated by a command of its own names it in `gate`: `pnpm ratchets` then reports its count, and
 // neither commits nor fails on it, so no list has two gates.
 
-/**
- * How a ratchet is counted, by the toolkit's counter of that name: a typed-once lint rule's unmigrated list
- * (packages/lint/src/unmigrated.ts, its findings in all), the delta check's formats' unmigrated lists
- * (packages/blueprint-tools/src/checks/formats.ts, their operations in all), or the glossary's old words
- * (generated/old-words.json, which `pnpm generate` writes: every old word's count, in all).
- */
-export type Counter = "lint:owned-values" | "lint:declared-names" | "lint:decoded-rows" | "formats" | "words:old-words";
+import type { FormatName, Ratchet } from "@capxul/blueprint-tools";
+import type { OperationName } from "./index.ts";
 
-/** One ratchet. */
-export interface Ratchet {
-  readonly id: string;
-  readonly name: string;
-  /** What its list holds, in one sentence. */
-  readonly holds: string;
-  /** The roadmap item (or decision) that empties the list and closes it. */
-  readonly closes: string;
-  /** How it is counted, or "not yet counted". */
-  readonly count: Counter | "not yet counted";
-  /** For a ratchet not yet counted: the roadmap item that will count it. */
-  readonly countedBy?: string;
-  /**
-   * For a ratchet gated by a command of its own, not by `pnpm ratchets`: that command. `pnpm ratchets` reports its
-   * count and leaves it out of generated/ratchets.json, so only that command fails when its list grows.
-   */
-  readonly gate?: string;
-}
+export type { Counter, Ratchet } from "@capxul/blueprint-tools";
 
 /**
- * Every ratchet: R1 to R14 as agreed on 15 November 2026, and R15, the glossary's old words (roadmap item 3.8, #302);
- * new ones take the next number.
+ * Every ratchet: R1 to R14 as agreed on 15 November 2026, R15, the glossary's old words (roadmap item 3.8, #302), and
+ * R16 to R19 (roadmap item 3.10): the names that differ from their path, and the operations not yet in the formats it
+ * added, each counted from today. New ones take the next number.
  */
 export const ratchets: ReadonlyArray<Ratchet> = [
   {
@@ -71,9 +50,10 @@ export const ratchets: ReadonlyArray<Ratchet> = [
   {
     id: "R5",
     name: "Operations not in the full format",
-    holds: "Operations on a format's unmigrated list: missing machine moves, and later allowed, steps, logs, budget.",
-    closes: "3.5, 4.1, 5.1",
-    count: "formats",
+    holds:
+      "Operations on the machine format's unmigrated list: those that start or move no machine, or leave a state's refusal undeclared. Who may call, steps and logs, and promises are R17 to R19.",
+    closes: "3.5",
+    count: "formats:machine",
   },
   {
     id: "R6",
@@ -87,19 +67,25 @@ export const ratchets: ReadonlyArray<Ratchet> = [
   {
     id: "R7",
     name: "Operations not in one file",
-    holds: "Operations whose declaration is still split across files beside their verb's own file.",
+    holds:
+      "Verbs whose declaration still reads its examples from their thing's `examples.ts` (part 13: until stage 2b folds it into the verbs). A thing's refusals and events have their own files by design (part 13, amended), so they are not counted.",
     closes: "Decision 3",
-    count: "not yet counted",
-    countedBy: "3.6",
+    count: "verbs:examples",
   },
   {
     id: "R8",
     name: "Long or hand-mapped docs",
-    holds: "READMEs over one screen (60 lines), hand-written file maps, and docs not yet folded.",
+    holds:
+      "READMEs over one screen (60 lines), as the docs' shape lists them (`LONG_READMES`, packages/lint); READMEs and package docs that are hand-written file maps (three or more list items or table rows opening with a file's path); and the docs on this list, not yet folded into a declaration or a generated page.",
     closes: "Decision 3",
-    count: "not yet counted",
-    countedBy: "3.6",
+    count: "docs:long-or-mapped",
+    unmigrated: ["packages/blueprint/docs/build-order.md"],
   },
+  // R9 also carries the points the journeys' author could not settle from the promises (folded here on 15 November
+  // 2026), each a comment on the declaration it is about: the snapshot's missing block (`Snapshot`, things/
+  // snapshot/values.ts); two worlds sharing one naming series (snapshot restore's first promise); a start time with
+  // milliseconds (world create's second promise); and the literal readings where a promise is silent (company create's
+  // third, member grant's fifth, world create's sixth and approval sign's first promises).
   {
     id: "R9",
     name: "Unreached declarations",
@@ -111,10 +97,10 @@ export const ratchets: ReadonlyArray<Ratchet> = [
   {
     id: "R10",
     name: "Non-Effect code",
-    holds: "Non-Effect constructs outside entry files, and non-Effect runtime dependencies.",
+    holds:
+      "Non-Effect constructs outside entry files, as capxul/effect-only finds them in the TypeScript the lint does not reach (Ponder's files; spikes, vendored code and Frappe are exempt), and each package's runtime dependencies that are not Effect nor Capxul's own.",
     closes: "Phase 7",
-    count: "not yet counted",
-    countedBy: "3.6",
+    count: "effect:non-effect",
   },
   {
     id: "R11",
@@ -152,9 +138,121 @@ export const ratchets: ReadonlyArray<Ratchet> = [
     id: "R15",
     name: "Old words",
     holds:
-      "The glossary's old words still written as names in code, counted per word in generated/old-words.json; its count is their total.",
+      "The glossary's old words still written as names in code, counted per word in distinct names in generated/old-words.json; its count is their total. Distinct names: a lane that uses an existing name adds nothing; only a newly introduced name grows the count (blueprint lead, 15 Nov 2026).",
     closes: "3.8",
     count: "words:old-words",
     gate: "pnpm words",
   },
+  {
+    id: "R16",
+    name: "Names not from their path",
+    holds:
+      "Verbs whose operation is not named `<thing>.<verb>` from its path (docs/design/blueprint.md, part 13, amended, point 3), each renamed directly as its thing is climbed.",
+    closes: "C.1 (the climb), with item 3.8's renames",
+    count: "own-list",
+    unmigrated: [
+      "org.threshold.set",
+      "org.budget.create",
+      "org.budget.list",
+      "org.budget.show",
+      "world.clock.warp",
+      "org.create",
+      "org.director.add",
+      "org.director.list",
+      "doc.create",
+      "doc.submit",
+      "record.export",
+      "org.member.grant",
+      "world.snapshot.delete",
+      "world.snapshot.list",
+      "world.snapshot.restore",
+      "world.snapshot.save",
+    ],
+  },
+  {
+    id: "R17",
+    name: "Operations without who may call",
+    holds:
+      "Operations on the `allowed` format's unmigrated list: no roles allowed declared, nor the refusal anyone else gets.",
+    closes: "5.1",
+    count: "formats:allowed",
+  },
+  {
+    id: "R18",
+    name: "Operations without declared steps and logs",
+    holds:
+      "Operations on the `spans` or `logs` format's unmigrated list: no declared spans, logs, or log where each refusal is decided.",
+    closes: "4.1",
+    count: "formats:steps",
+  },
+  {
+    id: "R19",
+    name: "Promises that do not name every refusal they decide",
+    holds:
+      "Operations on the `promises` format's unmigrated list: some refusal they decide is named in none of their promises.",
+    closes: "C.1",
+    count: "formats:promises",
+  },
 ];
+
+/** The operations not yet climbed (docs/design/blueprint.md, part 14): every one but the invitation's four. */
+const notClimbed: ReadonlyArray<OperationName> = [
+  "org.create",
+  "org.member.grant",
+  "org.director.list",
+  "org.director.add",
+  "org.threshold.set",
+  "org.budget.create",
+  "org.budget.show",
+  "org.budget.list",
+  "doc.create",
+  "doc.submit",
+  "approval.sign",
+  "report.run",
+  "world.create",
+  "world.clock.warp",
+  "world.snapshot.save",
+  "world.snapshot.restore",
+  "world.show",
+  "world.list",
+  "world.snapshot.list",
+  "world.snapshot.delete",
+  "record.export",
+];
+
+/**
+ * Each format's `unmigrated` list (ratchet R5): the existing operations allowed to lack that format today, which the
+ * delta check (`pnpm delta:check`, the toolkit's `formats(blueprint)`) allows and no other. Each list may only shrink,
+ * and a new operation is never added: it is born in every format. The delta check fails a listed operation that now
+ * has the format, so it is removed from here when its thing is climbed. The invitation is on none (roadmap item 3.10).
+ */
+export const unmigrated: { readonly [format in FormatName]?: ReadonlyArray<OperationName> } = {
+  machine: [
+    "org.create",
+    "org.member.grant",
+    "org.director.add",
+    "org.threshold.set",
+    "org.budget.create",
+    "doc.create",
+    "doc.submit",
+    "approval.sign",
+    "world.create",
+    "world.clock.warp",
+    "world.snapshot.save",
+    "world.snapshot.restore",
+    "world.snapshot.delete",
+  ],
+  allowed: notClimbed,
+  spans: notClimbed,
+  logs: notClimbed,
+  promises: [
+    "org.member.grant",
+    "doc.create",
+    "doc.submit",
+    "approval.sign",
+    "report.run",
+    "world.snapshot.save",
+    "world.snapshot.restore",
+    "record.export",
+  ],
+};

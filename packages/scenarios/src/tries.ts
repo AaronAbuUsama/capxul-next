@@ -17,7 +17,9 @@ import { OperationChecks, type AllChecks, type Answer, type Asked, type Check } 
 import {
   CallTraces,
   Capxul,
+  Observations,
   ThisCall,
+  type Observed,
   type CapxulClient,
   type Failure,
   type Payload,
@@ -107,10 +109,29 @@ const checksOf = (all: AllChecks, name: OperationName) =>
     ) => Effect.Effect<(answer: Answer<OperationName>) => ReadonlyArray<Check>, Failed, Needs>;
   };
 
+/**
+ * What Core recorded under the traces of a try's attempts, in one read, when the run offers it (`Observations`): the
+ * checks judge from it instead of reading the world back. Null without traces or without the read; a trace the read
+ * does not answer counts as not observed whole.
+ */
+const observe = (traces: ReadonlyArray<string>, options: CallOptions) =>
+  Effect.gen(function* () {
+    const observations = yield* Effect.serviceOption(Observations);
+    if (traces.length === 0 || Option.isNone(observations)) return null;
+    const read = yield* observations.value.read(traces, {
+      ...(options.at === undefined ? {} : { at: options.at }),
+      ...(options.operator === undefined ? {} : { operator: options.operator }),
+    });
+    return Arr.map(
+      traces,
+      (trace): Observed => read.get(trace) ?? { trace, complete: false, spans: [], logs: [], events: [] },
+    );
+  });
+
 /** Runs every check of the call traced `trace`, each to its end, and says how each went. */
-const judge = (checks: ReadonlyArray<Check>, trace: string | null) =>
+const judge = (checks: ReadonlyArray<Check>, call: ThisCall["Service"]) =>
   Effect.forEach(checks, (each) =>
-    Effect.map(Effect.exit(Effect.provideService(each.holds, ThisCall, { trace })), (exit): CheckOutcome => ({
+    Effect.map(Effect.exit(Effect.provideService(each.holds, ThisCall, call)), (exit): CheckOutcome => ({
       says: each.says,
       passed: Exit.isSuccess(exit),
       detail: Exit.isSuccess(exit) ? "" : said(exit.cause),
@@ -125,10 +146,10 @@ const attempt = (step: number, asked: Asked<OperationName>, expected: Expected, 
     const journal = yield* Journal;
     const checks = yield* OperationChecks;
     const prepared = yield* Effect.exit(checksOf(checks, asked.operation).prepare(asked));
-    // The trace of the try's last call, as the client tells it: the checks judge what that call caused.
-    const trace = yield* Ref.make<string | null>(null);
+    // The trace of each of the try's attempts, as the client tells it: the checks judge what they all caused.
+    const traces = yield* Ref.make<ReadonlyArray<string>>([]);
     const call = callOf(capxul, asked.operation)(asked.payload, asked.options).pipe(
-      Effect.provideService(CallTraces, { heard: (heard) => Ref.set(trace, heard) }),
+      Effect.provideService(CallTraces, { heard: (heard) => Ref.update(traces, (all) => [...all, heard]) }),
     );
     let exit = yield* Effect.exit(call);
     for (let left = WAIT.attempts; left > 1 && repeats(again, exit); left -= 1) {
@@ -158,7 +179,11 @@ const attempt = (step: number, asked: Asked<OperationName>, expected: Expected, 
     }
     const answer = answerOf(exit, error);
     const outcomes = Exit.isSuccess(prepared)
-      ? yield* judge(prepared.value(answer), yield* Ref.get(trace))
+      ? yield* Effect.flatMap(Ref.get(traces), (traced) =>
+          Effect.flatMap(observe(traced, asked.options), (observed) =>
+            judge(prepared.value(answer), { traces: traced, observed }),
+          ),
+        )
       : [{ says: "what the checks read before the call", passed: false, detail: said(prepared.cause) }];
     yield* steps.tried(step, { ...tried, checks: outcomes });
     if (Exit.isSuccess(exit))

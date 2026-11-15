@@ -3,7 +3,7 @@
 # made, every time, even when a journey fails or the job is cancelled (world lifecycle rule 1). Runs of different
 # branches run at once.
 #
-# The run is the runner's own (packages/runner/README.md, "A run in one world"; step 1.18): `run.sh scenarios` makes
+# The run is the runner's own (packages/runner/src/worlds/run.ts; step 1.18): `run.sh scenarios` makes
 # one world on the fleet hub, makes and saves the starting worlds, resets the world in place before each journey,
 # records everything, and destroys each journey's own worlds after it. Here it runs with RUNNER_TEARDOWN=job: it leaves
 # its one world and its own hub up, so the check `thin-line` reports its verdict as soon as the journeys and their
@@ -30,6 +30,9 @@ on:
   workflow_dispatch:
   pull_request:
     branches: [master]
+    # A draft slice pull request runs nothing; marking it ready runs the journeys (15 November 2026: leads' early draft
+    # pull requests ran a 30-minute world on every builder merge, and four at once overloaded the staging bench).
+    types: [opened, synchronize, reopened, ready_for_review]
     paths-ignore: ["docs/**", "**/*.md", "packages/*/records/**"]
   schedule:
     - cron: "41 3 * * *"
@@ -54,13 +57,22 @@ env:
   WORLD_OWNER: ci-${{ github.run_id }}-${{ github.run_attempt }}
   WORLD_SECOND_OWNER: ci-${{ github.run_id }}-${{ github.run_attempt }}-2
 jobs:
+  # Paused for every slice but the speed lane's (Aaron, 15 November 2026: "let's pause running the full tests until we
+  # sort out the speed"): other slices land on a fresh gate and a 🔍 pass; slice/run-time's runs, master's daily run and a
+  # run started by hand still run the journeys, and each covers everything already on master. Restore
+  # startsWith(github.head_ref, 'slice/') when the roadmap's decision "Full runs paused until the run is fast" ends.
   thin-line:
-    if: github.event_name == 'workflow_dispatch' || (vars.CAPXUL_CLOUD_READY == 'true' && (github.event_name != 'pull_request' || startsWith(github.head_ref, 'slice/')))
+    if: github.event_name == 'workflow_dispatch' || (vars.CAPXUL_CLOUD_READY == 'true' && (github.event_name != 'pull_request' || (github.head_ref == 'slice/run-time' && !github.event.pull_request.draft)))
     runs-on: ubuntu-latest
+    # One user of the staging bench at a time: platform.yml's deploy and shared jobs take the same group, so a deploy
+    # never lands in the middle of a run (15 November 2026).
+    concurrency:
+      group: staging-bench
+      cancel-in-progress: false
     timeout-minutes: 90
     outputs:
-      # The hub the run used, for the teardown job: `fleet`, which stays up, or the run's own, which it takes down.
-      hub: ${{ steps.hub.outputs.stage }}
+      # The cluster the run used, for the teardown job: `fleet`, which stays up, or the run's own, which it takes down.
+      cluster: ${{ steps.hub.outputs.stage }}
     steps:
       - uses: actions/checkout@v4
       - name: Require the cloud secrets and variables
@@ -136,20 +148,20 @@ jobs:
           exit "$status"
       - name: Take down the run's own hub
         if: always()
-        # The hub `thin-line` chose; when it ended before saying, the name it would have chosen. `fleet` stays up.
+        # The cluster `thin-line` chose; when it ended before saying, the name it would have chosen. `fleet` stays up.
         env:
-          HUB: ${{ needs.thin-line.outputs.hub }}
+          CLUSTER: ${{ needs.thin-line.outputs.cluster }}
         run: |
-          hub="${HUB:-ch-$(printf '%s' '${{ github.run_id }}' | tail -c 7)${{ github.run_attempt }}}"
-          [ "$hub" = fleet ] && { echo "The run used the standing hub fleet, which stays up."; exit 0; }
-          mkdir -p "$RUNNER_TEMP/teardown" && echo "$hub" >"$RUNNER_TEMP/teardown/hub.txt"
-          if packages/world/run.sh hub show --hub "$hub" >/dev/null 2>&1; then
-            packages/world/run.sh hub down --hub "$hub" || {
-              echo "::error title=Hub not taken down::$hub: its take-down failed; its lifetime and the sweep back it up."
+          cluster="${CLUSTER:-ch-$(printf '%s' '${{ github.run_id }}' | tail -c 7)${{ github.run_attempt }}}"
+          [ "$cluster" = fleet ] && { echo "The run used the standing cluster fleet, which stays up."; exit 0; }
+          mkdir -p "$RUNNER_TEMP/teardown" && echo "$cluster" >"$RUNNER_TEMP/teardown/cluster.txt"
+          if packages/world/run.sh hub show --hub "$cluster" >/dev/null 2>&1; then
+            packages/world/run.sh hub down --hub "$cluster" || {
+              echo "::error title=Cluster not taken down::$cluster: its take-down failed; its lifetime and the sweep back it up."
               exit 1
             }
           else
-            echo "No hub $hub: nothing to take down."
+            echo "No cluster $cluster: nothing to take down."
           fi
       - name: Read the accounts for anything of the run's worlds and hub
         if: always()
@@ -165,7 +177,7 @@ jobs:
           def lines(name):
               path = os.path.join(folder, name)
               return [l.strip() for l in open(path)] if os.path.exists(path) else []
-          stages = [w if w.startswith("w-") else "w-" + w for w in lines("worlds.txt") if w] + [h for h in lines("hub.txt") if h]
+          stages = [w if w.startswith("w-") else "w-" + w for w in lines("worlds.txt") if w] + [c for c in lines("cluster.txt") if c]
           held = json.load(open(os.path.join(folder, "inventory.json")))
           names = [n for kind in held.values() if isinstance(kind, dict) for n in kind.get("ofThisStack", kind.get("names", []))]
           left = sorted({n for n in names for s in stages if f"-{s}-" in n.lower() or n.lower().endswith(f"-{s}") or n.endswith(f"/{s}")})
