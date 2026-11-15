@@ -1,8 +1,10 @@
 // How the runner makes each starting world: by the steps its declaration names (packages/blueprint,
-// src/starting-worlds.ts), each an operation through the door, from the world before it (decisions.md, 27, 38, 39).
-// A maker is handed the facts of the world it starts from and the world its steps run in, makes its calls through
-// the scenarios' own client (recorded, so the generic checks see them too), and answers the facts its steps add, each
-// encoded as the blueprint's own schema encodes that answer. Every call it makes becomes one entry of `calls`.
+// src/starting-points/points.ts), each an operation through the door, from the world before it
+// (packages/blueprint, src/starting-points/points.ts and src/starting-points/facts.ts). A maker is handed the facts of
+// the world it starts from
+// and the world its steps run in, makes its calls through the scenarios' own client (recorded, so the generic checks
+// see them too), and answers the facts its steps add, each encoded as the blueprint's own schema encodes that answer.
+// Every call it makes becomes one entry of `calls`.
 //
 // A starting world with no maker here names the operations its steps need: those are not built yet.
 import { MadeCall, servedBy, startingWorlds, World, type StartingWorld } from "@capxul/blueprint";

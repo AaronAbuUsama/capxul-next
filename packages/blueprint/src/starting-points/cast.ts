@@ -32,7 +32,13 @@ export type JourneyKey = (typeof JOURNEY_KEYS)[number];
 /** The company a story founds, by the handle the starting points name it with: a journey's own is `castCompany`'s. */
 export const CAST_COMPANY = "northwind";
 
-/** The first test account a journey's cast signs with: clear of the world's own cast's and services' (0 to 10). */
+/**
+ * The first test account a journey's cast signs with: clear of the world's own cast's and services' (0 to 10). Every
+ * private and shared world is born with its own cast (a real world has none), test accounts 4 to 8 (dana, eli, sam,
+ * pat, olga): clear of the faucet's operator (0), Companies House's Directors (0 to 2), its claim service (3) and the
+ * bundler's keys (9, 10). Each Safe but pat's is claimed through Companies House's devnet claim role and minted 10,000
+ * test USDC from the token's open mint function, the world's faucet (Aaron, 13 November 2026).
+ */
 export const CAST_KEY_BASE = 20;
 
 /** The accounts of the test mnemonic that cover every journey's cast. */

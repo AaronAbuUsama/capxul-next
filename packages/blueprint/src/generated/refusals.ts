@@ -3,7 +3,8 @@
 // src/things/<thing>/refusals.ts, and those several things share, in src/common/refusals.ts. A refusal is a
 // typed error that needs the world's state to decide; a payload of the wrong shape never reaches a handler
 // (its schema rejects it). Each carries what a caller needs to act on it, and nothing secret.
-import { gather } from "@capxul/blueprint-tools";
+import { gather, type ExitCode } from "@capxul/blueprint-tools";
+import * as Rec from "effect/Record";
 import * as Common from "../common/refusals.ts";
 import * as ApprovalRefusals from "../things/approval/refusals.ts";
 import * as BoardRefusals from "../things/board/refusals.ts";
@@ -57,11 +58,7 @@ export const refusals = gather(declaring, "refusals");
 
 export type RefusalTag = keyof typeof refusals;
 
-/**
- * A command line's exit code for a refusal: 2 the request cannot be done as asked, 3 not signed in, 4 not allowed,
- * 5 something outside failed, 6 a limit or a switch (`NotImplemented` is one: the operation is not switched on yet).
- */
-export type ExitCode = 2 | 3 | 4 | 5 | 6;
+export type { ExitCode } from "@capxul/blueprint-tools";
 
-/** The command line's exit code for each refusal, declared beside the refusal so the CLI never invents one. */
-export const exitCode: { readonly [Tag in RefusalTag]: ExitCode } = gather(declaring, "exitCode");
+/** The command line's exit code for each refusal, declared on the refusal itself so the CLI never invents one. */
+export const exitCode: { readonly [Tag in RefusalTag]: ExitCode } = Rec.map(refusals, (refusal) => refusal.exitCode);

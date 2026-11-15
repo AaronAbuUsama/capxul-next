@@ -3,13 +3,14 @@
 // first (`measured`), so a call refused at sign-in is measured too.
 //
 // Sign-in checks the credential header (`Bearer <token>`) against the door's tokens. At the world group, the world's
-// door token and the token of the operator who owns the world both act as the owner (decisions.md, 36). At the
-// platform group, the owner's token acts as the owner and the second operator's token, when the deploy has one, as
-// the second operator (decisions.md, 37). With no credential a call is refused with `NotSignedIn`
-// (`no_credential`), with another token likewise (`unknown_caller`). Through the world's door a call then acts as
-// the world's owner, or as the person its `capxul-person` header names; a header that is not a person's name is
-// refused. Whether that person is of the world's cast is not checked: there is no cast until step 1.12. Real sign-in
-// is a phase 4 risk (blueprint decisions.md, entry 16).
+// door token and the token of the operator who owns the world both act as the owner
+// (packages/blueprint, src/protocol/headers.ts). At the platform group, the owner's token acts as the owner and the
+// second operator's token, when the deploy has one, as the second operator (packages/blueprint, src/common/values.ts).
+// With no credential a call is refused with `NotSignedIn` (`no_credential`), with another token likewise
+// (`unknown_caller`). Through the world's door a call then acts as the world's owner, or as the person its
+// `capxul-person` header names; a header that is not a person's name is refused. Whether that person is of the world's
+// cast is not checked: there is no cast until step 1.12. Real sign-in is a phase 4 risk
+// (packages/blueprint, src/protocol/sign-in.ts).
 import {
   CREDENTIAL_HEADER,
   CurrentCaller,

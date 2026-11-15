@@ -26,6 +26,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 export CI=true
+# The code's revision, on every span this process exports (packages/platform, src/telemetry.ts).
+export CODE_REVISION="${CODE_REVISION:-$(git rev-parse HEAD 2>/dev/null || echo unknown)}"
 export CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN:-proxy-injected}" NEON_API_KEY="${NEON_API_KEY:-proxy-injected}"
 # The shared world (src/shared/) has an owner of its own, `staging`, and a hub of its own, `shared`.
 shared=false
@@ -39,7 +41,8 @@ export WORLD_OWNER="${WORLD_OWNER:-runner}"
 # test credentials of short-lived stages, never printed.
 token() { python3 -c "import secrets; print(secrets.token_hex(24))"; }
 export CAPXUL_DOOR_TOKEN="${CAPXUL_DOOR_TOKEN:-$(token)}" CAPXUL_PLATFORM_TOKEN="${CAPXUL_PLATFORM_TOKEN:-$(token)}"
-# The second operator's token (decisions.md, 37): the starting world `nothing` promises a second operator.
+# The second operator's token (packages/blueprint, src/common/values.ts): the starting world `nothing` promises a
+# second operator.
 export CAPXUL_SECOND_PLATFORM_TOKEN="${CAPXUL_SECOND_PLATFORM_TOKEN:-$(token)}"
 # The second operator's name: Core reads it at deploy beside the token, so the platform accepts the second operator.
 export WORLD_SECOND_OWNER="${WORLD_SECOND_OWNER:-runner-2}"
