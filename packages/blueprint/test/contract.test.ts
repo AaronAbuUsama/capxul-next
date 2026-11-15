@@ -5,6 +5,7 @@
 import { strict as assert } from "node:assert";
 import { readdirSync, readFileSync } from "node:fs";
 import { test } from "node:test";
+import { parametersMisfit } from "@capxul/blueprint-tools";
 import * as Arr from "effect/Array";
 import * as Exit from "effect/Exit";
 import { pipe } from "effect/Function";
@@ -209,6 +210,8 @@ test("every starting world hands the facts its steps make, its parent's included
     for (const fact of made) assert.ok(added.includes(fact), `${world.name}: a step makes ${fact}, not its own fact`);
     const decoded = Schema.decodeUnknownExit(world.facts)(world.example);
     assert.ok(Exit.isSuccess(decoded), `${world.name}'s example facts do not decode: ${String(decoded)}`);
+    // It takes what the one it is made from takes, and one that takes any is made by its steps (4.11, cast.ts).
+    assert.equal(parametersMisfit(world), null);
   }
 });
 

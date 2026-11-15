@@ -36,7 +36,13 @@ export {
   type Dropped,
   type Origin,
 } from "./language/promise.ts";
-export { holdsFactsOf, type StartingWorld, type Step } from "./language/starting-point.ts";
+export {
+  holdsFactsOf,
+  parametersMisfit,
+  type Parameter,
+  type StartingWorld,
+  type Step,
+} from "./language/starting-point.ts";
 export {
   log,
   logsOf,
