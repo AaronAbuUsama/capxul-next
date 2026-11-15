@@ -15,6 +15,8 @@ export interface Lists {
   readonly lint: { readonly [rule: string]: { readonly [file: string]: number } };
   /** Each format's unmigrated list (formats.ts): the operations allowed to lack it today. */
   readonly formats: { readonly [format: string]: ReadonlyArray<string> };
+  /** The glossary's old words as generated/old-words.json counts them (old-words.ts): a word, and its count. */
+  readonly oldWords: { readonly [word: string]: number };
 }
 
 /** One ratchet, counted: its count and the items behind it, or null when it is not yet counted. */
@@ -46,12 +48,19 @@ const formatLists = (lists: Lists): Omit<Tally, "ratchet"> => {
   return { count: items.length, items };
 };
 
+/** The old words still written: their count in all, one item per word still written. */
+const oldWordList = (lists: Lists): Omit<Tally, "ratchet"> => ({
+  count: sum(Rec.values(lists.oldWords)),
+  items: Arr.flatMap(Rec.toEntries(lists.oldWords), ([word, n]) => (n > 0 ? [`${word}: ${String(n)}`] : [])),
+});
+
 /** Each counter, by the name the registry gives it. */
 const counters: { readonly [C in Counter]: (lists: Lists) => Omit<Tally, "ratchet"> } = {
   "lint:owned-values": (lists) => lintList(lists, "owned-values"),
   "lint:declared-names": (lists) => lintList(lists, "declared-names"),
   "lint:decoded-rows": (lists) => lintList(lists, "decoded-rows"),
   formats: formatLists,
+  "words:old-words": oldWordList,
 };
 
 /** Every ratchet of `registry`, counted from `lists`. */
@@ -62,15 +71,30 @@ export const tally = (registry: ReadonlyArray<Ratchet>, lists: Lists): ReadonlyA
       : { ratchet, ...counters[ratchet.count](lists) },
   );
 
-/** The counts of the ratchets that are counted. */
+/**
+ * The counts `pnpm ratchets` gates: of the ratchets that are counted, those with no gate of their own (`gate`), which
+ * are reported only.
+ */
 export const countsOf = (tallies: ReadonlyArray<Tally>): Counts =>
-  Rec.fromEntries(Arr.flatMap(tallies, ({ ratchet, count }) => (count === null ? [] : [[ratchet.id, count] as const])));
+  Rec.fromEntries(
+    Arr.flatMap(tallies, ({ ratchet, count }) =>
+      count === null || ratchet.gate !== undefined ? [] : [[ratchet.id, count] as const],
+    ),
+  );
+
+/** How a ratchet's count reads in `pnpm ratchets` and the scorecard. */
+export const countText = ({ ratchet, count }: Tally): string =>
+  count === null
+    ? `not yet counted (${ratchet.countedBy ?? "unassigned"})`
+    : ratchet.gate === undefined
+      ? String(count)
+      : `${String(count)}, gated by \`${ratchet.gate}\``;
 
 /** Why `pnpm ratchets` fails: each counted list that grew over its committed count. Nothing when none grew. */
 export const grown = (committed: Counts, tallies: ReadonlyArray<Tally>): ReadonlyArray<string> =>
   Arr.flatMap(tallies, ({ ratchet, count }) => {
     const before = committed[ratchet.id];
-    if (count === null || before === undefined || count <= before) return [];
+    if (count === null || ratchet.gate !== undefined || before === undefined || count <= before) return [];
     return [
       `${ratchet.id} (${ratchet.name}) grew from ${String(before)} to ${String(count)}: a ratchet's list may only shrink`,
     ];

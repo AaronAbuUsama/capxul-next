@@ -7,7 +7,7 @@ import * as Rec from "effect/Record";
 import * as Str from "effect/String";
 import type { Layout, Thing } from "../render/layout.ts";
 import type { Format } from "./format.ts";
-import type { Tally } from "./ratchets.ts";
+import { countText, type Tally } from "./ratchets.ts";
 
 const YES = "✓";
 const NO = "✗";
@@ -116,17 +116,13 @@ export const renderScorecard = (inputs: ScorecardInputs): string => {
       "## The ratchets",
       "",
       "Declared in `packages/blueprint/src/ratchets.ts`; `pnpm ratchets` fails a pull request whose counted list grew over",
-      "its committed count (`ratchets.json`, beside this page).",
+      "its committed count (`ratchets.json`, beside this page). A ratchet gated by a command of its own is reported here",
+      "and gated only by that command.",
       "",
       row(["Ratchet", "What its list holds", "Count", "Closes in"]),
       row(["---", "---", "---", "---"]),
-      ...Arr.map(inputs.tallies, ({ ratchet, count }) =>
-        row([
-          `${ratchet.id} ${ratchet.name}`,
-          ratchet.holds,
-          count === null ? `not yet counted (${ratchet.countedBy ?? "unassigned"})` : String(count),
-          ratchet.closes,
-        ]),
+      ...Arr.map(inputs.tallies, (tally) =>
+        row([`${tally.ratchet.id} ${tally.ratchet.name}`, tally.ratchet.holds, countText(tally), tally.ratchet.closes]),
       ),
       "",
     ],

@@ -13,7 +13,8 @@ import * as Str from "effect/String";
 import type { Ratchet } from "../../blueprint/src/index.ts";
 import { ratchets } from "../../blueprint/src/index.ts";
 import type { Format } from "../src/checks/format.ts";
-import { lists, scorecardInputs, tallies } from "../src/checks/ratchet-sources.ts";
+import { OLD_WORDS } from "../src/checks/old-words.ts";
+import { listsOf, scorecardInputs, talliesOf } from "../src/checks/ratchet-sources.ts";
 import { countsOf, grown, notes, OUTPUTS, settled, tally, type Counts, type Lists } from "../src/checks/ratchets.ts";
 import { renderScorecard } from "../src/checks/scorecard.ts";
 import { layoutOf } from "../src/index.ts";
@@ -22,10 +23,12 @@ const registry: ReadonlyArray<Ratchet> = [
   { id: "R1", name: "Raw", holds: "raw schemas", closes: "3.3", count: "lint:owned-values" },
   { id: "R5", name: "Formats", holds: "operations", closes: "3.5", count: "formats" },
   { id: "R6", name: "Spans", holds: "spans", closes: "4.1", count: "not yet counted", countedBy: "4.1" },
+  { id: "R15", name: "Words", holds: "old words", closes: "3.8", count: "words:old-words", gate: "pnpm words" },
 ];
 const made: Lists = {
   lint: { "owned-values": { "a.ts": 3, "b.ts": 2 } },
   formats: { machine: ["ticket.open"], steps: ["ticket.open", "ticket.close"] },
+  oldWords: { alpha: 4, beta: 0, gamma: 2 },
 };
 
 test("each ratchet is counted from its list, and one not yet counted has no count", () => {
@@ -36,11 +39,20 @@ test("each ratchet is counted from its list, and one not yet counted has no coun
       ["R1", 5],
       ["R5", 3],
       ["R6", null],
+      ["R15", 6],
     ],
   );
   assert.deepEqual(counted[0]?.items, ["a.ts: 3", "b.ts: 2"]);
   assert.deepEqual(counted[1]?.items, ["machine: ticket.open", "steps: ticket.open", "steps: ticket.close"]);
+  assert.deepEqual(counted[3]?.items, ["alpha: 4", "gamma: 2"]);
   assert.deepEqual(countsOf(counted), { R1: 5, R5: 3 });
+});
+
+test("a ratchet with a gate of its own is reported, never committed nor failed by `pnpm ratchets`", () => {
+  const grewWords = tally(registry, { ...made, oldWords: { alpha: 40, beta: 0, gamma: 2 } });
+  assert.deepEqual(grown({ R1: 5, R5: 3, R15: 6 }, grewWords), []);
+  assert.deepEqual(notes({ R1: 5, R5: 3 }, grewWords), []);
+  assert.deepEqual(settled({ R1: 5, R5: 3 }, grewWords), { R1: 5, R5: 3 });
 });
 
 test("a list that grew fails; one that shrank or held passes, with a note to regenerate", () => {
@@ -107,29 +119,36 @@ test("the scorecard marks each thing against each format and ratchet", () => {
   assert.equal(cells("note")[5], "not yet measured");
   assert.match(text, /\| R6 Spans \| spans \| not yet counted \(4\.1\) \| 4\.1 \|/);
   assert.match(text, /\| R1 Raw \| raw schemas \| 5 \| 3\.3 \|/);
+  assert.match(text, /\| R15 Words \| old words \| 6, gated by `pnpm words` \| 3\.8 \|/);
 });
 
-test("the registry declares R1 to R14 once each; each counted or naming the item that will count it", () => {
+test("the registry declares R1 to R15 once each; each counted or naming the item that will count it", () => {
   assert.deepEqual(
     Arr.map(ratchets, (ratchet) => ratchet.id),
-    Arr.map(Arr.range(1, 14), (n) => `R${String(n)}`),
+    Arr.map(Arr.range(1, 15), (n) => `R${String(n)}`),
   );
   for (const ratchet of ratchets) {
     assert.ok(ratchet.holds.length > 0 && ratchet.closes.length > 0, `${ratchet.id} says what it holds and closes`);
     assert.equal(ratchet.count === "not yet counted", ratchet.countedBy !== undefined, `${ratchet.id}'s countedBy`);
   }
-  assert.ok(Arr.every(["owned-values", "declared-names", "decoded-rows"], (rule) => rule in lists.lint));
+  assert.ok(Arr.every(["owned-values", "declared-names", "decoded-rows"], (rule) => rule in listsOf({}).lint));
+  const words = Arr.findFirst(ratchets, (ratchet) => ratchet.id === "R15");
+  assert.ok(Option.isSome(words) && words.value.count === "words:old-words" && words.value.gate === "pnpm words");
 });
 
 const BLUEPRINT = new URL("../../blueprint/", import.meta.url);
 /** The committed counts file, decoded. */
 const CountsFile = Schema.Struct({ counts: Schema.Record(Schema.String, Schema.Int) });
-const committed = (): Counts =>
+const countsAt = (url: URL): Counts =>
   // oxlint-disable-next-line effecttsgo/schema-sync -- a test: a file of another shape fails it with its reason.
-  Schema.decodeUnknownSync(CountsFile)(JSON.parse(readFileSync(new URL(OUTPUTS.counts, BLUEPRINT), "utf8"))).counts;
+  Schema.decodeUnknownSync(CountsFile)(JSON.parse(readFileSync(url, "utf8"))).counts;
+const committed = (): Counts => countsAt(new URL(OUTPUTS.counts, BLUEPRINT));
+/** The repository's ratchets counted now, R15 from the committed old-words.json. */
+const tallies = talliesOf(countsAt(new URL(`../../../${OLD_WORDS}`, import.meta.url)));
 
 test("no counted list of the repository grew over its committed count, and each counted one is committed", () => {
   const counts = committed();
+  assert.equal(counts["R15"], undefined, "R15 is gated by `pnpm words`, so ratchets.json holds no count of it");
   assert.deepEqual(grown(counts, tallies), []);
   assert.deepEqual(Arr.sort(Rec.keys(counts), Order.String), Arr.sort(Rec.keys(countsOf(tallies)), Order.String));
 });
@@ -143,6 +162,10 @@ test("the committed scorecard is what the sources render", () => {
     ),
   );
   const onDisk = readFileSync(new URL(OUTPUTS.scorecard, BLUEPRINT), "utf8");
-  assert.equal(onDisk, renderScorecard(scorecardInputs(layout)), "the scorecard is out of date: run `pnpm generate`");
+  assert.equal(
+    onDisk,
+    renderScorecard(scorecardInputs(layout, tallies)),
+    "the scorecard is out of date: run `pnpm generate`",
+  );
   assert.equal(layout.things.length, 20);
 });

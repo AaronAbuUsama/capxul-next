@@ -1,7 +1,7 @@
-// The rename ratchet, R15 "old words" (docs/roadmap.md, item 3.8): how many times each old word of the glossary is
-// still written as a name in code. `pnpm generate` commits the counts (packages/blueprint/generated/old-words.json),
-// `pnpm words` fails when one grew, and a word whose count reaches zero is done. Pure: it is given the glossary and
-// the files' text; which files are read is ./word-files.ts.
+// The rename ratchet, R15 "Old words" in the blueprint's registry (packages/blueprint/src/ratchets.ts; docs/roadmap.md,
+// item 3.8): how many times each old word of the glossary is still written as a name in code. `pnpm generate` commits
+// the counts (packages/blueprint/generated/old-words.json), `pnpm words` fails when one grew, and a word whose count
+// reaches zero is done. Pure: it is given the glossary and the files' text; which files are read is ./word-files.ts.
 //
 // What counts. Only names, never English. Comments are left out, and in Markdown everything but its code (fenced blocks
 // and `inline code`) is left out (./code-text.ts). What is left is cut into tokens, runs of letters, digits and
