@@ -499,6 +499,9 @@ importers:
       '@capxul/core':
         specifier: workspace:*
         version: link:../core
+      '@capxul/platform':
+        specifier: workspace:*
+        version: link:../platform
       '@capxul/scenarios':
         specifier: workspace:*
         version: link:../scenarios

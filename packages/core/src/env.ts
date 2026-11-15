@@ -31,6 +31,12 @@ export const ENV = {
   siteSecret: "CAPXUL_SITE_SECRET",
   /** `empty` serves every operation's empty handler (src/empty-handlers.ts); left out, the built ones. */
   handlers: "CAPXUL_HANDLERS",
+  /** A service binding to the collector, where Core exports its telemetry over OTLP; left out, nothing is exported. */
+  collector: "CAPXUL_COLLECTOR",
+  /** `on` writes every OTLP body Core exports into `telemetry.otlp` too: a test world's tap (src/telemetry/export.ts). */
+  tap: "CAPXUL_TAP",
+  /** The code's revision, bound at deploy: its exports' `service.version`. */
+  revision: "CAPXUL_REVISION",
 } as const;
 
 /** A binding as the environment holds it: a secret may arrive wrapped or as plain text. */
