@@ -10,6 +10,13 @@
 //
 // The bench is the platform stage `WORLD_BENCH` names (packages/platform), read from the shared state with the
 // world's own store; it is recorded in the world's outputs, so its take-down finds it whatever the setting is then.
+//
+// Why here: the world owns what runs where and is the only thing that lives and dies with its sites, so making and
+// removing them are world steps. Reaching a site is what Core's operations do, through Core's own service (`SiteDoor`,
+// packages/core) and the token and credential the world bound into Core. The bench's site door (packages/platform,
+// door/door.py) is the only process that makes or removes sites and the only way to one: it checks the token's world
+// against the site's on every call and carries ERPNext's REST calls on the site's own API user. A take-down whose
+// `unsite` fails keeps the world's name and record (`unsite failed`) so the next sweep finishes it (test/remains.test.ts).
 import * as Platform from "@capxul/platform";
 import * as Arr from "effect/Array";
 import * as Config from "effect/Config";
