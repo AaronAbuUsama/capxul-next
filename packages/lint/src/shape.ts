@@ -5,6 +5,7 @@ import { pipe } from "effect/Function";
 import * as Order from "effect/Order";
 import * as Str from "effect/String";
 import { docProblems } from "./docs.ts";
+import { mapProblems } from "./maps.ts";
 
 /** What may sit at the top level, each with the reason it is there. */
 export const TOP_LEVEL: Readonly<Record<string, string>> = {
@@ -156,4 +157,5 @@ export const shapeProblems = (input: ShapeInput): Array<string> => [
   ...tooLong(input),
   ...entryLists(input.entries),
   ...docProblems(input),
+  ...mapProblems(input.files),
 ];

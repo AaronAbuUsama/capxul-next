@@ -1,5 +1,8 @@
 // What `pnpm generate` writes, and from what. Each output's owner is named beside it (AGENTS.md, "Who owns each
 // fact"); nothing here is a fact of its own, only where each derived file comes from and where it goes.
+import { PACKAGES, UNMAPPED } from "@capxul/lint";
+import * as Arr from "effect/Array";
+import * as Rec from "effect/Record";
 
 /** Every path here is relative to the repository's root. */
 export const CONTRACTS = "packages/contracts";
@@ -73,8 +76,33 @@ export const WRITTEN_BY_TOOLS = {
 /**
  * The packages whose map `pnpm generate` writes, at `<package>/generated/index.md`: one line per file under `src/`,
  * from the comment it opens with, and one per page under `docs/`, from its title (docs/design/blueprint.md, part 7).
+ * Every package `PACKAGES` lists (packages/lint/src/shape.ts) but those on `UNMAPPED` and the blueprint, whose map
+ * is its own; `pnpm shape` fails a package with no map that is not on `UNMAPPED`.
  */
-export const MAPS: ReadonlyArray<string> = ["packages/world"];
+export const MAPS: ReadonlyArray<string> = Arr.filter(
+  Arr.map(Rec.keys(PACKAGES), (name) => `packages/${name}`),
+  (pkg) => pkg !== "packages/blueprint" && !Arr.contains(UNMAPPED, pkg),
+);
+
+/** The blocks `pnpm generate` writes inside hand-written Markdown files, each by its name. */
+export type BlockName = "packages" | "gate" | "lint-rules";
+
+/**
+ * Each block between `<!-- generated:<name> start -->` and `<!-- generated:<name> end -->` in a hand-written
+ * Markdown file, with the owner it is written from. Only the lines between the markers are the generator's.
+ */
+export const BLOCKS: ReadonlyArray<{ readonly name: BlockName; readonly file: string; readonly from: string }> = [
+  { name: "packages", file: "README.md", from: "`PACKAGES` in packages/lint/src/shape.ts" },
+  { name: "gate", file: "AGENTS.md", from: "`GATE` in packages/lint/src/gate.ts" },
+  { name: "lint-rules", file: "AGENTS.md", from: "each rule's `description` in packages/lint/src/rules/" },
+];
+
+/** The design notes' list, a whole file: one line per note under its folder, with its title and status line. */
+export const DESIGN_INDEX = {
+  folder: "docs/design",
+  path: "docs/design/README.md",
+  from: "the title and status line of each note under docs/design",
+} as const;
 
 /** The deployment record (`deployments/devnet.json`) and the seed (`state/core.json`), relative to the root. */
 export const RECORD = `${CONTRACTS}/deployments/devnet.json`;

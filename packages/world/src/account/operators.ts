@@ -1,7 +1,8 @@
 // Who may call the platform: its two operators, each by the name the platform gives them and the token that signs
-// them in (decisions.md, 16 and 37). The platform binds a world's owner's token into the world's Core, so the owner
-// reaches the world's door with it (decisions.md, 36). Read from Config: `WORLD_OWNER` and `CAPXUL_PLATFORM_TOKEN`
-// for the first, `WORLD_SECOND_OWNER` and `CAPXUL_SECOND_PLATFORM_TOKEN` for the second.
+// them in (packages/blueprint/docs/decisions.md, entries 16 and 37). The platform binds a world's owner's token into
+// the world's Core, so the owner reaches the world's door with it (packages/blueprint/docs/decisions.md, entry 36).
+// Read from Config: `WORLD_OWNER` and `CAPXUL_PLATFORM_TOKEN` for the first, `WORLD_SECOND_OWNER` and
+// `CAPXUL_SECOND_PLATFORM_TOKEN` for the second.
 import { CoreIdentity } from "@capxul/core";
 import * as Arr from "effect/Array";
 import * as Config from "effect/Config";

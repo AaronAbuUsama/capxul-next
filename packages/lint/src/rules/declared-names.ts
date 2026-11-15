@@ -8,6 +8,10 @@ import * as Arr from "effect/Array";
 import { isGenerated, ratcheted, type Unmigrated } from "./ratchet.ts";
 import { matches, pathOf } from "./where.ts";
 
+/** What the rule finds, as AGENTS.md and packages/lint/README.md list it (written there by `pnpm generate`). */
+export const description =
+  "a name the blueprint declares (an operation, a refusal, an event, an outcome, a starting world) is imported, never written as a string outside the blueprint, except where the compiler checks it (an object's key, a computed member, the tag given to `catchTag`, `Match.tag` or `isTagged`).";
+
 /** The blueprint, and its toolkit (packages/blueprint-tools), which writes and checks it. */
 const OWNERS = ["packages/blueprint/**", "packages/blueprint-tools/**"];
 
@@ -52,23 +56,18 @@ const exempt = (node: ESTree.Node): boolean => {
 };
 
 export const declaredNames = (names: ReadonlySet<string>, listed: Unmigrated) =>
-  ratcheted(
-    "declared-names",
-    "Names the blueprint declares are imported, never written as strings",
-    listed,
-    (context: Context, found) => {
-      if (Arr.some(OWNERS, (owner) => matches(owner, pathOf(context))) || isGenerated(context)) return null;
-      const check = (node: ESTree.Node, text: string | null): void => {
-        if (text !== null && names.has(text) && !exempt(node)) found({ node, message: message(text) });
-      };
-      return {
-        Literal: (node: ESTree.Node) => {
-          if (node.type === "Literal" && typeof node.value === "string") check(node, node.value);
-        },
-        TemplateLiteral: (node: ESTree.TemplateLiteral) => {
-          const only = node.quasis[0];
-          if (node.expressions.length === 0 && only !== undefined) check(node, only.value.cooked);
-        },
-      };
-    },
-  );
+  ratcheted("declared-names", description, listed, (context: Context, found) => {
+    if (Arr.some(OWNERS, (owner) => matches(owner, pathOf(context))) || isGenerated(context)) return null;
+    const check = (node: ESTree.Node, text: string | null): void => {
+      if (text !== null && names.has(text) && !exempt(node)) found({ node, message: message(text) });
+    };
+    return {
+      Literal: (node: ESTree.Node) => {
+        if (node.type === "Literal" && typeof node.value === "string") check(node, node.value);
+      },
+      TemplateLiteral: (node: ESTree.TemplateLiteral) => {
+        const only = node.quasis[0];
+        if (node.expressions.length === 0 && only !== undefined) check(node, only.value.cooked);
+      },
+    };
+  });

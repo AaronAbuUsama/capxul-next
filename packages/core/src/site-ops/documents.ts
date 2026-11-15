@@ -96,8 +96,8 @@ export const docSubmit = (payload: { readonly org: string; readonly doctype: str
       yield* record.emit(Documents.submit, { payload, success: posted });
       return posted;
     }
-    // The hold (decisions.md, 28): the payee, the amount and the asset from the Payment Entry, the payee's address
-    // from the Supplier, and the document's hash as doc.create stored it.
+    // The hold (packages/blueprint/docs/decisions.md, entry 28): the payee, the amount and the asset from the Payment
+    // Entry, the payee's address from the Supplier, and the document's hash as doc.create stored it.
     const { payment } = submitted;
     const stored = yield* Effect.flatMap(Effect.service(DocumentHashes), (hashes) => hashes.of({ org, doctype, name }));
     const documentHash = Option.getOrElse(stored, () => payment.document_hash);

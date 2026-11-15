@@ -1,7 +1,8 @@
 // The handlers of the world group's people operations, as src/domains/people.ts names them. Each answers with its
-// outcome or one of its declared refusals; a fault of the database travels as a defect (decisions.md, 10), which the
-// runner records as a failed call. They need the database, the world's cast, its clock and its record, which every
-// world's Core has; nothing here reaches the chain or a company's site.
+// outcome or one of its declared refusals; a fault of the database travels as a defect
+// (packages/blueprint/docs/decisions.md, entry 10), which the runner records as a failed call. They need the database,
+// the world's cast, its clock and its record, which every world's Core has; nothing here reaches the chain or a
+// company's site.
 import type { People } from "@capxul/blueprint";
 import * as Effect from "effect/Effect";
 import { inviteAccept, inviteDecline, inviteList } from "./answer.ts";

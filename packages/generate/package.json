@@ -12,6 +12,7 @@
   "dependencies": {
     "@capxul/blueprint": "workspace:*",
     "@capxul/blueprint-tools": "workspace:*",
+    "@capxul/lint": "workspace:*",
     "effect": "catalog:",
     "viem": "catalog:"
   },
