@@ -112,13 +112,15 @@ them by reading the diff.
 | What runs where | `packages/world` | |
 | What is proven | Run records | The roadmap's step states |
 
-Two rules make "typed once" a check rather than a hope (3.3):
+These rules make "typed once" and "measured" checks rather than hopes (3.3, 4.1), each with its ratchet:
 
 - In the blueprint, a raw schema (`Schema.String`, `Schema.Literals`, `Schema.Number`, ...) appears only in a values
   file or a machine; every field of an operation, event or refusal is a named value. Outside the blueprint, raw schemas
   appear only in edge files listed in `.oxlintrc.json`, each with its reason, and stored rows are decoded with the
   blueprint's schemas.
 - A declared name (an operation, event, refusal, state or span) is imported, never written as a string.
+- Every effectful function of our own code (Core, the world, the platform client, the runner's plumbing) is a span:
+  `Effect.fn` with a name that is a declared step, imported from the blueprint (4.1).
 
 CI's `pnpm generate:check` fails when generating again would change any file (3.1).
 
@@ -144,8 +146,9 @@ it sent with what each carried.
 The generic checks run on every call of every journey, and judge the builder:
 
 - the declared events were sent, each carrying what its declaration says;
-- one span for the operation, and the span of every declared step under it: a declared span that is missing fails the
-  call (4.1). Spans nobody declared, such as a library's `GET`, `postgres` or `rpc`, are kept in the record and allowed;
+- one span for the operation, and the span of every step it declares whenever that step's path ran: a declared step
+  that is missing fails the call (4.1). Library spans, such as `postgres`, HTTP `GET` and `POST`, `rpc` or `bundler`,
+  are neither required nor forbidden, and the check ignores them;
 - one log where each refusal is decided, naming the state or the rule that refused (4.1);
 - the events of each thing form a path through its machine (3.4);
 - every timing is recorded.
@@ -168,7 +171,8 @@ never enforced until it is set from measured runs.
 
 A new or changed operation uses a new format from the day it lands. Existing declarations are moved to it in the same
 slice where that is cheap; the rest are listed in the format's `unmigrated` list, which a test allows only to shrink,
-and the format's roadmap step closes when the list is empty. A migration changes no behaviour: every journey stays
+and the format's roadmap step closes when the list is empty. New work is born compliant; old work catches up in
+parallel and blocks nothing. A migration changes no behaviour: every journey stays
 green. Generic checks added by such a slice are written by a different agent from the one that migrates Core.
 
 ## The ladder
