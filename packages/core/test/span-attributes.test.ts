@@ -9,6 +9,7 @@ import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
+import * as Rec from "effect/Record";
 import * as Redacted from "effect/Redacted";
 import * as Headers from "effect/http/Headers";
 import type * as Rpc from "effect/rpc/Rpc";
@@ -24,7 +25,8 @@ import {
   type Where,
 } from "../src/door.ts";
 import { madeFromNothing, siteOpsInMemory } from "../src/site-ops/door.ts";
-import { coloOf } from "../src/telemetry/attributes.ts";
+import { coloOf, declaredOf } from "../src/telemetry/attributes.ts";
+import { WARP_ATTRIBUTES } from "../src/site-ops/warp-times.ts";
 import { measured } from "../src/telemetry/spans.ts";
 import { absent } from "./support/built.ts";
 
@@ -138,4 +140,21 @@ test("a call served in memory carries the attributes on its one span, and the co
   assert.equal(without[0]?.attributes?.[SPAN_ATTRIBUTES.queryCount], 0);
   const placed = await Effect.runPromise(served({ colo: Option.some("FRA") }));
   assert.equal(placed[0]?.attributes?.[SPAN_ATTRIBUTES.colo], "FRA");
+});
+
+test("a clock warp's attributes are declared: a span carrying them keeps them, and nothing undeclared", () => {
+  const carried = new Map<string, unknown>([
+    [WARP_ATTRIBUTES.site, "a-town.w"],
+    [WARP_ATTRIBUTES.siteMs, 1900.5],
+    [WARP_ATTRIBUTES.warpFrom, "2026-11-13T09:00:00.000Z"],
+    [WARP_ATTRIBUTES.warpTo, "2026-11-20T09:00:00.000Z"],
+    [WARP_ATTRIBUTES.warpSetupMs, 120],
+    [WARP_ATTRIBUTES.warpStopMs, [880, 900.5]],
+    [WARP_ATTRIBUTES.warpStopJobs, [95, 95]],
+    [WARP_ATTRIBUTES.warpJobs, ["erpnext.daily_maintenance"]],
+    [WARP_ATTRIBUTES.warpJobRuns, [2]],
+    [WARP_ATTRIBUTES.warpJobMs, [700]],
+  ]);
+  const kept = declaredOf(new Map([...carried, ["code.stacktrace", "at warpSite"]]));
+  assert.deepEqual(kept, Rec.fromEntries([...carried]));
 });
