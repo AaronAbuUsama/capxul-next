@@ -69,7 +69,15 @@ jobs:
         run: bin/forward.sh open "$PLATFORM_STAGE"
       - name: The platform (CapxulPlatform)
         if: inputs.action != 'plan'
-        run: bin/run.sh deploy --stage "$PLATFORM_STAGE" --yes
+        # The collector's ingest key for the test sink (Axiom), bound to its Worker as a secret. Without it the
+        # collector is deployed but the sink refuses what it forwards, and its counts say so.
+        env:
+          COLLECTOR_SINK_KEY: ${{ secrets.AXIOM_INGEST_TEST }}
+        run: |
+          if [ -z "$COLLECTOR_SINK_KEY" ]; then
+            echo "::warning title=No sink key::AXIOM_INGEST_TEST is not set: the collector cannot forward to the test sink."
+          fi
+          bin/run.sh deploy --stage "$PLATFORM_STAGE" --yes
       - name: Drift check (0 clean, 2 drifted)
         if: inputs.action != 'plan'
         run: |

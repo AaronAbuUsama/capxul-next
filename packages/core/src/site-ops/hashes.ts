@@ -1,5 +1,6 @@
 // The hash doc.create answered for each document it made, kept in the world's database (`app.documents`,
-// migrations/0002_site_ops.sql): a payment held for the document names this hash (blueprint decisions.md, 28).
+// migrations/0002_site_ops.sql): a payment held for the document names this hash (packages/blueprint/docs/decisions.md,
+// entry 28).
 import * as Arr from "effect/Array";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
