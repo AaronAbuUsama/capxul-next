@@ -46,24 +46,6 @@ import { coreAnswers, indexReady, rpcHex } from "./client.ts";
 import type { World } from "./values.ts";
 import { mustExist } from "./take-down.ts";
 
-/**
- * The span of each part of a reset, by the part's name in its answer's `ms`. Kept stable: they are the blueprint's
- * declared steps of `world.reset` (#301) where it declares one; the rest are to be declared beside them.
- */
-export const RESET_SPANS = {
-  "index stopped": "world.reset.index.stop",
-  "database restored": "world.reset.database",
-  "chain reset": "world.reset.chain",
-  "index resumed": "world.reset.index.resume",
-  clock: "world.reset.clock",
-  "chain mined at the world's time": "world.reset.chain.mine",
-  sites: "world.reset.sites",
-  "index caught up": "world.reset.ready.index",
-  "bundler answers": "world.reset.ready.bundler",
-  "core answers": "world.reset.ready.api",
-  "preserved branch dropped": "world.reset.branch.drop",
-} as const;
-
 /** The most a reset may take: Ponder's patience with a refused start (INDEX_START, 4 minutes) and a minute more. */
 export const ResetTimeout = Config.Duration("WORLD_TIMEOUT_RESET").pipe(Config.withDefault(Duration.minutes(5)));
 
@@ -104,15 +86,14 @@ export const reset = Effect.fn("world.reset")(function* (name: string, snapshot:
     return yield* failed(`${stage} has companies but no bench: its sites cannot be reset`);
   const project = yield* projectId;
   const taken = yield* Ref.make<Record<string, number>>({});
-  // Each part is timed into the answer's `ms` and runs in its span (RESET_SPANS).
-  const timed = <A, E, R>(part: keyof typeof RESET_SPANS, effect: Effect.Effect<A, E, R>) =>
+  const timed = <A, E, R>(part: string, effect: Effect.Effect<A, E, R>) =>
     Effect.gen(function* () {
       const began = yield* Clock.currentTimeMillis;
       const result = yield* effect;
       const ms = (yield* Clock.currentTimeMillis) - began;
       yield* Ref.update(taken, (was) => ({ ...was, [part]: ms }));
       return result;
-    }).pipe(Effect.withSpan(RESET_SPANS[part], { attributes: { world: stage, snapshot } }));
+    });
   const began = yield* Clock.currentTimeMillis;
   const preserved = `${preservedPrefix(stage)}${(yield* Random.nextIntBetween(0, 0xffffff)).toString(16)}`;
   const done = yield* Effect.gen(function* () {
@@ -155,7 +136,7 @@ export const reset = Effect.fn("world.reset")(function* (name: string, snapshot:
         timed("preserved branch dropped", dropIfChildless(project, preserved)),
       ],
       { concurrency: 4 },
-    ).pipe(Effect.withSpan("world.reset.ready", { attributes: { world: stage } }));
+    );
     return { chain, minedAt: mined.minedAt, indexedBlock, sites };
   }).pipe(
     Effect.timeoutOrElse({

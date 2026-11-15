@@ -12,7 +12,7 @@ import * as Layer from "effect/Layer";
 import { check } from "./drift.ts";
 import { hostKind } from "./host.ts";
 import { HOST_STACK, STACK } from "./names.ts";
-import { exportLayer, PRODUCERS } from "./telemetry.ts";
+import { exportFromConfig, platformTelemetry } from "./telemetry.ts";
 
 const DRIFT_FOUND = 2;
 
@@ -31,6 +31,6 @@ Effect.gen(function* () {
 }).pipe(
   Effect.scoped,
   // With OTLP export, as OpenTelemetry's standard settings ask (src/telemetry.ts); flushed when the command ends.
-  Effect.provide(Layer.mergeAll(Alchemist.layer(), BunServices.layer, exportLayer(PRODUCERS.sites))),
+  Effect.provide(Layer.mergeAll(Alchemist.layer(), BunServices.layer, exportFromConfig(platformTelemetry))),
   BunRuntime.runMain,
 );

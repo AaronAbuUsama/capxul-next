@@ -32,7 +32,7 @@ import { describe, RunnerFailure } from "../failure.ts";
 import { Outcome, writeJson } from "../record.ts";
 import { freshName, keptFor } from "../run.ts";
 import type { Settings } from "../settings.ts";
-import { makeTimings, Timing, PART_SPANS } from "../timings.ts";
+import { makeTimings, Timing } from "../timings.ts";
 import { encodeAnswer } from "../worlds/encode.ts";
 import type { Making, Steps } from "../worlds/makers.ts";
 import { nothingOf, recorder, targetOf, type MakingCall } from "../worlds/making.ts";
@@ -162,7 +162,6 @@ export const makeOrRenew = (settings: Settings, journeys: ReadonlyArray<Journey>
       return yield* failed(`hub ${hubStage} belongs to ${before.value.owner}, not ${settings.owner}`);
     if (!lasts)
       yield* timings.timed(
-        PART_SPANS.hubUp,
         "hub up",
         { of: hubStage },
         World.hubUp({ stage: hubStage, owner: settings.owner, lifetime: settings.sharedHubLifetime }).pipe(
@@ -187,25 +186,10 @@ export const makeOrRenew = (settings: Settings, journeys: ReadonlyArray<Journey>
               world === startingWorlds.fresh
                 ? sharedFresh(name, Math.floor(Duration.toMillis(settings.sharedLifetime) / MINUTE))
                 : yield* stepsOf(world);
-            const after = yield* timings.timed(
-              PART_SPANS.make,
-              `make ${world.name}`,
-              { of: name },
-              record(world, steps, from),
-            );
+            const after = yield* timings.timed(`make ${world.name}`, { of: name }, record(world, steps, from));
             const own = yield* World.open(name).pipe(Effect.mapError(asFailure));
-            yield* timings.timed(
-              PART_SPANS.keepFacts,
-              `keep facts ${world.name}`,
-              { of: name },
-              keepFacts(own, world.name, after.facts),
-            );
-            return yield* timings.timed(
-              PART_SPANS.save,
-              `save ${world.name}`,
-              { of: name },
-              record(world, saveAs(world), after),
-            );
+            yield* timings.timed(`keep facts ${world.name}`, { of: name }, keepFacts(own, world.name, after.facts));
+            return yield* timings.timed(`save ${world.name}`, { of: name }, record(world, saveAs(world), after));
           }),
       );
       const exit = yield* Effect.exit(making);
@@ -221,7 +205,6 @@ export const makeOrRenew = (settings: Settings, journeys: ReadonlyArray<Journey>
     // Renewed either way: a later expiry, and Core deployed again with the running code.
     const renewed = yield* timings
       .timed(
-        PART_SPANS.renew,
         "renew",
         { of: name },
         World.renew(name, settings.sharedLifetime).pipe(Effect.mapError(asFailure)),
@@ -230,24 +213,17 @@ export const makeOrRenew = (settings: Settings, journeys: ReadonlyArray<Journey>
       .pipe(Effect.exit);
     // The facts it keeps, moved to the format the blueprint decodes now (shared/facts.ts, MOVES).
     const moved = yield* Effect.exit(
-      Option.isNone(found)
-        ? Effect.void
-        : timings.timed(PART_SPANS.moveFacts, "move kept facts", { of: name }, moveKept(found.value)),
+      Option.isNone(found) ? Effect.void : timings.timed("move kept facts", { of: name }, moveKept(found.value)),
     );
     const shown = yield* Effect.exit(
-      timings.timed(PART_SPANS.show, "world.show", { of: name }, record(startingWorlds.nothing, showOf(name), nothing)),
+      timings.timed("world.show", { of: name }, record(startingWorlds.nothing, showOf(name), nothing)),
     );
 
     const bench = yield* World.BenchStage.pipe(Effect.orDie);
     const listed = yield* Effect.exit(
       Option.isNone(bench)
         ? Effect.succeed([])
-        : timings.timed(
-            PART_SPANS.benchSites,
-            "bench sites",
-            { of: name },
-            World.sitesOn(World.stageOf(name), bench.value),
-          ),
+        : timings.timed("bench sites", { of: name }, World.sitesOn(World.stageOf(name), bench.value)),
     );
     const sites = Exit.isSuccess(listed) ? listed.value : [];
     const calls = Arr.map(yield* Ref.get(made), (each) => each.call);

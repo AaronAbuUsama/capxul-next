@@ -6,11 +6,14 @@
 // Each part timed here also runs in a span of its own, named in `PART_SPANS` and carrying the part, the journey and
 // what it acted on as attributes (roadmap 4.4), so the run's trace holds every part beside the JSON timings. Its
 // own steps are spans of the code that does them (the world's reset parts, a save's, a destroy's).
+import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
+import * as Option from "effect/Option";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
+import * as Str from "effect/String";
 import { describe } from "./failure.ts";
 
 export const TimedStep = Schema.Struct({
@@ -45,35 +48,44 @@ export type Timing = typeof Timing.Type;
 type Extra = Partial<Pick<Timing, "journey" | "of" | "parts" | "note" | "steps">>;
 
 /**
- * The span each timed part runs in, by what it does. Kept stable: they become the blueprint's declared steps of the
+ * The span each timed part runs in, by the first words of the part's name (`make founded` runs in `runner.make`); a
+ * part named by none of them runs in `runner.part`. Kept stable: they become the blueprint's declared steps of the
  * pipeline (#301). The run, its journeys and their steps are spans too (`RUN_SPANS`).
  */
-export const PART_SPANS = {
-  hubUp: "runner.hub.up",
-  hubDown: "runner.hub.down",
-  worldCreate: "runner.world.create",
-  make: "runner.make",
-  save: "runner.save",
-  benchTemplate: "runner.template.keep",
-  reset: "runner.reset",
-  restore: "runner.restore",
-  journeyStart: "runner.journey.start",
-  keepFacts: "runner.facts.keep",
-  moveFacts: "runner.facts.move",
-  renew: "runner.renew",
-  show: "runner.world.show",
-  benchSites: "runner.sites.list",
-  worldDestroy: "runner.world.destroy",
-} as const;
-export type PartSpan = (typeof PART_SPANS)[keyof typeof PART_SPANS];
+export const PART_SPANS = [
+  ["hub up", "runner.hub.up"],
+  ["hub down", "runner.hub.down"],
+  ["world create", "runner.world.create"],
+  ["world destroy", "runner.world.destroy"],
+  ["make ", "runner.make"],
+  ["save ", "runner.save"],
+  ["bench template ", "runner.template.keep"],
+  ["bench sites", "runner.sites.list"],
+  ["reset", "runner.reset"],
+  ["restore", "runner.restore"],
+  ["starting world", "runner.journey.start"],
+  ["keep facts ", "runner.facts.keep"],
+  ["move kept facts", "runner.facts.move"],
+  ["renew", "runner.renew"],
+] as const;
 
-/** The spans of the run itself: its root, each journey, what each journey does, and each of its steps. */
+/** The span of a part no entry of `PART_SPANS` names. */
+export const OTHER_PART = "runner.part";
+
+/** The span the part `part` runs in. */
+export const spanOf = (part: string): string =>
+  Arr.findFirst(PART_SPANS, ([prefix]) => part === Str.trimEnd(prefix) || Str.startsWith(prefix)(part)).pipe(
+    Option.map(([, span]) => span),
+    Option.getOrElse(() => OTHER_PART),
+  );
+
+/** The spans of the run itself: its root, each journey and each of its steps. */
 export const RUN_SPANS = {
+  /** The root of a run's trace (main.ts); the door's and the stage runs' own (run.ts, scenario-runs.ts) too. */
   run: "runner.run",
-  journey: "runner.journey",
-  journeyCalls: "runner.journey.calls",
-  journeyChecks: "runner.journey.checks",
-  journeyDestroy: "runner.journey.destroy",
+  /** One journey in the run's world (worlds/run.ts). */
+  journey: "runner.world.scenario",
+  /** One step of a journey, from the journey's `begin` to its `end` (steps.ts). */
   step: "runner.journey.step",
 } as const;
 
@@ -91,16 +103,10 @@ export const makeTimings = Effect.gen(function* () {
   const add = (entry: Timing) => Ref.update(all, (was) => [...was, entry]);
 
   /**
-   * Runs `effect` as the part `part`, in the span `span`, and records how long it took and how it ended; `more` adds
-   * what its own answer says (its parts' times, a note). Its outcome is handed back unchanged.
+   * Runs `effect` as the part `part`, in its span (`spanOf`), and records how long it took and how it ended; `more`
+   * adds what its own answer says (its parts' times, a note). Its outcome is handed back unchanged.
    */
-  const timed = <A, E, R>(
-    span: PartSpan,
-    part: string,
-    extra: Extra,
-    effect: Effect.Effect<A, E, R>,
-    more?: (value: A) => Extra,
-  ) =>
+  const timed = <A, E, R>(part: string, extra: Extra, effect: Effect.Effect<A, E, R>, more?: (value: A) => Extra) =>
     Effect.gen(function* () {
       const start = yield* Clock.currentTimeMillis;
       const exit = yield* Effect.exit(effect);
@@ -115,7 +121,7 @@ export const makeTimings = Effect.gen(function* () {
         ...(Exit.isFailure(exit) ? { why: describe(exit.cause) } : {}),
       });
       return yield* exit;
-    }).pipe(Effect.withSpan(span, { attributes: attributesOf(part, extra) }));
+    }).pipe(Effect.withSpan(spanOf(part), { attributes: attributesOf(part, extra) }));
 
   /** Records a part timed elsewhere: `ms` long, ending now. */
   const record = (part: string, ms: number, extra: Extra, ok = true) =>

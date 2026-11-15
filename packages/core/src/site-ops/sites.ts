@@ -29,9 +29,6 @@ export const SiteRefusal = Schema.Union([
 export type SiteRefusal = typeof SiteRefusal.Type;
 const isRefusal = Schema.is(SiteRefusal);
 
-/** The span of each call Core makes to a company site, through the site door: one HTTP request to the bench. */
-export const SITE_CALL_SPAN = "site.call";
-
 /** Frappe's answer to a whitelisted method: its `message`. */
 const Message = Schema.Struct({ message: Schema.Unknown });
 
@@ -84,7 +81,7 @@ export const CompanySitesLive = Layer.effect(
         const answer = yield* door.call(site, { method: "POST", path: `/api/method/capxul.core_api.${method}`, body });
         if (answer.status !== 200) return yield* Effect.die(`${site} answered ${method} with HTTP ${answer.status}`);
         return (yield* Schema.decodeUnknownEffect(Message)(answer.body).pipe(Effect.orDie)).message;
-      }).pipe(Effect.withSpan(SITE_CALL_SPAN, { kind: "client", attributes: { site, method } }));
+      });
     const listed = door.sites;
     return CompanySites.of({
       call: (org, method, body) =>

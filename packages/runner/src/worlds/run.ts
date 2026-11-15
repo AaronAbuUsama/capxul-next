@@ -20,11 +20,10 @@ import { checkCall, failuresOf } from "../checks/checks.ts";
 import type { Call } from "../client.ts";
 import { describe, endedOf } from "../failure.ts";
 import { passedOr, slugOf, writeJson, RunRecord } from "../record.ts";
-import { journeyPlan } from "../journey-plan.ts";
-import { freshName, keptFor, stepsFor, use, viaOf } from "../run.ts";
+import { freshName, journeyPlan, keptFor, stepsFor, use, viaOf } from "../run.ts";
 import { stepsOf } from "../steps.ts";
 import type { Settings } from "../settings.ts";
-import { makeTimings, PART_SPANS, RUN_SPANS, type Timings } from "../timings.ts";
+import { makeTimings, type Timings } from "../timings.ts";
 import { answersSteadily } from "../world/warmup.ts";
 import type { Stage } from "../world/stage.ts";
 import { noteNotMade, summaryOf } from "./ending.ts";
@@ -57,7 +56,6 @@ const work = (scenario: Journey, settings: Settings, starting: Starting, timings
     const [makeTook, making] = yield* Effect.andThen(
       starting.resetFor(scenario.given, scenario.name),
       timings.timed(
-        PART_SPANS.journeyStart,
         "starting world",
         { journey: scenario.name, of: scenario.given.name },
         starting.forScenario(scenario.given),
@@ -141,8 +139,6 @@ const runOne = (
           destroyAll(mine),
           destroyStrays(strays, [settings.owner, settings.secondOwner]),
           (a, b) => a && b,
-        ).pipe(
-          Effect.withSpan(RUN_SPANS.journeyDestroy, { attributes: { worlds: mine.length, strays: strays.length } }),
         ),
       );
       yield* timings.record("destroy the journey's own worlds", millis(destroyTook), {
@@ -198,11 +194,7 @@ const runOne = (
       if (Exit.isFailure(done) && Exit.hasInterrupts(done)) return yield* Effect.interrupt;
       return record;
     }),
-  ).pipe(
-    Effect.withSpan(RUN_SPANS.journey, {
-      attributes: { journey: scenario.name, given: scenario.given.name, place: index + 1 },
-    }),
-  );
+  ).pipe(Effect.withSpan("runner.world.scenario", { attributes: { scenario: scenario.name } }));
 
 /**
  * Destroys the run's one world, timed; what could not be done, one line each. Whatever ends the run, this runs. The
@@ -230,7 +222,6 @@ export const runInWorlds = (
     const platform = yield* Platform;
     const startedAt = yield* now;
     const run = yield* freshName("run");
-    yield* Effect.annotateCurrentSpan({ run, journeys: scenarios.length });
     const timings = yield* makeTimings;
     const notMade = yield* Ref.make<string | null>(null);
     const notTakenDown = yield* Ref.make<ReadonlyArray<string>>([]);
@@ -277,11 +268,6 @@ export const runInWorlds = (
       left: yield* leftOf(Arr.dedupe([...(yield* platform.made), ...(yield* platform.tried)])),
       timings: yield* timings.all,
     });
-    yield* Effect.annotateCurrentSpan({ outcome: summary.outcome });
     if (Exit.isFailure(ran) && Exit.hasInterrupts(ran)) return yield* Effect.interrupt;
     return summary;
-  }).pipe(
-    Effect.withSpan(RUN_SPANS.run, {
-      attributes: { mode: Option.isSome(shared) ? "shared world" : "one world", owner: settings.owner },
-    }),
-  );
+  });

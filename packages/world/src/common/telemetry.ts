@@ -1,0 +1,10 @@
+// The world's OTLP export (roadmap 4.4): the layer its entry (src/cli/main.ts) provides once, through
+// `exportFromConfig`, so every span, log and metric it makes is posted over OTLP/HTTP JSON to `baseUrl` (the
+// collector), under a resource naming the producer (`service.name`: "capxul-world", #301's producer) and the code's
+// revision (`service.version`). Built by packages/platform's `exportLayer`, the one implementation of every producer's.
+import { exportLayer, PRODUCERS, type ExportLayer, type ExportOptions } from "@capxul/platform";
+
+export type { ExportOptions };
+
+/** Provides the world's OTLP export. */
+export const worldTelemetry = (options: ExportOptions): ExportLayer => exportLayer(PRODUCERS.world, options);

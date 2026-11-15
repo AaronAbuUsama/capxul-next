@@ -141,20 +141,21 @@ const Adopted = Schema.Struct({ adopted: Schema.Boolean, bytes: Schema.Finite })
  * Hands the new world the chain state of the world it is made from, before its own chain first starts: the parent's
  * state now, or the state its snapshot of that name saved.
  */
-export const adoptChain = Effect.fn("world.chain.adopt")(function* (child: Door, parent: Door, snapshot?: string) {
-  const dump = yield* doorText(
-    parent,
-    "fork",
-    HttpClientRequest.get(snapshot === undefined ? "/chain/dump" : `/chain/snapshot/${snapshot}`),
-  );
-  const adopted = yield* doorCall(
-    child,
-    "fork",
-    HttpClientRequest.post("/chain/adopt").pipe(HttpClientRequest.bodyText(dump)),
-    Adopted,
-  );
-  return adopted.bytes;
-});
+export const adoptChain = (child: Door, parent: Door, snapshot?: string) =>
+  Effect.gen(function* () {
+    const dump = yield* doorText(
+      parent,
+      "fork",
+      HttpClientRequest.get(snapshot === undefined ? "/chain/dump" : `/chain/snapshot/${snapshot}`),
+    );
+    const adopted = yield* doorCall(
+      child,
+      "fork",
+      HttpClientRequest.post("/chain/adopt").pipe(HttpClientRequest.bodyText(dump)),
+      Adopted,
+    );
+    return adopted.bytes;
+  });
 
 const PartStatus = Schema.Struct({ running: Schema.Boolean });
 const IndexStatus = Schema.Struct({
@@ -181,8 +182,8 @@ export const partStatus = (world: Door, part: "chain" | "index") =>
  * Starts the index and waits until Ponder says its backfill is done. The index's Durable Object tries a refused start
  * again within its patience (src/parts/containers/patience.ts); a start that did not hold is made again from here.
  */
-export const indexReady = Effect.fn("world.index.ready")(function* (world: Pick<World, "door" | "database">) {
-  return yield* patient(
+export const indexReady = (world: Pick<World, "door" | "database">) =>
+  patient(
     Effect.gen(function* () {
       const status = yield* indexStatus(world);
       // The index is told the world's database with its start: one Ponder application serves every world on the hub.
@@ -198,13 +199,12 @@ export const indexReady = Effect.fn("world.index.ready")(function* (world: Pick<
       return status.indexed;
     }),
   );
-});
 
 const CoreHealth = Schema.Struct({ world: Schema.String });
 
 /** Waits until the world's Core answers its health check. A new Worker's address answers 404 until it is routed. */
-export const coreAnswers = Effect.fn("world.api.answers")(function* (world: Pick<World, "coreUrl">) {
-  return yield* patient(
+export const coreAnswers = (world: Pick<World, "coreUrl">) =>
+  patient(
     Effect.gen(function* () {
       const response = yield* HttpClient.get(`${world.coreUrl}${CORE_HEALTH}`);
       if (response.status !== 200)
@@ -212,14 +212,12 @@ export const coreAnswers = Effect.fn("world.api.answers")(function* (world: Pick
       return yield* HttpClientResponse.schemaBodyJson(CoreHealth)(response);
     }).pipe(Effect.scoped),
   );
-});
 
 const Saved = Schema.Struct({ head: Schema.String, bytes: Schema.Finite });
 
 /** Saves the chain's whole state as it is now under a snapshot's name, beside the chain's own saved state. */
-export const saveChain = Effect.fn("world.chain.save")(function* (world: Door, snapshot: string) {
-  return yield* doorCall(world, "chain", HttpClientRequest.post(`/chain/snapshot/${snapshot}`), Saved);
-});
+export const saveChain = (world: Door, snapshot: string) =>
+  doorCall(world, "chain", HttpClientRequest.post(`/chain/snapshot/${snapshot}`), Saved);
 
 /** Saves the chain and stops both containers, so a kept world costs nothing while it waits for its expiry. */
 export const stop = (world: Door) =>

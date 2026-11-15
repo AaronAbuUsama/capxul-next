@@ -14,7 +14,7 @@ import { endedOf } from "../src/failure.ts";
 import type { RunRecord } from "../src/record.ts";
 import { failedStepOf, stepsOf, type Heard } from "../src/steps.ts";
 import { ranAsExpected, summarize, type Expectation } from "../src/summary.ts";
-import { makeTimings, PART_SPANS } from "../src/timings.ts";
+import { makeTimings } from "../src/timings.ts";
 import { noteNotMade } from "../src/worlds/ending.ts";
 
 const refused = (operation: string, refusal = "NotImplemented"): RunRecord["calls"][number] => ({
@@ -231,13 +231,8 @@ test("the starting worlds not made are named by the first part that failed, a de
     Effect.gen(function* () {
       const timings = yield* makeTimings;
       const into = yield* Ref.make<string | null>(null);
-      yield* timings.timed(PART_SPANS.make, "make payment-drafted", { of: "payment-drafted" }, Effect.void);
-      const save = timings.timed(
-        PART_SPANS.save,
-        "save payment-drafted",
-        { of: "w-tpl-330ea4" },
-        Effect.die("SiteFailed: HTTP 524"),
-      );
+      yield* timings.timed("make payment-drafted", { of: "payment-drafted" }, Effect.void);
+      const save = timings.timed("save payment-drafted", { of: "w-tpl-330ea4" }, Effect.die("SiteFailed: HTTP 524"));
       yield* save.pipe(Effect.catchCause(noteNotMade(timings, into)));
       return yield* Ref.get(into);
     }),

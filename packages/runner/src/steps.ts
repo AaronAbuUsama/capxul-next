@@ -6,6 +6,7 @@
 import { Steps, type StepOutline, type Tried } from "@capxul/scenarios";
 import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
+import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import { pipe } from "effect/Function";
@@ -32,47 +33,63 @@ export interface Heard {
   readonly failure: string | null;
 }
 
-/** The span of the step a journey is in, while it is in one: each call it makes is linked to it (client.ts). */
-export type OpenStep = Ref.Ref<Option.Option<Tracer.Span>>;
+/**
+ * The span of the step a journey is in, while it is in one, which `hearing` keeps beside `Steps`: each call the
+ * journey makes is linked to it (client.ts).
+ */
+export class OpenStep extends Context.Service<OpenStep, Ref.Ref<Option.Option<Tracer.Span>>>()(
+  "@capxul/runner/steps/OpenStep",
+) {}
 
 /**
  * `Steps` for one run: every step heard into `heard`, its calls counted from `log`. Each step is also a span of the
- * journey's (`runner.journey.step`), open from its beginning to its end and failed when the step failed; `open`
+ * journey's (`runner.journey.step`), open from its beginning to its end and failed when the step failed; `OpenStep`
  * holds it meanwhile.
  */
-export const hearing = (heard: Ref.Ref<ReadonlyArray<Heard>>, log: Ref.Ref<ReadonlyArray<Call>>, open: OpenStep) =>
-  Layer.succeed(Steps, {
-    begin: (step, outline) =>
-      Effect.gen(function* () {
-        const from = (yield* Ref.get(log)).length;
-        const startedMs = yield* Clock.currentTimeMillis;
-        const span = yield* Effect.makeSpan(RUN_SPANS.step, {
-          attributes: { step, operation: outline.operation, does: outline.does },
-        });
-        yield* Ref.set(open, Option.some(span));
-        yield* Ref.update(heard, (all) => [
-          ...all,
-          { step, outline, from, to: null, startedMs, endedMs: null, tries: [], failure: null },
-        ]);
-      }),
-    tried: (step, tried) =>
-      Ref.update(heard, (all) =>
-        Arr.map(all, (each) => (each.step === step ? { ...each, tries: [...each.tries, tried] } : each)),
-      ),
-    end: (step, failure) =>
-      Effect.gen(function* () {
-        const to = (yield* Ref.get(log)).length;
-        const endedMs = yield* Clock.currentTimeMillis;
-        const span = yield* Ref.getAndSet(open, Option.none());
-        if (Option.isSome(span)) {
-          const endedNanos = yield* Clock.currentTimeNanos;
-          span.value.end(endedNanos, failure === null ? Exit.void : Exit.fail(failure));
-        }
-        yield* Ref.update(heard, (all) =>
-          Arr.map(all, (each) => (each.step === step ? { ...each, to, endedMs, failure } : each)),
-        );
-      }),
-  });
+export const hearing = (heard: Ref.Ref<ReadonlyArray<Heard>>, log: Ref.Ref<ReadonlyArray<Call>>) =>
+  Layer.effectContext(
+    Effect.gen(function* () {
+      const open = yield* Ref.make<Option.Option<Tracer.Span>>(Option.none());
+      return Context.make(OpenStep, open).pipe(Context.add(Steps, heardSteps(heard, log, open)));
+    }),
+  );
+
+const heardSteps = (
+  heard: Ref.Ref<ReadonlyArray<Heard>>,
+  log: Ref.Ref<ReadonlyArray<Call>>,
+  open: Ref.Ref<Option.Option<Tracer.Span>>,
+): Steps["Service"] => ({
+  begin: (step, outline) =>
+    Effect.gen(function* () {
+      const from = (yield* Ref.get(log)).length;
+      const startedMs = yield* Clock.currentTimeMillis;
+      const span = yield* Effect.makeSpan(RUN_SPANS.step, {
+        attributes: { step, operation: outline.operation, does: outline.does },
+      });
+      yield* Ref.set(open, Option.some(span));
+      yield* Ref.update(heard, (all) => [
+        ...all,
+        { step, outline, from, to: null, startedMs, endedMs: null, tries: [], failure: null },
+      ]);
+    }),
+  tried: (step, tried) =>
+    Ref.update(heard, (all) =>
+      Arr.map(all, (each) => (each.step === step ? { ...each, tries: [...each.tries, tried] } : each)),
+    ),
+  end: (step, failure) =>
+    Effect.gen(function* () {
+      const to = (yield* Ref.get(log)).length;
+      const endedMs = yield* Clock.currentTimeMillis;
+      const span = yield* Ref.getAndSet(open, Option.none());
+      if (Option.isSome(span)) {
+        const endedNanos = yield* Clock.currentTimeNanos;
+        span.value.end(endedNanos, failure === null ? Exit.void : Exit.fail(failure));
+      }
+      yield* Ref.update(heard, (all) =>
+        Arr.map(all, (each) => (each.step === step ? { ...each, to, endedMs, failure } : each)),
+      );
+    }),
+});
 
 const CheckOutcome = Schema.Struct({ says: Schema.String, passed: Schema.Boolean, detail: Schema.String });
 

@@ -6,15 +6,17 @@
         "name": "@effect/language-service",
         // Effect 4 ships these only as unstable modules, with no stable replacement: child processes (`docker diff` in
         // the drift check), the file system (run records, token files), WebCrypto's HMAC and digest (the site token)
-        // and Bun's runtime, which Alchemy needs; OTLP export (src/telemetry.ts), which Effect ships only under
-        // effect/observability, and the HTTP client it sends with. The catalog's exact pin of effect is the guard.
+        // and Bun's runtime, which Alchemy needs. The catalog's exact pin of effect is the guard.
+        // The collector (roadmap 4.4) serves and forwards OTLP over HTTP with Effect's HTTP modules and its OTLP proxy
+        // (`effect/observability`), and the platform client exports its telemetry with Effect's OTLP exporter: unstable
+        // too, with no stable replacement.
         "allowedUnstableApis": [
           "effect/process",
           "effect/FileSystem",
           "effect/crypto",
           "@effect/platform-bun",
-          "effect/observability",
-          "effect/http"
+          "effect/http",
+          "effect/observability"
         ]
       }
     ]

@@ -22,7 +22,6 @@ import * as Random from "effect/Random";
 import * as Redacted from "effect/Redacted";
 import * as Ref from "effect/Ref";
 import * as Str from "effect/String";
-import type * as Tracer from "effect/Tracer";
 import * as FetchHttpClient from "effect/http/FetchHttpClient";
 import { capxulFor, type Call, type Target, type Via } from "../src/client.ts";
 import { givenFor } from "../src/given.ts";
@@ -67,13 +66,12 @@ const runThrough = (journey: Journey, target: Target, via: Via) =>
   Effect.gen(function* () {
     const log = yield* Ref.make<ReadonlyArray<Call>>([]);
     const heard = yield* Ref.make<ReadonlyArray<Heard>>([]);
-    const open = yield* Ref.make<Option.Option<Tracer.Span>>(Option.none());
     const exit = yield* journey.run.pipe(
       Effect.provide(
         Layer.mergeAll(
-          capxulFor(target, log, via, open),
+          capxulFor(target, log, via),
           givenFor(journey.given, { first: Sdk.TestDoor.OPERATOR, second: "runner-2" }, "examples"),
-          hearing(heard, log, open),
+          hearing(heard, log),
         ),
       ),
       Random.withSeed(journey.name),

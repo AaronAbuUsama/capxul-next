@@ -1,7 +1,7 @@
 // Runs: for each one a fresh stage, the calls, the generic checks, a run record, and the stage's destruction. Nothing
 // here knows any operation or any scenario by name.
 import { operations, PLATFORM_PATH, servedBy, type OperationName } from "@capxul/blueprint";
-import { Capxul, type ExpectationFailed, type Failure, type StepOutline } from "@capxul/scenarios";
+import { Capxul, type ExpectationFailed, type Failure, type Journey, type StepOutline } from "@capxul/scenarios";
 import * as Sdk from "@capxul/sdk";
 import * as Arr from "effect/Array";
 import * as DateTime from "effect/DateTime";
@@ -9,6 +9,7 @@ import * as Random from "effect/Random";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
+import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
 import type * as Redacted from "effect/Redacted";
@@ -20,10 +21,10 @@ import { checkCall, failuresOf, type CheckedCall } from "./checks/checks.ts";
 import { withPaths } from "./checks/paths.ts";
 import { capxulFor, type Call, type Target, type Via } from "./client.ts";
 import { describe, endedOf, RunnerFailure } from "./failure.ts";
+import { givenFor, type Handing } from "./given.ts";
 import { writeRecord, type Coverage, type RunRecord } from "./record.ts";
-import { failedStepOf, stepsOf, type Heard, type StepRecord } from "./steps.ts";
+import { failedStepOf, hearing, stepsOf, type Heard, type StepRecord } from "./steps.ts";
 import type { Settings } from "./settings.ts";
-import { RUN_SPANS } from "./timings.ts";
 import { telemetryOf } from "./world/database.ts";
 import { isEmpty } from "./world/leftovers.ts";
 import { OtherWorlds } from "./world/existing.ts";
@@ -80,13 +81,9 @@ export const use = (plan: Plan, settings: Settings) => (stage: Stage) =>
       warmUntil: stage.warmUntil,
       every: settings.probeEvery,
     };
-    const [runTook, run] = yield* plan
-      .calls(target, log, heard)
-      .pipe(Effect.withSpan(RUN_SPANS.journeyCalls), Effect.exit, Effect.timed);
+    const [runTook, run] = yield* plan.calls(target, log, heard).pipe(Effect.exit, Effect.timed);
     const calls = yield* Ref.get(log);
-    const [checksTook, kept] = yield* Effect.timed(
-      keptFor(Option.some(stage.database), calls).pipe(Effect.withSpan(RUN_SPANS.journeyChecks)),
-    );
+    const [checksTook, kept] = yield* Effect.timed(keptFor(Option.some(stage.database), calls));
     const paths = withPaths(
       calls,
       kept,
@@ -235,7 +232,7 @@ export const runPlan = (plan: Plan, settings: Settings) =>
         writeRecord(settings.records, recordOf(plan, startedAt, progress)).pipe(Effect.orDie, Effect.asVoid),
     );
     return recordOf(plan, startedAt, lifecycle);
-  }).pipe(Effect.withSpan(RUN_SPANS.run, { attributes: { run: plan.name } }));
+  }).pipe(Effect.withSpan("runner.run", { attributes: { run: plan.name } }));
 
 /**
  * The door: every blueprint operation called once, as the world's owner, with its first declared example. It passes
@@ -276,3 +273,28 @@ export const door: Plan = {
       capxulFor(target, log),
     ),
 };
+
+/**
+ * A registered journey as a run: its `Capxul` is the stage's Core, through the recording client, its `Given` the
+ * facts the runner has of its starting world (given.ts), and its `Steps` the runner's ear (steps.ts).
+ */
+export const journeyPlan =
+  (settings: Settings, handing: Handing) =>
+  (journey: Journey): Plan => ({
+    kind: "journey",
+    name: journey.name,
+    proves: null,
+    given: journey.given.name,
+    via: settings.via,
+    outline: journey.outline,
+    calls: (target, log, heard) =>
+      // oxlint-disable-next-line effecttsgo/strict-effect-provide -- each journey is its own program, handed its own stage's client, facts and ear
+      Effect.provide(
+        journey.run,
+        Layer.mergeAll(
+          capxulFor(target, log, settings.via),
+          givenFor(journey.given, { first: settings.owner, second: settings.secondOwner }, handing),
+          hearing(heard, log),
+        ),
+      ),
+  });

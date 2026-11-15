@@ -41,37 +41,33 @@ export const outcomeOf = (exit: Exit.Exit<unknown, unknown>): SpanOutcome => {
   return Cause.hasFails(exit.cause) ? "failure" : "interrupted";
 };
 
-/** What `keep` is handed of a span that has just ended. */
-const keptOf = (span: Tracer.Span, endTime: bigint, exit: Exit.Exit<unknown, unknown>): KeptSpan => ({
-  traceId: span.traceId,
-  spanId: span.spanId,
-  parentSpanId: Option.getOrNull(Option.map(span.parent, (parent) => parent.spanId)),
-  name: span.name,
-  outcome: outcomeOf(exit),
-  durationMs: Number(endTime - span.status.startTime) / 1_000_000,
-  endedMs: Number(endTime / 1_000_000n),
-  attributes: declaredOf(span.attributes),
-  roundTrip: isPostgresRoundTrip(span.kind, span.attributes),
-});
+/** Effect's own span, which also hands itself to `keep` the moment it ends. */
+class KeepingSpan extends Tracer.NativeSpan {
+  readonly keep: (span: KeptSpan) => void;
+  constructor(options: ConstructorParameters<typeof Tracer.NativeSpan>[0], keep: (span: KeptSpan) => void) {
+    super(options);
+    this.keep = keep;
+  }
+  override end(endTime: bigint, exit: Exit.Exit<unknown, unknown>): void {
+    if (this.status._tag === "Ended") return;
+    super.end(endTime, exit);
+    this.keep({
+      traceId: this.traceId,
+      spanId: this.spanId,
+      parentSpanId: Option.getOrNull(Option.map(this.parent, (parent) => parent.spanId)),
+      name: this.name,
+      outcome: outcomeOf(exit),
+      durationMs: Number(endTime - this.startTime) / 1_000_000,
+      endedMs: Number(endTime / 1_000_000n),
+      attributes: declaredOf(this.attributes),
+      roundTrip: isPostgresRoundTrip(this.kind, this.attributes),
+    });
+  }
+}
 
-/**
- * A tracer that keeps every span it ends, and makes each one with `outer`, the tracer already in place: Effect's own,
- * or the OTLP exporter where one is provided (roadmap 4.4), so a kept span is exported as well. One per call, so one
- * call's spans never mix with another's.
- */
-export const keepingTracer = (keep: (span: KeptSpan) => void, outer: Tracer.Tracer): Tracer.Tracer =>
-  Tracer.make({
-    span: (options) => {
-      const span = outer.span(options);
-      const end = span.end.bind(span);
-      span.end = (endTime, exit) => {
-        if (span.status._tag === "Ended") return;
-        end(endTime, exit);
-        keep(keptOf(span, endTime, exit));
-      };
-      return span;
-    },
-  });
+/** A tracer that keeps every span it ends. One per call, so one call's spans never mix with another's. */
+export const keepingTracer = (keep: (span: KeptSpan) => void): Tracer.Tracer =>
+  Tracer.make({ span: (options) => new KeepingSpan(options, keep) });
 
 /** True inside a call whose span is already open. */
 const Measuring = Context.Reference<boolean>("capxul/core/Measuring", { defaultValue: () => false });
@@ -105,7 +101,6 @@ export const measured = Effect.fnUntraced(function* <A, E, R>(
 ) {
   if (yield* Measuring) return yield* withCurrentCall(options, effect);
   const kept: Array<KeptSpan> = [];
-  const outer = yield* Effect.tracer;
   const caller = HttpTraceContext.w3c(options.headers);
   const annotate = (span: Tracer.Span) =>
     Effect.sync(() => {
@@ -124,7 +119,7 @@ export const measured = Effect.fnUntraced(function* <A, E, R>(
         Effect.provideService(Measuring, true),
         Effect.ensuring(annotate(span)),
       ),
-  ).pipe(Effect.withTracer(keepingTracer((span) => kept.push(span), outer)), Effect.exit);
+  ).pipe(Effect.withTracer(keepingTracer((span) => kept.push(span))), Effect.exit);
   yield* Arr.match(kept, { onEmpty: () => Effect.void, onNonEmpty: sink.keep });
   return yield* exit;
 });

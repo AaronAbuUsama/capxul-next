@@ -31,15 +31,6 @@ const Warped = Schema.Struct({ site: Schema.String, stops: Schema.Int, jobs: Sch
  */
 export const WARP_STEP_MS = 14 * 24 * 3600 * 1000;
 
-const DAY_MS = 24 * 3600 * 1000;
-
-/** The spans of a warp's parts, beneath the operation's own: each stretch, the chain's block, Core's clock. */
-export const WARP_SPANS = {
-  stretch: "world.clock.warp.stretch",
-  chain: "world.clock.warp.chain",
-  clock: "world.clock.warp.clock",
-} as const;
-
 /** The stretches a warp from `fromMs` to `toMs` is made in: one after another, each at most WARP_STEP_MS. */
 export const warpSteps = (fromMs: number, toMs: number): ReadonlyArray<readonly [number, number]> =>
   Arr.map(Arr.range(0, Math.max(0, Math.ceil((toMs - fromMs) / WARP_STEP_MS) - 1)), (step) => [
@@ -65,35 +56,19 @@ export const clockWarp = (payload: { readonly target: Target }) =>
     // Every site through one stretch, then the next (warpSteps); the world's clock on the bench is written once, by
     // the last site at the end of the last stretch.
     const steps = warpSteps(before.nowMs, asked);
-    // Each stretch is a span of its own, carrying the days it covers and what the sites did in it, so a long warp's
-    // time is explained by its stretches and their site calls (sites.ts) rather than by one opaque span.
     const followed = yield* Effect.forEach(steps, ([from, to], step) =>
-      Effect.gen(function* () {
-        const answers = yield* sites.everySite("warp", (index, count) => ({
-          from_ms: from,
-          to_ms: to,
-          frozen: before.mode === "frozen",
-          write: step === steps.length - 1 && index === count - 1,
-        }));
-        const warped = yield* Effect.forEach(answers, (answer) =>
-          Schema.decodeUnknownEffect(Warped)(answer).pipe(Effect.orDie),
-        );
-        yield* Effect.annotateCurrentSpan({
-          sites: warped.length,
-          stops: Arr.reduce(warped, 0, (sum, each) => sum + each.stops),
-          jobs: Arr.reduce(warped, 0, (sum, each) => sum + each.jobs),
-        });
-        return answers;
-      }).pipe(
-        Effect.withSpan(WARP_SPANS.stretch, {
-          attributes: { stretch: step + 1, of: steps.length, days: (to - from) / DAY_MS },
-        }),
-      ),
+      sites.everySite("warp", (index, count) => ({
+        from_ms: from,
+        to_ms: to,
+        frozen: before.mode === "frozen",
+        write: step === steps.length - 1 && index === count - 1,
+      })),
     );
-    yield* Effect.flatMap(Effect.service(ChainTime), (chain) => chain.mineAt(Math.ceil(asked / 1000))).pipe(
-      Effect.withSpan(WARP_SPANS.chain),
+    yield* Effect.forEach(Arr.flatten(followed), (answer) =>
+      Schema.decodeUnknownEffect(Warped)(answer).pipe(Effect.orDie),
     );
-    const after = yield* clock.moveTo(asked).pipe(Effect.withSpan(WARP_SPANS.clock));
+    yield* Effect.flatMap(Effect.service(ChainTime), (chain) => chain.mineAt(Math.ceil(asked / 1000)));
+    const after = yield* clock.moveTo(asked);
     const success = {
       from: instantOf(before.nowMs),
       clock: { mode: after.mode, now: instantOf(after.nowMs) },

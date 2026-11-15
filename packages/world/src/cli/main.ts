@@ -13,10 +13,11 @@ import * as Layer from "effect/Layer";
 import * as Tracer from "effect/Tracer";
 import { appendFileSync } from "node:fs";
 import * as Command from "effect/cli/Command";
-import { exportLayer, PRODUCERS } from "@capxul/platform";
+import { exportFromConfig } from "@capxul/platform";
 import { Report, world } from "./commands.ts";
 import { asJsonText } from "../common/record.ts";
 import { SharedState } from "../stack/engine.ts";
+import { worldTelemetry } from "../common/telemetry.ts";
 
 const ToStandardError = Layer.succeed(Console.Console, {
   ...globalThis.console,
@@ -80,6 +81,6 @@ Command.run(world, { version: "0.0.0" }).pipe(
   spansFile === undefined ? (effect) => effect : Effect.provide(SpansToFile),
   // OTLP export, as OpenTelemetry's standard settings ask (packages/platform, src/telemetry.ts); outermost, so every
   // span of the command, the file's included, goes through it, and it is flushed when the command ends.
-  Effect.provide(exportLayer(PRODUCERS.world)),
+  Effect.provide(exportFromConfig(worldTelemetry)),
   BunRuntime.runMain({ disableErrorReporting: true }),
 );

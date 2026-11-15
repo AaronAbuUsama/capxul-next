@@ -71,8 +71,8 @@ export const bundlerStatus = (world: Reach) =>
 const EntryPoints = Schema.Array(Schema.String);
 
 /** The bundler's own answer to eth_supportedEntryPoints: it must name the seeded EntryPoint. */
-export const servesEntryPoint = Effect.fn("world.bundler.servesEntryPoint")(function* (world: Reach) {
-  return yield* bundlerCall(world, "eth_supportedEntryPoints").pipe(
+export const servesEntryPoint = (world: Reach) =>
+  bundlerCall(world, "eth_supportedEntryPoints").pipe(
     Effect.flatMap(Schema.decodeUnknownEffect(EntryPoints)),
     Effect.mapError(asCallFailed),
     Effect.filterOrFail(
@@ -80,15 +80,13 @@ export const servesEntryPoint = Effect.fn("world.bundler.servesEntryPoint")(func
       (served) => callFailed(`the bundler serves [${Arr.join(served, ", ")}], not ${ENTRY_POINT}`),
     ),
   );
-});
 
 /**
  * Waits until the bundler serves the EntryPoint. The first call starts alto; a new container application can refuse
  * the start for a while, which the bundler's Durable Object waits out, so a call that fails is made again.
  */
-export const bundlerAnswers = Effect.fn("world.bundler.answers")(function* (world: Reach) {
-  return yield* servesEntryPoint(world).pipe(
+export const bundlerAnswers = (world: Reach) =>
+  servesEntryPoint(world).pipe(
     Effect.tapError((error) => Effect.logDebug(`bundler not ready: ${describeFailure(error)}`)),
     Effect.retry(Schedule.spaced("2 seconds")),
   );
-});

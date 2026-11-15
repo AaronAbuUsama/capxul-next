@@ -16,26 +16,20 @@ const Reset = Schema.Struct({
 });
 
 /** Rewinds the world's chain, in place, to the state a snapshot saved; the bundler is stopped with it. */
-export const resetChain = Effect.fn("world.chain.reset")(function* (world: Door, snapshot: string) {
-  return yield* doorCall(world, "chain", HttpClientRequest.post(`/chain/reset/${snapshot}`), Reset);
-});
+export const resetChain = (world: Door, snapshot: string) =>
+  doorCall(world, "chain", HttpClientRequest.post(`/chain/reset/${snapshot}`), Reset);
 
 /**
  * Mines the world's chain's next block at the world's time: `worldMs` as read at host time `atHostMs`, which the
  * chain's object brings to now next to anvil (src/parts/chain/calls.ts, `mineAt`); a frozen clock's (`atHostMs` null) as it is.
  */
-export const mineAtWorld = Effect.fn("world.chain.mineAt")(function* (
-  world: Door,
-  worldMs: number,
-  atHostMs: number | null,
-) {
-  return yield* doorCall(
+export const mineAtWorld = (world: Door, worldMs: number, atHostMs: number | null) =>
+  doorCall(
     world,
     "chain",
     HttpClientRequest.post("/chain/mine-at").pipe(HttpClientRequest.bodyJsonUnsafe({ worldMs, atHostMs })),
     Schema.Struct({ minedAt: Schema.Finite }),
   );
-});
 
 /** The chain's time, in whole seconds, and the host time it was read at, both read next to anvil. */
 export const chainTime = (world: Door) =>
@@ -47,11 +41,9 @@ export const chainTime = (world: Door) =>
   );
 
 /** Stops Ponder with SIGTERM, so it lets go of its schema lock (src/parts/containers/stop.ts). */
-export const stopIndex = Effect.fn("world.index.stop")(function* (world: Door) {
-  return yield* doorCall(world, "index", HttpClientRequest.post("/index/stop"), Schema.Unknown).pipe(Effect.asVoid);
-});
+export const stopIndex = (world: Door) =>
+  doorCall(world, "index", HttpClientRequest.post("/index/stop"), Schema.Unknown).pipe(Effect.asVoid);
 
 /** Starts Ponder again as it was last started, and does not wait for it. */
-export const resumeIndex = Effect.fn("world.index.resume")(function* (world: Door) {
-  return yield* doorCall(world, "index", HttpClientRequest.post("/index/resume"), Schema.Unknown).pipe(Effect.asVoid);
-});
+export const resumeIndex = (world: Door) =>
+  doorCall(world, "index", HttpClientRequest.post("/index/resume"), Schema.Unknown).pipe(Effect.asVoid);

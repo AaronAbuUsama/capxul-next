@@ -25,7 +25,7 @@ import * as Schema from "effect/Schema";
 import * as HttpClient from "effect/http/HttpClient";
 import { RpcClientError } from "effect/rpc/RpcClientError";
 import { describe } from "./failure.ts";
-import type { OpenStep } from "./steps.ts";
+import { OpenStep } from "./steps.ts";
 import { resendingWhileWarm } from "./world/warmup.ts";
 
 /**
@@ -116,12 +116,12 @@ const recording = (
   chain: CapxulClient["chain"],
   log: Ref.Ref<ReadonlyArray<Call>>,
   resent: Ref.Ref<number>,
-  open: OpenStep | undefined,
 ): CapxulClient => {
   const each = (name: OperationName) => (payload: unknown, options?: CallOptions) =>
     Effect.gen(function* () {
       // The call is a trace of its own, so Core's spans join it by `traceparent`; it is linked to the journey's step.
-      const step = open === undefined ? Option.none() : yield* Ref.get(open);
+      const open = yield* Effect.serviceOption(OpenStep);
+      const step = Option.isSome(open) ? yield* Ref.get(open.value) : Option.none();
       return yield* Effect.withSpan(sent(name, payload, options), `runner.call ${name}`, {
         root: true,
         links: Option.isSome(step) ? [{ span: step.value, attributes: {} }] : [],
@@ -185,7 +185,6 @@ export const capxulFor = (
   target: Target,
   log: Ref.Ref<ReadonlyArray<Call>>,
   via: Via = "sdk",
-  open?: OpenStep,
 ): Layer.Layer<Capxul, never, HttpClient.HttpClient> =>
   Layer.unwrap(
     Effect.gen(function* () {
@@ -199,7 +198,7 @@ export const capxulFor = (
           : (name, payload, options) => Sdk.callByName(client, name, payload, options);
       return Layer.effect(
         Capxul,
-        Effect.map(Effect.service(Capxul), (client) => recording(sendOf(client), client.chain, log, resent, open)),
+        Effect.map(Effect.service(Capxul), (client) => recording(sendOf(client), client.chain, log, resent)),
       ).pipe(Layer.provide(Sdk.layer(Capxul)), Layer.provide(doors(target, http)));
     }),
   );
