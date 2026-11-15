@@ -26,7 +26,9 @@ A run exits 1 when it did not end as it expected or left something behind. `run.
 settings; each setting, with its default, is in [`src/settings.ts`](src/settings.ts). In an agent's container the
 session's network proxy adds the Cloudflare and Neon keys; `run.sh` makes fresh endpoint tokens for the run and never
 prints them. CI runs `scenarios` in `.github/workflows/world.yml`, and `shared` then `scenarios --shared` after each
-deploy of the sites in `.github/workflows/platform.yml`.
+deploy of the sites in `.github/workflows/platform.yml`. In CI the run leaves its one world and its own hub to the
+job `teardown` (`RUNNER_TEARDOWN=job`), so the check reports its verdict first; that job destroys them and re-reads
+the accounts.
 
 Each mode is described at the top of its module:
 

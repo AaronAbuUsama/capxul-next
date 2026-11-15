@@ -55,3 +55,22 @@ export class Given extends Context.Service<
   Given,
   { readonly world: StartingWorld; readonly facts: Effect.Effect<unknown> }
 >()("@capxul/scenarios/client/Given") {}
+
+/**
+ * Where a try hears the trace id of the call it makes. The client that keeps every call (the runner's) tells it, when a
+ * try provides it, the trace id each operation call ran under: the trace the API writes the call's history entries,
+ * spans and logs under. A client that does not leaves the try without one, and its checks judge as before (`ThisCall`).
+ */
+export class CallTraces extends Context.Service<
+  CallTraces,
+  { readonly heard: (trace: string) => Effect.Effect<void> }
+>()("@capxul/scenarios/client/CallTraces") {}
+
+/**
+ * The call an operation's check judges: its trace id, as the client told the try, or null when it did not. A check
+ * judges what this call caused by it (`support/world.ts`, `entriesOfCall`), so calls of other journeys made at the
+ * same time in the same world are not its business.
+ */
+export class ThisCall extends Context.Service<ThisCall, { readonly trace: string | null }>()(
+  "@capxul/scenarios/client/ThisCall",
+) {}

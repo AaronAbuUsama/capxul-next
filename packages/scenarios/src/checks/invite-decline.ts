@@ -29,7 +29,7 @@ export const invitationDecline = checks<"invitation.decline", Answering>({
       "the record gains one invitation_declined, carrying only invitation and org",
       recordedOnly("invitation_declined", { invitation: declined.id, org: declined.org }, before.head, before.where),
     ),
-    check("nothing is written to the chain", chainUntouched(before.world, before.where, before.chain)),
+    check("nothing is written to the chain", chainUntouched(before.world, before.where, before.chain, declined.org)),
     check(
       "the caller does not belong to the company",
       Effect.gen(function* () {

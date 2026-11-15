@@ -8,7 +8,7 @@ import { expect } from "../expectation.ts";
 import { usdc } from "../support/chain.ts";
 import { present, same } from "../support/expect.ts";
 import {
-  entriesAfter,
+  entriesOfCall,
   operatorName,
   ownerOf,
   personalSafes,
@@ -76,7 +76,7 @@ export const worldSnapshotSave = checks<"world.snapshot.save", Option.Option<Sav
       "the record gains one entry, snapshot_saved, carrying what the save answered",
       Effect.gen(function* () {
         const it = yield* existed(was);
-        const added = yield* entriesAfter(it.head, it.owner);
+        const added = yield* entriesOfCall(it.head, it.owner);
         yield* same(
           "the entries the save added",
           Arr.map(added, (entry) => [entry.event, entry.carried]),

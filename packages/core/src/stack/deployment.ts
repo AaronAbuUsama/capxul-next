@@ -14,6 +14,12 @@ export interface Deployment {
   readonly database: Cloudflare.Hyperdrive.Connection;
   /** Values for the names of src/env.ts: text, `Redacted` (bound as secrets), Alchemy outputs, or a Worker (a service binding). */
   readonly env: Readonly<Record<string, unknown>>;
+  /**
+   * Core's bundle when the deployer built it already: the path of its entry module, uploaded as it is, with the
+   * modules beside it (`bundle: false`). packages/world builds Core once per process and gives each world its own
+   * copy (src/parts/api/bundle.ts there); none, and Alchemy builds Core in the deploy, otherwise.
+   */
+  readonly prebuilt: Option.Option<string>;
 }
 
 export const CoreDeployment = Context.Reference<Option.Option<Deployment>>("@capxul/core/stack/CoreDeployment", {
@@ -42,5 +48,6 @@ export const ownDeployment = Effect.gen(function* () {
       ...(Option.isSome(handlers) ? { [ENV.handlers]: handlers.value } : {}),
       ...(Option.isSome(tap) ? { [ENV.tap]: tap.value } : {}),
     },
+    prebuilt: Option.none(),
   } satisfies Deployment;
 });

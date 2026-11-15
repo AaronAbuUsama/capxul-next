@@ -13,7 +13,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 - [`doc-submit.ts`](../src/checks/doc-submit.ts): The checks of every doc.submit (claims.md, doc.submit 1 to 4, doc.create 4): an ordinary document posts, and the General Ledger shows its lines, which balance; a payment from the company Safe is held, not posted, for its signer (the caller, at their own signer address), carrying the hash doc.create gave the document; a document that is not a draft, and a payment of more than the Safe holds, are refused, and nothing is held or recorded.
 - [`format.ts`](../src/checks/format.ts): The format of an operation's checks.
 - [`invite-accept.ts`](../src/checks/invite-accept.ts): The checks of every invitation.accept (claims.md of people, invitation.accept 1 to 3): the caller's pending invitation is accepted and the caller is a member at once, as a member, under the email they sign in with; the record gains one invitation_accepted and the chain is not written.
-- [`invite-answer.ts`](../src/checks/invite-answer.ts): What the checks of invitation.accept and invitation.decline share: what they read before the call (the caller's own invitations, and the chain's head while the clock is frozen), and the checks of their three refusals, which leave everything as it was.
+- [`invite-answer.ts`](../src/checks/invite-answer.ts): What the checks of invitation.accept and invitation.decline share: what they read before the call (the caller's own invitations, and the chain's latest block), and the checks of their three refusals, which leave everything as it was.
 - [`invite-decline.ts`](../src/checks/invite-decline.ts): The checks of every invitation.decline (claims.md of people, invitation.decline 1 and 2): the caller's pending invitation is declined and they do not join; the record gains one invitation_declined, carrying neither who declined nor the email, and the chain is not written.
 - [`invite-list.ts`](../src/checks/invite-list.ts): The checks of every invitation.list (claims.md of people, invitation.list 1): every invitation it answers was sent to the caller's own email, each once, oldest first, and reading them records nothing.
 - [`org-budget-create.ts`](../src/checks/org-budget-create.ts): The checks of every org.budget.create (claims.md of budgets, org.budget.create 1 and 3 to 6): a creation is a Directors' proposal of the budget asked, in its parent's asset and period and within what its parent has left on the chain, with one approval per Director at their own signer address; the record gains one budget_proposed carrying neither the holder, the name nor the amount, then its proposal_opened; nothing reaches the chain.
@@ -66,11 +66,12 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 ## `src/journeys/`
 
 - [`books.ts`](../src/journeys/books.ts): What the journeys read of a company's books and chain to observe what a step did: the company Safe's ledger lines and closing balance, what is outstanding on an invoice, a world's state as one value to compare before and after.
+- [`branch-the-books.ts`](../src/journeys/branch-the-books.ts): Journey: branch the books of a held payment.
 - [`budget-sam.ts`](../src/journeys/budget-sam.ts): Journey: give sam a budget at Northwind.
 - [`found-northwind.ts`](../src/journeys/found-northwind.ts): Journey 2: found Northwind and give sam the books.
 - [`invite-olga.ts`](../src/journeys/invite-olga.ts): Journey: invite olga to Northwind.
 - [`no-going-back.ts`](../src/journeys/no-going-back.ts): Journey: no going back on an accepted invitation.
-- [`pay-and-branch.ts`](../src/journeys/pay-and-branch.ts): Journey 3: pay Brightside and branch the books.
+- [`pay-brightside.ts`](../src/journeys/pay-brightside.ts): Journey: pay Brightside.
 - [`seat-sam.ts`](../src/journeys/seat-sam.ts): Journey: seat sam on Northwind's Board.
 - [`signatures.ts`](../src/journeys/signatures.ts): How the journeys sign: each signer signs an approval's digest with their own key (support/signing.ts), and a Directors' proposal is signed by dana, whose signature is kept, then by eli, whose signature sends it.
 - [`two-operators.ts`](../src/journeys/two-operators.ts): Journey 1: two operators and their worlds.
@@ -85,6 +86,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 - [`founding.ts`](../src/support/founding.ts): Founding Northwind as the starting world `founded` describes it: dana founds it with eli as a Director, threshold 2, members sam and pat, and 1,000 USDC of her capital.
 - [`hats.ts`](../src/support/hats.ts): The officer hat a grant's execution minted: read from the transaction its last signature sent, through the door a look at that world goes.
 - [`inventory.ts`](../src/support/inventory.ts): Reading what an operator has on the platform: their worlds and a world's snapshots, as looks.
+- [`names.ts`](../src/support/names.ts): The names the blueprint declares, as a journey writes them: `named["doc.create"]`, `named["InsufficientBalance"]`, `named["Held"]`.
 - [`people.ts`](../src/support/people.ts): Reading who belongs to a company and the invitations sent: looks that the people operations' checks and the journey "invite olga to Northwind" share.
 - [`record.ts`](../src/support/record.ts): Reading a world's record against the blueprint: every entry names a declared event and carries exactly that event's fields, and the entries a call must have left are what its declaration computes from its payload and answer.
 - [`signing.ts`](../src/support/signing.ts): How a person of the cast signs: with their own key, never in a browser (packages/blueprint, src/things/approval/values.ts and src/common/values.ts).

@@ -1,6 +1,7 @@
 // The package's door: the journeys, how one is declared, the client it is handed and the runner's ear. The runner
 // imports this; a journey imports only the blueprint and this package's own files.
 export {
+  CallTraces,
   Capxul,
   Given,
   type CallOptions,

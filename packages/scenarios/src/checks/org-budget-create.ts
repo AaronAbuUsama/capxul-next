@@ -12,16 +12,17 @@ import { expect } from "../expectation.ts";
 import { companySafeOf, isBudgetOf, onChain, periodOf, type OnChain } from "../support/budgets.ts";
 import { isAddress } from "../support/chain.ts";
 import { amountOf, present, same, sameAddress, sameAmount } from "../support/expect.ts";
-import { chainUntouched, frozenHead } from "../support/people.ts";
-import { castMember, entriesAfter, objectOf, type Json } from "../support/world.ts";
+import { chainBlock, chainUntouched } from "../support/people.ts";
+import { castMember, entriesOfCall, objectOf, type Json } from "../support/world.ts";
 import { callerOf, nothingRecorded, worldBefore, type Before } from "./common.ts";
 import { check, checks, type Asked, type Check } from "./format.ts";
 
 type Asking = Asked<"org.budget.create">;
 
-/** What a creation reads first: the world, the chain's head while the clock is frozen, and the parent on the chain. */
+/** What a creation reads first: the world, the company asked, the chain's latest block, and the parent on the chain. */
 interface Read extends Before {
-  readonly chainHead: number | null;
+  readonly org: string;
+  readonly chainHead: number;
   readonly parent: OnChain | null;
 }
 
@@ -31,7 +32,7 @@ const refusedFor = (before: Read, also: ReadonlyArray<Check>): ReadonlyArray<Che
   nothingRecorded("the refused creation", before),
   check(
     "the refused creation leaves the chain as it was",
-    chainUntouched(before.world, before.where, before.chainHead),
+    chainUntouched(before.world, before.where, before.chainHead, before.org),
   ),
 ];
 
@@ -50,7 +51,8 @@ export const orgBudgetCreate = checks<"org.budget.create", Read>({
       const before = yield* worldBefore(asked.options);
       return {
         ...before,
-        chainHead: yield* frozenHead(before.world, before.where),
+        org: asked.payload.org,
+        chainHead: yield* chainBlock(before.where),
         parent: yield* onChain(before.world, asked.payload.parent, before.where),
       };
     }),
@@ -108,7 +110,7 @@ export const orgBudgetCreate = checks<"org.budget.create", Read>({
     check(
       "the record gains one budget_proposed carrying only creation, org, parent and proposal, then its proposal_opened",
       Effect.gen(function* () {
-        const added = yield* entriesAfter(before.head, before.where);
+        const added = yield* entriesOfCall(before.head, before.where);
         yield* same(
           "the events the creation added",
           Arr.map(added, (each) => each.event),
@@ -132,7 +134,7 @@ export const orgBudgetCreate = checks<"org.budget.create", Read>({
     check(
       "nothing reaches the chain until the Directors sign: the parent has what it had left",
       Effect.gen(function* () {
-        yield* chainUntouched(before.world, before.where, before.chainHead);
+        yield* chainUntouched(before.world, before.where, before.chainHead, before.org);
         const parent = yield* present(`the parent ${asked.payload.parent} on the chain`, before.parent);
         const now = yield* present(
           `the parent ${asked.payload.parent} on the chain`,
