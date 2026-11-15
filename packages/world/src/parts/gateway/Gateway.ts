@@ -82,14 +82,7 @@ export default class Door extends Cloudflare.Worker<Door>()(
   Effect.gen(function* () {
     // Minted once when the hub is deployed and kept in the hub's state; bound to the Worker as a secret.
     const admin = yield* Alchemy.Random(ADMIN_TOKEN_ID, { bytes: 24 });
-    // Cloudflare's own logs and traces of the door go to the account's Axiom destinations: a second view, never
-    // read by a check.
-    const observability = {
-      enabled: true,
-      logs: { enabled: true, invocationLogs: true, destinations: ["axiom-capxul-logs"] },
-      traces: { enabled: true, destinations: ["axiom-capxul-traces"] },
-    };
-    return { main: import.meta.url, observability, env: { ADMIN_TOKEN: admin.text } };
+    return { main: import.meta.url, observability: { enabled: true }, env: { ADMIN_TOKEN: admin.text } };
   }),
   Effect.gen(function* () {
     const chains = yield* Chain;

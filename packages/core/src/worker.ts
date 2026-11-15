@@ -44,17 +44,8 @@ const connectionString = (env: Record<string, unknown>) =>
     return Redacted.make(text);
   });
 
-// The Postgres driver opens its socket through Node's `net` and `tls`. Cloudflare's own logs and traces of the
-// Worker go to the account's Axiom destinations: a second view, read by people, never by a check.
-const props = () => ({
-  main: import.meta.url,
-  compatibility: { flags: ["nodejs_compat"] },
-  observability: {
-    enabled: true,
-    logs: { enabled: true, invocationLogs: true, destinations: ["axiom-capxul-logs"] },
-    traces: { enabled: true, destinations: ["axiom-capxul-traces"] },
-  },
-});
+// The Postgres driver opens its socket through Node's `net` and `tls`.
+const props = () => ({ main: import.meta.url, compatibility: { flags: ["nodejs_compat"] } });
 
 export default class Core extends Cloudflare.Worker<Core>()(
   "Core",
