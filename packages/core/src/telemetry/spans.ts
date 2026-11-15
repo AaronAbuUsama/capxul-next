@@ -15,6 +15,7 @@ import * as HttpTraceContext from "effect/http/HttpTraceContext";
 import type * as Headers from "effect/http/Headers";
 import type * as Rpc from "effect/rpc/Rpc";
 import { CurrentCall } from "@capxul/blueprint";
+import { callAttributes, declaredOf, isPostgresRoundTrip, type SpanAttributes, type Where } from "./attributes.ts";
 import type { SpanSink } from "./sink.ts";
 
 /** How a span ended: it succeeded, failed with a typed error, died with a defect, or was interrupted. */
@@ -28,6 +29,10 @@ export interface KeptSpan {
   readonly outcome: SpanOutcome;
   readonly durationMs: number;
   readonly endedMs: number;
+  /** The declared attributes it carries (attributes.ts), or null: only a call's own span has them. */
+  readonly attributes: SpanAttributes | null;
+  /** True for a round trip of Core's Postgres driver, which the call's `db.query_ms` sums. */
+  readonly roundTrip: boolean;
 }
 
 export const outcomeOf = (exit: Exit.Exit<unknown, unknown>): SpanOutcome => {
@@ -54,6 +59,8 @@ class KeepingSpan extends Tracer.NativeSpan {
       outcome: outcomeOf(exit),
       durationMs: Number(endTime - this.startTime) / 1_000_000,
       endedMs: Number(endTime / 1_000_000n),
+      attributes: declaredOf(this.attributes),
+      roundTrip: isPostgresRoundTrip(this.kind, this.attributes),
     });
   }
 }
@@ -82,20 +89,36 @@ const withCurrentCall = <A, E, R>(options: CallOptions, effect: Effect.Effect<A,
  * under the trace id of the caller's `traceparent` header (a new trace when there is none), and hands it and every
  * span beneath it to `sink` after the call ends and before the answer leaves. A middleware inside it joins the open
  * span. A call whose spans cannot be kept dies: a call that cannot be measured does not count.
+ *
+ * Just before it ends, the call's span is given its attributes (attributes.ts): where it ran, from `placement`, and
+ * the round trips to Postgres among the spans kept beneath it by then.
  */
 export const measured = Effect.fnUntraced(function* <A, E, R>(
   sink: SpanSink["Service"],
+  placement: Where,
   options: CallOptions,
   effect: Effect.Effect<A, E, R>,
 ) {
   if (yield* Measuring) return yield* withCurrentCall(options, effect);
   const kept: Array<KeptSpan> = [];
   const caller = HttpTraceContext.w3c(options.headers);
+  const annotate = (span: Tracer.Span) =>
+    Effect.sync(() => {
+      for (const [key, value] of callAttributes(
+        placement,
+        Arr.filter(kept, (each) => each.roundTrip),
+      ))
+        span.attribute(key, value);
+    });
   const exit = yield* Effect.useSpan(
     options.rpc._tag,
     { kind: "server", root: Option.isNone(caller), parent: Option.getOrUndefined(caller) },
     (span) =>
-      withCurrentCall(options, effect).pipe(Effect.withParentSpan(span), Effect.provideService(Measuring, true)),
+      withCurrentCall(options, effect).pipe(
+        Effect.withParentSpan(span),
+        Effect.provideService(Measuring, true),
+        Effect.ensuring(annotate(span)),
+      ),
   ).pipe(Effect.withTracer(keepingTracer((span) => kept.push(span))), Effect.exit);
   yield* Arr.match(kept, { onEmpty: () => Effect.void, onNonEmpty: sink.keep });
   return yield* exit;
