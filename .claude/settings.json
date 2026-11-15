@@ -3,6 +3,8 @@
     "allow": [
       "mcp__claude-code-remote",
       "mcp__github",
+      "Artifact",
+      "ArtifactData",
       "Bash(pnpm:*)",
       "Bash(git:*)",
       "Bash(bun:*)",
