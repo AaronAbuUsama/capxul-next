@@ -71,7 +71,10 @@ export const inviteAccept = checks<"invite.accept", Answering>({
               before.where,
             ),
           ),
-          check("nothing is written to the chain", chainUntouched(before.world, before.where, before.chain)),
+          check(
+            "nothing is written to the chain",
+            chainUntouched(before.world, before.where, before.chain, answer.invitation.org),
+          ),
         ]
       : [
           check(

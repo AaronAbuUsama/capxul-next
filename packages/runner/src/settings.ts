@@ -16,12 +16,22 @@ export const Settings = Config.all({
   worldUseTimeout: Config.Duration("WORLD_SCENARIO_TIMEOUT").pipe(Config.withDefault(Duration.minutes(20))),
   /**
    * How long the fleet hub a run brings up lives (src/worlds/hub.ts): longer than the run's one world (2.5 hours) and
-   * the worlds its journeys make, which may not outlive it. The run takes it down at its end.
+   * the worlds its journeys make, which may not outlive it. The run takes it down at its end, or CI's teardown job does (`teardown`).
    */
   hubLifetime: Config.Duration("RUNNER_HUB_LIFETIME").pipe(Config.withDefault(Duration.hours(4))),
+  /**
+   * Who takes down a run in one world at its end: `run`, the run itself (the default); `job`, a later CI job (world.yml,
+   * `teardown`), so the check reports its verdict first. With `job` the run still destroys each journey's own worlds
+   * and records what it leaves (`oneWorld.handedOver`), but leaves its one world and its own hub up for that job,
+   * which destroys every world the run's operators own; each world's expiry and the hub's lifetime back it up.
+   */
+  teardown: Config.Literals(["run", "job"], "RUNNER_TEARDOWN").pipe(Config.withDefault("run")),
   destroyTimeout: Config.Duration("WORLD_DESTROY_TIMEOUT").pipe(Config.withDefault(Duration.minutes(4))),
-  /** A stage is ready after this many answers in a row from its Core (warmup.ts). */
-  readyAnswers: Config.Int("WORLD_READY_ANSWERS").pipe(Config.withDefault(20)),
+  /**
+   * A stage is ready after this many answers in a row from its Core (warmup.ts). Five since no run has ever recorded
+   * a relapse (an answer missed after the first), which the readiness record still counts (docs/design/run-time.md, 6c).
+   */
+  readyAnswers: Config.Int("WORLD_READY_ANSWERS").pipe(Config.withDefault(5)),
   /** The pause between two readiness probes, and between two sends of a call during the warm-up. */
   probeEvery: Config.Duration("WORLD_PROBE_EVERY").pipe(Config.withDefault(Duration.millis(500))),
   /** How long after a stage is ready a call that Cloudflare's edge answered (not routed yet) is sent again. */
