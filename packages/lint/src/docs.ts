@@ -38,8 +38,6 @@ export const LONG_READMES: ReadonlyArray<string> = [
   "packages/core/README.md",
   "packages/frappe-app/README.md",
   "packages/platform/README.md",
-  "packages/runner/README.md",
-  "packages/scenarios/README.md",
   "packages/sdk/README.md",
   "packages/world/README.md",
   "packages/world/records/spike-bundler/README.md",
