@@ -3,7 +3,10 @@
 // over the door's chain JSON-RPC (`CHAIN_PATH`, read-only methods only), so a claim reads the chain itself, never a
 // copy of it that Core keeps. Every address a read takes comes from the world's view (`WorldView.contracts`), from
 // an operation's answer or from a log. A read that gets no answer is a defect, as an unanswered call is.
+import { Abi } from "@capxul/contracts";
+import * as Arr from "effect/Array";
 import type * as Effect from "effect/Effect";
+import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import type { CallOptions } from "../telemetry.ts";
 import { Address, Amount, Hash, HatId, Instant, Uint } from "../values.ts";
@@ -12,22 +15,32 @@ import { Log, LogName } from "./logs.ts";
 /** The block a read reads at: a block number, or null for the latest. */
 const Block = Schema.NullOr(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)));
 
-/** The contract functions the reads call, by their Solidity signatures, as the contracts declare them. */
-export const FUNCTION_SIGNATURES = {
-  balanceOf: "function balanceOf(address holder) view returns (uint256)",
-  decimals: "function decimals() view returns (uint8)",
-  getOwners: "function getOwners() view returns (address[])",
-  getThreshold: "function getThreshold() view returns (uint256)",
-  nonce: "function nonce() view returns (uint256)",
-  viewHat:
-    "function viewHat(uint256 hatId) view returns (string details, uint32 maxSupply, uint32 supply, address eligibility, address toggle, string imageURI, uint16 lastHatId, bool mutable_, bool active)",
-  isWearerOfHat: "function isWearerOfHat(address user, uint256 hatId) view returns (bool)",
-  companySafeAddressFor:
-    "function companySafeAddressFor(address owner, string namespace, string company, address founderSafe) pure returns (address)",
-  budgetOf:
-    "function budgetOf(uint256 id) view returns ((address safe, uint256 parent, uint256 hat, address token, uint8 period, uint8 depth, bool closed, uint128 amount, uint128 childrenAmount, uint128 ownSpent, uint128 ownCommitted, uint128 spent, uint128 committed, uint64 periodIndex) b)",
-  leftOf: "function leftOf(uint256 id) view returns (uint128)",
-  childrenOf: "function childrenOf(uint256 id) view returns (uint256[])",
+type AbiItem = { readonly type: string; readonly name?: string };
+
+/** The function `name` of `abi`. A read whose function the ABI lacks is a defect of this file, found when it is loaded. */
+const functionOf = <const A extends ReadonlyArray<AbiItem>, const Name extends string>(abi: A, name: Name) =>
+  Option.getOrThrowWith(
+    Arr.findFirst(
+      abi,
+      (item): item is Extract<A[number], { readonly type: "function"; readonly name: Name }> =>
+        item.type === "function" && item.name === name,
+    ),
+    () => new Error(`no function ${name} in its contract's ABI`),
+  );
+
+/** The contract functions the reads call, as the compiled ABIs declare them (`@capxul/contracts`, roadmap step 3.1). */
+export const FUNCTIONS = {
+  balanceOf: functionOf(Abi.IERC20Metadata, "balanceOf"),
+  decimals: functionOf(Abi.IERC20Metadata, "decimals"),
+  getOwners: functionOf(Abi.ISafe, "getOwners"),
+  getThreshold: functionOf(Abi.ISafeState, "getThreshold"),
+  nonce: functionOf(Abi.ISafeState, "nonce"),
+  viewHat: functionOf(Abi.IHats, "viewHat"),
+  isWearerOfHat: functionOf(Abi.IHats, "isWearerOfHat"),
+  companySafeAddressFor: functionOf(Abi.CompanySafeMinter, "companySafeAddressFor"),
+  budgetOf: functionOf(Abi.Budgets, "budgetOf"),
+  leftOf: functionOf(Abi.Budgets, "leftOf"),
+  childrenOf: functionOf(Abi.Budgets, "childrenOf"),
 } as const;
 
 export interface Read<P extends Schema.Struct.Fields, A extends Schema.Codec<unknown, unknown>> {

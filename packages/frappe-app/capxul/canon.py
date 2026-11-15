@@ -18,6 +18,7 @@ import json
 import frappe
 from frappe.utils import flt, getdate
 
+from capxul.generated.site import WALLET_ADDRESS_FIELD
 from capxul.keccak import hex_hash
 
 CANON_VERSION = 1
@@ -29,7 +30,7 @@ def money(v):
 
 def to_address_for(doc):
     if doc.party_type in ("Supplier", "Employee", "Customer") and doc.party:
-        return frappe.db.get_value(doc.party_type, doc.party, "capxul_wallet_address") or ""
+        return frappe.db.get_value(doc.party_type, doc.party, WALLET_ADDRESS_FIELD) or ""
     return ""
 
 
