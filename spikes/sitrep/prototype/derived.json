@@ -3,12 +3,12 @@
   {
    "id": "roadmap",
    "name": "The roadmap and master's history",
-   "read": "2026-11-15T19:45:33Z"
+   "read": "2026-11-15T20:10:11Z"
   },
   {
    "id": "github",
    "name": "GitHub Actions",
-   "read": "2026-11-15T19:53:00Z"
+   "read": "2026-11-15T20:22:52Z"
   },
   {
    "id": "conductor",
@@ -19,9 +19,9 @@
  "health": {
   "master": {
    "state": "green",
-   "label": "5e9b019",
-   "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43754107690",
-   "at": "2026-11-15T19:46:53Z"
+   "label": "a1aa96c",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43756426573",
+   "at": "2026-11-15T20:11:36Z"
   },
   "runs": [
    {
@@ -191,6 +191,26 @@
  ],
  "landed": [
   {
+   "at": "2026-11-15T20:09:11Z",
+   "title": "Roadmap",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/355"
+  },
+  {
+   "at": "2026-11-15T20:05:43Z",
+   "title": "slice/placement",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/320"
+  },
+  {
+   "at": "2026-11-15T20:01:33Z",
+   "title": "slice/blueprint",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/356"
+  },
+  {
+   "at": "2026-11-15T19:48:31Z",
+   "title": "Full runs paused until the run is fast",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/338"
+  },
+  {
    "at": "2026-11-15T19:44:33Z",
    "title": "slice/blueprint",
    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/319"
@@ -209,26 +229,6 @@
    "at": "2026-11-15T17:38:27Z",
    "title": "slice/blueprint",
    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/295"
-  },
-  {
-   "at": "2026-11-15T16:47:42Z",
-   "title": "design",
-   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/306"
-  },
-  {
-   "at": "2026-11-15T16:46:15Z",
-   "title": "docs",
-   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/311"
-  },
-  {
-   "at": "2026-11-15T16:41:54Z",
-   "title": "docs",
-   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/307"
-  },
-  {
-   "at": "2026-11-15T16:33:22Z",
-   "title": "Conductor stays in the cloud",
-   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/310"
   }
  ],
  "measures": {
@@ -388,11 +388,15 @@
     "name": "Old words",
     "holds": "The glossary's old words still written as names in code, counted per word in generated/old-words.json; its count is their total.",
     "closes": "3.8",
-    "count": 7629,
+    "count": 7604,
     "series": [
      {
       "at": "2026-11-15T19:44:33Z",
       "count": 7629
+     },
+     {
+      "at": "2026-11-15T20:01:33Z",
+      "count": 7604
      }
     ]
    }

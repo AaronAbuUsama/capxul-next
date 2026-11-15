@@ -1,5 +1,5 @@
 {
- "at": "2026-11-15T19:45:33Z",
+ "at": "2026-11-15T20:10:11Z",
  "plan": {
   "id": "rebuild",
   "state": "agreed",
@@ -258,9 +258,9 @@
    "fields": {
     "plan": "rebuild",
     "title": "Foundations core",
-    "goal": "One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry, the coverage gate (decisions of 15 November 2026)",
+    "goal": "One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)",
     "why": "Everything later is declared in the blueprint first, so the blueprint and its checks must exist before any feature goes through it.",
-    "doneWhen": "Steps 3.1 to 3.11 are Done",
+    "doneWhen": "Steps 3.1 to 3.6, 3.8, 3.10 and 3.11 are Done",
     "steps": [
      "3.1",
      "3.2",
@@ -268,15 +268,13 @@
      "3.4",
      "3.5",
      "3.6",
-     "3.7",
      "3.8",
-     "3.9",
      "3.10",
      "3.11"
     ]
    },
    "done": 5,
-   "of": 11
+   "of": 9
   },
   {
    "id": "4",
@@ -305,10 +303,12 @@
    "fields": {
     "plan": "rebuild",
     "title": "Measurement",
-    "goal": "Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals",
+    "goal": "Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
     "why": "A feature is done when run records prove it and its measures are watched, so measurement comes before the first feature.",
-    "doneWhen": "Steps 4.1 to 4.12 are Done",
+    "doneWhen": "Steps 4.1 to 4.12, 3.7 and 3.9 are Done",
     "steps": [
+     "3.7",
+     "3.9",
      "4.1",
      "4.2",
      "4.3",
@@ -324,7 +324,7 @@
     ]
    },
    "done": 0,
-   "of": 12
+   "of": 14
   },
   {
    "id": "5",
@@ -1625,7 +1625,7 @@
     "milestone": "3",
     "title": "Foundry is installed in CI's check job and in",
     "what": "Foundry is installed in CI's check job and in the agents' cloud environment (its setup script, with the hosts its downloads need). pnpm generate writes every derived file from forge build's output, devnet.json and the blueprint, and pnpm generate:check in CI fails when generating again changes one. Generated files are committed like every other: one ABI module, imported by the blueprint, Core and the indexer; the seeded addresses; the Python names. TransferSingle's field names agree",
-    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry, the coverage gate (decisions of 15 November 2026)",
+    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)",
     "doneWhen": "Its proof is committed on master: check:pnpm generate:check",
     "needs": [],
     "units": 1,
@@ -1660,7 +1660,7 @@
     "milestone": "3",
     "title": "Typed once, by lint, with a ratchet",
     "what": "Typed once, by lint, with a ratchet: raw schemas only in the blueprint's values files and machines and in listed edge files; declared names imported, never retyped; Core's stores decode rows with the blueprint's schemas; every domain in each hub it needs. What the rules find today sits on their unmigrated list, which may only shrink",
-    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry, the coverage gate (decisions of 15 November 2026)",
+    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)",
     "doneWhen": "Its proof is committed on master: packages/lint/test/owned-values.test.ts",
     "needs": [],
     "units": 1,
@@ -1695,7 +1695,7 @@
     "milestone": "3",
     "title": "The machine format, proven on the invitation",
     "what": "The machine format, proven on the invitation: states, start, moves, refusals; the derived state schema, refusal field, step and diagram, and the CHECK constraint in a new migration (an applied migration is never edited); graph and property tests; Core moves the invitation only through step; the runner checks each invitation's events form a path through its machine, and reports coverage",
-    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry, the coverage gate (decisions of 15 November 2026)",
+    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)",
     "doneWhen": "Its proof is committed on master: packages/blueprint/test/machines.test.ts",
     "needs": [
      "3.3"
@@ -1732,7 +1732,7 @@
     "milestone": "3",
     "title": "pnpm delta:check fails when an operation lacks a format",
     "what": "pnpm delta:check fails when an operation lacks a format that exists: its machine moves and the refusal from each state, and (from 4.1) its declared steps and logs; existing operations by the ratchet",
-    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry, the coverage gate (decisions of 15 November 2026)",
+    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)",
     "doneWhen": "Its proof is committed on master: check:pnpm delta:check",
     "needs": [
      "3.4"
@@ -1769,7 +1769,7 @@
     "milestone": "3",
     "title": "The seeded chain state",
     "what": "The seeded chain state (packages/contracts/state/core.json, which every world starts from) is rebuilt from the contracts and their deploy script by one command, and CI fails when the rebuild differs from what is committed",
-    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry, the coverage gate (decisions of 15 November 2026)",
+    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)",
     "doneWhen": "Its proof is committed on master: check:pnpm seed:check",
     "needs": [
      "3.1"
@@ -1797,7 +1797,7 @@
     "milestone": "4",
     "title": "Steps and logs are declared per operation, first drafted",
     "what": "Steps and logs are declared per operation, first drafted from the spans of measured runs. Every effectful function of our own code (Core, the world, the platform client, the runner's plumbing) is a span, Effect.fn with a name that is a declared step, imported from the blueprint and never written as a string; a lint rule fails a function of ours that does work without one, existing code by its ratchet. At run time a call fails when a step its operation declares is missing from the record while its path ran, or a refusal has no log naming the state or rule that refused. Library spans (postgres, HTTP GET and POST, rpc, bundler) are neither required nor forbidden, and the check ignores them. The waits a budget leaves out follow from the step kinds. Logs go through Effect's Logger, and the generic checks are written over OpenTelemetry spans and logs; the run-time checks of logs need 4.4",
-    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
     "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
     "needs": [
      "3.3"
@@ -1824,7 +1824,7 @@
     "milestone": "4",
     "title": "The explainability eval",
     "what": "The explainability eval: each journey's record is scored (every refusal has its deciding log, every span its parent, the share of each call's time covered by its declared steps, and the share of the whole run's wall time inside declared spans), from the tap, written into the verdict; first reported from measured runs; a threshold is then set from the data, and from then a journey passes only when it meets it",
-    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
     "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
     "needs": [
      "4.1",
@@ -1852,7 +1852,7 @@
     "milestone": "4",
     "title": "The build evals",
     "what": "The build evals: tries to green, breakage and recovery, speed and cost per journey, read from the verdicts, the sink and the cost metrics",
-    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
     "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
     "needs": [
      "4.2",
@@ -2063,40 +2063,13 @@
     "milestone": "3",
     "title": "The blueprint's format",
     "what": "The blueprint's format (docs/design/blueprint.md, parts 7 and 9): one file per operation holding everything about it; machines import their events, and operations name the moves they make; hubs, indexes and pages generated; src/telemetry/; the pipeline domain declared; the ratchet registry and pnpm ratchets, every ratchet counted; the domain people moved in full; its journeys and checks written first by another agent",
-    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry, the coverage gate (decisions of 15 November 2026)",
+    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)",
     "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
     "needs": [
      "3.5"
     ],
     "units": 1,
     "lane": "blueprint"
-   }
-  },
-  {
-   "id": "3.7",
-   "state": "planned",
-   "history": [
-    {
-     "event": "step_planned",
-     "by": {
-      "kind": "agent",
-      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
-     },
-     "at": "2026-11-15T14:15:47Z",
-     "state": "planned"
-    }
-   ],
-   "since": "2026-11-15T14:15:47Z",
-   "fields": {
-    "milestone": "3",
-    "title": "The coverage gate",
-    "what": "The coverage gate: in world.yml, a slice whose newly declared moves, refusals or outcomes no journey reaches does not merge into master; existing ones by ratchet R9",
-    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry, the coverage gate (decisions of 15 November 2026)",
-    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
-    "needs": [
-     "3.6"
-    ],
-    "units": 1
    }
   },
   {
@@ -2127,7 +2100,7 @@
     "milestone": "4",
     "title": "Telemetry is OpenTelemetry",
     "what": "Telemetry is OpenTelemetry: Core, the runner, the world and the platform client export OTLP through Effect's exporters; the telemetry door on staging; the test sink; the tap in test worlds, read by the runner side by side with app.spans, then flipped and app.spans retired",
-    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
     "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
     "needs": [
      "1.2"
@@ -2155,7 +2128,7 @@
     "milestone": "4",
     "title": "Proof is a verdict",
     "what": "Proof is a verdict: the proving workflows write verdicts, notarised by checks, on proofs, with the OTLP archived in R2; the status feed verifies them; prove.yml; the Proof column uses proof:",
-    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
     "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
     "needs": [
      "4.4"
@@ -2182,7 +2155,7 @@
     "milestone": "4",
     "title": "Cost is measured daily per world, run, journey and",
     "what": "Cost is measured daily per world, run, journey and lane, against the cap",
-    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
     "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
     "needs": [
      "4.4"
@@ -2218,7 +2191,7 @@
     "milestone": "4",
     "title": "The pipeline instrumented",
     "what": "The pipeline instrumented: every pipeline operation's steps are spans of declared steps (ratchet R6 for the world, the runner and the platform client), and the gate's rungs are spans",
-    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
     "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
     "needs": [
      "3.6",
@@ -2256,7 +2229,7 @@
     "milestone": "4",
     "title": "One shared world, every journey side by side",
     "what": "One shared world, every journey side by side (\"One shared world, every journey side by side\"): the runner makes one world per run and starts every company journey in it at once, the journeys about worlds in worlds of their own; the runner's isolation check on every call and over the whole record at the end (a generic check, written by a different agent from the one who changes the runner); the bench's blank pool raised to 8 to 10 copies. The world run measured under 5 minutes, or the parts still over it named (builder: runner, world, bench)",
-    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
     "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
     "needs": [
      "4.11"
@@ -2293,40 +2266,13 @@
     "milestone": "3",
     "title": "The glossary in the blueprint",
     "what": "The glossary in the blueprint (decision \"One glossary\"): every agreed word declared once; lint takes words from it; the rename of every old word on a ratchet, user-facing names side by side",
-    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry, the coverage gate (decisions of 15 November 2026)",
+    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)",
     "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
     "needs": [
      "3.6"
     ],
     "units": 1,
     "lane": "blueprint"
-   }
-  },
-  {
-   "id": "3.9",
-   "state": "planned",
-   "history": [
-    {
-     "event": "step_planned",
-     "by": {
-      "kind": "agent",
-      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
-     },
-     "at": "2026-11-15T14:26:47Z",
-     "state": "planned"
-    }
-   ],
-   "since": "2026-11-15T14:26:47Z",
-   "fields": {
-    "milestone": "3",
-    "title": "The CLI's grammar",
-    "what": "The CLI's grammar (decision \"The CLI is the one surface\"): capxul <thing> <verb>, login, use <world>, readable output and --json, generated from the blueprint",
-    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry, the coverage gate (decisions of 15 November 2026)",
-    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
-    "needs": [
-     "3.6"
-    ],
-    "units": 1
    }
   },
   {
@@ -2348,7 +2294,7 @@
     "milestone": "4",
     "title": "The pipeline's commands",
     "what": "The pipeline's commands: every run.sh job a generated capxul command; the scripts gone; build tools that stay listed with their reasons on a ratchet",
-    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
     "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
     "needs": [
      "4.7",
@@ -2441,7 +2387,7 @@
     "milestone": "3",
     "title": "Every format exists in packages/blueprint-tools",
     "what": "Every format exists in packages/blueprint-tools (lifecycle, who may call, spans and logs, budget, promises, telemetry names, glossary words, the pipeline's things), proven on the invitation end to end: its declaration, the generated code, the API's handler moving it only through its lifecycle, its journeys and the telemetry checks, with nothing drifting",
-    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry, the coverage gate (decisions of 15 November 2026)",
+    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)",
     "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
     "needs": [
      "3.6",
@@ -2479,7 +2425,7 @@
     "milestone": "3",
     "title": "The scorecard",
     "what": "The scorecard: every thing against every format, generated from the ratchet lists and shown on the dashboard",
-    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry, the coverage gate (decisions of 15 November 2026)",
+    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)",
     "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
     "needs": [
      "3.6"
@@ -2589,7 +2535,7 @@
     "milestone": "4",
     "title": "Core next to its data",
     "what": "Core next to its data (\"Core runs next to its data\"): Core's Worker placed in Europe beside Neon and the hub, and one measured run shows its queries, lookups and chain calls inside Europe (builder: world); fast-tracked 15 November 2026; measured by the slice's world run: Core's recorded colo and its postgres span times",
-    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
     "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
     "needs": [],
     "units": 1
@@ -2623,7 +2569,7 @@
     "milestone": "4",
     "title": "The journeys made side-by-side safe, and observation from telemetry",
     "what": "The journeys made side-by-side safe, and observation from telemetry (journey author, never the builder): checks judge what their own call caused (the record by the call's trace, the chain by the journey's own accounts); a cast per journey; each journey builds its own starting company; the operation checks read the call's spans, logs and events in one batch per step instead of world.show and record.export around every try; a snapshot's round trip a journey of its own; every journey still fails on empty handlers and passes one after another in today's runner",
-    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
     "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
     "needs": [],
     "units": 1,
@@ -2658,11 +2604,65 @@
     "milestone": "4",
     "title": "The run's plumbing",
     "what": "The run's plumbing (builder: runner, world, world.yml): a site restored beside the world's create; the bundler kept running across a reset; readiness 5 probes, not 20; Core's upload skipped when unchanged; the clock warp's time explained; the verdict reported before teardown, the teardown in a job that always runs",
-    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
     "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
     "needs": [],
     "units": 1,
     "lane": "run-time"
+   }
+  },
+  {
+   "id": "3.7",
+   "state": "planned",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T20:09:11Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T20:09:11Z",
+   "fields": {
+    "milestone": "4",
+    "title": "The coverage gate",
+    "what": "The coverage gate: in world.yml, a slice whose newly declared moves, refusals or outcomes no journey reaches does not merge into master; existing ones by ratchet R9",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "3.6"
+    ],
+    "units": 1
+   }
+  },
+  {
+   "id": "3.9",
+   "state": "planned",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T20:09:11Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T20:09:11Z",
+   "fields": {
+    "milestone": "4",
+    "title": "The CLI's grammar",
+    "what": "The CLI's grammar (decision \"The CLI is the one surface\"): capxul <thing> <verb>, login, use <world>, readable output and --json, generated from the blueprint",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "3.6"
+    ],
+    "units": 1
    }
   }
  ],
@@ -3874,154 +3874,154 @@
    "left": 26,
    "done": 50,
    "total": 76,
-   "what": "step 3.7 planned"
+   "what": "step 4.4 planned"
   },
   {
    "at": "2026-11-15T14:15:47Z",
    "left": 27,
    "done": 50,
    "total": 77,
-   "what": "step 4.4 planned"
+   "what": "step 4.5 planned"
   },
   {
    "at": "2026-11-15T14:15:47Z",
    "left": 28,
    "done": 50,
    "total": 78,
-   "what": "step 4.5 planned"
+   "what": "step 4.6 planned"
   },
   {
    "at": "2026-11-15T14:15:47Z",
    "left": 29,
    "done": 50,
    "total": 79,
-   "what": "step 4.6 planned"
+   "what": "step 4.7 planned"
   },
   {
    "at": "2026-11-15T14:15:47Z",
    "left": 30,
    "done": 50,
    "total": 80,
-   "what": "step 4.7 planned"
+   "what": "step 4.8 planned"
   },
   {
-   "at": "2026-11-15T14:15:47Z",
+   "at": "2026-11-15T14:26:47Z",
    "left": 31,
    "done": 50,
    "total": 81,
-   "what": "step 4.8 planned"
+   "what": "step 3.8 planned"
   },
   {
    "at": "2026-11-15T14:26:47Z",
    "left": 32,
    "done": 50,
    "total": 82,
-   "what": "step 3.8 planned"
+   "what": "step 4.9 planned"
   },
   {
    "at": "2026-11-15T14:26:47Z",
    "left": 33,
    "done": 50,
    "total": 83,
-   "what": "step 3.9 planned"
+   "what": "step 5.3 planned"
   },
   {
    "at": "2026-11-15T14:26:47Z",
    "left": 34,
    "done": 50,
    "total": 84,
-   "what": "step 4.9 planned"
-  },
-  {
-   "at": "2026-11-15T14:26:47Z",
-   "left": 35,
-   "done": 50,
-   "total": 85,
-   "what": "step 5.3 planned"
-  },
-  {
-   "at": "2026-11-15T14:26:47Z",
-   "left": 36,
-   "done": 50,
-   "total": 86,
    "what": "step 5.4 planned"
   },
   {
    "at": "2026-11-15T14:46:34Z",
-   "left": 37,
+   "left": 35,
    "done": 50,
-   "total": 87,
+   "total": 85,
    "what": "step 3.10 planned"
   },
   {
    "at": "2026-11-15T14:46:34Z",
-   "left": 38,
+   "left": 36,
    "done": 50,
-   "total": 88,
+   "total": 86,
    "what": "step 3.11 planned"
+  },
+  {
+   "at": "2026-11-15T14:46:34Z",
+   "left": 49,
+   "done": 50,
+   "total": 99,
+   "what": "step C.1 planned"
+  },
+  {
+   "at": "2026-11-15T14:46:34Z",
+   "left": 50,
+   "done": 50,
+   "total": 100,
+   "what": "step C.2 planned"
   },
   {
    "at": "2026-11-15T14:46:34Z",
    "left": 51,
    "done": 50,
    "total": 101,
-   "what": "step C.1 planned"
+   "what": "step C.3 planned"
   },
   {
-   "at": "2026-11-15T14:46:34Z",
+   "at": "2026-11-15T17:53:20Z",
    "left": 52,
    "done": 50,
    "total": 102,
-   "what": "step C.2 planned"
+   "what": "step 4.10 planned"
   },
   {
-   "at": "2026-11-15T14:46:34Z",
+   "at": "2026-11-15T17:53:20Z",
    "left": 53,
    "done": 50,
    "total": 103,
-   "what": "step C.3 planned"
+   "what": "step 4.11 planned"
   },
   {
    "at": "2026-11-15T17:53:20Z",
    "left": 54,
    "done": 50,
    "total": 104,
-   "what": "step 4.10 planned"
-  },
-  {
-   "at": "2026-11-15T17:53:20Z",
-   "left": 55,
-   "done": 50,
-   "total": 105,
-   "what": "step 4.11 planned"
-  },
-  {
-   "at": "2026-11-15T17:53:20Z",
-   "left": 56,
-   "done": 50,
-   "total": 106,
    "what": "step 4.12 planned"
   },
   {
    "at": "2026-11-15T18:49:00Z",
-   "left": 55,
+   "left": 53,
    "done": 51,
-   "total": 106,
+   "total": 104,
    "what": "step 0.8 proven"
   },
   {
    "at": "2026-11-15T18:49:00Z",
-   "left": 43,
+   "left": 41,
    "done": 63,
-   "total": 106,
+   "total": 104,
    "what": "step 1.1 proven"
   },
   {
    "at": "2026-11-15T18:49:00Z",
+   "left": 40,
+   "done": 64,
+   "total": 104,
+   "what": "step 1.2 proven"
+  },
+  {
+   "at": "2026-11-15T20:09:11Z",
+   "left": 41,
+   "done": 64,
+   "total": 105,
+   "what": "step 3.7 planned"
+  },
+  {
+   "at": "2026-11-15T20:09:11Z",
    "left": 42,
    "done": 64,
    "total": 106,
-   "what": "step 1.2 proven"
+   "what": "step 3.9 planned"
   }
  ],
  "derived": {
@@ -4029,12 +4029,12 @@
    {
     "id": "roadmap",
     "name": "The roadmap and master's history",
-    "read": "2026-11-15T19:45:33Z"
+    "read": "2026-11-15T20:10:11Z"
    },
    {
     "id": "github",
     "name": "GitHub Actions",
-    "read": "2026-11-15T19:53:00Z"
+    "read": "2026-11-15T20:22:52Z"
    },
    {
     "id": "conductor",
@@ -4045,9 +4045,9 @@
   "health": {
    "master": {
     "state": "green",
-    "label": "5e9b019",
-    "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43754107690",
-    "at": "2026-11-15T19:46:53Z"
+    "label": "a1aa96c",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43756426573",
+    "at": "2026-11-15T20:11:36Z"
    },
    "runs": [
     {
@@ -4217,6 +4217,26 @@
   ],
   "landed": [
    {
+    "at": "2026-11-15T20:09:11Z",
+    "title": "Roadmap",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/355"
+   },
+   {
+    "at": "2026-11-15T20:05:43Z",
+    "title": "slice/placement",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/320"
+   },
+   {
+    "at": "2026-11-15T20:01:33Z",
+    "title": "slice/blueprint",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/356"
+   },
+   {
+    "at": "2026-11-15T19:48:31Z",
+    "title": "Full runs paused until the run is fast",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/338"
+   },
+   {
     "at": "2026-11-15T19:44:33Z",
     "title": "slice/blueprint",
     "href": "https://github.com/AaronAbuUsama/capxul-next/pull/319"
@@ -4235,26 +4255,6 @@
     "at": "2026-11-15T17:38:27Z",
     "title": "slice/blueprint",
     "href": "https://github.com/AaronAbuUsama/capxul-next/pull/295"
-   },
-   {
-    "at": "2026-11-15T16:47:42Z",
-    "title": "design",
-    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/306"
-   },
-   {
-    "at": "2026-11-15T16:46:15Z",
-    "title": "docs",
-    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/311"
-   },
-   {
-    "at": "2026-11-15T16:41:54Z",
-    "title": "docs",
-    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/307"
-   },
-   {
-    "at": "2026-11-15T16:33:22Z",
-    "title": "Conductor stays in the cloud",
-    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/310"
    }
   ],
   "measures": {
@@ -4414,11 +4414,15 @@
      "name": "Old words",
      "holds": "The glossary's old words still written as names in code, counted per word in generated/old-words.json; its count is their total.",
      "closes": "3.8",
-     "count": 7629,
+     "count": 7604,
      "series": [
       {
        "at": "2026-11-15T19:44:33Z",
        "count": 7629
+      },
+      {
+       "at": "2026-11-15T20:01:33Z",
+       "count": 7604
       }
      ]
     }

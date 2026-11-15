@@ -52,3 +52,19 @@ not.
 
 Where the log lives (the orphan branch `state`), the CLI verbs that append to it, the refresh that publishes the
 snapshot, and the page. `docs/design/sitrep.md` covers each.
+
+## The prototype (`prototype/`)
+
+A phone-first page on the blueprint's shapes: `seed.py` builds `events.jsonl` from the real state, the projection
+writes `snapshot.json`, and `build.mjs` embeds that snapshot in `sitrep.html` (Preact and htm, from `src/`). The page
+shows nothing the projection did not pass.
+
+```
+python3 prototype/seed.py && ./run.sh project --log prototype/events.jsonl --derived prototype/derived.json --out prototype/snapshot.json
+node prototype/build.mjs      # writes prototype/sitrep.html
+node prototype/test.cjs       # Playwright: widths, themes, every screen, an ask, the walk, the player, keyboard, motion
+node prototype/record.cjs DIR # screenshots, three videos and EVIDENCE.md into DIR
+```
+
+Answers and sitreps heard are kept on the page as stamped events (Aaron, the time); writing them back to the log is
+the `state` branch's work in `docs/design/sitrep.md`.
