@@ -276,8 +276,9 @@ Our lint rules, each tested in `packages/lint/test/rules.test.ts`:
   returning `Effect.gen(...)` without a span.
 <!-- generated:lint-rules end -->
 
-These three are ratcheted: what each found when it was turned on is on its list in `packages/lint/src/unmigrated.ts`,
-a file with a count that may only fall (`packages/lint/README.md` says how to lower it). New files are never added.
+These four are ratcheted: what each found when it was turned on is on its list in `packages/lint/src/unmigrated.ts`
+(`declared-steps`' in `packages/lint/src/unmigrated-steps.ts`), a file with a count that may only fall
+(`packages/lint/README.md` says how to lower it). New files are never added.
 Each skips generated files: a file whose first line is a comment starting `// Generated`, written by `pnpm generate`
 and never edited.
 
