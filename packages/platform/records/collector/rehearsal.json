@@ -1,0 +1,19 @@
+{
+  "what": "The collector alone on stage pr-col1 (collector.run.ts, stack CapxulCollectorRehearsal), from an agent's container, 15 November 2026. The bench was not deployed: the collector needs neither Docker nor the bench. Destroyed after.",
+  "deploy": { "seconds": 9.2, "resources": ["Collector (cx-platform-pr-col1-collector, route pr-col1-collector.worlds.abuusama.dev/*, workers.dev off, Cloudflare logs and traces to axiom-capxul-logs and axiom-capxul-traces)", "CollectorKey-g1", "CollectorRecord (AAAA 100::, proxied)"] },
+  "claims": "minted from the shared state under CollectorKey-g1 (operator 'rehearsal'); one more under another key. Prints only: operator 0558f46c, world acme/private 18b51c00, other key dad64379",
+  "body": "one span; its resource said service.name=rehearsal, capxul.world=liar, capxul.grade=real, deployment.environment.name=production",
+  "calls": [
+    { "call": "GET /health", "status": 200, "answer": { "collector": "cx-platform-pr-col1-collector", "stage": "pr-col1" } },
+    { "call": "POST /v1/traces, no claim", "status": 401, "answer": { "error": "claim-required" } },
+    { "call": "POST /v1/traces, claim under another key", "status": 403, "answer": { "error": "claim-refused" } },
+    { "call": "POST /v1/traces, protobuf", "status": 415, "answer": { "error": "otlp-json-only" } },
+    { "call": "public, operator claim, sink = https://httpbin.org/anything (echoes what it got)", "status": 200, "sink_saw": { "url": "https://httpbin.org/anything/v1/traces", "x-axiom-dataset": "capxul-test-traces", "authorization": "absent (no key in a container deploy)", "resource": [["service.name", "rehearsal"], ["deployment.environment.name", "pr-col1"], ["capxul.operator", "rehearsal"]] } },
+    { "call": "public, world claim acme/private, same sink", "status": 200, "sink_saw": { "resource": [["service.name", "rehearsal"], ["capxul.world", "acme"], ["capxul.grade", "private"], ["deployment.environment.name", "pr-col1"], ["capxul.operator", "rehearsal"]] } },
+    { "call": "by service binding: a stand-in Core Worker whose binding's props hold the world claim, no Authorization header", "status": 200, "sink_saw": { "resource": [["service.name", "rehearsal"], ["capxul.world", "acme"], ["capxul.grade", "private"], ["deployment.environment.name", "pr-col1"], ["capxul.operator", "rehearsal"]] } },
+    { "call": "by service binding, props holding an operator claim (no world)", "status": 403, "answer": { "error": "binding-claim-refused" } },
+    { "call": "public, world claim, sink = Axiom's edge eu-central-1.aws.edge.axiom.co, no ingest key", "status": 401, "answer": { "code": 401, "message": "auth token not provided" } }
+  ],
+  "counts": "Workers Logs of the last call (Cloudflare's telemetry query API): one event 'collector counts' {signal: traces, items: 1, forwarded: 0, refused: 1, reason: '401', capxul.world: acme, capxul.grade: private, capxul.operator: rehearsal, deployment.environment.name: pr-col1}, and 'collector counts refused by the sink' {status: 401}: the counts' own send to capxul-test-metrics needs the key too",
+  "not_proven_here": "forwarding into Axiom with the ingest key (platform.yml sets it on staging); Core's real binding (the Core builder's work)"
+}

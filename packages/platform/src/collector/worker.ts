@@ -18,6 +18,8 @@ import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
+import * as Logger from "effect/Logger";
 import * as Option from "effect/Option";
 import * as Predicate from "effect/Predicate";
 import * as Rec from "effect/Record";
@@ -103,8 +105,8 @@ const report = (
     }
   }).pipe(
     Effect.catchCause((cause) => Effect.logWarning("collector counts not sent", cause)),
-    // oxlint-disable-next-line effecttsgo/strict-effect-provide -- runs in waitUntil after the answer: the Worker's entry, with its own client
-    Effect.provide(FetchHttpClient.layer),
+    // oxlint-disable-next-line effecttsgo/strict-effect-provide -- runs in waitUntil after the answer: the Worker's entry, with its own client, and one JSON line per log so Workers Logs keeps each count as a field
+    Effect.provide(Layer.merge(FetchHttpClient.layer, Logger.layer([Logger.consoleJson]))),
   );
 
 export default class Collector extends Cloudflare.Worker<Collector>()(
