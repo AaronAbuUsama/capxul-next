@@ -34,6 +34,7 @@ from sites import BENCH, REGISTRY, Refused, read_entry, site_lock
 TEMPLATE = re.compile(r"^[a-z][a-z0-9-]{0,39}$")
 TEMPLATES = f"{REGISTRY}/templates"
 MAKING = ".making"  # a template being made: renamed into place once whole
+BLANK = "blank-"  # the door's own blank company templates (blank.py): no world makes, claims or sweeps one
 MIN_IDLE_S = int(os.environ.get("DOOR_TEMPLATE_MIN_IDLE_S", "3600"))
 _template_locks, _locks_guard = {}, threading.Lock()
 _app_version = []
@@ -47,6 +48,13 @@ def template_lock(template):
 def name_of(template):
     if not TEMPLATE.match(template or ""):
         raise Refused(400, "template-invalid", "a-z first, then a-z, 0-9 and -, up to 40")
+    return template
+
+
+def worlds_name(template):
+    """A name a world may make or claim: any template's but the door's own blanks."""
+    if name_of(template).startswith(BLANK):
+        raise Refused(400, "template-reserved", f"{BLANK}… names the door's blank company templates")
     return template
 
 
@@ -101,7 +109,7 @@ def make_template(c, body):
     answered as it is."""
     import pool
 
-    template = name_of(body.get("template"))
+    template = worlds_name(body.get("template"))
     t0, made = time.monotonic(), []
     sources = _sources(c, body)
     with template_lock(template):
@@ -162,7 +170,7 @@ def _copy_source(c, body, template, source, home):
     meta = {"template": template, "label": source["label"], "company": source["company"], "db": copied,
             "made_from": source.get("site") or f"{c['world']}/{body['snapshot']}", "made_by": c["world"],
             "made_at": int(time.time()), "ms": None}
-    _write_meta(home, meta)
+    write_meta(home, meta)
     if "site" in source:
         with site_lock(source["site"]):
             name = db.site_config(f"{BENCH}/sites/{source['site']}")["db_name"]
@@ -171,11 +179,11 @@ def _copy_source(c, body, template, source, home):
     else:
         _load_dump(source, copied, f"{home}/site", c["world"])
     meta["ms"] = db.ms_since(s0)
-    _write_meta(home, meta)
+    write_meta(home, meta)
     return meta
 
 
-def _write_meta(home, meta):
+def write_meta(home, meta):
     with open(f"{home}/meta.json", "w") as f:
         json.dump(meta, f)
 
@@ -232,6 +240,9 @@ def sweep(c, body):
     dry, now = body.get("dry_run") is True, int(time.time())
     removed, kept, busy = [], [], []
     for template in names():
+        if template.startswith(BLANK):  # the door's own: one of another fingerprint goes at the door's start
+            kept.append({"template": template, "idle_s": None, "blank": True})
+            continue
         lock = template_lock(template)
         if not lock.acquire(blocking=False):
             busy.append(template)
