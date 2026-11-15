@@ -12,6 +12,7 @@ import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import { getContractAddress } from "viem";
 import { renderBlueprint } from "./blueprint.ts";
+import { renderDocs } from "./markdown-blocks.ts";
 import { renderAbi, renderMap, renderSeeded, renderSite, renderSitePackage, type Seeded } from "./render.ts";
 import { ABIS, BLUEPRINT, FIRST_ACCOUNT, MAPS, OUT, OUTPUTS, RECORD, SEED } from "./sources.ts";
 
@@ -133,6 +134,13 @@ const site = {
   SAFE_ACCOUNT_PREFIX: Site.SAFE_ACCOUNT_PREFIX,
 };
 
+// The docs' blocks between markers in hand-written Markdown, and the design notes' list.
+const docs = renderDocs({
+  read: (path) => readFileSync(join(root, path), "utf8"),
+  list: (at) => readdirSync(join(root, at)),
+});
+if (docs.problems.length > 0) throw new Error(`pnpm generate: the docs' blocks:\n${Arr.join(docs.problems, "\n")}`);
+
 /** Every TypeScript file under a package's src/ and page under its docs/, with its text, by its path in the package. */
 const mapped = (pkg: string) =>
   Arr.flatMap(["src", "docs"], (folder) => {
@@ -156,5 +164,6 @@ const stale =
     [OUTPUTS.seeded.path, renderSeeded(seeded, literal)],
     [OUTPUTS.site.path, renderSite(site, literal)],
     [OUTPUTS.sitePackage.path, renderSitePackage()],
+    ...docs.written,
   ]);
 if (check && stale > 0) process.exitCode = 1;
