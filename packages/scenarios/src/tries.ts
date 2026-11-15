@@ -17,6 +17,7 @@ import { OperationChecks, type AllChecks, type Answer, type Asked, type Check } 
 import {
   CallTraces,
   Capxul,
+  Observations,
   ThisCall,
   type CapxulClient,
   type Failure,
@@ -107,10 +108,25 @@ const checksOf = (all: AllChecks, name: OperationName) =>
     ) => Effect.Effect<(answer: Answer<OperationName>) => ReadonlyArray<Check>, Failed, Needs>;
   };
 
+/**
+ * What Core recorded under the call's trace, in one read, when the run offers it (`Observations`): the checks judge
+ * from it instead of reading the world back. Null without a trace or without the read.
+ */
+const observe = (trace: string | null, options: CallOptions) =>
+  Effect.gen(function* () {
+    const observations = yield* Effect.serviceOption(Observations);
+    if (trace === null || Option.isNone(observations)) return null;
+    const read = yield* observations.value.read([trace], {
+      ...(options.at === undefined ? {} : { at: options.at }),
+      ...(options.operator === undefined ? {} : { operator: options.operator }),
+    });
+    return read.get(trace) ?? null;
+  });
+
 /** Runs every check of the call traced `trace`, each to its end, and says how each went. */
-const judge = (checks: ReadonlyArray<Check>, trace: string | null) =>
+const judge = (checks: ReadonlyArray<Check>, call: ThisCall["Service"]) =>
   Effect.forEach(checks, (each) =>
-    Effect.map(Effect.exit(Effect.provideService(each.holds, ThisCall, { trace })), (exit): CheckOutcome => ({
+    Effect.map(Effect.exit(Effect.provideService(each.holds, ThisCall, call)), (exit): CheckOutcome => ({
       says: each.says,
       passed: Exit.isSuccess(exit),
       detail: Exit.isSuccess(exit) ? "" : said(exit.cause),
@@ -158,7 +174,11 @@ const attempt = (step: number, asked: Asked<OperationName>, expected: Expected, 
     }
     const answer = answerOf(exit, error);
     const outcomes = Exit.isSuccess(prepared)
-      ? yield* judge(prepared.value(answer), yield* Ref.get(trace))
+      ? yield* Effect.flatMap(Ref.get(trace), (traced) =>
+          Effect.flatMap(observe(traced, asked.options), (observed) =>
+            judge(prepared.value(answer), { trace: traced, observed }),
+          ),
+        )
       : [{ says: "what the checks read before the call", passed: false, detail: said(prepared.cause) }];
     yield* steps.tried(step, { ...tried, checks: outcomes });
     if (Exit.isSuccess(exit))

@@ -2,7 +2,7 @@
 // call or a read leaves the record as it was.
 import type { CallOptions } from "@capxul/blueprint";
 import * as Effect from "effect/Effect";
-import { castMember, recordOf, unchangedRecord, view, whereOf, type View, type Who } from "../support/world.ts";
+import { castMember, headAt, unchangedRecord, view, whereOf, type View, type Who } from "../support/world.ts";
 import { same } from "../support/expect.ts";
 import { check, type Check } from "./format.ts";
 
@@ -17,7 +17,7 @@ export interface Before {
 export const worldBefore = (options: CallOptions) =>
   Effect.gen(function* () {
     const where = whereOf(options);
-    const record = yield* recordOf(where);
+    const record = yield* headAt(where);
     const world = yield* view(record.world);
     return { where, world, head: record.head } satisfies Before;
   });
