@@ -1,6 +1,7 @@
 // The lint package's door: the facts it owns that `pnpm generate` writes into the docs. The packages and their
 // reasons (the root README's map), the ladder (AGENTS.md's table), what each of our lint rules finds (the lists in
-// AGENTS.md and this package's README), and the packages with no map yet.
+// AGENTS.md and this package's README), the packages with no map yet, and the typed-once rules' unmigrated lists, which `pnpm ratchets`
+// (packages/blueprint-tools, src/checks/) counts as ratchets R1 to R3.
 import { description as blueprintOwnsNames } from "./rules/blueprint-owns-names.ts";
 import { description as declaredNames } from "./rules/declared-names.ts";
 import { description as decodedRows } from "./rules/decoded-rows.ts";
@@ -23,3 +24,4 @@ export const RULES: ReadonlyArray<readonly [name: string, description: string]> 
   ["capxul/declared-names", declaredNames],
   ["capxul/decoded-rows", decodedRows],
 ];
+export { unmigrated } from "./unmigrated.ts";

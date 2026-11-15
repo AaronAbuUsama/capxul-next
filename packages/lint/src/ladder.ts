@@ -38,9 +38,9 @@ export const LADDER: ReadonlyArray<Rung> = [
   },
   {
     rung: "5. Tests",
-    command: "`pnpm test`, then `pnpm delta:check` (and `pnpm ratchets` from 3.6)",
+    command: "`pnpm test`, then `pnpm delta:check` and `pnpm words` (and `pnpm ratchets` from 3.6)",
     fails:
-      "A failing unit test in any package (`pnpm frappe:test` and `pnpm status:test` included). Foundry's tests in `packages/contracts` are not in it: CI builds only the contracts, not their tests. Then the delta check: an operation that lacks a format that exists and is not on that format's `unmigrated` list (`packages/blueprint-tools/src/checks/formats.ts`). From 3.6, a ratchet whose list grew",
+      "A failing unit test in any package (`pnpm frappe:test` and `pnpm status:test` included). Foundry's tests in `packages/contracts` are not in it: CI builds only the contracts, not their tests. Then the delta check: an operation that lacks a format that exists and is not on that format's `unmigrated` list (`packages/blueprint-tools/src/checks/formats.ts`). Then the old words: an old word of the glossary written more often than `packages/blueprint/generated/old-words.json` counts (3.8). From 3.6, a ratchet whose list grew",
   },
   {
     rung: "6. Proof",

@@ -2,9 +2,9 @@
 // writes every derived file whose text changed, printing each one it wrote; with --check (`pnpm generate:check`) it
 // writes nothing and fails when any would change. The root scripts build the contracts first. No generated file is
 // formatted after: each is written in its final form. An entry file: it reads the disk, parses JSON, sets the exit code.
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
-import { layoutOf } from "@capxul/blueprint-tools";
+import { countOldWords, type Disk, layoutOf, renderGlossary, wordFiles } from "@capxul/blueprint-tools";
 import * as Arr from "effect/Array";
 import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
@@ -13,7 +13,16 @@ import * as Str from "effect/String";
 import { getContractAddress } from "viem";
 import { renderBlueprint } from "./blueprint.ts";
 import { renderDocs } from "./markdown-blocks.ts";
-import { renderAbi, renderMap, renderSeeded, renderSite, renderSitePackage, type Seeded } from "./render.ts";
+import {
+  renderAbi,
+  renderGlossaryPage,
+  renderMap,
+  renderOldWords,
+  renderSeeded,
+  renderSite,
+  renderSitePackage,
+  type Seeded,
+} from "./render.ts";
 import { ABIS, BLUEPRINT, FIRST_ACCOUNT, MAPS, OUT, OUTPUTS, RECORD, SEED } from "./sources.ts";
 
 const root = join(import.meta.dirname, "../../..");
@@ -125,7 +134,14 @@ if (blueprint.problems.length > 0)
   throw new Error(`pnpm generate: the blueprint's things do not fit:\n${Arr.join(blueprint.problems, "\n")}`);
 const staleIndexes = settle(Arr.map(blueprint.written, ({ path, text }) => [path, text] as const));
 
-const { Site } = await import("@capxul/blueprint");
+const { Site, glossary } = await import("@capxul/blueprint");
+
+/** The repository's disk, as the count of the glossary's old words reads it. */
+const disk: Disk = {
+  isFolder: (path) => statSync(join(root, path)).isDirectory(),
+  names: (folder) => readdirSync(join(root, folder)),
+  text: (file) => readFileSync(join(root, file), "utf8"),
+};
 
 const site = {
   WALLET_ADDRESS_FIELD: Site.SUPPLIER_FIELDS.paymentAddress,
@@ -164,6 +180,8 @@ const stale =
     [OUTPUTS.seeded.path, renderSeeded(seeded, literal)],
     [OUTPUTS.site.path, renderSite(site, literal)],
     [OUTPUTS.sitePackage.path, renderSitePackage()],
+    [OUTPUTS.glossary.path, renderGlossaryPage(renderGlossary(glossary))],
+    [OUTPUTS.oldWords.path, renderOldWords(countOldWords(glossary, wordFiles(disk)), literal)],
     ...docs.written,
   ]);
 if (check && stale > 0) process.exitCode = 1;

@@ -49,6 +49,28 @@ export const OUTPUTS = {
     path: "packages/frappe-app/capxul/generated/__init__.py",
     from: "packages/generate/src/sources.ts",
   },
+  glossary: { path: "packages/blueprint/generated/glossary.md", from: "packages/blueprint/src/glossary.ts" },
+  /** The rename ratchet's counts (roadmap item 3.8): the glossary's old words, counted across the repository. */
+  oldWords: {
+    path: "packages/blueprint/generated/old-words.json",
+    from: "packages/blueprint/src/glossary.ts and the files packages/blueprint-tools, src/checks/word-files.ts reads",
+  },
+} as const;
+
+/**
+ * The outputs the root's `pnpm generate` writes after this package, through packages/blueprint-tools (`ratchets
+ * --write`): their counters read the blueprint's own declarations, which this package cannot hand that one (see its
+ * README). Listed here so every generated file is named in one place.
+ */
+export const WRITTEN_BY_TOOLS = {
+  ratchets: {
+    path: "packages/blueprint/generated/ratchets.json",
+    from: "packages/blueprint/src/ratchets.ts and the lists it counts (packages/lint/src/unmigrated.ts, the formats)",
+  },
+  scorecard: {
+    path: "packages/blueprint/generated/scorecard.md",
+    from: "packages/blueprint/src/things/, the formats and the ratchet lists",
+  },
 } as const;
 
 /**

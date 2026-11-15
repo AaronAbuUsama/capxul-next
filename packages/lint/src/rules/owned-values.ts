@@ -11,7 +11,7 @@ import { isListed, matches, pathOf } from "./where.ts";
 
 /** What the rule finds, as AGENTS.md and packages/lint/README.md list it (written there by `pnpm generate`). */
 export const description =
-  "a raw schema (`Schema.String`, `Schema.Literals`, ...) only in the blueprint's values files and machines, and there only as a named value, never as a field; elsewhere only in entry files and the edges listed under `settings.capxul.schemaEdges`, each with its reason.";
+  "a raw schema (`Schema.String`, `Schema.Literals`, ...) only in the blueprint's values files, machines and telemetry vocabulary, and there only as a named value, never as a field; elsewhere only in entry files and the edges listed under `settings.capxul.schemaEdges`, each with its reason.";
 
 /** The schemas that describe a value of their own, rather than combine other schemas. */
 const RAW = new Set([
@@ -40,12 +40,17 @@ const RAW = new Set([
   "Json",
 ]);
 
-/** Where values are named: the blueprint's values files (each thing's and the common ones), its ids, and its lifecycles. */
+/**
+ * Where values are named: the blueprint's values files (each thing's and the common ones), its ids, its lifecycles,
+ * and its telemetry vocabulary, whose attributes and step kinds are values of their own (docs/design/blueprint.md,
+ * part 10).
+ */
 const NAMING = [
   "packages/blueprint/src/things/**/values.ts",
   "packages/blueprint/src/common/values.ts",
   "packages/blueprint/src/common/ids.ts",
   "packages/blueprint/src/things/**/lifecycle.ts",
+  "packages/blueprint/src/telemetry/*.ts",
 ];
 
 const message = (raw: string, naming: boolean): string =>

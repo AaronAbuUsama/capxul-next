@@ -34,9 +34,9 @@ The repository's own checks, and the formatter's settings. The gate that runs th
   blueprint and its toolkit), or by its bare name.
 - `capxul/no-json-text`: no `JSON.parse`, `JSON.stringify`, `Schema.parseJson` or string schema documented as JSON
   outside entry files and the edges listed under `settings.capxul.jsonEdges`.
-- `capxul/owned-values`: a raw schema (`Schema.String`, `Schema.Literals`, ...) only in the blueprint's values files and
-  machines, and there only as a named value, never as a field; elsewhere only in entry files and the edges listed under
-  `settings.capxul.schemaEdges`, each with its reason.
+- `capxul/owned-values`: a raw schema (`Schema.String`, `Schema.Literals`, ...) only in the blueprint's values files,
+  machines and telemetry vocabulary, and there only as a named value, never as a field; elsewhere only in entry files
+  and the edges listed under `settings.capxul.schemaEdges`, each with its reason.
 - `capxul/declared-names`: a name the blueprint declares (an operation, a refusal, an event, an outcome, a starting
   world) is imported, never written as a string outside the blueprint, except where the compiler checks it (an object's
   key, a computed member, the tag given to `catchTag`, `Match.tag` or `isTagged`).
