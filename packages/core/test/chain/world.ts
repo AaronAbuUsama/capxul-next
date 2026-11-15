@@ -10,6 +10,7 @@ import {
   Values,
   WorldRpcs,
 } from "@capxul/blueprint";
+import { Abi as Contracts } from "@capxul/contracts";
 import * as Arr from "effect/Array";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
@@ -26,7 +27,7 @@ import type * as RpcClient from "effect/rpc/RpcClient";
 import type * as RpcGroup from "effect/rpc/RpcGroup";
 import * as RpcTest from "effect/rpc/RpcTest";
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { type Abi, decodeEventLog, encodeFunctionData, padHex, parseAbi, stringToHex } from "viem";
+import { type Abi, decodeEventLog, encodeFunctionData, padHex, stringToHex } from "viem";
 import { mnemonicToAccount } from "viem/accounts";
 import { Cast } from "../../src/cast/Cast.ts";
 import { readContract, receiptOf, sendAsService } from "../../src/chain/calls.ts";
@@ -68,14 +69,9 @@ export const keyOf = (person: string) =>
 export const signed = (person: string, digest: string) =>
   Effect.promise(() => keyOf(person).sign({ hash: hex(digest) }));
 
-const CLAIMER = parseAbi([
-  "function claim(string namespace, string email, address signer) returns (address)",
-  "function safeAddressFor(address owner, string namespace, string email) pure returns (address)",
-]);
-const ROLES = parseAbi([
-  "function execTransactionWithRole(address to, uint256 value, bytes data, uint8 operation, bytes32 roleKey, bool shouldRevert) returns (bool)",
-]);
-const MINT = parseAbi(["function mint(address to, uint256 amount)"]);
+const CLAIMER = Contracts.CompaniesHouseClaimer;
+const ROLES = Contracts.IRoles;
+const MINT = Contracts.MockERC20;
 
 /** A site door in memory: every site is ready on its second look; every call to a site is kept and answered 200. */
 export const fakeSiteDoor = Effect.gen(function* () {
@@ -265,16 +261,9 @@ export const lower = (addresses: ReadonlyArray<string>) => Arr.sort(Arr.map(addr
 export const events = (trace: string) => Effect.map(eventsOf(trace), (rows) => Arr.map(rows, (row) => row.event));
 
 /** The logs the claims read, by the contracts that emit them. */
-export const HAT_LOGS = parseAbi([
-  "event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 amount)",
-  "event HatMaxSupplyChanged(uint256 hatId, uint32 newMaxSupply)",
-]);
-export const PAID = parseAbi([
-  "event PaymentSent(bytes32 indexed paymentId, address indexed sender, address indexed recipient, address token, uint256 amount, uint16 kind, bytes32 documentHash)",
-]);
-export const OPERATIONS = parseAbi([
-  "event UserOperationEvent(bytes32 indexed userOpHash, address indexed sender, address indexed paymaster, uint256 nonce, bool success, uint256 actualGasCost, uint256 actualGasUsed)",
-]);
+export const HAT_LOGS = Contracts.IHatsEvents;
+export const PAID = Contracts.Payments;
+export const OPERATIONS = Contracts.IEntryPoint;
 
 /** Northwind's founding, as the starting world `founded` makes it, and others like it. */
 export type Founding = typeof Organizations.create.rpc.payloadSchema.Type;

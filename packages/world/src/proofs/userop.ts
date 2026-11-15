@@ -9,7 +9,8 @@ import * as Effect from "effect/Effect";
 import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
-import { type Address, concat, encodeFunctionData, type Hex, isAddress, isHex, pad, parseAbi, toHex } from "viem";
+import { type Address, concat, encodeFunctionData, type Hex, isAddress, isHex, pad, toHex } from "viem";
+import { Abi } from "@capxul/contracts";
 import { privateKeyToAccount } from "viem/accounts";
 import { getUserOperationHash } from "viem/account-abstraction";
 import { bundlerCall } from "../bundler/client.ts";
@@ -38,23 +39,13 @@ export const SAFE_FUNDS = 1_000_000_000n;
 export const AMOUNT = 25_000_000n;
 
 const ZERO: Address = "0x0000000000000000000000000000000000000000";
-const PACKED =
-  "(address sender,uint256 nonce,bytes initCode,bytes callData,bytes32 accountGasLimits,uint256 preVerificationGas,bytes32 gasFees,bytes paymasterAndData,bytes signature)";
 const ABI = {
-  safe: parseAbi([
-    "function setup(address[] owners,uint256 threshold,address to,bytes data,address fallbackHandler,address paymentToken,uint256 payment,address paymentReceiver)",
-  ]),
-  factory: parseAbi(["function createProxyWithNonce(address singleton,bytes initializer,uint256 saltNonce)"]),
-  moduleSetup: parseAbi(["function enableModules(address[] modules)"]),
-  module: parseAbi([
-    `function getOperationHash(${PACKED} userOp) view returns (bytes32)`,
-    "function executeUserOp(address to,uint256 value,bytes data,uint8 operation)",
-  ]),
-  token: parseAbi(["function transfer(address,uint256) returns (bool)"]),
-  entryPoint: parseAbi([
-    "function balanceOf(address) view returns (uint256)",
-    "function getNonce(address,uint192) view returns (uint256)",
-  ]),
+  safe: Abi.ISafe,
+  factory: Abi.ISafeProxyFactory,
+  moduleSetup: Abi.ISafeModuleSetup,
+  module: Abi.ISafe4337Module,
+  token: Abi.IERC20Metadata,
+  entryPoint: Abi.IEntryPoint,
 } as const;
 /** Fixed limits with room to spare: the paymaster pays, so over-asking costs nothing in a test world. */
 const GAS = {

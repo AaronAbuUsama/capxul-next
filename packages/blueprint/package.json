@@ -11,6 +11,7 @@
     "delta:check": "node --experimental-strip-types --no-warnings src/delta.entry.ts"
   },
   "dependencies": {
+    "@capxul/contracts": "workspace:*",
     "effect": "catalog:"
   },
   "devDependencies": {

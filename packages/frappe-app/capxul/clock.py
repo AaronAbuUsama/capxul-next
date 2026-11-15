@@ -24,6 +24,7 @@ from datetime import datetime, timedelta, timezone
 import frappe
 
 from capxul.emit import emit
+from capxul.generated.site import DAILY_JOB, DAILY_JOB_TYPE
 
 OVERRIDE = "capxul_clock_override_ms"
 _installed = False
@@ -226,10 +227,9 @@ def run_due():
     return ran
 
 
-DAILY_JOB = "capxul.clock.daily"
-# The blueprint's name for the daily job's Scheduled Job Type (packages/blueprint Site.DAILY_JOB, decisions.md 44),
-# which a Scheduled Job Log row links to and report.run filters by.
-DAILY_JOB_TYPE = "clock.daily"
+# DAILY_JOB and DAILY_JOB_TYPE, the daily job and the name of its Scheduled Job Type (which a Scheduled Job Log row
+# links to and report.run filters by), are the blueprint's (packages/blueprint Site.DAILY_JOB, decisions.md 44),
+# imported from capxul/generated/site.py.
 
 
 def name_daily_job():

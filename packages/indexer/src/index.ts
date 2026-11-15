@@ -60,7 +60,7 @@ ponder.on("Hats:TransferSingle", async ({ event, context }) => {
     for (const log of receipt.logs) {
       if (lower(log.address) !== lower(context.contracts.Installer.address)) continue;
       try {
-        const { args } = decodeEventLog({ abi: INSTALLER, topics: log.topics, data: log.data });
+        const { args } = decodeEventLog({ abi: INSTALLER, eventName: "MoneyDeployed", topics: log.topics, data: log.data });
         if ([args.deployment.boardTopHat, args.deployment.shareholdersTopHat].some((id) => (id >> 224n).toString() === root) && await context.db.find(knownSafes, { address: lower(args.safe) })) admitted = true;
       } catch { /* another installer event */ }
     }
@@ -68,7 +68,7 @@ ponder.on("Hats:TransferSingle", async ({ event, context }) => {
   }
   await context.db.insert(chainLogs).values({
     ...await identity(event, context), contract: "hats", event: "TransferSingle",
-    args: { operator: lower(event.args.operator), from: lower(event.args.from), to: lower(event.args.to), id: event.args.id.toString(), value: event.args.value.toString() },
+    args: { operator: lower(event.args.operator), from: lower(event.args.from), to: lower(event.args.to), id: event.args.id.toString(), amount: event.args.amount.toString() },
   });
 });
 ponder.on("EntryPoint:UserOperationEvent", async ({ event, context }) => {

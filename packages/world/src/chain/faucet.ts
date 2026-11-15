@@ -5,6 +5,7 @@
 //
 // test-usdc.hex is MockERC20's creation code, compiled from packages/contracts/test/mocks/MockERC20.sol with
 // solc 0.8.28 and the contracts package's settings (optimizer on, 200 runs, cancun, OpenZeppelin 5.6.1 from lib/).
+import { Seeded } from "@capxul/contracts";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -17,13 +18,14 @@ import { FaucetFailed } from "../failures.ts";
 import { describeFailure } from "../lifecycle/describe.ts";
 
 /** anvil's first unlocked account. It sends the faucet's transactions; it holds no USDC and is given none. */
-export const FAUCET_OPERATOR = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+export const FAUCET_OPERATOR = Seeded.firstAccount.address;
 
 /**
  * Where the token lands: the operator's first transaction on the seeded chain is its deployment, so the address is
- * the same in every world, and the index's configuration names it (ponder/ponder.config.ts).
+ * the same in every world (the seed's next contract of anvil's first account, as `pnpm generate` works it out from
+ * the seed), and the index's configuration names it (ponder/ponder.config.ts).
  */
-export const TEST_USDC = "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6";
+export const TEST_USDC = Seeded.firstAccount.nextContract;
 
 export interface Mint {
   /** The address that receives the test USDC. */

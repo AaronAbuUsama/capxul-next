@@ -19,7 +19,7 @@ export const unmigrated: {
     "packages/blueprint/src/budgets/operations.ts": 3,
     "packages/blueprint/src/budgets/subjects.ts": 1,
     "packages/blueprint/src/budgets/values.ts": 1,
-    "packages/blueprint/src/chain/logs.ts": 9,
+    "packages/blueprint/src/chain/logs.ts": 3,
     "packages/blueprint/src/chain/reads.ts": 16,
     "packages/blueprint/src/documents/operations.ts": 15,
     "packages/blueprint/src/documents/refusals.ts": 3,

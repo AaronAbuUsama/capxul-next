@@ -155,7 +155,9 @@ These rules make "typed once" and "measured" checks rather than hopes (3.3, 4.1)
 - Every effectful function of our own code (Core, the world, the platform client, the runner's plumbing) is a span:
   `Effect.fn` with a name that is a declared step, imported from the blueprint (4.1).
 
-CI's `pnpm generate:check` fails when generating again would change any file (3.1).
+CI's `pnpm generate:check` fails when generating again would change any file (3.1). Generated files sit in a
+`generated/` folder (`packages/contracts/generated`, `packages/frappe-app/capxul/generated`) and are listed in
+`packages/generate/src/sources.ts`.
 
 ### Changing what works: side by side, then flip, then retire
 
@@ -216,10 +218,10 @@ Run `pnpm check` before you open a pull request. It runs rungs 1 to 5 in order a
 | Rung | Command | What fails it |
 |---|---|---|
 | 1. Shape | `pnpm shape` | An entry at the top level, a package or a file under `docs/` that `packages/lint/src/shape.ts` does not list; a package or spike with no `README.md`; a source file under `packages/` over 300 lines; the two lists of entry files in `.oxlintrc.json` naming different paths |
-| 2. Format | `pnpm format:check` | TypeScript or JavaScript under `packages/` that oxfmt would change (config: `packages/lint/oxfmt.json`) |
+| 2. Format | `pnpm format:check`, `pnpm generate:check` | TypeScript or JavaScript under `packages/` that oxfmt would change (config: `packages/lint/oxfmt.json`); a generated file that `pnpm generate` would write differently (it builds the contracts with Foundry first, `packages/generate`) |
 | 3. Lint | `pnpm lint` | Any finding of `.oxlintrc.json`, every rule an error: oxlint's correctness and suspicious rules and a few more, all of Effect's rules from `@effect/tsgo` but two (each off with its reason), and ours from `packages/lint` (below) |
 | 4. Types | `pnpm types` | A type error in any TypeScript package, or an Effect language service error or warning (`effect-tsgo tsc`) |
-| 5. Tests | `pnpm test`, then `pnpm delta:check` | A failing unit test in any package (`pnpm frappe:test` and `pnpm status:test` included). Foundry's tests in `packages/contracts` are not in it: CI has no Foundry. Then the delta check: an operation that lacks a format that exists and is not on that format's `unmigrated` list (`packages/blueprint/src/formats.ts`) |
+| 5. Tests | `pnpm test`, then `pnpm delta:check` | A failing unit test in any package (`pnpm frappe:test` and `pnpm status:test` included). Foundry's tests in `packages/contracts` are not in it: CI builds only the contracts, not their tests. Then the delta check: an operation that lacks a format that exists and is not on that format's `unmigrated` list (`packages/blueprint/src/formats.ts`) |
 | 6. Proof | `packages/runner/run.sh scenarios` | A scenario that fails in a fresh world. CI runs it in `.github/workflows/world.yml` once the bootstrap has given CI its Cloudflare and Neon keys (roadmap step 1.8) |
 
 Our lint rules, each tested in `packages/lint/test/rules.test.ts`:
