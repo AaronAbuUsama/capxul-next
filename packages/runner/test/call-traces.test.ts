@@ -16,11 +16,11 @@ import * as Str from "effect/String";
 import * as FetchHttpClient from "effect/http/FetchHttpClient";
 import { capxulFor, type Call, type Target } from "../src/client.ts";
 
-const TOKEN = "runner-door-token";
+const TOKEN = "runner-endpoint-token";
 const payload = { world: Sdk.TestDoor.WORLD };
 
 /** Calls `world.show` twice through the runner's client: once with `CallTraces` provided, once without. */
-const calls = (urls: { readonly platform: string; readonly world: string }) =>
+const calls = Effect.flatMap(Sdk.TestDoor.urls, (urls) =>
   Effect.gen(function* () {
     const target: Target = {
       url: Str.replace(Sdk.TestDoor.WORLD_PATH, "")(urls.world),
@@ -41,11 +41,12 @@ const calls = (urls: { readonly platform: string; readonly world: string }) =>
       yield* capxul["world.show"](payload);
     }).pipe(Effect.provide(capxulFor(target, log).pipe(Layer.provide(FetchHttpClient.layer))));
     return { log: yield* Ref.get(log), heard: yield* Ref.get(heard) };
-  });
+  }),
+);
 
 test("a try that provides CallTraces hears the trace of the call the runner recorded, and only of its own", () =>
   Effect.runPromise(
-    Effect.flatMap(Sdk.TestDoor.urls, calls).pipe(
+    calls.pipe(
       Effect.provide(
         Sdk.TestDoor.serve({ token: TOKEN, answer: "examples" }).pipe(
           Layer.provideMerge(NodeHttpServer.layer(createServer, { port: 0, host: "127.0.0.1" })),
