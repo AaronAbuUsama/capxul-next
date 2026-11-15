@@ -241,6 +241,7 @@ Each has a default and can be set in the environment (`src/settings.ts`).
 | `WORLD_SCENARIO_TIMEOUT` | `20 minutes` | The same for a scenario in private worlds, whose calls may make worlds. |
 | `WORLD_DESTROY_TIMEOUT` | `4 minutes` | The destroy. |
 | `WORLD_READY_ANSWERS` | `5` | Answers in a row before a stage is ready. A relapse (a miss after the first answer) is still counted in `readiness.relapses`; none has ever been seen, so 20 was cut to 5 (docs/design/run-time.md, option 6c). |
+| `RUNNER_SHAPE` | `serial` | How a run in one world runs its journeys: `serial`, one after another, the world reset in place before each; `shared`, every journey at once in one shared world, each building its own company, and the journeys about worlds in worlds of their own (roadmap 4.8, decision D8). `shared` is not built yet and stops the run saying so. |
 | `RUNNER_TEARDOWN` | `run` | Who takes down a run in one world at its end: `run`, the run itself; `job`, CI's `teardown` job in `world.yml` (the one world and its own hub are left up for it, named in `oneWorld.handedOver`). Each journey's own worlds are destroyed after it either way. |
 | `WORLD_PROBE_EVERY` | `500 millis` | Between two probes, and between two sends of a call during the warm-up. |
 | `WORLD_WARM_UP` | `30 seconds` | How long after ready a call Cloudflare's edge answered is sent again. |

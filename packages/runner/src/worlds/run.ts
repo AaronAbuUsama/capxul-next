@@ -28,6 +28,7 @@ import { answersSteadily } from "../world/warmup.ts";
 import type { Stage } from "../world/stage.ts";
 import { noteNotMade, summaryOf } from "./ending.ts";
 import { onHub, type HubUse } from "./hub.ts";
+import { JourneyMaking, type MakingCall } from "./making.ts";
 import { coreLabel, Platform } from "./platform.ts";
 import { sharedStartingWorldsOf, type SharedStartingWorlds } from "../shared/starting.ts";
 import { startingWorldsOf, type StartingWorlds } from "./starting.ts";
@@ -52,7 +53,7 @@ const checked = (calls: ReadonlyArray<Call>) =>
 const work = (scenario: Journey, settings: Settings, starting: Starting, timings: Timings, name: string) =>
   Effect.gen(function* () {
     const platform = yield* Platform;
-    const callsBefore = (yield* starting.made).length;
+    const mine = yield* Ref.make<ReadonlyArray<MakingCall>>([]);
     const [makeTook, making] = yield* Effect.andThen(
       starting.resetFor(scenario.given, scenario.name),
       timings.timed(
@@ -60,8 +61,8 @@ const work = (scenario: Journey, settings: Settings, starting: Starting, timings
         { journey: scenario.name, of: scenario.given.name },
         starting.forScenario(scenario.given),
       ),
-    ).pipe(Effect.exit, Effect.timed);
-    const makingCalls = Arr.map(Arr.drop(yield* starting.made, callsBefore), (each) => each.call);
+    ).pipe(Effect.provideService(JourneyMaking, { calls: mine }), Effect.exit, Effect.timed);
+    const makingCalls = Arr.map(yield* Ref.get(mine), (each) => each.call);
     const madeChecked = yield* Effect.orElseSucceed(checked(makingCalls), () => []);
     if (Exit.isFailure(making))
       return { makeMs: millis(makeTook), making, madeChecked, readiness: null, stage: name, used: undefined };
@@ -231,6 +232,8 @@ export const runInWorlds = (
   shared: Option.Option<string> = Option.none(),
 ) =>
   Effect.gen(function* () {
+    // Every journey at once in one shared world (roadmap 4.8) comes in later pull requests; asked for now, it says so.
+    if (settings.shape === "shared") return yield* Effect.die("RUNNER_SHAPE=shared is not built yet (roadmap 4.8)");
     const platform = yield* Platform;
     const startedAt = yield* now;
     const run = yield* freshName("run");
