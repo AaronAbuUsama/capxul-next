@@ -137,6 +137,19 @@ export const markSent = Effect.fn("approvals.sent")(function* (kind: string, id:
   yield* sql`update app.subjects set state = 'sent', tx = ${tx}, block = ${block.toString()} where kind = ${kind} and id = ${id}`;
 });
 
+/**
+ * The nonce a company's new proposal takes: the company Safe's nonce on the chain, or the one after every company
+ * transaction of the company still waiting for its Directors (an officer change, a budget's creation), whichever is
+ * later. Each lands only in its nonce's turn.
+ */
+export const nextCompanyNonce = Effect.fn("approvals.nonce")(function* (org: string, onChain: number) {
+  const sql = yield* PgClient.PgClient;
+  const [row] = yield* sql<{ readonly top: number | null }>`
+    select max((landing->'tx'->>'nonce')::integer) as top from app.subjects
+    where org = ${org} and state = 'open' and landing->>'via' = 'company'`;
+  return row?.top === null || row?.top === undefined ? onChain : Math.max(onChain, row.top + 1);
+});
+
 /** An approval as the blueprint answers it. */
 export const viewOf = (row: ApprovalRow): Approval => ({
   id: row.approval,
