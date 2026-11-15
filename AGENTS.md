@@ -168,6 +168,10 @@ CI's `pnpm generate:check` fails when generating again would change any file (3.
 
 ### Changing what works: side by side, then flip, then retire
 
+Until a real caller exists (phase 8), this does not apply: existing operations are reshaped and renamed directly,
+and the journey author updates the journeys in the same lane (roadmap, "No callers, no compatibility"). From the
+first real caller:
+
 1. **Side by side.** The new behaviour is declared beside the old, as a new version of the operation, or a new move of
    its machine. Its journeys are written first and fail. The old behaviour's journeys stay green throughout.
 2. **Flip.** Once the new version passes every journey that applies to it, one pull request makes it the default: the
