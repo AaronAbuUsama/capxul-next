@@ -1,5 +1,5 @@
 # src
 
-Empty on purpose. Each contract lands here test-first: its interface and a stub
-whose functions revert `NotImplemented()` come with its failing tests, then the
-implementation turns them green.
+The v4 contracts, one folder per area: Companies House and its claimer, money (Payments, Budgets, Agreements,
+Escrow), authority (the Installer and the Board's hats), agents, equity, shared libraries, and the interfaces of the
+contracts a world's chain holds from outside. `door.ts` is what TypeScript imports.

@@ -1,5 +1,5 @@
 // The life of one stage of `CapxulCore` as a unit: create it, use it, report on it, destroy it, and look in the
-// accounts afterwards. Adapted from spikes/pipeline/runner/world.ts. Until `packages/world` lands (step 1.3), a
+// accounts afterwards. Adapted from the pipeline spike's world (records/spike). Until `packages/world` lands (step 1.3), a
 // stage is the runner's world: a Core with a database of its own.
 //
 // The lifecycle rules this keeps (docs/roadmap.md, "World lifecycle rules"):

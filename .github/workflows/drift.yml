@@ -2,9 +2,7 @@
 # host and the platform, plus `docker diff` of every container for code replaced by hand
 # (packages/platform/src/drift.ts). A drifted platform fails the job (exit 2); the run record is uploaded either way.
 #
-# Every 6 hours, and on demand. GitHub starts scheduled workflows only from the repository's default branch, which is
-# `main` while `master` is the rebuild line, so the schedule below takes effect once this file is on the default branch
-# (packages/platform/bootstrap/BOOTSTRAP.md, "The schedule"). A missing secret or variable fails the job, by name.
+# Every 6 hours from `master`, the default branch, and on demand. A missing secret or variable fails the job, by name.
 name: drift
 on:
   schedule:

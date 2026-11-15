@@ -1,8 +1,8 @@
-// Entry: `bun src/main.ts door [--world=<name>]` or `bun src/main.ts scenarios [--one-stage] [--expect=pass|not-implemented]
-// [--via=sdk|cli] [name...]`, through ../run.sh, which sets the environment. The door runs in its own fresh stage; the journeys (the
-// scenarios, since 14 November 2026) run as scenario-runs.ts says, one at a time. `door --world=<name>` runs the door in a world `world create` made
-// (packages/world), which it neither creates nor destroys. Exits 1 when the door failed, or when a journey did not end as the run
-// expected or a stage was left. This is the only file of the runner that touches the process: its arguments, its exit
+// Entry: `bun src/main.ts <command>`, through ../run.sh, which sets the environment; `USAGE` below lists every command
+// and flag. The door runs in its own fresh stage, or with `--world=<name>` in a world `world create` made (in-world.ts),
+// which it neither creates nor destroys. The journeys (the scenarios, since 14 November 2026) run one at a time: in one
+// world (worlds/run.ts), on the shared world (`--shared`, shared/), or in stages (scenario-runs.ts). Exits 1 when the
+// door failed, or when a journey did not end as the run expected or a stage was left. This is the only file of the runner that touches the process: its arguments, its exit
 // code and the Bun runtime.
 import * as BunFileSystem from "@effect/platform-bun/BunFileSystem";
 import * as BunPath from "@effect/platform-bun/BunPath";

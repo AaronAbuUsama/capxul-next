@@ -214,6 +214,13 @@ const takeDown = (starting: Starting, timings: Timings) =>
  * a time; and the run's summary at `<run>/summary.json`. The summary is written however the run ends but by
  * interruption: a starting world that was not made, a run that died, or a take-down that failed, is named in it with
  * why, and its outcome is `failed`.
+ *
+ * Several runners may run at once on one bench and one hub, each in its own world: nothing of one run's is named so
+ * another's could take it. Only a site made from nothing waits, one at a time across the bench (the site door's
+ * `BENCH_LOCK`), about two to three minutes each.
+ * TODO: measure how many runs at once the staging bench (2 vCPU, 8 GiB) holds.
+ * TODO: the snapshots a journey saves in the one world (`m3`, `draft`) stay for the rest of the run; a later journey
+ * that saved the same name would be refused `SnapshotExists`. None does today.
  */
 export const runInWorlds = (
   scenarios: ReadonlyArray<Journey>,

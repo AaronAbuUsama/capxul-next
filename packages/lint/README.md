@@ -1,11 +1,15 @@
 # lint
 
-The repository's own checks, and the formatter's settings. The ladder that runs them is in `AGENTS.md`.
+The repository's own checks, and the formatter's settings. The gate that runs them is in `AGENTS.md`.
 
 - `src/shape.ts` is the shape of the repository: what may sit at the top level, which packages may exist (each with
-  a reason), that only `docs/roadmap.md` lives under `docs/`, that every package and spike has a `README.md`, that no
-  source file under `packages/` is over 300 lines, and that the two lists of entry files in `.oxlintrc.json` agree.
-  `pnpm shape` runs it through `src/shape.entry.ts` on the files git tracks (`git ls-files`), so nothing untracked or
+  a reason), that every package and spike has a `README.md`, that no source file under `packages/` is over 300 lines,
+  and that the two lists of entry files in `.oxlintrc.json` agree.
+- `src/docs.ts` is the shape of the docs (`docs/design/docs.md`): what may live under `docs/`, where else a Markdown
+  file may live, that a README fits on a screen of 60 lines, that every relative link resolves, and that a design note
+  says `Status: open`, `agreed` or `superseded` near its top. Its two lists of exceptions, `LONG_READMES` and
+  `UNSTATED_NOTES`, may only shrink; take a file off when it complies.
+- `pnpm shape` runs both through `src/shape.entry.ts` on the files git tracks (`git ls-files`), so nothing untracked or
   ignored, such as `node_modules` or a local run's records, ever counts.
 - `src/plugin.ts` is the `capxul` oxlint plugin; its rules are in `src/rules/`. `.oxlintrc.json` loads it. The plugin
   imports `@capxul/blueprint` for `declaredNames`, the names `capxul/declared-names` guards, so the blueprint stays

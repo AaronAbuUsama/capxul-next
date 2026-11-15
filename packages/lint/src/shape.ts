@@ -4,13 +4,13 @@ import * as Arr from "effect/Array";
 import { pipe } from "effect/Function";
 import * as Order from "effect/Order";
 import * as Str from "effect/String";
+import { docProblems } from "./docs.ts";
 
 /** What may sit at the top level, each with the reason it is there. */
 export const TOP_LEVEL: Readonly<Record<string, string>> = {
   "AGENTS.md": "the rules every agent reads",
   "CLAUDE.md": "a link to AGENTS.md, for Claude",
   "README.md": "what this is and where things are",
-  "GROUNDING.md": "Aaron's strategy",
   "package.json": "the root scripts: the ladder",
   "pnpm-workspace.yaml": "the workspace and its one version catalog",
   "pnpm-lock.yaml": "the exact versions installed",
@@ -22,7 +22,7 @@ export const TOP_LEVEL: Readonly<Record<string, string>> = {
     "the agent kit every agent reads (Amp, Claude Code, Codex): the thread types, the conductor's loop, the review",
   ".claude":
     "Claude Code's settings (the tools it may run without asking, and what it may never run) and links to the kit",
-  docs: "docs/roadmap.md, the plan this line follows, and docs/design/blueprint.md, the blueprint's design",
+  docs: "the roadmap, the decisions, the strategy, design notes and guides: the list is in packages/lint/src/docs.ts",
   packages: "the code, one package per component",
   spikes: "throwaway code that proves a risk, deleted when its step graduates it",
 };
@@ -48,15 +48,6 @@ export const PACKAGES: Readonly<Record<string, string>> = {
   generate:
     "`pnpm generate`: writes every derived file from its owner, the compiled contracts, the seed and the blueprint",
 };
-
-/** The only files allowed under docs/. */
-export const DOCS: ReadonlyArray<string> = [
-  "docs/roadmap.md",
-  "docs/design/blueprint.md",
-  "docs/design/handoff.md",
-  "docs/design/system.md",
-  "docs/design/world.md",
-];
 
 /** Longest source file allowed, in lines. The lint rule max-lines says the same for TypeScript. */
 export const MAX_LINES = 300;
@@ -88,8 +79,10 @@ export const trackedFiles = (listing: string, exists: (file: string) => boolean)
 export interface ShapeInput {
   /** Every file git tracks, relative to the root, with forward slashes. */
   readonly files: ReadonlyArray<string>;
-  /** The number of lines of each file that is a source file. */
+  /** The number of lines of a file. */
   readonly lines: (file: string) => number;
+  /** A file's text, for the checks on docs. */
+  readonly read: (file: string) => string;
   readonly entries: EntryLists;
 }
 
@@ -103,12 +96,6 @@ const topLevel = (files: ReadonlyArray<string>): Array<string> =>
     unique(Arr.map(files, (file) => head(file, 1))),
     Arr.filter((entry) => !(entry in TOP_LEVEL)),
     Arr.map((entry) => `top level: "${entry}" is not in the list in packages/lint/src/shape.ts`),
-  );
-
-const docs = (files: ReadonlyArray<string>): Array<string> =>
-  pipe(
-    Arr.filter(files, (file) => under("docs")(file) && !Arr.contains(DOCS, file)),
-    Arr.map((file) => `docs: "${file}" is not allowed; only ${Arr.join(DOCS, ", ")} lives under docs/`),
   );
 
 const folders = (files: ReadonlyArray<string>, root: string): Array<string> =>
@@ -161,7 +148,6 @@ const entryLists = ({ reasons, override }: EntryLists): Array<string> => [
 /** Every way the tree differs from the shape, one line each. Empty when the tree is in shape. */
 export const shapeProblems = (input: ShapeInput): Array<string> => [
   ...topLevel(input.files),
-  ...docs(input.files),
   ...looseFiles(input.files, "packages"),
   ...looseFiles(input.files, "spikes"),
   ...unknownPackages(input.files),
@@ -169,4 +155,5 @@ export const shapeProblems = (input: ShapeInput): Array<string> => [
   ...withoutReadme(input.files, "spikes"),
   ...tooLong(input),
   ...entryLists(input.entries),
+  ...docProblems(input),
 ];
