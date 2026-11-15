@@ -713,3 +713,35 @@ claims); the glossary's renames run on their own ratchet (item 3.8). No behaviou
 **What keeps it.** A test fails a file under `src/` that does not fit: under `things/<thing>/` only `values.ts`,
 `events.ts`, `refusals.ts`, `lifecycle.ts`, `examples.ts` (until 2b folds it) and verb files; only the folders above at
 `src/`; markdown only in `generated/` and `docs/`.
+
+## 14. Build the system, then climb, then breadth (15 November 2026)
+
+**Agreed with Aaron, 15 November 2026.**
+
+**Part 1: the blueprint system, complete and clean.** The machinery, not the product: the language with every format
+it will need (thing, verb, lifecycle, who may call, spans and logs, budget, promises, telemetry names, glossary words,
+the pipeline's things), the generators (indexes, pages, the CLI tree, SQL constraints, later the Frappe catalogue), the
+checks (format, layout, lint, the closed vocabulary at run time) and the ratchet registry. Built as it should be, with no
+shims for the old shape: old declarations sit on ratchet lists, they do not bend the format. Done when every format
+exists, every ratchet is counted, a scorecard of every thing against every format is generated from the ratchet lists,
+and one thing, the invitation, is in every format end to end (blueprint, generated code, API handler, journeys,
+telemetry checks) with nothing drifting. Only once the whole system is working is the toolkit split off as a package
+anyone could reuse.
+
+**Part 2: the climb.** Everything that exists today is brought up to spec before breadth, in parallel lanes. The unit
+is the thing: a lane takes a few things and brings each fully up to spec (its lifecycle declared and the API moving it
+only through it, every format, the glossary's words, its spans declared and instrumented, journeys reaching every new
+declaration). The lifecycles of every existing thing are pulled forward into the climb (they were item 7.3): world,
+site, company setup, approval and document first; where today's states disagree or were never written down (the
+site's "unreachable", the approval's states), they are agreed with Aaron as they are declared. The climb is done when
+the scorecard is all green. It is run as a rehearsal of breadth, with the same machinery (a lead per lane, a journey
+author apart from the builder, a thing per unit, lanes merging through slices) and measured as one: things brought to
+spec per day, tries to green, conflicts between lanes, time waiting; breadth starts from those numbers.
+
+**Then** the accounts pilot (phase 5), the invoice ledger (phase 6) and breadth (phase 7), in that order.
+
+**No callers, no compatibility.** Agreed with Aaron, 15 November 2026: Capxul has no users yet, so until a real caller
+exists (phase 8), existing operations are reshaped and renamed directly, with no side-by-side versions; the journey
+author updates the journeys in the same lane. The aim is to cut over as quickly as possible: work merges fast into its
+slice, and a slice reaches `master` only when every check passes (`gate` and `world`). "Side by side, then flip, then
+retire" applies again from the first real caller.
