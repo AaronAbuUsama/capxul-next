@@ -73,12 +73,5 @@ below is in it. `records/bd-w1.prove.txt` is the same proof on the first world, 
 
 ## Run it
 
-`pnpm install --ignore-workspace` here and in `images/alto/` (its `node_modules` is copied into the image). Start a
-Docker daemon if images must be built. Then `./run.sh deploy --stage bd-<name> --yes`, and `./prove.sh bd-<name>`
-drives it through every question above (`prove/main.ts` is the part that signs and sends). Finish with
-`./run.sh destroy --stage bd-<name> --yes`, `python3 registry.py --delete` for the images, and `./check-clean.sh`.
-Never run `alchemy nuke`: it deletes every resource in the account, not only this stack's.
-
-`src/chain` is the chain (copied from spikes/containers, the indexer replaced by the bundler), `src/bundler` the
-bundler (alto's container and its Durable Object), `src/Door.ts` the Worker, `images/` the two images, `prove/` the
-setup and the UserOperation.
+The spike's code was deleted when it graduated into `packages/world`. These are its records; it cannot be run again
+from here.

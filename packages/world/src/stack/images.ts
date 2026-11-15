@@ -11,7 +11,11 @@
 // one whose inputs changed builds by context as before, and says so, so a stale pin is slow but never wrong.
 //
 // To pin an image again after its inputs changed: deploy once (it builds and publishes as before), then copy the
-// digest the deploy's log names and the fingerprint `./run.sh images` prints into PINS.
+// digest the deploy's log names and the fingerprint `./run.sh images` prints into PINS. The index's image copies
+// `ponder/node_modules` and the bundler's `images/alto/node_modules`: after a change to either's package.json, run
+// `pnpm install --ignore-workspace` there first. In an agent's container the Docker daemon has no route out, so such a
+// deploy builds the image and fails at the push: `images/publish.sh <repository:tag>...`, with the tags the failed
+// deploy's log names, pushes them through the session's proxy, and the next deploy needs no Docker.
 import * as Alchemy from "alchemy";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";

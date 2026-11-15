@@ -4,6 +4,10 @@
 //
 // Nothing is saved on stop: alto keeps its mempool in memory, and everything else it needs (its simulation
 // contracts, its executor's nonce, the paymaster's deposit) is on the chain, which is saved.
+//
+// TODO: a UserOperation in alto's mempool when the world stops is lost. Alto runs with ALTO_SAFE_MODE=false (no
+// ERC-7562 tracing, which anvil's tracer cannot give, and no stake checks), and the paymaster signs nothing: a signed
+// paymaster and ERC-7677's `pm_*` methods would also meet alto's wall clock against the seeded chain's.
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
