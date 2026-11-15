@@ -1,5 +1,7 @@
 # The world run in under 10 minutes, and under 5: options from first principles
 
+Status: agreed with Aaron, 15 November 2026; its decisions are in `docs/roadmap.md`.
+
 📐 Designer note, 15 November 2026. Analysis and options only: no code changed, no world, deploy or CI run made. Aaron
 asked to think about the `world` run "from first principles, be radical", to find ways to take it from about half an
 hour to under 10 minutes, and under 5 if possible. The agreed order stands: the pipeline is instrumented first (stage
