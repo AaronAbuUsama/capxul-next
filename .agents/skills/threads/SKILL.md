@@ -8,7 +8,7 @@ description: Thread types for Capxul's agent threads, each with its emoji, job a
 A **thread** is one agent conversation working on this repository: an Amp thread, a Claude Code session, a Codex
 session. Every thread is one **thread type**. Its title starts with the type's emoji, so Aaron can see what each one is
 at a glance: `<emoji> <Type>: <subject>`, for example `🔨 Builder: invitation accept in the new format`. Where your
-agent has tags or labels, tag it `thread:<type>`.
+agent has tags or labels, tag it `thread:<type>`, in your agent's form (the table at the end).
 
 The conductor starts threads, briefs them and lands what they make. Report to it when you finish, when you're blocked,
 and when a decision is needed: message it if your agent can reach the conductor's thread, and in every case end each
@@ -42,11 +42,12 @@ The kit names actions, not tools. Use your agent's own:
 
 | Action | Claude Code (cloud) | Amp | Codex |
 |---|---|---|---|
-| Start a thread | `create_session` | a new thread, or a handoff | a new session |
-| Run a short side task | a subagent (`Agent`) | a subagent | a subagent |
-| Message a thread | `send_message` | none yet: Aaron passes the message, or the thread reads it from the repository | none yet |
-| Read a thread | `list_events` | read the thread by its link | read its transcript |
-| Archive a thread | `archive_session` | archive the thread | close it |
-| A thread's link | `https://claude.ai/code/<session id>` | `https://ampcode.com/threads/<thread id>` | none |
+| Start a thread | `create_session` | `create_thread`: an orb by default, or a live `amp` runner on Aaron's Mac when one is connected | a new session: `codex exec` (or `codex` and `/new`) on the machine, `codex cloud exec --env <env>` in the cloud |
+| Run a short side task | a subagent (`Agent`) | a subagent (`Task`) | a subagent: ask Codex to spawn one |
+| Message a thread | `send_message` | `send_thread_message`; a thread it starts reports back the same way when its brief asks it to | `codex queue --thread <session> --message "…" --resume`, for a session on the same machine; none for a cloud chat |
+| Read a thread | `list_events` | `read_thread` for its whole history, `get_thread_status` for its live state and latest messages | its transcript under `~/.codex/sessions/`, or `/export` inside it; `codex cloud list` for cloud chats |
+| Archive a thread | `archive_session` | `update_thread` with `archived: true` (`false` restores it); the threads it started stay active | `codex archive <session>` (`codex unarchive` restores it); the subagent sessions it spawned go with it |
+| Tag a thread | the tag `thread:<type>` | the label `thread-<type>`: labels take only letters, digits and hyphens | none: the title carries the type (`/rename`) |
+| A thread's link | `https://claude.ai/code/<session id>` | a Markdown link, the title as its text: `[<title>](https://ampcode.com/threads/T-…)` | a cloud chat's `url` from `codex cloud list`; a local session has none, so give its session ID |
 
 Where a cell is wrong for your agent, fix it in a pull request: this table is the one place it is written.

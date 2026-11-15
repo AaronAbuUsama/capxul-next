@@ -55,6 +55,22 @@ export const OUTPUTS = {
 } as const;
 
 /**
+ * The outputs the root's `pnpm generate` writes after this package, through packages/blueprint-tools (`ratchets
+ * --write`): their counters read the blueprint's own declarations, which this package cannot hand that one (see its
+ * README). Listed here so every generated file is named in one place.
+ */
+export const WRITTEN_BY_TOOLS = {
+  ratchets: {
+    path: "packages/blueprint/generated/ratchets.json",
+    from: "packages/blueprint/src/ratchets.ts and the lists it counts (packages/lint/src/unmigrated.ts, the formats)",
+  },
+  scorecard: {
+    path: "packages/blueprint/generated/scorecard.md",
+    from: "packages/blueprint/src/things/, the formats and the ratchet lists",
+  },
+} as const;
+
+/**
  * The packages whose map `pnpm generate` writes, at `<package>/generated/index.md`: one line per file under `src/`,
  * from the comment it opens with, and one per page under `docs/`, from its title (docs/design/blueprint.md, part 7).
  */

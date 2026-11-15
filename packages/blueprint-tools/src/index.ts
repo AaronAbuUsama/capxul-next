@@ -1,8 +1,9 @@
-// The toolkit's one door: the language the blueprint is written in (a verb's declaration, a lifecycle, a promise, a
-// starting point, how a generated index gathers its parts), the pure check of declared names, and how the blueprint's
-// folders read as data. It imports nothing of the blueprint, which imports this door: what checks or renders the
-// blueprint's own declarations (src/checks/formats.ts, src/checks/delta.ts, src/render/render.ts) imports the
-// blueprint's door by its path and is reached only by this package's own entries and tests (README.md says why).
+// The toolkit's one door: the language the blueprint is written in (a verb's declaration, work no door serves, a
+// lifecycle, a promise, a starting point, how a generated index gathers its parts), the pure check of declared names,
+// and how the blueprint's folders read as data. It imports nothing of the blueprint, which imports this door: what
+// checks or renders the blueprint's own declarations (src/checks/formats.ts, src/checks/delta.ts,
+// src/render/render.ts) imports the blueprint's door by its path and is reached only by this package's own entries
+// and tests (README.md says why).
 export {
   declare,
   declareOutcomes,
@@ -36,6 +37,19 @@ export {
   type Origin,
 } from "./language/promise.ts";
 export { holdsFactsOf, type StartingWorld, type Step } from "./language/starting-point.ts";
+export {
+  log,
+  logsOf,
+  shareTotal,
+  span,
+  spansOf,
+  work,
+  type Log,
+  type Share,
+  type Span,
+  type Work,
+  type WorkDeclaration,
+} from "./language/work.ts";
 export { gather, type Every } from "./language/gather.ts";
 export {
   code,
@@ -60,6 +74,7 @@ export {
   THING_FILES,
   verbAt,
   verbsOf,
+  worksOf,
   type Exports,
   type Layout,
   type Lifecycle,
@@ -67,4 +82,5 @@ export {
   type Thing,
   type ThingFile,
   type Verb,
+  type WorkVerb,
 } from "./render/layout.ts";
