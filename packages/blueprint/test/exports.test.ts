@@ -17,7 +17,7 @@ const named = (text: string): ReadonlyArray<string> => Arr.filter(Str.split(text
 
 /** Every name the door exports. */
 const TOP = named(`
-  Approvals Board Budgets CHAIN_PATH CHAIN_READ_METHODS CREDENTIAL_HEADER Caller Chain CurrentCall CurrentCaller
+  Approvals Board Budgets CHAIN_PATH CHAIN_READ_METHODS CREDENTIAL_HEADER Caller Cast Chain CurrentCall CurrentCaller
   CurrentOperator Documents Errors Machine MadeCall Organizations PERSON_HEADER PLATFORM_PATH People PlatformRpcs
   PlatformSignIn Record Reports Site TRACE_HEADER Telemetry Values WORLD_PATH World WorldRpcs WorldSignIn allClaims
   declare declareOutcomes declaredNames domains eventNamesOf glossary holdsFactsOf isRefusal machines operations outcome

@@ -22,7 +22,7 @@ const THING_FILES = ["values.ts", "events.ts", "refusals.ts", "lifecycle.ts", "e
 const FIXED: { readonly [folder: string]: ReadonlyArray<string> } = {
   "": ["index.ts", "glossary.ts", "ratchets.ts"],
   "common/": ["values.ts", "ids.ts", "refusals.ts", "site.ts", "chain/chain.ts", "chain/logs.ts", "chain/reads.ts"],
-  "starting-points/": ["points.ts", "facts.ts"],
+  "starting-points/": ["points.ts", "facts.ts", "cast.ts"],
   "protocol/": ["paths.ts", "headers.ts", "sign-in.ts", "trace.ts"],
   "telemetry/": [
     "conventions.ts",
