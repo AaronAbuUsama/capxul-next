@@ -7,6 +7,7 @@
 import type { domains as blueprint } from "@capxul/blueprint";
 import type { Domain } from "./domain.ts";
 import * as Approvals from "./domains/approvals.ts";
+import * as Budgets from "./domains/budgets.ts";
 import * as Documents from "./domains/documents.ts";
 import * as Organizations from "./domains/organizations.ts";
 import * as People from "./domains/people.ts";
@@ -19,6 +20,7 @@ export const domains: { readonly [D in keyof typeof blueprint]: Domain<(typeof b
   world: World,
   organizations: Organizations,
   people: People,
+  budgets: Budgets,
   documents: Documents,
   approvals: Approvals,
   reports: Reports,

@@ -17,6 +17,7 @@ describe("every world's chain", () => {
   test("the addresses are packages/contracts' deployment record's", () => {
     const record = read("deployments/devnet.json");
     assert.equal(CONTRACTS.payments, record.contracts.Payments.address);
+    assert.equal(CONTRACTS.budgets, record.contracts.Budgets.address);
     assert.equal(CONTRACTS.companySafeMinter, record.contracts.CompanySafeMinter.address);
     assert.equal(CONTRACTS.companiesHouse, record.companiesHouse);
     assert.equal(CONTRACTS.hats, record.contracts.Budgets.constructorArguments["hats_"]);

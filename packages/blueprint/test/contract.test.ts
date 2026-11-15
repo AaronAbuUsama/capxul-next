@@ -14,6 +14,7 @@ import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import * as Struct from "effect/Struct";
 import * as ApprovalsOps from "../src/approvals/operations.ts";
+import * as BudgetsOps from "../src/budgets/operations.ts";
 import { allClaims } from "../src/claims/all.ts";
 import { renderClaims } from "../src/claims/render.ts";
 import * as DocumentsOps from "../src/documents/operations.ts";
@@ -113,6 +114,7 @@ const modules = {
   "approvals/operations.ts": ApprovalsOps,
   "reports/operations.ts": ReportsOps,
   "people/operations.ts": PeopleOps,
+  "budgets/operations.ts": BudgetsOps,
   "record/operations.ts": RecordOps,
 };
 const exported: ReadonlyArray<{ file: string; name: string; value: unknown }> = Arr.flatMap(

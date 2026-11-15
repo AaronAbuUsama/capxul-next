@@ -36,6 +36,7 @@ const emptyChain: CapxulClient["chain"] = {
   hat: () => Effect.succeed({ details: "", maxSupply: 0, supply: 0, active: false }),
   wears: () => Effect.succeed(false),
   companySafeFor: () => Effect.succeed(ZERO),
+  budget: () => Effect.succeed(null),
   transaction: ({ transaction }) =>
     Effect.succeed({ transaction, block: 0, from: ZERO, to: null, status: "reverted" as const, logs: [] }),
   logs: () => Effect.succeed([]),

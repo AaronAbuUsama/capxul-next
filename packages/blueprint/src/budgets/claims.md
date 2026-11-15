@@ -1,0 +1,82 @@
+# Acceptance claims of the domain `budgets`
+
+Rendered from `claims.ts` here and the declarations by `pnpm claims`. Do not edit it by hand: a test fails when
+this file and its sources differ. What the runner checks on every call, and the starting worlds a claim is in,
+are in [claims.md](../../claims.md).
+
+## Count
+
+| Operation | Claims | Old, word for word | Old, rewritten | New | Old, not kept |
+|---|---|---|---|---|---|
+| `org.budget.create` | 6 | 0 | 0 | 6 | 0 |
+| `org.budget.show` | 2 | 0 | 0 | 2 | 0 |
+| `org.budget.list` | 2 | 0 | 0 | 2 | 0 |
+
+## 1. `org.budget.create`
+
+- Served by: the world group.
+- Refusals: `OrgNotFound`, `NotADirector`, `NotAMember`, `MemberHasNoSafe`, `BudgetNotFound`, `ExceedsParent`, `NotImplemented`, and `NotSignedIn` from sign-in.
+- Emits: `budget_proposed`, `proposal_opened`.
+- Budget: 4,000 ms, provisional, excluding waking a parked world. Basis: live reads of the Safe, the parent budget and the holder's Safe on the world's chain, then opening one approval per Director.
+
+1. A Director proposes a budget for a holder inside a budget of the company: it waits for the Directors, and nothing is on the chain until they sign. *(thin line)*
+   - In: `founded`.
+   - Observes: org.budget.create as dana of Office costs, 1,000 USDC for sam inside Northwind's top budget, answers its creation proposed as asked, monthly in USDC as its parent is (chain.budget), with a proposal and one approval per Director at their own signer address, dana's among them. The record gains budget_proposed carrying only creation, org, parent and proposal, then proposal_opened; the parent's left on the chain is what it was, and org.budget.list does not list it.
+   - Old: none; this claim is new.
+2. Once its Directors sign, one company Safe transaction makes the budget: a hat of its own on the holder's Safe, and the amount inside its parent.
+   - In: `founded`.
+   - Observes: approval.sign as dana is Collected and as eli is Sent, naming the subject budget_creation and the creation's id. Through the door's chain RPC, the logs of the transaction it sent (chain.transaction) hold one BudgetCreated of the world's Budgets (`contracts.budgets`) for the company Safe, inside the parent, whose hat a TransferSingle of the world's Hats in the same transaction minted to sam's Safe. chain.budget of it gives 1,000 USDC a month with nothing spent, and the parent has 1,000 less left. org.budget.show of it answers it, held by sam.
+   - Old: none; this claim is new.
+3. Only a Director may propose a budget; anyone else is refused, and nothing is proposed.
+   - In: `founded`.
+   - Observes: As sam, a member, it is refused with NotADirector naming Northwind and sam. record.export shows no new entry.
+   - Refusals: `NotADirector`.
+   - Old: none; this claim is new.
+4. A holder who does not belong to the company, and one with no personal Safe to wear its hat, are refused.
+   - In: `founded`.
+   - Observes: A budget for olga, who is of the world's cast but of no company, and for zed, who is nobody of the world, is refused with NotAMember naming Northwind and the holder; for pat, a member who has not claimed a Safe, with MemberHasNoSafe. record.export shows no new entry.
+   - Refusals: `NotAMember`, `MemberHasNoSafe`.
+   - Old: none; this claim is new.
+5. A parent the company does not have, an amount over what the parent has left, and a company nobody founded are refused.
+   - In: `founded`.
+   - Observes: A parent no budget of Northwind has is refused with BudgetNotFound naming it. 1,000,000.000001 inside the top budget of 1,000,000 is refused with ExceedsParent naming the parent, what it has left as chain.budget gives it, and the amount; once sam's 1,000 is made, 999,000.000001 is refused the same, with 999,000 left. A company nobody founded is refused with OrgNotFound; an amount of 0 and an empty name with PayloadRejected. record.export shows no new entry for any of them.
+   - Refusals: `BudgetNotFound`, `ExceedsParent`, `OrgNotFound`.
+   - Old: none; this claim is new.
+6. A budget may go inside any budget of the company, not only its top one.
+   - In: `founded`.
+   - Observes: Once sam's Office costs is made, org.budget.create as dana of Cleaners, 200 USDC for sam inside it, answers its creation proposed inside Office costs, monthly in USDC.
+   - Old: none; this claim is new.
+
+## 2. `org.budget.show`
+
+- Served by: the world group.
+- Refusals: `OrgNotFound`, `NotAMember`, `BudgetNotFound`, `NotImplemented`, and `NotSignedIn` from sign-in.
+- Emits: none.
+- Budget: 1,500 ms, provisional, excluding waking a parked world. Basis: reads of the budget and of its hat's wearers on the world's chain, and of its name in the database.
+
+1. A budget reads as the chain holds it now, with the people who hold it. *(thin line)*
+   - In: `founded`.
+   - Observes: Every org.budget.show answers what chain.budget of the world's Budgets gives for that id: the company Safe's budget, its parent (null for the top one), hat, asset, period, amount, spent, committed, left and whether it is closed. Its holders are the people of the cast whose Safe wears its hat (chain.wears), in the cast's order; the top budget is named as the company is. The record gains no entry.
+   - Old: none; this claim is new.
+2. Its company's Directors and members and the world's owner may read a budget; anyone else, and a budget the company does not have, are refused.
+   - In: `founded`.
+   - Observes: As dana, as sam and as the world's owner it answers the top budget; as olga it is refused with NotAMember naming Northwind and olga; a budget no budget of Northwind is, with BudgetNotFound naming it; a company nobody founded, with OrgNotFound. record.export shows no new entry.
+   - Refusals: `NotAMember`, `BudgetNotFound`, `OrgNotFound`.
+   - Old: none; this claim is new.
+
+## 3. `org.budget.list`
+
+- Served by: the world group.
+- Refusals: `OrgNotFound`, `NotAMember`, `NotImplemented`, and `NotSignedIn` from sign-in.
+- Emits: none.
+- Budget: 2,000 ms, provisional, excluding waking a parked world. Basis: the company's BudgetCreated logs, then each budget and its hat's wearers, read on the world's chain.
+
+1. A company's budgets are every budget the chain made for its Safe, its top budget first, each as org.budget.show reads it. *(thin line)*
+   - In: `founded`.
+   - Observes: From founded it answers one budget: the top budget founding made, named Northwind Trading, 1,000,000 USDC a month with all of it left, whose hat is Books (chain.hat) and which nobody holds. Once sam's is made it answers the two, in the order of the BudgetCreated logs of the world's Budgets for the company Safe (chain.logs), each as org.budget.show answers it. A budget proposed and not yet signed is not among them. The record gains no entry.
+   - Old: none; this claim is new.
+2. Anyone who does not belong to the company, and a company nobody founded, are refused.
+   - In: `founded`.
+   - Observes: As olga it is refused with NotAMember naming Northwind and olga; for a company nobody founded, with OrgNotFound. record.export shows no new entry.
+   - Refusals: `NotAMember`, `OrgNotFound`.
+   - Old: none; this claim is new.
