@@ -114,18 +114,6 @@ export interface Send {
 const named = (send: Send, what: string) => (cause: unknown) =>
   failed("cast")({ message: `${send.label}: ${what}: ${describeFailure(cause)}` });
 
-/** Insists that a transaction was mined and succeeded. */
-const succeeded = <E, R>(call: Call<E, R>, send: Send, hash: string) =>
-  Effect.gen(function* () {
-    const receipt = yield* call("eth_getTransactionReceipt", [hash]).pipe(
-      Effect.flatMap(Schema.decodeUnknownEffect(Receipt)),
-      Effect.retry(Schedule.max([Schedule.spaced("500 millis"), Schedule.recurs(20)])),
-      Effect.mapError(named(send, `no receipt for ${hash}`)),
-    );
-    if (receipt.status !== "0x1") return yield* failed("cast")({ message: `${send.label}: ${hash} reverted` });
-    return hash;
-  });
-
 /** How many transactions of one sender are in flight at once. */
 const IN_FLIGHT = 16;
 
@@ -133,18 +121,6 @@ const IN_FLIGHT = 16;
 const NONCE_TROUBLE = /nonce|replacement|underpriced/i;
 
 const nonceOf = (n: bigint): string => `0x${n.toString(16)}`;
-
-/** Sends one transaction with the nonce the chain has mined up to, once those before it are in. */
-const oneByOne = <E, R>(call: Call<E, R>, from: string, send: Send) =>
-  Effect.gen(function* () {
-    const mined = yield* quantity(call("eth_getTransactionCount", [from, "latest"]));
-    return yield* call("eth_sendTransaction", [{ ...send.transaction, from, nonce: nonceOf(mined) }]).pipe(
-      Effect.flatMap(Schema.decodeUnknownEffect(Hex)),
-    );
-  }).pipe(
-    Effect.mapError(named(send, "sent one by one")),
-    Effect.tap((hash) => succeeded(call, send, hash)),
-  );
 
 /**
  * Sends one test account's transactions side by side, each with its own nonce, and fails naming any that fails. One
@@ -155,6 +131,28 @@ export const sendAll = Effect.fn("world.cast.send")(function* <E, R>(
   from: string,
   sends: ReadonlyArray<Send>,
 ) {
+  // Insists that a transaction was mined and succeeded.
+  const succeeded = (send: Send, hash: string) =>
+    Effect.gen(function* () {
+      const receipt = yield* call("eth_getTransactionReceipt", [hash]).pipe(
+        Effect.flatMap(Schema.decodeUnknownEffect(Receipt)),
+        Effect.retry(Schedule.max([Schedule.spaced("500 millis"), Schedule.recurs(20)])),
+        Effect.mapError(named(send, `no receipt for ${hash}`)),
+      );
+      if (receipt.status !== "0x1") return yield* failed("cast")({ message: `${send.label}: ${hash} reverted` });
+      return hash;
+    });
+  // Sends one transaction with the nonce the chain has mined up to, once those before it are in.
+  const oneByOne = (send: Send) =>
+    Effect.gen(function* () {
+      const mined = yield* quantity(call("eth_getTransactionCount", [from, "latest"]));
+      return yield* call("eth_sendTransaction", [{ ...send.transaction, from, nonce: nonceOf(mined) }]).pipe(
+        Effect.flatMap(Schema.decodeUnknownEffect(Hex)),
+      );
+    }).pipe(
+      Effect.mapError(named(send, "sent one by one")),
+      Effect.tap((hash) => succeeded(send, hash)),
+    );
   const next = yield* quantity(call("eth_getTransactionCount", [from, "pending"])).pipe(
     Effect.mapError((cause) => failed("cast")({ message: `${from}'s next nonce: ${describeFailure(cause)}` })),
   );
@@ -171,10 +169,10 @@ export const sendAll = Effect.fn("world.cast.send")(function* <E, R>(
   const hashes = yield* Effect.forEach(Arr.zip(sends, first), ([send, sent]) => {
     if (Result.isSuccess(sent)) return Effect.succeed(sent.success);
     return NONCE_TROUBLE.test(describeFailure(sent.failure))
-      ? oneByOne(call, from, send)
+      ? oneByOne(send)
       : Effect.fail(named(send, "not sent")(sent.failure));
   });
-  return yield* Effect.forEach(Arr.zip(sends, hashes), ([send, hash]) => succeeded(call, send, hash), {
+  return yield* Effect.forEach(Arr.zip(sends, hashes), ([send, hash]) => succeeded(send, hash), {
     concurrency: IN_FLIGHT,
   });
 });
