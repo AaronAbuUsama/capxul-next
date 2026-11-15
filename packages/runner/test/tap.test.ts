@@ -12,7 +12,6 @@ import { decodeTraces } from "../src/telemetry/otlp.ts";
 import { flatSpans } from "../src/telemetry/flat.ts";
 import { tapOf } from "../src/telemetry/tap.ts";
 import { bodiesTo, exported } from "./support/capture.ts";
-import { failsUntilBuilt } from "./support/fails.ts";
 
 const DATABASE = Redacted.make("postgresql://user:password@ep-tap.test/neondb");
 
@@ -25,9 +24,8 @@ const standIn = (rows: ReadonlyArray<unknown>) =>
     ),
   );
 
-// Fails until the pull request of the builder who reads the tap beside app.spans (PR #317, item 5; not yet started) replaces the stub: it reads nothing.
 test("the tap read returns the spans Core wrote under a call's trace id", async () => {
-  const reason = await Effect.gen(function* () {
+  await Effect.gen(function* () {
     const posted = yield* Effect.void.pipe(Effect.withSpan("call.op", { kind: "server" }), exported);
     const body = bodiesTo(posted, "/v1/traces")[0]!;
     const written = flatSpans(yield* decodeTraces(body));
@@ -40,6 +38,5 @@ test("the tap read returns the spans Core wrote under a call's trace id", async 
       Arr.map(written, (span) => [span.spanId, span.name]),
       "the tap read returned no span",
     );
-  }).pipe(failsUntilBuilt, Effect.runPromise);
-  assert.match(reason, /the tap read returned no span/);
+  }).pipe(Effect.runPromise);
 });
