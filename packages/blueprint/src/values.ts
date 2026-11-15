@@ -41,7 +41,7 @@ export const Signature = pattern(/^0x[0-9a-f]{130}$/);
 
 /** A Solidity `bool` of a chain log. */
 export const SolidityBool = Schema.Boolean;
-/** A Solidity `string` of a chain log, as the contract emitted it. */
+/** A Solidity `string` of a chain log. */
 export const SolidityString = Schema.String;
 /** A Solidity uint of up to 48 bits, which viem decodes as a number. */
 export const SmallUint = Schema.Int;

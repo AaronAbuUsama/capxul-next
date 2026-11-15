@@ -24,11 +24,12 @@ import time
 
 import db
 from sites import REGISTRY
-from templates import (MAKING, TEMPLATES, names, remove_making, template_lock, template_sites, used_at)
+from templates import (BLANK, MAKING, TEMPLATES, names, remove_making, template_lock, template_sites, used_at)
 
 COPY = re.compile(r"^[0-9a-f]{8}$")  # a ready copy's folder; one being made ends in .making
 POOL = f"{REGISTRY}/pool"
 POOL_SIZE = int(os.environ.get("DOOR_POOL_SIZE", "2"))
+BLANK_POOL_SIZE = int(os.environ.get("DOOR_BLANK_POOL_SIZE", "4"))  # one company site for each of four runs at once
 REFILL = threading.Lock()  # one pool copy is made at a time, bench-wide
 _guard, _refilling = threading.Lock(), set()
 REFILLS = []  # the last 50 copies made, each with its time, for GET /templates
@@ -71,6 +72,10 @@ def remove_pool(template):
     shutil.rmtree(f"{POOL}/{template}", ignore_errors=True)
 
 
+def size_of(template):
+    return BLANK_POOL_SIZE if template.startswith(BLANK) else POOL_SIZE
+
+
 def ready_copies(template, label):
     return sorted(p for p in glob.glob(f"{POOL}/{template}/{label}/*") if COPY.match(os.path.basename(p)))
 
@@ -83,11 +88,11 @@ def list_templates():
         out.append({"template": name, "used_at": used, "idle_s": None if used is None else now - used, "sites": [
             {k: m.get(k) for k in ("label", "company", "made_from", "made_by", "made_at", "ms")} |
             {"pool_ready": len(ready_copies(name, m["label"]))} for m in template_sites(name)]})
-    return {"templates": out, "pool_size": POOL_SIZE, "refills": REFILLS[-20:]}
+    return {"templates": out, "pool_size": POOL_SIZE, "blank_pool_size": BLANK_POOL_SIZE, "refills": REFILLS[-20:]}
 
 
 def refill_soon(template):
-    """Starts topping the template's pool up to POOL_SIZE in the background, unless that is under way."""
+    """Starts topping the template's pool up to its size (size_of) in the background, unless that is under way."""
     with _guard:
         if template in _refilling:
             return
@@ -98,7 +103,8 @@ def refill_soon(template):
 def _refill(template):
     try:
         while True:
-            short = [m for m in template_sites(template) if len(ready_copies(template, m["label"])) < POOL_SIZE]
+            size = size_of(template)
+            short = [m for m in template_sites(template) if len(ready_copies(template, m["label"])) < size]
             if not short:
                 return
             with REFILL, template_lock(template):

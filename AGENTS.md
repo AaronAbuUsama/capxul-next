@@ -221,7 +221,7 @@ Run `pnpm check` before you open a pull request. It runs rungs 1 to 5 in order a
 | 2. Format | `pnpm format:check`, `pnpm generate:check`, `pnpm seed:check` | TypeScript or JavaScript under `packages/` that oxfmt would change (config: `packages/lint/oxfmt.json`); a generated file that `pnpm generate` would write differently (it builds the contracts with Foundry first, `packages/generate`); a seeded chain state (`packages/contracts/state/core.json`, `deployments/devnet.json`) that `pnpm seed` would rebuild differently |
 | 3. Lint | `pnpm lint` | Any finding of `.oxlintrc.json`, every rule an error: oxlint's correctness and suspicious rules and a few more, all of Effect's rules from `@effect/tsgo` but two (each off with its reason), and ours from `packages/lint` (below) |
 | 4. Types | `pnpm types` | A type error in any TypeScript package, or an Effect language service error or warning (`effect-tsgo tsc`) |
-| 5. Tests | `pnpm test` | A failing unit test in any package (`pnpm frappe:test` and `pnpm status:test` included). Foundry's tests in `packages/contracts` are not in it: CI builds only the contracts, not their tests |
+| 5. Tests | `pnpm test`, then `pnpm delta:check` | A failing unit test in any package (`pnpm frappe:test` and `pnpm status:test` included). Foundry's tests in `packages/contracts` are not in it: CI builds only the contracts, not their tests. Then the delta check: an operation that lacks a format that exists and is not on that format's `unmigrated` list (`packages/blueprint/src/formats.ts`) |
 | 6. Proof | `packages/runner/run.sh scenarios` | A scenario that fails in a fresh world. CI runs it in `.github/workflows/world.yml` once the bootstrap has given CI its Cloudflare and Neon keys (roadmap step 1.8) |
 
 Our lint rules, each tested in `packages/lint/test/rules.test.ts`:
@@ -234,6 +234,18 @@ Our lint rules, each tested in `packages/lint/test/rules.test.ts`:
 - `capxul/import-door`: another package is imported only through its door, `src/door.ts`, or by its bare name.
 - `capxul/no-json-text`: no `JSON.parse`, `JSON.stringify`, `Schema.parseJson` or string schema documented as JSON
   outside entry files and the edges listed under `settings.capxul.jsonEdges`.
+- `capxul/owned-values`: a raw schema (`Schema.String`, `Schema.Literals`, ...) only in the blueprint's values files
+  and machines, and there only as a named value, never as a field; elsewhere only in entry files and the edges listed
+  under `settings.capxul.schemaEdges`, each with its reason.
+- `capxul/declared-names`: a name the blueprint declares (an operation, a refusal, an event, an outcome, a starting
+  world) is imported, never written as a string outside the blueprint, except where the compiler checks it (an
+  object's key, a computed member, the tag given to `catchTag`, `Match.tag` or `isTagged`).
+- `capxul/decoded-rows`: no `sql<Row>` cast outside the blueprint; rows are decoded with the blueprint's schemas.
+
+These three are ratcheted: what each found when it was turned on is on its list in `packages/lint/src/unmigrated.ts`,
+a file with a count that may only fall (`packages/lint/README.md` says how to lower it). New files are never added.
+Each skips generated files: a file whose first line is a comment starting `// Generated`, written by `pnpm generate`
+and never edited.
 
 What the ladder does not cover: `spikes/` (temporary code, deleted when its step graduates it; only its README is
 checked), Ponder's files in `packages/indexer` (type-checked only), the Solidity in `packages/contracts`, and the

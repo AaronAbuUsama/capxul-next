@@ -11,7 +11,7 @@ import { keepTemplate } from "../site/Points.ts";
 import { templateName } from "../site/Templates.ts";
 import { recordedOutput } from "../stack/engine.ts";
 import { nameOf } from "../stack/names.ts";
-import { WorldOutput } from "./parts.ts";
+import { WorldOutput } from "./handle.ts";
 import { mustExist } from "./world.ts";
 
 /** The bench world `name` was made with; none when it has no bench. */

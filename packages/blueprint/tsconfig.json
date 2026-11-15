@@ -6,7 +6,9 @@
         "name": "@effect/language-service",
         // Operations are Effect Rpc declarations, and Effect 4 ships Rpc only under effect/rpc, marked unstable, with
         // no stable replacement. The catalog's exact pin of effect is the guard: a change to it fails this check.
-        "allowedUnstableApis": ["effect/rpc"]
+        // Lifecycles are machines built from Effect's own parts (docs/roadmap.md, "Lifecycles are machines in the
+        // blueprint"): `Graph` for reachability and the diagram, `Arbitrary` for the property tests, both unstable.
+        "allowedUnstableApis": ["effect/rpc", "effect/Graph", "effect/Arbitrary"]
       }
     ]
   },
