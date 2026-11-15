@@ -15,16 +15,16 @@ import * as Order from "effect/Order";
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
-import { connectionOf, projectId } from "../database/neon.ts";
 import { claimsOf, registry } from "../lifecycle/claim.ts";
 import { describeFailure } from "../lifecycle/describe.ts";
+import { keptConnection } from "../lifecycle/handle.ts";
 import { doorCall } from "../lifecycle/parts.ts";
 import { Limits, type World } from "../lifecycle/spec.ts";
 import { dropSaved } from "../site/Saved.ts";
 import { recordedOutput } from "../stack/engine.ts";
 import { nameOf } from "../stack/names.ts";
 import { dropBranch, hangers } from "./branches.ts";
-import { existing } from "./create.ts";
+import { existingRecorded } from "./create.ts";
 import { instantOf, readFacts } from "./facts.ts";
 import { forgetSnapshot, prepareStore, snapshotCounts, snapshotOf, snapshotsOf, type SnapshotRow } from "./store.ts";
 import { emitDeclared, opened, Recorded, stateOf } from "./view.ts";
@@ -49,22 +49,20 @@ export const savedOf = (world: string, row: SnapshotRow): typeof Blueprint.Snaps
 const ownedBy = (world: string) =>
   Effect.gen(function* () {
     const { operator } = yield* CurrentOperator;
-    const stage = yield* existing(world);
-    const output = yield* Effect.flatMap(recordedOutput(stage), Schema.decodeUnknownEffect(Recorded)).pipe(
-      Effect.orDie,
-    );
+    const { stage, recorded } = yield* existingRecorded(world);
+    const output = yield* Schema.decodeUnknownEffect(Recorded)(recorded).pipe(Effect.orDie);
     if (output.owner !== operator) return yield* Errors.NotWorldOwner.make({ world, owner: output.owner });
-    return { stage, output };
+    return { stage, output, recorded };
   });
 
 /**
  * One world of the list as world.show shows it, read from its database; none, with a warning, for a world that cannot
  * be shown so: one still being made, or what is left of a take-down that did not finish.
  */
-const listedOf = (stage: string, project: string, hostMs: number, snapshots: number) =>
+const listedOf = (stage: string, hostMs: number, snapshots: number) =>
   Effect.gen(function* () {
     const output = yield* Effect.flatMap(recordedOutput(stage), Schema.decodeUnknownEffect(Recorded));
-    const facts = yield* readFacts(yield* connectionOf(project, output.branch), hostMs);
+    const facts = yield* readFacts(yield* keptConnection(stage, output.branch), hostMs);
     if (facts.born === null) return yield* Effect.fail("its record holds no world_created yet");
     return Option.some<ListedWorld>({
       world: nameOf(stage),
@@ -96,9 +94,8 @@ export const list = Effect.fn("platform.world.list")(function* () {
         ),
         () => 0,
       );
-    const project = yield* projectId;
     const hostMs = yield* Clock.currentTimeMillis;
-    const listed = yield* Effect.forEach(stages, (stage) => listedOf(stage, project, hostMs, countOf(stage)), {
+    const listed = yield* Effect.forEach(stages, (stage) => listedOf(stage, hostMs, countOf(stage)), {
       concurrency: 4,
     });
     const worlds = Arr.sort(
@@ -137,7 +134,7 @@ const forgetChainState = (world: World, snapshot: string) =>
   );
 
 export const snapshotDelete = Effect.fn("platform.world.snapshot.delete")(function* (payload: SnapshotDeletePayload) {
-  const { stage, output } = yield* ownedBy(payload.world);
+  const { stage, output, recorded } = yield* ownedBy(payload.world);
   yield* prepareStore.pipe(Effect.orDie);
   const found = yield* snapshotOf(stage, payload.snapshot).pipe(Effect.orDie);
   if (Option.isNone(found))
@@ -151,7 +148,7 @@ export const snapshotDelete = Effect.fn("platform.world.snapshot.delete")(functi
       worlds: Arr.map(inUse, nameOf),
     });
   return yield* Effect.gen(function* () {
-    const { world } = yield* opened(stage);
+    const { world } = yield* opened(stage, { recorded });
     yield* dropBranch(row.branch_id);
     yield* forgetChainState(world, payload.snapshot);
     const bench = output.bench ?? "none";

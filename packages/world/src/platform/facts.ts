@@ -12,7 +12,7 @@ import * as Rec from "effect/Record";
 import type * as Redacted from "effect/Redacted";
 import * as Schema from "effect/Schema";
 import { Values } from "@capxul/blueprint";
-import { query, transaction, type Statement } from "../database/sql.ts";
+import { transaction, type Statement } from "../database/sql.ts";
 import { PlatformFailed } from "../failures.ts";
 import { describeFailure } from "../lifecycle/describe.ts";
 import type { Member } from "./cast.ts";
@@ -157,16 +157,18 @@ export const clockNow = (
   hostMs: number,
 ) => (row.mode === "frozen" && row.frozen_at_ms !== null ? row.frozen_at_ms : hostMs + (row.offset_ms ?? 0));
 
-/** Everything the world's database says of the world, its clock read at `hostMs`. */
+const FACTS: ReadonlyArray<Statement> = [
+  { query: ONE, params: [] },
+  { query: "select person, email, signer, safe from app.cast order by position", params: [] },
+  { query: "select org, handle, name, site_state, site_url from app.companies order by position", params: [] },
+];
+
+/**
+ * Everything the world's database says of the world, its clock read at `hostMs`: its three reads sent as one request
+ * (one round trip, and one snapshot of the database).
+ */
 export const readFacts = Effect.fn("platform.facts")(function* (database: Redacted.Redacted, hostMs: number) {
-  const [rows, cast, companies] = yield* Effect.all(
-    [
-      query(database, ONE),
-      query(database, "select person, email, signer, safe from app.cast order by position"),
-      query(database, "select org, handle, name, site_state, site_url from app.companies order by position"),
-    ],
-    { concurrency: 3 },
-  );
+  const [rows = [], cast = [], companies = []] = yield* transaction(database, FACTS);
   const row = yield* Effect.fromOption(Arr.head(yield* Schema.decodeUnknownEffect(Schema.Array(Row))(rows))).pipe(
     Effect.mapError(() => "the world's database holds no facts of the world"),
   );
