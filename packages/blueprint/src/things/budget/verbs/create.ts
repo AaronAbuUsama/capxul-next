@@ -3,7 +3,7 @@ import * as Arr from "effect/Array";
 import * as Str from "effect/String";
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, claim } from "@capxul/blueprint-tools";
+import { verb, claim } from "@capxul/blueprint-tools";
 import { NotImplemented, OrgNotFound } from "../../../common/refusals.ts";
 import { Amount, Approval, Asset, BudgetCreationId, OrgId, PersonId, ProposalId } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
@@ -22,7 +22,7 @@ const approval = (id: string, signer: string, n: number) => ({
   expiresAt: "2026-11-14T09:30:00Z",
 });
 
-export const create = declare({
+export const create = verb({
   rpc: Rpc.make("org.budget.create", {
     payload: {
       org: OrgId,

@@ -6,6 +6,9 @@
   "scripts": {
     "generate": "node --experimental-strip-types --no-warnings src/main.ts",
     "seed": "node --experimental-strip-types --no-warnings src/seed.ts",
+    "delta:check": "node --experimental-strip-types --no-warnings src/delta.entry.ts",
+    "ratchets": "node --experimental-strip-types --no-warnings src/ratchets.entry.ts",
+    "words": "node --experimental-strip-types --no-warnings src/words.entry.ts",
     "types": "effect-tsgo tsc -p .",
     "test": "node --experimental-strip-types --no-warnings --test test/*.test.ts"
   },

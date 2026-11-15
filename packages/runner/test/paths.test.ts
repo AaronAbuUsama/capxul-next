@@ -167,9 +167,9 @@ test("coverage counts each start, each move and each refused pair some call reac
 
 // The blueprint's own machines: the invitation's.
 const invitation = machines.invitation;
-const INVITE = People.memberInvite.rpc._tag;
-const ACCEPT = People.inviteAccept.rpc._tag;
-const DECLINE = People.inviteDecline.rpc._tag;
+const INVITE = People.invitationSend.rpc._tag;
+const ACCEPT = People.invitationAccept.rpc._tag;
+const DECLINE = People.invitationDecline.rpc._tag;
 const sendsInvitation = sentWith(invitation.key);
 const invited = (id: string) => sendsInvitation(INVITE, [People.MemberInvited.identifier, id]);
 const accepted = (id: string) => sendsInvitation(ACCEPT, [People.InvitationAccepted.identifier, id]);

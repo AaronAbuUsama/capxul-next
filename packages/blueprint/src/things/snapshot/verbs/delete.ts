@@ -1,7 +1,7 @@
 // `capxul snapshot delete` (today `world.snapshot.delete`): removing a snapshot no longer needed.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, claim } from "@capxul/blueprint-tools";
+import { verb, claim } from "@capxul/blueprint-tools";
 import { NotImplemented, NotWorldOwner } from "../../../common/refusals.ts";
 import { SnapshotName, WorldName } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
@@ -11,7 +11,7 @@ import { saved } from "../examples.ts";
 import { SnapshotInUse, SnapshotNotFound } from "../refusals.ts";
 import { Snapshot } from "../values.ts";
 
-export const snapshotDelete = declare({
+export const snapshotDelete = verb({
   rpc: Rpc.make("world.snapshot.delete", {
     payload: { world: WorldName, snapshot: SnapshotName },
     /** The snapshot deleted, as its save answered it. */

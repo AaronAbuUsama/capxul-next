@@ -1,4 +1,4 @@
-// What the checks of invite.accept and invite.decline share: what they read before the call (the caller's own
+// What the checks of invitation.accept and invitation.decline share: what they read before the call (the caller's own
 // invitations, and the chain's head while the clock is frozen), and the checks of their three refusals, which leave
 // everything as it was.
 import type { CallOptions } from "@capxul/blueprint";

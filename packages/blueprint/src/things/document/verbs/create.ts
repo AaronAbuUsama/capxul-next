@@ -1,7 +1,7 @@
 // `capxul document create` (today `doc.create`): a draft document on a company's site.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, claim, kept } from "@capxul/blueprint-tools";
+import { verb, claim, kept } from "@capxul/blueprint-tools";
 import { NoSiteUser, NotImplemented, OrgNotFound, SiteRefused, SiteUnavailable } from "../../../common/refusals.ts";
 import { Fields, OrgId } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
@@ -9,7 +9,7 @@ import { DocCreated } from "../events.ts";
 import { supplierCreated } from "../examples.ts";
 import { Created, Doctype } from "../values.ts";
 
-export const create = declare({
+export const create = verb({
   rpc: Rpc.make("doc.create", {
     payload: {
       org: OrgId,

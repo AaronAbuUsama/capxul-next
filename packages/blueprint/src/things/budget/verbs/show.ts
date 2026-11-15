@@ -1,7 +1,7 @@
 // `capxul budget show` (today `org.budget.show`): one budget as the chain holds it.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, claim } from "@capxul/blueprint-tools";
+import { verb, claim } from "@capxul/blueprint-tools";
 import { NotImplemented, OrgNotFound } from "../../../common/refusals.ts";
 import { OrgId } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
@@ -10,7 +10,7 @@ import { office } from "../examples.ts";
 import { BudgetNotFound } from "../refusals.ts";
 import { Budget, BudgetId } from "../values.ts";
 
-export const show = declare({
+export const show = verb({
   rpc: Rpc.make("org.budget.show", {
     payload: { org: OrgId, budget: BudgetId },
     /** The budget as the chain holds it now. Its Directors and members see it, and so does the world's owner. */

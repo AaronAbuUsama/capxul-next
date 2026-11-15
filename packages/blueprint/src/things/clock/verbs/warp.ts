@@ -1,14 +1,14 @@
 // `capxul clock warp` (today `world.clock.warp`): moving a world's clock forward.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, claim, kept } from "@capxul/blueprint-tools";
+import { verb, claim, kept } from "@capxul/blueprint-tools";
 import { NotImplemented, NotWorldOwner } from "../../../common/refusals.ts";
 import { Clock, Instant } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
 import { ClockWarped } from "../events.ts";
 import { ClockBackwards } from "../refusals.ts";
 
-export const clockWarp = declare({
+export const clockWarp = verb({
   rpc: Rpc.make("world.clock.warp", {
     payload: {
       target: Schema.Union([

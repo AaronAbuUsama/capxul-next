@@ -10,16 +10,16 @@
     "began": [
       {
         "step": 1,
-        "operation": "org.member.invite",
-        "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"org.member.invite\"}"
+        "operation": "invitation.send",
+        "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"invitation.send\"}"
       }
     ],
     "calls": [
       "record.export",
-      "org.member.invite"
+      "invitation.send"
     ],
     "outcome": "failed",
     "failedWith": "NotImplemented",
-    "detail": "org.member.invite answered NotImplemented"
+    "detail": "invitation.send answered NotImplemented"
   }
 }

@@ -18,9 +18,9 @@ export const THING_FILES = ["values.ts", "events.ts", "refusals.ts", "lifecycle.
 
 /**
  * The names a thing's files export for the generated indexes, never for the package: a verb's `promises`, `server`
- * and `stateless`, a values file's `subjects`, a refusals file's `refusals` and `exitCode`.
+ * and `stateless`, a values file's `subjects`, a refusals file's `refusals`.
  */
-export const RESERVED: ReadonlyArray<string> = ["promises", "server", "stateless", "subjects", "refusals", "exitCode"];
+export const RESERVED: ReadonlyArray<string> = ["promises", "server", "stateless", "subjects", "refusals"];
 
 /** What a file exports: its values and its types, less the reserved names and those marked `@internal`. */
 export interface Exports {
@@ -125,13 +125,11 @@ const has = (text: string, name: string): boolean => new RegExp(`^export const $
 const verbOf = (file: ThingFile, thing: string, verb: string): { verb: Verb | null; problems: Array<string> } => {
   const problems: Array<string> = [];
   const names = all(/Rpc\.make\(\s*"([^"]+)"/g, file.text);
-  const declarations = all(/^export const (\w+) = declare(?:Outcomes)?\(/gm, file.text);
+  const declarations = all(/^export const (\w+) = verb\(/gm, file.text);
   const server = /^export const server = "(platform|world)";/m.exec(file.text)?.[1];
   if (names.length !== 1) problems.push(`${file.path}: a verb declares one Rpc; this declares ${names.length}`);
   if (declarations.length !== 1)
-    problems.push(
-      `${file.path}: a verb exports one declaration (declare or declareOutcomes); this ${declarations.length}`,
-    );
+    problems.push(`${file.path}: a verb exports one declaration, made by verb(...); this ${declarations.length}`);
   if (server !== "platform" && server !== "world")
     problems.push(`${file.path}: a verb exports \`server\`, "platform" or "world"`);
   if (!has(file.text, "promises")) problems.push(`${file.path}: a verb exports its \`promises\``);

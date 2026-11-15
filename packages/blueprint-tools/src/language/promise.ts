@@ -5,7 +5,7 @@
 // operation's checks, which run on every call of it in every journey, and by the journeys' steps that call it as the
 // claim says; packages/scenarios' `coverage.ts` says which. A verb's claims are its `promises`, in its own file
 // (packages/blueprint, src/things/<thing>/<verb>.ts); its thing's page in packages/blueprint/generated/ is rendered
-// from them (`pnpm claims`) and a test fails when the two differ.
+// from them (`pnpm generate`) and a test fails when the two differ.
 import type { EventClass, Operation } from "./operation.ts";
 import type * as Schema from "effect/Schema";
 import type { StartingWorld } from "./starting-point.ts";
@@ -77,3 +77,16 @@ export const rewritten = (id: string, was: string, why: string): Origin => ({
 });
 
 export const dropped = (id: string, was: string, why: string): Dropped => ({ id: `acc:${id}`, was, why });
+
+/** A promise: the glossary's word for a claim (docs/roadmap.md, item 3.8). A verb climbed to every format writes it. */
+export const promise = claim;
+
+/** A verb's promises, the glossary's word for its claims: what it promises, in order, and what it drops of the old blueprint. */
+export type PromisesOf<Name extends string = string> = ClaimsOf<Name>;
+
+/** A verb's promises: its operation, what it promises in order, and the old ones it does not keep. */
+export const promisesOf = <Name extends string>(
+  operation: Operation,
+  promised: ReadonlyArray<Claim<Name>>,
+  notKept: ReadonlyArray<Dropped> = [],
+): PromisesOf<Name> => ({ operation, claims: promised, dropped: notKept });

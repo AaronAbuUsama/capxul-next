@@ -2,10 +2,10 @@
 // in): the checks of each of its operations, the journeys it leads, and where each claim of its operations is checked
 // (../domain.ts). ../domains.ts lists it once.
 import type { People } from "@capxul/blueprint";
-import { inviteAccept } from "../checks/invite-accept.ts";
-import { inviteDecline } from "../checks/invite-decline.ts";
-import { inviteList } from "../checks/invite-list.ts";
-import { orgMemberInvite } from "../checks/org-member-invite.ts";
+import { invitationAccept } from "../checks/invite-accept.ts";
+import { invitationDecline } from "../checks/invite-decline.ts";
+import { invitationList } from "../checks/invite-list.ts";
+import { invitationSend } from "../checks/org-member-invite.ts";
 import { orgMemberList } from "../checks/org-member-list.ts";
 import { at, type Domain } from "../domain.ts";
 import { inviteOlga } from "../journeys/invite-olga.ts";
@@ -13,10 +13,10 @@ import { noGoingBack } from "../journeys/no-going-back.ts";
 
 /** The checks of each of its operations. */
 export const checks: Domain<typeof People>["checks"] = {
-  "org.member.invite": orgMemberInvite,
-  "invite.list": inviteList,
-  "invite.accept": inviteAccept,
-  "invite.decline": inviteDecline,
+  "invitation.send": invitationSend,
+  "invitation.list": invitationList,
+  "invitation.accept": invitationAccept,
+  "invitation.decline": invitationDecline,
   "org.member.list": orgMemberList,
 };
 
@@ -25,21 +25,21 @@ export const journeys: Domain<typeof People>["journeys"] = [inviteOlga, noGoingB
 
 /** Where each claim of each of its operations is checked, in claims.md's order. */
 export const coverage: Domain<typeof People>["coverage"] = {
-  "org.member.invite": [
-    at(["org.member.invite"], [inviteOlga, 2], [inviteOlga, 3]),
-    at(["org.member.invite"], [inviteOlga, 2], [inviteOlga, 7]),
-    at(["org.member.invite"], [inviteOlga, 2], [inviteOlga, 5]),
-    at(["org.member.invite"], [inviteOlga, 2], [inviteOlga, 5], [inviteOlga, 9]),
+  "invitation.send": [
+    at(["invitation.send"], [inviteOlga, 2], [inviteOlga, 3]),
+    at(["invitation.send"], [inviteOlga, 2], [inviteOlga, 7]),
+    at(["invitation.send"], [inviteOlga, 2], [inviteOlga, 5]),
+    at(["invitation.send"], [inviteOlga, 2], [inviteOlga, 5], [inviteOlga, 9]),
   ],
-  "invite.list": [at(["invite.list"], [inviteOlga, 3], [inviteOlga, 7])],
-  "invite.accept": [
-    at(["invite.accept", "org.member.grant"], [inviteOlga, 6], [inviteOlga, 8], [inviteOlga, 10]),
-    at(["invite.accept"], [inviteOlga, 6]),
-    at(["invite.accept"], [inviteOlga, 6]),
+  "invitation.list": [at(["invitation.list"], [inviteOlga, 3], [inviteOlga, 7])],
+  "invitation.accept": [
+    at(["invitation.accept", "org.member.grant"], [inviteOlga, 6], [inviteOlga, 8], [inviteOlga, 10]),
+    at(["invitation.accept"], [inviteOlga, 6]),
+    at(["invitation.accept"], [inviteOlga, 6]),
   ],
-  "invite.decline": [
-    at(["invite.decline"], [inviteOlga, 4]),
-    at(["invite.decline"], [inviteOlga, 4], [noGoingBack, 3]),
+  "invitation.decline": [
+    at(["invitation.decline"], [inviteOlga, 4]),
+    at(["invitation.decline"], [inviteOlga, 4], [noGoingBack, 3]),
   ],
   "org.member.list": [
     at(["org.member.list"], [inviteOlga, 1], [inviteOlga, 8]),

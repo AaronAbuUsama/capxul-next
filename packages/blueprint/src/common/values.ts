@@ -186,3 +186,18 @@ export const WorldView = Schema.Struct({
 export const Json = Schema.Json;
 /** Named JSON values: a document's fields, a report's filters, one row of a report. */
 export const Fields = Schema.Record(Schema.String, Schema.Json);
+
+/**
+ * Who may call an operation (docs/roadmap.md, item 5.1), each role declared once, here. An operation names those it
+ * allows in its `allowed`, and the refusal anyone else gets in its `refusesOthers`.
+ */
+export const roles = {
+  /** The world's operator: whoever made it and runs it. */
+  operator: "operator",
+  /** Any person of the world's cast, signed in. */
+  person: "person",
+  /** The company's founder, as its row holds it: for now the only one who manages its people. */
+  founder: "founder",
+  /** The person an invitation was sent to: whoever signs in with its email. */
+  invitee: "invitee",
+} as const;

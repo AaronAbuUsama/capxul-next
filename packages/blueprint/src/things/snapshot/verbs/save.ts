@@ -1,7 +1,7 @@
 // `capxul snapshot save` (today `world.snapshot.save`): saving a world's state under a name.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { declare, claim, kept } from "@capxul/blueprint-tools";
+import { verb, claim, kept } from "@capxul/blueprint-tools";
 import { NotImplemented, NotWorldOwner } from "../../../common/refusals.ts";
 import { SnapshotName, WorldName } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
@@ -11,7 +11,7 @@ import { saved } from "../examples.ts";
 import { SnapshotExists, SnapshotInUse } from "../refusals.ts";
 import { Snapshot } from "../values.ts";
 
-export const snapshotSave = declare({
+export const snapshotSave = verb({
   rpc: Rpc.make("world.snapshot.save", {
     payload: {
       world: WorldName,
