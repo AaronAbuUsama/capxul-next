@@ -9,7 +9,9 @@ outcome lands as roadmap decisions and slices.
   v2, escrow for counterfactual accounts, privacy model. Aaron found the invoice side clunky and wants to rethink the
   contracts from first principles.
 - `invoice-ledger.md`: the direction Aaron settled on (15 November 2026). Payments as a running total per sealed
-  invoice, three ways money reaches it, thin Agreements, and who signs an invoice. Start here.
+  invoice, three ways money reaches it, thin Agreements, and who signs an invoice. Start here. A direction, not a spec.
+- `handoff-knock-on-map.md`: the brief for the next session, which writes the full spec (blueprint, events, errors,
+  journeys, every package) with nothing left open.
 - `parity-inventory.md`: what the old stack (`xelmar-tech/infrastructure`) does, as journeys.
 
 Decisions already recorded in `docs/roadmap.md` on master (14 and 15 November 2026): every payment settles one sealed

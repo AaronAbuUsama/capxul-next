@@ -2,7 +2,8 @@
 
 Agreed with Aaron on 15 November 2026, in the contracts-from-first-principles thread. This note is the direction he
 settled on. It replaces the contract changes of `agreements-design.md` (its §3.2, §3.4 and §5); that note's seal and
-privacy model (§2) stand. Nothing here is built. The main build session turns it into roadmap decisions and slices.
+privacy model (§2) stand. **This is a direction, not a specification. Do not build from it.** The spec that names every consequence is the job
+set out in `handoff-knock-on-map.md`.
 
 Paths: `C:` is `packages/contracts/src/`, `F:` is `packages/frappe-app/capxul/`, `K:` is `packages/core/src/`.
 
@@ -135,14 +136,12 @@ Board would sign every invoice); no signature (no defence against a look-alike i
 - **Budgets changes.** Its three paying functions take an invoice and stop wrapping a nonce.
 - **Escrow stays parked as a build item**, but its shape is now set: the held payment above.
 
-## Still open
+## To be closed by the spec
 
-- **When the signature was made.** A hat can be taken away after an invoice is issued. The seal should record when it
-  was signed; how a verifier checks the hat as of that time is not designed.
-- **The email-derived Safe.** `agreements-design.md` §5 C6 (a blinded email in `CompaniesHouseClaimer`) is untouched by
-  this note and still needs a decision.
-- **Payment kinds.** Whether `kind` stays fine-grained on chain or moves into the sealed header
-  (`agreements-design.md` §5 C7).
-- **Costs.** No gas figure here is measured. The clones and the extra read in `pay` should be measured before any
-  budget is set.
-- **Invoices not issued through Capxul.** Parked by Aaron at the start of the thread.
+Nothing below may stay undecided. `handoff-knock-on-map.md` lists each point and what must be written down.
+
+- **The hat check: decided.** The payer's side checks the hat once, when it receives the invoice, and records the
+  result. A hat removed later does not undo an invoice already received (Aaron, 15 November 2026).
+- **The email at claim.** The roadmap already decides the derivation: the same as classic. But classic's claim never
+  puts the email on chain, and `CompaniesHouseClaimer.claim` here takes it as plain text. The spec decides the fix.
+- **Payment kinds**, **measured gas costs**, and **invoices not issued through Capxul** (parked by Aaron).
