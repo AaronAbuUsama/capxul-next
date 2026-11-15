@@ -64,6 +64,11 @@ jobs:
   thin-line:
     if: github.event_name == 'workflow_dispatch' || (vars.CAPXUL_CLOUD_READY == 'true' && (github.event_name != 'pull_request' || (github.head_ref == 'slice/run-time' && !github.event.pull_request.draft)))
     runs-on: ubuntu-latest
+    # One user of the staging bench at a time: platform.yml's deploy and shared jobs take the same group, so a deploy
+    # never lands in the middle of a run (15 November 2026).
+    concurrency:
+      group: staging-bench
+      cancel-in-progress: false
     timeout-minutes: 90
     outputs:
       # The cluster the run used, for the teardown job: `fleet`, which stays up, or the run's own, which it takes down.
