@@ -33,6 +33,7 @@ import { isEmpty } from "./world/leftovers.ts";
 import { OtherWorlds } from "./world/existing.ts";
 import { PlatformKept } from "./worlds/kept.ts";
 import { runInStage, type Lifecycle, type Stage, type StageSpec } from "./world/stage.ts";
+import { RUN_SPANS, stepOptions } from "./telemetry/step.ts";
 
 /** What a run is: its kind and name, its steps, and the calls it makes through a stage's Core. */
 export interface Plan {
@@ -231,7 +232,7 @@ export const runPlan = (plan: Plan, settings: Settings) =>
         writeRecord(settings.records, recordOf(plan, startedAt, progress)).pipe(Effect.orDie, Effect.asVoid),
     );
     return recordOf(plan, startedAt, lifecycle);
-  }).pipe(Effect.withSpan("runner.run", { attributes: { run: plan.name } }));
+  }).pipe(Effect.withSpan(RUN_SPANS.run.name, stepOptions(RUN_SPANS.run, { mode: "stage", run: plan.name })));
 
 /**
  * The door: every blueprint operation called once, as the world's owner, with its first declared example. It passes
