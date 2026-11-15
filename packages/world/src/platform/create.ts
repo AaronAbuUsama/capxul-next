@@ -19,7 +19,7 @@ import { CHAIN_ID } from "../chain/Anvil.ts";
 import { CONTRACTS, SEED_HEAD, SETUP_ROOM_SECONDS } from "../chain/contracts.ts";
 import { rpc } from "../lifecycle/parts.ts";
 import { create as createWorld, destroy } from "../lifecycle/operations.ts";
-import { mustExist } from "../lifecycle/world.ts";
+import { mustExist, recordedWorld } from "../lifecycle/world.ts";
 import { stageOf } from "../stack/names.ts";
 import { makeCast, type Member } from "./cast.ts";
 import { refusalsOnly } from "./refusals.ts";
@@ -60,6 +60,9 @@ export const isTaken = Schema.is(Schema.Union([Errors.WorldExists, Errors.WorldQ
 
 /** The stage of a world the shared state holds, or the contract's WorldNotFound; any other failure is a fault. */
 export const existing = (world: string) => mustExist(world).pipe(refusalsOnly(isNotFound));
+
+/** As `existing`, with what the shared state holds for the world, so a caller does not read it again. */
+export const existingRecorded = (world: string) => recordedWorld(world).pipe(refusalsOnly(isNotFound));
 
 const millisOf = (instant: string) => DateTime.toEpochMillis(DateTime.makeUnsafe(instant));
 
@@ -155,7 +158,7 @@ export const create = Effect.fn("platform.world.create")(function* (payload: Cre
 });
 
 export const show = Effect.fn("platform.world.show")(function* (payload: ShowPayload) {
-  const stage = yield* existing(payload.world);
-  const { view } = yield* viewOf(stageOf(stage)).pipe(Effect.orDie);
+  const { stage, recorded } = yield* existingRecorded(payload.world);
+  const { view } = yield* viewOf(stage, {}, { recorded }).pipe(Effect.orDie);
   return view;
 });

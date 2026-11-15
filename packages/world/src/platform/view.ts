@@ -17,7 +17,7 @@ import * as Schema from "effect/Schema";
 import * as Struct from "effect/Struct";
 import { PlatformFailed } from "../failures.ts";
 import { describeFailure } from "../lifecycle/describe.ts";
-import { handle, WorldOutput } from "../lifecycle/parts.ts";
+import { handle, WorldOutput } from "../lifecycle/handle.ts";
 import type { World } from "../lifecycle/spec.ts";
 import { recordedOutput } from "../stack/engine.ts";
 import { nameOf } from "../stack/names.ts";
@@ -34,11 +34,18 @@ export const Recorded = Schema.Struct({ ...WorldOutput.fields, status: Schema.op
 /** A world's state as world.show answers it, from what its stage records. */
 export const stateOf = (output: typeof Recorded.Type) => (output.status === "parked" ? "parked" : "running");
 
-/** A world's handle and what its stage recorded, from the shared state. */
-export const opened = (stage: string, known?: World) =>
+/** What a caller of `opened` may already hold: the world's handle, or what its stage records, read just now. */
+export interface Given {
+  readonly known?: World;
+  readonly recorded?: unknown;
+}
+
+/** A world's handle and what its stage recorded, from the shared state (read once, unless the caller just read it). */
+export const opened = (stage: string, given: Given = {}) =>
   Effect.gen(function* () {
-    const output = yield* Schema.decodeUnknownEffect(Recorded)(yield* recordedOutput(stage));
-    return { output, world: known ?? (yield* handle(output)) };
+    const recorded = given.recorded === undefined ? yield* recordedOutput(stage) : given.recorded;
+    const output = yield* Schema.decodeUnknownEffect(Recorded)(recorded);
+    return { output, world: given.known ?? (yield* handle(output)) };
   }).pipe(Effect.mapError(failed("facts")));
 
 /** How a world was made, as its record's latest `world_created` says, or as the call making it now will say. */
@@ -75,8 +82,8 @@ const companiesThroughCore = (door: string, owner: string, held: ReadonlyArray<t
  * A world as world.show answers it, its clock read now. Its grade and parent are what its record's latest
  * `world_created` carried; `making` gives them for a world whose `world_created` is still to be written.
  */
-export const viewOf = Effect.fn("platform.view")(function* (stage: string, making: Partial<Born> = {}, known?: World) {
-  const { output, world } = yield* opened(stage, known);
+export const viewOf = Effect.fn("platform.view")(function* (stage: string, making: Partial<Born> = {}, given?: Given) {
+  const { output, world } = yield* opened(stage, given);
   const facts = yield* readFacts(world.database, yield* Clock.currentTimeMillis);
   const grade = making.grade ?? facts.born?.grade;
   const parent = making.parent === undefined ? (facts.born?.parent ?? null) : making.parent;

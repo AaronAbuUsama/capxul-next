@@ -18,7 +18,9 @@ import { stageOf } from "../stack/names.ts";
 import { dropBranches } from "../platform/branches.ts";
 import { registry, release } from "./claim.ts";
 import { expiryOf, lifetimeAllowed } from "./expiry.ts";
-import { open, stop, WorldOutput } from "./parts.ts";
+import { WorldOutput } from "./handle.ts";
+import { forgetWorld } from "./kept.ts";
+import { open, stop } from "./parts.ts";
 import { Limits, type WorldSpec } from "./spec.ts";
 import type { Stopwatch } from "./steps.ts";
 import { describe } from "./describe.ts";
@@ -111,7 +113,7 @@ export const takeDown = (stage: string, watch: Stopwatch, holder: Option.Option<
     );
     yield* Effect.logInfo(`world ${stage}: destroyed (${destroyed.value} resources) and its name released`);
     return destroyed.value;
-  });
+  }).pipe(Effect.ensuring(forgetWorld(stage)));
 
 /** What a world's record says that its take-down needs again: who owns it, its bench, its hub. */
 const Remains = Schema.Struct({
@@ -159,13 +161,17 @@ const forgetOnHub = (stage: string, recorded: unknown) =>
       ),
   });
 
-/** Fails with the contract's WorldNotFound unless the shared state holds something for the world. */
-export const mustExist = Effect.fn("world.mustExist")(function* (name: string) {
+/** A world's stage and what the shared state holds for it, read once, or the contract's WorldNotFound. */
+export const recordedWorld = Effect.fn("world.mustExist")(function* (name: string) {
   const checked = yield* checkName(name);
   const stage = stageOf(checked);
-  if ((yield* recordedOutput(stage)) === undefined) return yield* Errors.WorldNotFound.make({ world: checked });
-  return stage;
+  const recorded = yield* recordedOutput(stage);
+  if (recorded === undefined) return yield* Errors.WorldNotFound.make({ world: checked });
+  return { stage, recorded };
 });
+
+/** Fails with the contract's WorldNotFound unless the shared state holds something for the world. */
+export const mustExist = (name: string) => Effect.map(recordedWorld(name), (found) => found.stage);
 
 /** The moment a kept world is deleted: `keepFor` from now, at most the declared limit, never past its own expiry. */
 export const keptUntil = (

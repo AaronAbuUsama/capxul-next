@@ -40,7 +40,9 @@ import { resetSites, type SitesReset } from "../site/Points.ts";
 import { recordedOutput } from "../stack/engine.ts";
 import { describeFailure } from "./describe.ts";
 import { mineAtWorld, resetChain, resumeIndex, stopIndex } from "./controls.ts";
-import { coreAnswers, handle, indexReady, rpcHex, WorldOutput } from "./parts.ts";
+import { handle, WorldOutput } from "./handle.ts";
+import { forgetWorld } from "./kept.ts";
+import { coreAnswers, indexReady, rpcHex } from "./parts.ts";
 import type { World } from "./spec.ts";
 import { mustExist } from "./world.ts";
 
@@ -141,6 +143,9 @@ export const reset = Effect.fn("world.reset")(function* (name: string, snapshot:
       duration: timeout,
       orElse: () => Effect.fail(failed(`the reset did not finish within its declared ${Duration.format(timeout)}`)),
     }),
+    // Neon's restore keeps the branch's id and connection string, so nothing kept of the world should change; it is
+    // dropped all the same, so the next handle reads the world as the reset left it (src/lifecycle/kept.ts).
+    Effect.ensuring(forgetWorld(stage)),
   );
   const ms = { ...(yield* Ref.get(taken)), reset: (yield* Clock.currentTimeMillis) - began };
   return {

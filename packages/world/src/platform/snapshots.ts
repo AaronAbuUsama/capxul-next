@@ -21,7 +21,7 @@ import { resumeIndex, stopIndex } from "../lifecycle/controls.ts";
 import { rpcControl, saveChain } from "../lifecycle/parts.ts";
 import { branchOf, dropBranch, forkable, hangers } from "./branches.ts";
 import { mineAtWorldTime } from "./cast.ts";
-import { existing, isTaken, keptOrDestroyed, tried } from "./create.ts";
+import { existingRecorded, isTaken, keptOrDestroyed, tried } from "./create.ts";
 import { instantOf, readFacts, writeRestored } from "./facts.ts";
 import { tokenOf } from "./operators.ts";
 import { savePoint } from "../site/Points.ts";
@@ -40,8 +40,8 @@ type RestorePayload = (typeof Blueprint.snapshotRestore.rpc.payloadSchema)["Type
 /** The world, its owner and its handle, refusing a caller who is not its owner unless `anyone` lets them. */
 const ownedWorld = (world: string) =>
   Effect.gen(function* () {
-    const stage = yield* existing(world);
-    const { output, world: handle } = yield* opened(stage).pipe(Effect.orDie);
+    const { stage, recorded } = yield* existingRecorded(world);
+    const { output, world: handle } = yield* opened(stage, { recorded }).pipe(Effect.orDie);
     return { stage, output, handle };
   });
 
