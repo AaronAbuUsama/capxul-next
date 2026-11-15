@@ -15,9 +15,10 @@ export const worldReset = work({
     stopIndex: span("world.reset.index.stop", StepKind.container),
     database: span("world.reset.database", StepKind.branch),
     chain: span("world.reset.chain", StepKind.restore),
-    // The bundler's own state for the chain as it was, cleared or the bundler restarted.
-    bundler: span("world.reset.bundler", StepKind.container),
-    clearBundler: span("world.reset.bundler.clear", StepKind.bundler),
+    // The bundler, asked whether it serves the EntryPoint.
+    bundlerServing: span("world.reset.bundler.serving", StepKind.poll),
+    // The bundler, asked again within a bound until it answers.
+    bundlerReady: span("world.reset.bundler.ready", StepKind.poll),
     clock: span("world.reset.clock", StepKind.chain),
     sites: span("world.reset.sites", StepKind.site),
     api: span("world.reset.api", StepKind.deploy),
