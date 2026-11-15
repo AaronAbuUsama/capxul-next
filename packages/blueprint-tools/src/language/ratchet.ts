@@ -50,9 +50,4 @@ export interface Ratchet {
    * has not yet moved to its rule. It may only shrink.
    */
   readonly unmigrated?: ReadonlyArray<string>;
-  /**
-   * For a ratchet that would otherwise count what has no replacement (R10's runtime dependencies): what is accepted
-   * and not counted, each with its reason. A name ending in `/*` accepts every name under that scope.
-   */
-  readonly accepted?: ReadonlyArray<{ readonly name: string; readonly reason: string }>;
 }

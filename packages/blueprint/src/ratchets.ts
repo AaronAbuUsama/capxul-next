@@ -98,20 +98,9 @@ export const ratchets: ReadonlyArray<Ratchet> = [
     id: "R10",
     name: "Non-Effect code",
     holds:
-      "Non-Effect constructs outside entry files, as capxul/effect-only finds them in the TypeScript the lint does not reach (Ponder's files; spikes, vendored code and Frappe are exempt), and each package's runtime dependencies that are not Effect, Capxul's own nor accepted below.",
+      "Non-Effect constructs outside entry files, as capxul/effect-only finds them in the TypeScript the lint does not reach (Ponder's files; spikes, vendored code and Frappe are exempt), and each package's runtime dependencies that are not Effect nor Capxul's own.",
     closes: "Phase 7",
     count: "effect:non-effect",
-    accepted: [
-      { name: "viem", reason: "the chain client: Effect has none" },
-      { name: "alchemy", reason: "what runs where: the world's and the platform's stacks" },
-      { name: "@alchemy.run/*", reason: "Alchemy's providers, what runs where" },
-      { name: "workerd", reason: "Workers' runtime" },
-      { name: "ponder", reason: "the indexer" },
-      {
-        name: "hono",
-        reason: "accepted while Ponder is used: Ponder's API file requires it (roadmap, 13 November 2026)",
-      },
-    ],
   },
   {
     id: "R11",
