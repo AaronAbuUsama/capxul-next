@@ -13,31 +13,82 @@ the speed thread's note (`design-notes/speed.md` on `design/speed`); Effect 4.1.
 and Capxul Classic's telemetry (`xelmar-tech/infrastructure`: `packages/observability`, the backend's collector and
 observation layer, the `prove-it` and observability skills).
 
-## In one page
+## The model
 
-- **Proof is a verdict, not a record.** A verdict is a small file that says what a trusted run proved: which proof,
-  which commit, passed or failed, the counts, and the digest of the run's full telemetry. Only CI makes one. GitHub
-  is the notary: each verdict names its workflow run, and the run's check on the commit carries the verdict's digest,
-  so anyone can verify a verdict against GitHub and nobody can write one by hand that verifies.
-- **Verdicts live in git, telemetry does not.** Verdicts are kilobytes, immutable and tied to a commit, which is what
-  git is good at: they are appended by CI to an orphan branch `proofs`, never to `master`. The run's detail is
-  telemetry: it goes to a sink, where it can be queried, and a copy of each CI run's telemetry is archived in R2 under
-  the verdict's digest.
-- **One standard pipeline for traces, logs and metrics.** Everything our code runs emits OpenTelemetry (OTLP) through
-  Effect's own exporters, which need no OpenTelemetry SDK and run on Workers. Errors are not a fourth stream: they are
-  a span's status and an exception on it. Where the OTLP goes is configuration, owned by `packages/world`.
-- **Two things that look like telemetry are not.** Declared events stay in the world's database: they are the
-  system's state, written in the same transaction as the change. Product analytics is derived from those declared
-  events, in real worlds only, and goes to its own sink. Cost is not emitted at all: it is pulled from the providers.
-- **A telemetry door, one per platform stage.** Worlds send OTLP to a small Worker over a service binding. The door
-  holds the sink's key, stamps the world and grade onto every span so a world cannot misstate them, and forwards to
-  the sink of its stage. Swapping the sink is a redeploy of one Worker. No world, container or agent holds a sink key.
-- **The runner keeps its per-call checks through a tap.** In test worlds, Core also exports its OTLP into the world's
-  own database (a tap, in OpenTelemetry's own format, not ours), and the runner reads the tap by trace id as it reads
-  `app.spans` today. The generic checks become functions over OpenTelemetry spans and logs, so the same checks can run
-  on the tap during a run and on the sink after a deploy ("deploy, then watch").
-- **Cost is measured daily** from Cloudflare's analytics, Neon's consumption, GitHub's run timings and the agents'
-  own OpenTelemetry, attributed to worlds, runs, journeys and lanes, and checked against the $10 a day cap.
+Aaron asked for one cohesive way of doing things, not a list of fixes. This is it. Every signal, cost and proof
+included, goes through the same four stages, and every current use of the JSON records is a read from one of the
+keeps. The rest of the note is this model worked through.
+
+```
+  EMIT                      ROUTE                         KEEP                           CONFIRM
+  one format: OTLP,         one door per stage,           three keeps, each one job:     every keep is read back:
+  one vocabulary:           one routing table              tap     per world, minutes,    the run reads the sink
+  the blueprint's           (signal × grade → sinks),      for the runner's checks        before its verdict; the
+  attribute names           configuration only,            sink    weeks, queryable       feed verifies verdicts
+                            holds every key                ledger  forever: verdicts on   against GitHub; the door
+  span · log · event ·      stamps world and grade         `proofs`, OTLP archive in R2   counts what it forwarded
+  metric                                                                                  and what failed
+```
+
+**1. Emit: one format and one vocabulary.** Everything is an OpenTelemetry record, of one of four kinds:
+
+| Kind | What it carries | Examples |
+|---|---|---|
+| Span | Work, timed, with its outcome | an operation, a declared step, a journey, a reset; an error is a span's `ERROR` status with an exception on it |
+| Log | A decision and why, with a declared schema | the log that decides a refusal |
+| Event | A named fact (OpenTelemetry's event: a log record with `event.name`) | a declared event once its transaction commits; a check's result; **a verdict** |
+| Metric | A number over time | durations, counts, **cost** |
+
+Our code emits through Effect's own exporters. What our code cannot see is emitted by a collector in the same format:
+the daily cost job writes cost as metrics; Cloudflare's own tracing adds platform spans. Attribute names come from
+the blueprint, OpenTelemetry's conventions first. So there is one way to emit anything, and it is checked like every
+other declared name (3.3).
+
+**2. Route: configuration, in one place.** Every producer sends to the door of its stage and nowhere else. The door
+holds the keys, stamps `capxul.world`, `capxul.grade` and `capxul.stage` so no producer can misstate them, and
+forwards by one routing table that `packages/platform` owns:
+
+| Records | Test grades (private, shared) | Real grade |
+|---|---|---|
+| Spans, logs, metrics (cost included) | test sink | real sink |
+| Events: declared events | test sink | real sink, and the analytics sink (this is product analytics) |
+| Events: checks and verdicts | test sink | (none: real worlds run no journeys) |
+
+Choosing or adding a sink is a row of this table and a key in the door, never a change to a producer.
+
+**3. Keep: three keeps, each with one job.**
+
+- The **tap**, in each test world's database: the world's own OTLP, there within a second, gone with the world. It
+  serves the runner's per-call checks.
+- The **sink**: everything, queryable by people and agents, for weeks. It serves debugging, speed, the evals' trends,
+  cost, and "deploy, then watch".
+- The **ledger**: what must outlive the sink. Verdicts on the orphan branch `proofs`, and each CI run's OTLP archived
+  in R2 under the verdict's digest. It serves the Proof column and the dashboard.
+
+Declared events are also kept as state in the world's database (`app.events`), in the same transaction as the change,
+because the system and the runner depend on them exactly once. That is the world's own data, not a fourth keep: the
+event record the model routes is emitted from it after commit.
+
+**4. Confirm: nothing counts until it is read back.** An HTTP 2xx from a sink is not proof that it kept anything
+(Classic learned this). So:
+
+- the door counts, per stage and trace, what it forwarded and what each sink refused, as metrics of its own;
+- a proving job, before writing its verdict, reads the run's traces back from the sink and records in the verdict
+  how many spans, logs and events arrived against how many were sent; a verdict whose telemetry did not arrive says
+  so, and does not count;
+- the status feed verifies every verdict against GitHub every hour (section 2);
+- the cost job emits one heartbeat a day, and a missing day shows on the dashboard.
+
+**What proof is, in the model.** A verdict is an event like any other, emitted by a trusted run: it goes through the
+door to the sink, and it is also written to the ledger and notarised by a GitHub check. Proof is not a separate system;
+it is the one record we keep forever and can verify from outside.
+
+**What the records become, in the model.** Each use is a read from a keep: the runner's checks read the tap; the Proof
+column and the dashboard read the ledger; the speed analysis, the evals' trends, debugging and cost read the sink; and
+a run older than the sink's retention is read from the archive (section 9).
+
+The note works through the model in this order: proof (2, 3), the signals (4), emitting (5), routing and the sinks
+(6), the tap (7), cost (8), the uses of the records (9), the move (10).
 
 ## 1. What is wrong today, restated as requirements
 
@@ -154,25 +205,24 @@ declared, or names a file path for a step not already Done.
 | **Traces and spans** | What a call did inside, timed: the operation's span, its declared steps (4.1), library spans | Core, the SDK and CLI (caller spans), the runner, the world and platform code | OTLP traces | The stage's telemetry door, then the sink; in test worlds also the tap | Logs and metrics |
 | **Logs** | What a call decided and why, with a declared schema (4.1): the refusal's deciding log, warnings | Effect's `Logger`, inside spans | OTLP logs, carrying the trace and span id | As traces | Traces |
 | **Errors** | A call that failed for a reason nobody declared: a defect, an undeclared failure, an interruption, a timeout | Not emitted separately: the span's status is `ERROR` with an `exception` event (type, message, stack), and an error log | Inside OTLP traces and logs | As traces; error tracking is a view the sink builds | Traces |
-| **Declared events** | The facts the blueprint declares an operation sends (`invitation_declined`): part of the contract and of the world's state | Core, in the same transaction as the change (`app.events`) | The blueprint's event schemas | The world's database, as today. A copy rides on the span as a span event, for correlation | The world's state, not telemetry |
-| **Product analytics** | Who did what, as people and companies, for funnels and retention | Not emitted by handlers: derived from declared events by a forwarder | The analytics tool's own format, made from the blueprint's events | An analytics sink, **real worlds only** | Nothing else; its own pipeline and privacy rules |
-| **Runtime metrics** | Counts and durations over time: calls per operation, durations, refusals, errors | Derived from spans in the sink, or by Effect's `Metric` where a span cannot show it | OTLP metrics | As traces | Traces |
-| **Cost** | Money and usage per world, run, journey, lane and day | Not emitted: pulled from Cloudflare, Neon, GitHub and the agents' telemetry by a daily job | OTLP metrics (`capxul.cost.usd`, `capxul.usage.*`) written by the job | The sink, and a daily summary on the dashboard | Metrics |
+| **Declared events** | The facts the blueprint declares an operation sends (`invitation_declined`) | Core: kept as state in `app.events` in the change's own transaction, then emitted as an OpenTelemetry event after commit, under the call's trace | OTLP event, its attributes the blueprint's event schema | Through the door like everything else; the tap in test worlds | Spans (same trace) |
+| **Product analytics** | Who did what, as people and companies, for funnels and retention | Nobody separately: it is the declared events of real worlds, routed by the door to an analytics sink | As declared events | The analytics sink, **real grade only**, by the routing table | Declared events: it is a route, not a signal |
+| **Runtime metrics** | Counts and durations over time: calls per operation, durations, refusals, errors | Derived from spans in the sink, or by Effect's `Metric` where a span cannot show it | OTLP metrics | Through the door | Spans |
+| **Cost** | Money and usage per world, run, journey, lane and day | The daily cost job, a collector: it pulls from Cloudflare, Neon, GitHub and the agents' telemetry, and emits | OTLP metrics (`capxul.cost.usd`, `capxul.usage.*`) | Through the door | Metrics |
+| **Checks and verdicts** | What the runner judged: each check's result, and each run's verdict | The runner and the proving job | OTLP events | Through the door; the verdict also to the ledger | Spans of the run |
 
-### Which belong together
+### Why one pipeline holds them all
 
-- **Traces, logs, errors and runtime metrics go through one pipeline.** They describe the same calls, are joined by
-  trace and span id, carry the same resource attributes, and are read together when a call is explained (4.2). One
-  exporter per process, one door, one sink per grade. Splitting them, as Classic did when product events went over
-  one path and spans over another, is how its catalog and code drifted.
-- **Declared events do not go through it.** They are what Core promises and the runner checks, they must be exactly
-  once and in the same transaction as the change, and the indexer and future consumers read them. Telemetry may be
-  sampled, delayed or dropped; declared events may not.
-- **Product analytics does not go through it.** It is about people, needs consent and privacy rules the engineering
-  pipeline does not, and only means something in real worlds. Deriving it from declared events means no handler emits
-  a second, hand-typed event: one source, as "Generated, never typed twice" asks. Classic's hand-copied gateway
-  properties and dead catalog entries are what this avoids.
-- **Cost does not come from our code at all.** Only the providers know it.
+- **They describe the same calls.** Spans, logs, events and errors of a call share its trace id and the same resource
+  attributes, and are read together when a call is explained (4.2). Classic sent product events by one path and spans
+  by another, and its catalog and code drifted apart; one path is what prevents that.
+- **What differs between them is routing, not emitting.** Product analytics is the real grade's declared events
+  routed to one more sink, so no handler emits a second, hand-typed analytics event ("Generated, never typed twice").
+  Privacy differs by route too: the analytics route carries only ids and drops sensitive fields.
+- **Declared events keep their guarantee.** They are kept exactly once, in the change's transaction, in the world's
+  database, because the system and the runner depend on them. The pipeline carries their copy, which may be delayed
+  or sampled. The runner checks the state; the sink is for reading across runs.
+- **Cost is the same kind of record from a different producer.** Only the providers know it, so a collector emits it.
 
 ### Refusals are not errors
 
@@ -370,10 +420,14 @@ and the telemetry now hold; `upload-artifact` in `world.yml`. Optionally, later,
 
 ## 11. What it changes in the roadmap and `AGENTS.md`
 
-**Roadmap, a new decision** "Proof and telemetry" (wording for the pull request once agreed): proof is a verdict made
-only by CI, notarised by GitHub and kept on the `proofs` branch; run detail is OpenTelemetry, sent through a telemetry
-door per stage to one sink per grade group and archived by digest; declared events stay in the world's database;
-product analytics is derived from them in real worlds only; cost is pulled from the providers daily. It amends
+**Roadmap, a new decision** "Proof and telemetry" (wording for the pull request once agreed): every signal, cost and
+proof follow one model, emit, route, keep, confirm. Everything is an OpenTelemetry span, log, event or metric with the
+blueprint's attribute names; every producer sends to its stage's telemetry door, which routes by one table of
+configuration (signal and grade to sinks) and holds every key; three keeps (the tap per test world, the sink per grade
+group, the ledger of verdicts on `proofs` with each CI run's telemetry archived by digest); and nothing counts until it
+is read back. Proof is a verdict, an event only CI emits, notarised by GitHub. Declared events stay state in the
+world's database and are emitted after commit; product analytics is their route to an analytics sink in real worlds;
+cost is emitted by a daily collector. It amends
 "Measurement is part of the contract" (run data is stored in the sink and archive, not the repository).
 
 **Roadmap, phase 4** keeps 4.1 to 4.3, so the references to them in `AGENTS.md` and phase 5 still hold, and adds:
