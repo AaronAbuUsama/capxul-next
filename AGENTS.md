@@ -28,7 +28,7 @@ The plan this line follows is [docs/roadmap.md](docs/roadmap.md).
 Every fact has one owner in code. Everything else that needs it imports it, generates it from it, or is checked
 against it, so two places cannot disagree (`docs/roadmap.md`, "One source for every fact"). Which owner holds which
 fact, and how it will be checked, is in "How a feature is built" below. Nothing checks this as a whole yet: roadmap
-steps F1 and F2 add the checks.
+steps 3.1 and 3.3 add the checks.
 
 ## Worlds
 
@@ -61,7 +61,7 @@ A world is created, used and destroyed as one unit, with an owner and an expiry.
 
 Agreed with Aaron on 15 November 2026 (`docs/roadmap.md`, "How a feature is built" and the decisions after it).
 Everything is about being measurable: a feature is done when run records prove it and its measures are watched, not
-when its code is written. Steps marked (F*n*) are not built yet; until their roadmap step is Done, the reviewer checks
+when its code is written. Steps marked with a roadmap step, such as (3.4), are not built yet; until their roadmap step is Done, the reviewer checks
 them by reading the diff.
 
 ### The loop
@@ -74,23 +74,25 @@ them by reading the diff.
    `packages/blueprint`:
    - the operations, with their payloads and answers;
    - the machines they move: each thing's states, its moves, the event of each move, and the refusal from every state
-     a move cannot start from (F3);
-   - who may call each operation: the roles allowed, the company it applies to, the refusal for anyone else (F8);
+     a move cannot start from (3.4);
+   - who may call each operation: the roles allowed, the company it applies to, the refusal for anyone else (5.1);
    - the refusals that depend on data (a balance, a quota), each with its exit code;
    - the events and what each carries;
    - each operation's steps (its spans, each of a kind: database, site, chain, bundler, wait) and the logs it writes,
-     each with a schema (F5);
+     each with a schema (4.1);
    - its budget, provisional until measured.
 
-   It says nothing about how the operation is built. That is the builder's.
-3. **Generate.** `pnpm generate` writes everything derived from the declarations (F1). A generated file says so in its
+   It says nothing about how the operation is built. That is the builder's. `pnpm delta:check` fails when an
+   operation lacks a format that exists: its machine's moves and the refusal from each state, its declared steps and
+   logs (3.5).
+3. **Generate.** `pnpm generate` writes everything derived from the declarations (3.1). A generated file says so in its
    first line and is never edited.
 4. **Journeys and checks, written first, failing.** A different agent from the builder writes the journeys and each
    operation's checks from the delta, and each journey fails against empty handlers. The generic checks follow from
    the declarations and are not written per operation.
 5. **Build.** The builder writes handlers and whatever else they need; never the scenarios or the generic checks.
 6. **Measured runs.** Rungs 1 to 5 on every pull request, rung 6 at the slice's merge. A journey counts as passed only
-   when every step and check passes and its record passes the explainability eval (below; F6).
+   when every step and check passes and its record passes the explainability eval (below; 4.2).
 7. **Deploy, then watch.** After a deploy, the same generic checks and measures run on what the deployed system
    records. A measure that gets worse is a finding, raised as a task.
 
@@ -99,16 +101,18 @@ them by reading the diff.
 | Fact | Its one owner | Generated from it or checked against it |
 |---|---|---|
 | Operations, payloads, answers, refusals and exit codes, events, claims, starting worlds | The blueprint, in the operation's domain | Core's server, the SDK, the CLI, `claims.md`, the types of the scenarios' checks |
-| A thing's lifecycle (F3) | The blueprint, the domain's `machines.ts` | The state schema, the closing refusal's `state` field, the `step` function Core moves state with, the SQL CHECK constraint, the diagram in `claims.md`, the runner's path check, coverage |
-| Who may call an operation (F8) | The blueprint: roles declared once, `allowed` on each operation | Core's one standing check, the generated refusal steps |
-| An operation's steps and logs (F5) | The blueprint, the domain's `steps.ts` | The generic checks, the waits a budget leaves out |
-| Contract events and functions (F1) | The compiled contracts in `packages/contracts` | One generated ABI module, imported by the blueprint, Core and the indexer |
-| Contract addresses on the seeded chain (F1) | `packages/contracts/deployments/devnet.json` | One generated table, imported by Core and `packages/world` |
-| Capxul's own names on a company's site (F1) | The blueprint, `src/documents/site.ts` | A generated Python module in `packages/frappe-app` |
+| A thing's lifecycle (3.4) | The blueprint, the domain's `machines.ts` | The state schema, the closing refusal's `state` field, the `step` function Core moves state with, the SQL CHECK constraint (in a new migration whenever the states change: an applied migration is never edited), the diagram in `claims.md`, the runner's path check, coverage |
+| Who may call an operation (5.1) | The blueprint: roles declared once, `allowed` on each operation | Core's one standing check, the generated refusal steps |
+| An operation's steps and logs (4.1) | The blueprint, the domain's `steps.ts` | The generic checks, the waits a budget leaves out |
+| Contract events and functions (3.1) | The compiled contracts in `packages/contracts` (`forge build`; Foundry runs in CI and in the agents' environment) | One generated ABI module, imported by the blueprint, Core and the indexer |
+| Contract addresses on the seeded chain (3.1) | `packages/contracts/deployments/devnet.json` | One generated table, imported by Core and `packages/world` |
+| The seeded chain state (3.2) | The contracts and their deploy script | `packages/contracts/state/core.json`, rebuilt by one command and checked in CI |
+| A person's account (5.2) | The blueprint: grade groups, account version, the email's normalisation, the derivation | The salt Core sends to `claim`; checked against the contract's `safeAddressFor` |
+| Capxul's own names on a company's site (3.1) | The blueprint, `src/documents/site.ts` | A generated Python module in `packages/frappe-app` |
 | What runs where | `packages/world` | |
 | What is proven | Run records | The roadmap's step states |
 
-Two rules make "typed once" a check rather than a hope (F2):
+Two rules make "typed once" a check rather than a hope (3.3):
 
 - In the blueprint, a raw schema (`Schema.String`, `Schema.Literals`, `Schema.Number`, ...) appears only in a values
   file or a machine; every field of an operation, event or refusal is a named value. Outside the blueprint, raw schemas
@@ -116,7 +120,7 @@ Two rules make "typed once" a check rather than a hope (F2):
   blueprint's schemas.
 - A declared name (an operation, event, refusal, state or span) is imported, never written as a string.
 
-CI's `pnpm generate:check` fails when generating again would change any file (F1).
+CI's `pnpm generate:check` fails when generating again would change any file (3.1).
 
 ### Changing what works: side by side, then flip, then retire
 
@@ -128,7 +132,7 @@ CI's `pnpm generate:check` fails when generating again would change any file (F1
    the run records show no call of it in the slice's runs. Never in the flip's pull request.
 
 Stored state changes the same way: new states are added first, existing rows are moved by a declared migration, and
-old states are removed at retirement. Operations and events carry a version from F10; until then, a new version is a
+old states are removed at retirement. Operations and events carry a version from 6.1; until then, a new version is a
 new operation name.
 
 ### How it is measured
@@ -140,18 +144,20 @@ it sent with what each carried.
 The generic checks run on every call of every journey, and judge the builder:
 
 - the declared events were sent, each carrying what its declaration says;
-- one span for the operation, each declared step under it, and no span that is not declared (F5);
-- one log where each refusal is decided, naming the state or the rule that refused (F5);
-- the events of each thing form a path through its machine (F3);
+- one span for the operation, and the span of every declared step under it: a declared span that is missing fails the
+  call (4.1). Spans nobody declared, such as a library's `GET`, `postgres` or `rpc`, are kept in the record and allowed;
+- one log where each refusal is decided, naming the state or the rule that refused (4.1);
+- the events of each thing form a path through its machine (3.4);
 - every timing is recorded.
 
 What counts as good, in this order:
 
 1. **Correct.** Every step and every check of every journey passes.
-2. **Explainable** (F6). A failed or slow step can be explained from its record alone, without running it again: every
-   refusal has its deciding log, every span its parent, and the call's time is accounted for by its declared steps. A
-   journey that is correct but not explainable has not passed.
-3. **Better over time** (F7), once explainability holds: tries to green per unit of work, journeys broken and how fast
+2. **Explainable** (4.2). A failed or slow step can be explained from its record alone, without running it again: every
+   refusal has its deciding log, every span its parent, and the share of each call's time its declared steps account for. The
+   score is reported from measured runs first, and its threshold is then set from the data, as budgets are; from then,
+   a journey that is correct but not explainable has not passed.
+3. **Better over time** (4.3), once explainability holds: tries to green per unit of work, journeys broken and how fast
    they recovered, and speed and cost per journey across runs. These are trends to read, not thresholds.
 
 Coverage is reported with every run: which moves of each machine, and which refused pairs of a state and an
