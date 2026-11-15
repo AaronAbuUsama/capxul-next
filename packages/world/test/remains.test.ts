@@ -1,5 +1,5 @@
 // A take-down whose sites cannot be removed, or whose destroy fails half-way, keeps the world's record, so `world list`
-// and the sweeper still see it and the next sweep finishes the job (src/lifecycle/world.ts, `keepRemains`).
+// and the sweeper still see it and the next sweep finishes the job (src/things/world/take-down.ts, `keepRemains`).
 //
 // It runs the real take-down, list and sweep against an in-memory state store, with Alchemy's real destroy of the
 // stage (which deletes the stage's record, the cause of the bug this covers), and a stand-in for everything reached
@@ -22,11 +22,11 @@ import * as Str from "effect/String";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
-import { list } from "../src/lifecycle/operations.ts";
-import { Timeouts } from "../src/lifecycle/spec.ts";
-import { makeStopwatch } from "../src/lifecycle/steps.ts";
-import { sweep } from "../src/lifecycle/sweep.ts";
-import { takeDown } from "../src/lifecycle/world.ts";
+import { list } from "../src/things/world/list.ts";
+import { Timeouts } from "../src/things/world/values.ts";
+import { makeStopwatch } from "../src/common/stopwatch.ts";
+import { sweep } from "../src/things/world/sweep.ts";
+import { takeDown } from "../src/things/world/take-down.ts";
 import { recordedOutput, SharedState } from "../src/stack/engine.ts";
 import { PLATFORM, STACK } from "../src/stack/names.ts";
 
@@ -82,7 +82,7 @@ beforeEach(() => {
 });
 
 const Statement = Schema.Struct({ query: Schema.String, params: Schema.Array(Schema.Unknown) });
-/** What the registry's SQL endpoint is sent: one statement, or several as one transaction (src/database/sql.ts). */
+/** What the registry's SQL endpoint is sent: one statement, or several as one transaction (src/parts/database/sql.ts). */
 const SqlBody = Schema.Union([Statement, Schema.Struct({ queries: Schema.Array(Statement) })]);
 
 const json = (body: unknown, status = 200) => Response.json(body, { status });

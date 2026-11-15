@@ -39,7 +39,7 @@ export class OtherWorlds extends Context.Service<
   static readonly fromSharedState = Layer.effect(
     OtherWorlds,
     Effect.gen(function* () {
-      // Opening a world asks Neon for its database's connection string (packages/world, src/lifecycle/parts.ts).
+      // Opening a world asks Neon for its database's connection string (packages/world, src/things/world/client.ts).
       const context = yield* Effect.context<World.SharedState | HttpClient.HttpClient>();
       return {
         databaseAt: (door: string) =>
