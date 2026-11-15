@@ -8,8 +8,8 @@
 //   database  the world's branch restored in place from the snapshot's (Neon's restore): same id, compute and
 //             connection string, so Hyperdrive and Core carry on. Never the chain without its database: the database
 //             goes first, and a reset that fails after it fails loudly.
-//   chain     anvil reset and loaded with the snapshot's state, in place, and alto kept up with its mempool and
-//             reputation cleared (src/parts/chain/Chain.ts and src/parts/bundler/Bundler.ts, `reset`)
+//   chain     alto stopped, then anvil reset and loaded with the snapshot's state, in place; alto starts again at
+//             the reset's first look at the bundler (src/parts/chain/Chain.ts, `reset`)
 //   clock     Core's clock set to read the snapshot's time from the reset's start, and, beside it, the chain's next
 //             block mined at that time, as a restore and a warp do (`mineAtWorldTime`); the bench's clock entry set to
 //             it too (src/things/site/reset.ts)
@@ -149,8 +149,8 @@ export const reset = Effect.fn("world.reset")(function* (name: string, snapshot:
         );
         return { minedAt: mined.minedAt, indexedBlock };
       });
-      // The chain's reset kept alto up with its state cleared (src/parts/bundler/Bundler.ts, `reset`), so the bundler
-      // answers at its first look, or within a few more when a connection through the shared hub drops (`AfterReset`);
+      // The chain's reset stopped alto before the rewind (src/parts/chain/Chain.ts, `reset`): this look starts it again
+      // and waits until it serves the EntryPoint, riding out a dropped connection through the shared hub (`AfterReset`);
       // Core and the branch Neon kept need only the database. All are waited for beside the clock and the index.
       const [{ minedAt, indexedBlock }] = yield* Effect.all(
         [
