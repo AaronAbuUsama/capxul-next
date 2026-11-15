@@ -40,6 +40,7 @@ const TOO_MUCH = 5000;
 export const payBrightside = journey(
   {
     name: "pay Brightside",
+    world: "shared",
     story:
       "sam's payment to Brightside is held for his signature, wrong signatures are refused, sam pays once and a replay sends nothing more, and the books agree with the chain.",
     given: startingWorlds.paymentDrafted,

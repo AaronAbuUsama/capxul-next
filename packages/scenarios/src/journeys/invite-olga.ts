@@ -61,6 +61,7 @@ const OLGA: Member = { person: "olga", email: OLGA_EMAIL, role: "member" };
 export const inviteOlga = journey(
   {
     name: "invite olga to Northwind",
+    world: "shared",
     story:
       "dana, Northwind's founder, invites olga as a member, olga declines, eli may not invite her again but dana does and she accepts, and is a member at once with nothing signed, so dana can propose a permission for her; everyone who may not is refused.",
     given: startingWorlds.founded,
