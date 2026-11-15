@@ -36,7 +36,11 @@ import { CallTracer } from "./spans.ts";
 /** The value of `ENV.tap` that turns the tap on. */
 export const TAP_ON = "on";
 
-/** Core's `service.name` on every export: the producer name the blueprint's envelope gives Core (#301). */
+/**
+ * Core's `service.name` on every export: the producer name the blueprint's envelope gives Core (#301,
+ * packages/blueprint/src/telemetry/producers.ts on slice/blueprint). It moves to an import from the blueprint when #301
+ * reaches master.
+ */
 export const SERVICE_NAME = "capxul-api";
 
 /** Where the exporters post over the binding: the host is never reached, the bound Worker answers every path. */
