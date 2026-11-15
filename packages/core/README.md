@@ -14,17 +14,19 @@ the running Worker reads every fact from its environment per request, by the nam
 
 **All twelve handlers are built.** Core builds the world group's eight (`src/site-ops/` and `src/organizations/`,
 below); the platform group's four are `packages/world`'s (`src/platform`, blueprint decisions.md 51), so Core's own
-platform handlers are empty: each fails with the blueprint's `NotImplemented`, naming itself (entry 33). The server compiles only with one handler per operation: delete a line
-of `src/handlers.ts` and `pnpm types` fails with `Property '"record.export"' is missing`.
+platform handlers are empty: each fails with the blueprint's `NotImplemented`, naming itself (entry 33). The server compiles only with one handler per operation: leave a
+domain out of `src/handlers.ts`, or an operation out of its `src/domains/` file, and `pnpm types` fails with
+`Property '"record.export"' is missing`.
 
 | File | What it is |
 |---|---|
 | `src/door.ts` | The door: the stack, the two door paths, `serveDoors`, `Served`, `CoreRpcs`, the span types, and `migrations`. |
 | `src/doors.ts` | `serveDoors`: each request to the group its path names, `PLATFORM_PATH` or `WORLD_PATH`. |
-| `src/handlers.ts` | One handler per operation, in its blueprint group: the world group's from `src/site-ops/` and `src/organizations/`; the platform group's are empty. |
-| `src/empty-handlers.ts` | Core's empty-handler mode: every operation of both groups answers `NotImplemented`, whatever is built. A stage deployed with `CAPXUL_HANDLERS=empty` (`src/env.ts`) serves it, so the scenario author can show every journey fails against handlers that do nothing (`./run.sh scenarios --expect=not-implemented` in packages/runner, roadmap step 1.14). A world's Core never binds it. |
+| `src/handlers.ts` | One handler per operation, in its blueprint group, gathered from `src/domains/`. |
+| `src/domains/` | One file per blueprint domain: its handlers, as its share of each group it serves (`platform`, `world`). The world group's come from `src/site-ops/` and `src/organizations/`; the platform group's are empty. |
+| `src/empty-handlers.ts` | Core's empty-handler mode: every operation of both groups answers `NotImplemented`, whatever is built, made from the groups' own operations. A stage deployed with `CAPXUL_HANDLERS=empty` (`src/env.ts`) serves it, so the scenario author can show every journey fails against handlers that do nothing (`./run.sh scenarios --expect=not-implemented` in packages/runner, roadmap step 1.14). A world's Core never binds it. |
 | `src/site-ops/` | The document, report, clock and record operations (below). `door.ts` is its door. |
-| `src/organizations/`, `src/approvals/`, `src/chain/`, `src/cast/` | The chain operations, org.create, org.member.grant and approval.sign (below). `organizations/handlers.ts` is what `handlers.ts` and the Worker use. |
+| `src/organizations/`, `src/approvals/`, `src/chain/`, `src/cast/` | The chain operations, org.create, org.member.grant and approval.sign (below). `organizations/handlers.ts` is what `src/domains/` and the Worker use. What a subject's landing means is its domain's (`organizations/landed.ts`, and `approvals/payments.ts` for a payment); `approvals/landed.ts` gathers them by kind. |
 | `src/server.ts` | `Served`, the handlers and middlewares of both groups, and `CoreRpcs`, both groups merged for a test in memory. |
 | `src/telemetry/spans.ts` | One span per call, named after the operation, under the trace id of the caller's `traceparent`, with every span beneath it. |
 | `src/telemetry/sink.ts` | Where a call's spans go: `app.spans`, written after the call ends and before the answer leaves. |
@@ -38,7 +40,7 @@ of `src/handlers.ts` and `pnpm types` fails with `Property '"record.export"' is 
 | `src/failures.ts` | Core's own failures: `SiteDoorFailed` (`unset`, `unreachable`, `refused`). |
 | `src/stack/database.ts` | A stage's database: a Neon project of its own, and Hyperdrive in front of it with its query cache off. |
 | `alchemy.run.ts` | The stack `CapxulCore`. One stage is one Core and its database. |
-| `migrations/` | The `app` schema: `app.spans` and `app.events` (0001); `app.clock` and `app.documents` (0002); the world's chain contracts, cast and companies (`app.world`, `app.cast`, `app.companies`, 0003). Applied by the runner when a stage is created, and by the world when it is made. |
+| `migrations/` | The `app` schema (named by the rule in "Migrations", below): `app.spans` and `app.events` (0001); `app.clock` and `app.documents` (0002); the world's chain contracts, cast and companies (`app.world`, `app.cast`, `app.companies`, 0003). Applied by the runner when a stage is created, and by the world when it is made. |
 | `test/server.test.ts` | Core's groups in memory: all twelve answer `NotImplemented` under one span each, kept with the caller's trace id; sign-in refusals. |
 | `test/site-ops-documents.test.ts`, `test/site-ops-world.test.ts` | The five operations served in memory through Core's groups against a stand-in company site (`test/support/site-ops.ts`): what the site is asked, what Core answers, what the record keeps. |
 | `test/site-ops-sql.test.ts` | The clock, the record, the document hashes and the cast in Postgres with the migrations applied. Runs only with `CAPXUL_TEST_DATABASE` (a throwaway Postgres); skipped otherwise, as in CI. |
@@ -141,6 +143,30 @@ world's own branch. `/chain` answered `eth_blockNumber` from the world's chain a
 `SiteDoor` was deployed in a world with a company site (`packages/world/records/site.proof.json`), but the only bench
 there was, a stand-in in an agent's container, is not reachable from Cloudflare: the probe answered `SiteDoorFailed`
 `unreachable`, as it should. Reaching a site from Core waits for the AWS bench and its tunnel.
+
+## Adding an operation
+
+To a domain Core already serves: its handler where its kind of work lives (`src/site-ops/`, `src/organizations/`),
+and one entry in that domain's file in `src/domains/`. A subject its approvals authorise gets an entry in its
+domain's `landings` (`organizations/landed.ts`, `approvals/payments.ts`).
+
+A new domain: a new file in `src/domains/`, then one import and one entry per group it serves in `src/handlers.ts`,
+and, if its approvals authorise subjects, one entry in `landings` in `src/approvals/landed.ts` (the type refuses a
+kind of the blueprint's `Subject` with none). `src/empty-handlers.ts` needs nothing.
+
+## Migrations
+
+Both migrators (the runner's for a stage, `packages/world`'s for a world) apply the `.sql` files of `migrations/` in
+name order; a world keeps the names it has applied and is given only the files it has not seen. So a name is never
+changed once merged, and two slices must never write the same name. The rule, checked by `test/migrations.test.ts`:
+
+- A file is `NNNN_<domain>.sql` or `NNNN_<domain>_<what>.sql`. `<domain>` is a blueprint domain (its folder, such as
+  `organizations`), or `core` for Core's own tables. `0001` to `0005` were named before the rule and keep their
+  names.
+- `NNNN` is one more than the highest number on the branch the slice was cut from. Two slices may take the same
+  number: their domains make the names differ, and the two files apply in the order of their domains' names.
+- So a migration may depend only on files with a lower number. One that needs another domain's new table waits for
+  it to merge, and takes the next number then.
 
 ## Checks
 

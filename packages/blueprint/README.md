@@ -9,23 +9,38 @@ import it; it imports neither.
 
 | File | What it holds |
 |---|---|
-| `src/door.ts` | The one door: `operations` (the twelve, by name), the two Rpc groups, `servedBy`, and `allClaims`, every claim, which the journeys' `coverage.ts` places. |
+| `src/door.ts` | The one door: `operations` (every operation, by name), the two Rpc groups, `servedBy`, and `allClaims`, every claim, which the journeys' `coverage.ts` places. It gathers them from the domains and names none. |
+| `src/domains.ts` | Every domain, by its folder: the one list a new domain joins. Its order is the order of `operations` and of each group. |
+| `src/<domain>/` | One domain: `world`, `organizations`, `documents`, `approvals`, `reports`, `record`. Below. |
 | `src/operation.ts` | The format: `declare`, `declareOutcomes`, `outcome`, `Budget`, and what the runner reads. |
-| `src/errors.ts` | Every refusal, declared once, with its command-line exit code, `NotImplemented` included (every operation declares it; decisions.md, entry 33), and `PayloadRejected`, which the caller's own client makes (entry 43). |
-| `src/values.ts` | The shared values: names, ids, instants, money, approvals, the view of a world. |
+| `src/errors.ts` | Every refusal with its command-line exit code, gathered from the files that declare them: each domain's `refusals.ts`, and `src/errors/` for those several domains share (who is calling, a company and its site, `NotImplemented`, which every operation declares, decisions.md entry 33, and `PayloadRejected`, which the caller's own client makes, entry 43). |
+| `src/gather.ts` | How a hub gathers its parts' records into one. |
+| `src/values.ts` | The shared values: names, ids (declared in `src/ids.ts`), instants, money, approvals and their `Subject`, gathered from the domains' `subjects.ts`, the view of a world. |
 | `src/telemetry.ts` | The trace, credential and person headers, the doors' paths (`PLATFORM_PATH`, `WORLD_PATH`, `CHAIN_PATH`) and the chain's read-only methods, `CallOptions` (`as`, `operator`, `at`), `Telemetry`, and the two sign-in middlewares. |
 | `src/chain/` | The chain reads a caller makes through a world's door (`reads.ts`) and the logs they decode (`logs.ts`), with the contracts' Solidity signatures: `Chain` at the door. |
 | `src/documents/site.ts` | The site's vocabulary: doctypes, field names, reports, filters, row fields, the Safe account, the daily job, the starting worlds' documents: `Site` at the door. |
 | `src/starting-worlds.ts` | Every starting world whose state the claims speak of, how each is made and how a journey gets it (`made`). |
 | `src/starting/facts.ts` | The facts each starting world hands a journey, and one example of each. |
-| `src/<concept>/operations.ts` | A concept's operations and events: `world`, `organizations`, `documents`, `approvals`, `reports`, `record`. |
-| `src/<concept>/claims.ts` | Its acceptance claims. `src/claims/` renders them into claims.md. |
-| `claims.md` | Every operation's claims, refusals, events and budget, and the starting worlds. Rendered; do not edit. |
+| `claims.md` | What every claim shares, what the runner checks on every call, and the starting worlds. Rendered; do not edit. |
 | `decisions.md` | Every design call, and the questions for Aaron. |
 | `gaps.md` | The claims the scenario author could not check in full, by cause, and how each was closed, and the points still open. |
-| `order.md` | The order to build the twelve in, and the starting worlds each needs. |
+| `order.md` | The order to build the operations in: the parts of a world, and what can be built at the same time. |
+
+A domain's folder, `src/<domain>/`:
+
+| File | What it holds |
+|---|---|
+| `domain.ts` | Its door: `operations` (its own, by name), `platformRpcs` and `worldRpcs` (its share of each group, `RpcGroup.make()` when it has none), and `claims`, each operation's. It re-exports `operations.ts`, so the package's door exports it as the domain's namespace (`World`, `Organizations`, ...). |
+| `operations.ts` | Its operations' declarations and events. |
+| `claims.ts` | Its acceptance claims. |
+| `refusals.ts` | The refusals only its operations make, each with its exit code (`refusals`, `exitCode`). None in `reports`. |
+| `subjects.ts` | What its approvals authorise, when its operations ask for any: `organizations` and `documents`. |
+| `claims.md` | Its operations' claims, refusals, events and budgets. Rendered by `pnpm claims`; do not edit. |
+| `order.md` | Where each of its operations comes in the build order, and what it needs. |
 
 ## The operations
+
+The thin line's twelve, as the journey calls them. A later operation is listed in its domain's `claims.md`.
 
 | # | Operation | Served by | Kinds of success and their events |
 |---|---|---|---|
@@ -42,18 +57,34 @@ import it; it imports neither.
 | 11 | `world.snapshot.restore` | platform | `world_created` |
 | 12 | `world.show` | platform | none |
 
-Refusals and budgets are in claims.md. The platform group is served by `packages/world`; the world group by a world's
+Refusals and budgets are in each domain's `claims.md`. The platform group is served by `packages/world`; the world group by a world's
 Core, through its door. Each group's `toLayer` does not compile until every operation in it has a handler.
 
-## Adding or changing an operation
+## Adding an operation
 
-1. Declare its refusals in `src/errors.ts` (add each to `refusals` and `exitCode`; every operation also lists
-   `NotImplemented`), and its events in its concept's `operations.ts`.
-2. Declare it with `declare({ rpc, emits, budget, examples })`, or with `declareOutcomes` and one `outcome` per
-   member of a success union. Give one example per kind of success.
-3. Add it to `operations` and to one Rpc group in `src/door.ts`, and its claims to its concept's `claims.ts` and to
-   `src/claims/all.ts`.
-4. Run `pnpm claims` to render claims.md, then `pnpm types` and `pnpm test`.
+Every hub of the blueprint is gathered from the domains, so several slices can add operations at once without editing
+the same file.
+
+**To an existing domain**, touch only that domain's folder, `src/<domain>/`:
+
+1. Declare its events in `operations.ts`, and any refusal no other domain makes in `refusals.ts`, with its exit code
+   (2 the request cannot be done as asked, 3 not signed in, 4 not allowed, 5 something outside failed, 6 a limit or
+   a switch). A refusal several domains share goes in `src/errors/`. Every operation also lists `NotImplemented`.
+2. Declare it in `operations.ts` with `declare({ rpc, emits, budget, examples })`, or with `declareOutcomes` and one
+   `outcome` per member of a success union. Give one example per kind of success.
+3. In `domain.ts`, add it to `operations`, to `platformRpcs` or `worldRpcs`, and its claims (written in `claims.ts`)
+   to `claims`. If its approvals authorise a new kind of subject, add the kind to `subjects.ts`.
+4. Add its row to `order.md`, then run `pnpm claims` to render the domain's `claims.md`, then `pnpm types` and
+   `pnpm test`.
+
+**A new domain** is a new folder with the files above, and one entry in each hub it needs:
+
+- `src/domains.ts`: one import, and the folder in `domains` and in the export line. Nothing else names operations:
+  `operations`, both groups, `allClaims` and the rendered `claims.md` follow from it.
+- `src/errors.ts`, if it has refusals of its own: one import, one `export *` and one entry in `declaring`.
+- `src/values.ts`, if its approvals authorise subjects: one import, and its `subjects` in `Subject`.
+
+Core (`packages/core`) then needs the domain's handlers: see its README, "Adding an operation".
 
 A budget is provisional until a green run measures the operation. That run's p95 then replaces `ms` and `basis` in
 the declaration, and `provisional` becomes false. A budget is recorded next to every measured time and is not
@@ -63,6 +94,7 @@ enforced: nothing fails on speed until it is set from measured runs.
 
 It is a member of the root workspace: `pnpm install` at the root installs it. `pnpm types` type-checks
 the package, including `test/types.ts`, whose lines marked `@ts-expect-error` prove the compiler refuses a `carries`
-that does not fit. `pnpm test` runs `test/contract.test.ts`: twelve operations, each example's events carrying
-exactly their event's fields, nothing declared twice, claims that name only declared refusals and starting worlds,
-and claims.md and order.md in step with the sources.
+that does not fit. `pnpm test` runs `test/contract.test.ts`: every domain's operations once, each in its group with its group's
+middlewares (the thin line's twelve among them), each example's events carrying exactly their event's fields,
+nothing declared twice, claims that name only declared refusals and starting worlds, every `claims.md` in step with
+its sources, and each domain's `order.md` listing its operations.
