@@ -2,7 +2,7 @@
 // second operator branches it into a world of their own; sam pays in the first world and the branch never sees it; in
 // the branch a week passes and the held approval expires. It acts on whole worlds (it saves, restores and warps them),
 // so it keeps a world of its own and never runs in a world shared with other journeys (roadmap step 4.11).
-import { Site, startingWorlds } from "@capxul/blueprint";
+import { Site, startingWorlds as begins } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import { expect, given } from "../expectation.ts";
@@ -31,7 +31,7 @@ const steps = outline({
   apart: [named["doc.create"], "sam drafts a Supplier in the branch, which the first world never sees"],
   warp: [
     named["world.clock.warp"],
-    "the branch's owner warps it a week and past the held approval's expiry: its chain and site follow, its daily job runs each day, and its clock never goes back",
+    "the branch's operator warps it a week and past the held approval's expiry: its chain and site follow, its daily job runs each day, and its clock never goes back",
   ],
   expired: [
     named["approval.sign"],
@@ -39,7 +39,7 @@ const steps = outline({
   ],
   record: [
     named["record.export"],
-    "each world's record holds every event once, in order, and a range answers only what it asks",
+    "each world's history holds every event once, in order, and a range answers only what it asks",
   ],
 });
 
@@ -52,11 +52,11 @@ export const branchTheBooks = journey(
     name: "branch the books of a held payment",
     story:
       "sam's payment to Brightside is held, the month is saved and branched into a second operator's world, sam pays in the first world while the branch never sees it, and in the branch a week passes and the held approval expires.",
-    given: startingWorlds.paymentDrafted,
+    given: begins.paymentDrafted,
     steps,
   },
   Effect.gen(function* () {
-    const facts = yield* given(startingWorlds.paymentDrafted);
+    const facts = yield* given(begins.paymentDrafted);
     const { world, payment } = facts;
     const org = facts.founded.org;
     const companySafe = facts.founded.safe;
@@ -90,10 +90,10 @@ export const branchTheBooks = journey(
         const lifetimeMinutes = Math.max(1, Math.floor((millis(first.expiresAt) - millis(now)) / MINUTE) - 5);
         const restore = (snapshot: string, as: string) => ({ world: world.world, snapshot, as, lifetimeMinutes });
         const refused = yield* op.refused(named["NotWorldOwner"], restore("draft", draftName), { operator: "second" });
-        yield* same("the owner of draft", refused.owner, operator.first);
+        yield* same("who holds draft", refused.owner, operator.first);
         const made = yield* op.succeeds(restore("m3", branchName), { operator: "second" });
         yield* same(
-          "the branch's owner, parent position and clock",
+          "the branch's operator, parent position and clock",
           [made.owner, made.parent?.recordSeq, made.clock],
           [operator.second, m3.recordSeq, m3.clock],
         );
@@ -112,7 +112,7 @@ export const branchTheBooks = journey(
           yield* wears(made, minted.hat, minted.safe, null, there),
           "sam's Safe does not wear the Books hat in the branch",
         );
-        yield* same("the branch's record, read by its owner", (yield* recordOf(there)).world, made.world);
+        yield* same("the branch's history, read by its operator", (yield* recordOf(there)).world, made.world);
         return made;
       }),
     );
@@ -139,7 +139,7 @@ export const branchTheBooks = journey(
           { org, doctype: Site.DOCTYPES.supplier, fields: Site.supplierFields("Isolation Ltd") },
           { ...there, as: "sam" },
         );
-        yield* same("the first world's record head after the branch's document", yield* headOf(), firstHead);
+        yield* same("the first world's history head after the branch's document", yield* headOf(), firstHead);
       }),
     );
 

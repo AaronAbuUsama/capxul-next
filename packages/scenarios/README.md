@@ -1,6 +1,6 @@
 # scenarios
 
-The thin line's journeys and each operation's checks (`packages/scenarios` in code; docs/roadmap.md, "Scenarios are
+The thin line's journeys and each operation's checks (this package; docs/roadmap.md, "Scenarios are
 journeys"). A journey is a story of operations in order, from one of the blueprint's starting points. Every call it
 makes is judged by its operation's checks, written once, which run on every call of that operation in every journey.
 The runner ([packages/runner](../runner/README.md)) makes the run and adds its generic checks to every call (events,
@@ -35,9 +35,9 @@ person of the cast, `{ operator: "second" }` as the second operator, `{ at: view
 `yield* given(startingWorlds.paymentDrafted)` answers a starting point's facts. Reads after the tries (`expect`,
 `same`, `src/support/`) are looks: no operation's checks run on them.
 
-A check judges only what its own call caused (roadmap step 4.11): the record by the call's trace (`CallTraces`), the
-chain by the journey's own accounts (`chainUntouched`). With no trace told, the record checks take every entry after
-the head read before the call.
+A check judges only what its own call caused (roadmap step 4.11): the world's history by the call's trace
+(`CallTraces`), the chain by the journey's own accounts (`chainUntouched`). With no trace told, the history checks take
+every entry after the head read before the call.
 
 ## Adding a journey or checks
 
