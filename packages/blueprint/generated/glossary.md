@@ -34,8 +34,9 @@ Scope: **user-facing** words are seen by callers (operation names, the CLI, the 
 | **reserve** | Holding a world's name. | claim | internal |
 | **journey** (`packages/journeys`) | A written story of operations that must pass. | scenario | user-facing |
 | **runner** | What runs and judges journeys; the thing it makes is a run. | (kept) | user-facing |
-| **shard** | One world of a run's several. | lane (not counted) | user-facing |
+| **shard** | One world of a run's several. | lane (counted only in `packages/runner/`) | user-facing |
 | **promise** | A sentence an operation guarantees. | claim | user-facing |
+| **claim** | Claiming a person's Safe on chain, through Companies House. | (kept) | user-facing |
 | **check** | What judges one call or run, and only that. | (kept) | internal |
 | **gate** (`pnpm gate`) | The pass every pull request clears; its levels are rungs. | `pnpm check`, ladder | internal |
 | **verdict** | What a CI run proved. | run record, proof record | user-facing |
@@ -54,6 +55,11 @@ Scope: **user-facing** words are seen by callers (operation names, the CLI, the 
 
 Each is spelled as a word the glossary keeps for another concept, so no count can tell its uses apart.
 
-- `lane`, becoming **shard**: `lane` stays the word for a chain of roadmap items led by one lead.
 - `step`, becoming **span**: `step` stays the word for one move of a journey, so a count of it cannot tell this meaning apart.
 - `step`, becoming **item**: `step` stays the word for one move of a journey, so a count of it cannot tell this meaning apart.
+
+## Where a kept word is not counted
+
+A word the glossary keeps, spelled as another entry's old word, is not counted where this exact code writes it.
+
+- **claim**: `CompaniesHouseClaimer.claim`, `claim(string,string,address)`, `capxul.claim`.

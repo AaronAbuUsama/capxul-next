@@ -9,7 +9,7 @@ export const runVerdict = work({
   does: "Write the run's verdict to the branch `proofs`, set its GitHub check, and archive its telemetry.",
   payload: { run: RunId },
   spans: {
-    write: span("run.verdict.write", StepKind.container),
+    write: span("run.verdict.write", StepKind.compute),
     check: span("run.verdict.check", StepKind.container),
     archive: span("run.verdict.archive", StepKind.container),
   },

@@ -75,6 +75,23 @@ test("an uncounted old word is never counted", () => {
   ]);
 });
 
+test("an old word with `within` counts only in files under those paths", () => {
+  const made: ReadonlyArray<Entry> = [
+    { word: "shard", meaning: "A part.", replaces: [words("lane", [], ["packages/runner/"])], scope: "internal" },
+  ];
+  assert.equal(countFile(made, { path: "packages/runner/src/a.ts", text: "const lanes = 2;" })["lane"], 1);
+  assert.equal(countFile(made, { path: "packages/blueprint/src/a.ts", text: "const lanes = 2;" })["lane"], 0);
+});
+
+test("an old word spelled as a kept word is not counted in that word's `keptIn`", () => {
+  const made: ReadonlyArray<Entry> = [
+    { word: "take", meaning: "A move.", replaces: ["claim"], scope: "internal" },
+    { word: "claim", meaning: "A Safe's.", replaces: [], scope: "internal", keptIn: ["Claimer.claim", "x.claim"] },
+  ];
+  const text = 'call("Claimer.claim"); call("x.claim.y"); const claim = take; const claims = myClaimer.claim;';
+  assert.equal(countFile(made, { path: "a.ts", text })["claim"], 3);
+});
+
 test("counts add up across files", () => {
   const files = [
     { path: "a.ts", text: "const widget = 1;" },

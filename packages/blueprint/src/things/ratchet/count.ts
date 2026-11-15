@@ -8,7 +8,7 @@ export const ratchetCount = work({
   name: "ratchet.count",
   does: "Count every ratchet's list; a list that grew fails, and one that shrank must be committed smaller.",
   payload: {},
-  spans: { lists: span("ratchet.count.lists", StepKind.container) },
+  spans: { lists: span("ratchet.count.lists", StepKind.compute) },
   logs: { grew: log("ratchet.count.grew", { ratchet: RatchetName, was: ItemCount, now: ItemCount }) },
   budget: {
     ms: 10_000,
