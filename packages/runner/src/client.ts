@@ -58,6 +58,8 @@ export interface Call {
   readonly callerMs: number;
   /** Sends repeated during the call because the stage's address was not routed yet. */
   readonly resent: number;
+  /** For a look (`Observing`): times it was sent again after its transport failed; left out for every other call. */
+  readonly retried?: number;
   readonly failure: string | null;
 }
 

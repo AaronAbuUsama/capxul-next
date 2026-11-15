@@ -82,7 +82,9 @@ export const renew = Effect.fn("world.renew")(function* (name: string, lifetime:
     const bench =
       output.bench === undefined || output.bench === "none" ? Option.none<string>() : Option.some(output.bench);
     const granted = yield* Effect.transposeOption(
-      Option.map(bench, (stageOfBench) => grantOn(stageOfBench, stage, expiresAt, maxSites)),
+      Option.map(bench, (stageOfBench) =>
+        grantOn(stageOfBench, stage, expiresAt, maxSites, { owner: output.owner, grade: "private" }),
+      ),
     );
     yield* timed(
       "registry",
@@ -98,6 +100,8 @@ export const renew = Effect.fn("world.renew")(function* (name: string, lifetime:
     yield* timed("hub", register(hub, { stage, secret, owner: output.owner, expiresAt }));
     const settings = {
       owner: output.owner,
+      // Only test grades are offered (src/account/worlds.ts refuses `real`), so a renewed world is one.
+      grade: "private" as const,
       expiresAt,
       forkedFrom: output.forkedFrom === "nothing" ? Option.none<string>() : Option.some(output.forkedFrom),
       bench: granted,

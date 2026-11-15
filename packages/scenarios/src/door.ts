@@ -5,6 +5,7 @@ export {
   Capxul,
   Given,
   Observations,
+  Observing,
   type CallOptions,
   type Observed,
   type ObservedEvent,

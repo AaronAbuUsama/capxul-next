@@ -72,183 +72,189 @@ export const anchorOf = (world: StartingWorld): StartingWorld =>
 
 /**
  * What makes the starting worlds of one run in its one world. `templateWorlds` is the one world, by stage, which the
- * run destroys at its end; `kept` the bench template it kept of each starting world, which outlives the run.
+ * run destroys at its end; `kept` the bench template it kept of each starting world, which outlives the run. A plain
+ * constructor with no span of its own: what its makers do runs under the run's `run.prepare` (worlds/run.ts) or a
+ * journey's `journey.run`, each part (`world create`, `make`, `save`) with a span.
  */
-export const startingWorldsOf = Effect.fn("runner.startingWorlds")(function* (
-  settings: Settings,
-  platformUrl: string,
-  timings: Timings,
-) {
-  const templates = yield* Ref.make(new Map<string, Making>());
-  // What a journey of a saved starting world is handed: the world as its snapshot holds it, so without the save's own
-  // call, whose event is written after the snapshot is taken and is gone once the world is reset to it. The world
-  // made on from it (`templates`) keeps that call, as its record keeps the event.
-  const handed = yield* Ref.make(new Map<string, Making>());
-  // A template whose making failed is not made again: its steps may have run half-way in the one world, so a second
-  // try would meet what the first left there. Every later journey of it fails with the first failure.
-  const unmade = yield* Ref.make(new Map<string, RunnerFailure>());
-  const one = yield* Ref.make<Option.Option<string>>(Option.none());
-  const kept = yield* Ref.make<ReadonlyMap<string, string>>(new Map());
-  // Fingerprinted once a run, when the first template is kept.
-  const code = yield* Effect.cached(
-    World.templateCode(PACKAGES, CODE).pipe(
-      Effect.mapError((error) => RunnerFailure.make({ step: "template", message: describe(Cause.fail(error)) })),
-    ),
-  );
-  const toSave = yield* Ref.make<ReadonlyArray<string>>([]);
-  const made = yield* Ref.make<ReadonlyArray<MakingCall>>([]);
-  const run = recorder(targetOf(settings, platformUrl), made);
-  const nothing = nothingOf(settings);
-
-  /** Saves the one world as the snapshot `world.name`, and keeps its sites as a bench template of that starting world. */
-  const save = (world: StartingWorld, after: Making) =>
-    Effect.gen(function* () {
-      const name = after.own?.world ?? "";
-      const saved = yield* timings.timed(
-        `save ${world.name}`,
-        { of: name },
-        run(
-          world,
-          (making) =>
-            Effect.gen(function* () {
-              const capxul = yield* Capxul;
-              yield* capxul["world.snapshot.save"]({
-                world: name,
-                snapshot: world.name,
-                replace: false,
-                template: true,
-              }).pipe(Effect.mapError((error) => RunnerFailure.make({ step: "template", message: error._tag })));
-              return making;
-            }),
-          after,
+export const startingWorldsOf = (settings: Settings, platformUrl: string, timings: Timings) =>
+  Effect.map(
+    Effect.all({
+      templates: Ref.make(new Map<string, Making>()),
+      // What a journey of a saved starting world is handed: the world as its snapshot holds it, so without the save's
+      // own call, whose event is written after the snapshot is taken and is gone once the world is reset to it. The
+      // world made on from it (`templates`) keeps that call, as its record keeps the event.
+      handed: Ref.make(new Map<string, Making>()),
+      // A template whose making failed is not made again: its steps may have run half-way in the one world, so a
+      // second try would meet what the first left there. Every later journey of it fails with the first failure.
+      unmade: Ref.make(new Map<string, RunnerFailure>()),
+      one: Ref.make<Option.Option<string>>(Option.none()),
+      kept: Ref.make<ReadonlyMap<string, string>>(new Map()),
+      // Fingerprinted once a run, when the first template is kept.
+      code: Effect.cached(
+        World.templateCode(PACKAGES, CODE).pipe(
+          Effect.mapError((error) => RunnerFailure.make({ step: "template", message: describe(Cause.fail(error)) })),
         ),
-      );
-      if (holdsFactsOf(world, startingWorlds.founded)) {
-        const fingerprint = yield* code;
-        const template = yield* timings.timed(
-          `bench template ${world.name}`,
-          { of: name },
-          World.keepSitesAsTemplate(name, world.name, fingerprint).pipe(
-            Effect.mapError((error) => RunnerFailure.make({ step: "template", message: describe(Cause.fail(error)) })),
-          ),
-          (answer) =>
-            Option.isSome(answer)
-              ? {
-                  parts: { door: answer.value.ms },
-                  note: `${answer.value.template}${answer.value.made ? "" : " (kept already)"}`,
-                }
-              : {},
-        );
-        if (Option.isSome(template))
-          yield* Ref.update(kept, (all) => new Map([...all, [world.name, template.value.template]]));
-      }
-      return saved;
-    });
+      ),
+      toSave: Ref.make<ReadonlyArray<string>>([]),
+      made: Ref.make<ReadonlyArray<MakingCall>>([]),
+    }),
+    ({ templates, handed, unmade, one, kept, code, toSave, made }) => {
+      const run = recorder(targetOf(settings, platformUrl), made);
+      const nothing = nothingOf(settings);
 
-  /** `world` as made in the one world, and saved there when a journey starts from it. */
-  const templateOf = (world: StartingWorld): Effect.Effect<Making, RunnerFailure, Needs> =>
-    Effect.gen(function* () {
-      const cached = (yield* Ref.get(templates)).get(world.name);
-      if (cached !== undefined) return cached;
-      const failed = (yield* Ref.get(unmade)).get(world.name);
-      if (failed !== undefined)
-        return yield* RunnerFailure.make({
-          step: failed.step,
-          message: `${world.name}'s template was not made earlier in this run: ${failed.message}`,
+      /** Saves the one world as the snapshot `world.name`, and keeps its sites as a bench template of that starting world. */
+      const save = (world: StartingWorld, after: Making) =>
+        Effect.gen(function* () {
+          const name = after.own?.world ?? "";
+          const saved = yield* timings.timed(
+            `save ${world.name}`,
+            { of: name },
+            run(
+              world,
+              (making) =>
+                Effect.gen(function* () {
+                  const capxul = yield* Capxul;
+                  yield* capxul["world.snapshot.save"]({
+                    world: name,
+                    snapshot: world.name,
+                    replace: false,
+                    template: true,
+                  }).pipe(Effect.mapError((error) => RunnerFailure.make({ step: "template", message: error._tag })));
+                  return making;
+                }),
+              after,
+            ),
+          );
+          if (holdsFactsOf(world, startingWorlds.founded)) {
+            const fingerprint = yield* code;
+            const template = yield* timings.timed(
+              `bench template ${world.name}`,
+              { of: name },
+              World.keepSitesAsTemplate(name, world.name, fingerprint).pipe(
+                Effect.mapError((error) =>
+                  RunnerFailure.make({ step: "template", message: describe(Cause.fail(error)) }),
+                ),
+              ),
+              (answer) =>
+                Option.isSome(answer)
+                  ? {
+                      parts: { door: answer.value.ms },
+                      note: `${answer.value.template}${answer.value.made ? "" : " (kept already)"}`,
+                    }
+                  : {},
+            );
+            if (Option.isSome(template))
+              yield* Ref.update(kept, (all) => new Map([...all, [world.name, template.value.template]]));
+          }
+          return saved;
         });
-      const from = fromNothing(world) ? nothing : yield* templateOf(world.from ?? startingWorlds.nothing);
-      const steps = yield* stepsOf(world);
-      const after = yield* timings.timed(
-        fromNothing(world) ? "world create" : `make ${world.name}`,
-        { of: world.name },
-        run(world, steps, from),
-      );
-      if (fromNothing(world) && after.own !== null) yield* Ref.set(one, Option.some(after.own.world));
-      const saving = Arr.contains(yield* Ref.get(toSave), world.name);
-      const done = saving ? yield* save(world, after) : after;
-      if (saving) yield* Ref.update(handed, (all) => new Map([...all, [world.name, after]]));
-      yield* Ref.update(templates, (all) => new Map([...all, [world.name, done]]));
-      return done;
-    }).pipe(
-      Effect.tapCause((cause) =>
-        Ref.update(
-          unmade,
-          (all) => new Map([...all, [world.name, RunnerFailure.make({ step: "template", message: describe(cause) })]]),
+
+      /** `world` as made in the one world, and saved there when a journey starts from it. */
+      const templateOf = (world: StartingWorld): Effect.Effect<Making, RunnerFailure, Needs> =>
+        Effect.gen(function* () {
+          const cached = (yield* Ref.get(templates)).get(world.name);
+          if (cached !== undefined) return cached;
+          const failed = (yield* Ref.get(unmade)).get(world.name);
+          if (failed !== undefined)
+            return yield* RunnerFailure.make({
+              step: failed.step,
+              message: `${world.name}'s template was not made earlier in this run: ${failed.message}`,
+            });
+          const from = fromNothing(world) ? nothing : yield* templateOf(world.from ?? startingWorlds.nothing);
+          const steps = yield* stepsOf(world);
+          const after = yield* timings.timed(
+            fromNothing(world) ? "world create" : `make ${world.name}`,
+            { of: world.name },
+            run(world, steps, from),
+          );
+          if (fromNothing(world) && after.own !== null) yield* Ref.set(one, Option.some(after.own.world));
+          const saving = Arr.contains(yield* Ref.get(toSave), world.name);
+          const done = saving ? yield* save(world, after) : after;
+          if (saving) yield* Ref.update(handed, (all) => new Map([...all, [world.name, after]]));
+          yield* Ref.update(templates, (all) => new Map([...all, [world.name, done]]));
+          return done;
+        }).pipe(
+          Effect.tapCause((cause) =>
+            Ref.update(
+              unmade,
+              (all) =>
+                new Map([...all, [world.name, RunnerFailure.make({ step: "template", message: describe(cause) })]]),
+            ),
+          ),
+        );
+
+      /**
+       * Makes, once and in order, every starting world `worlds` start from in the one world, and saves those they reset
+       * to. The first made from nothing creates the one world.
+       */
+      const prepare = (worlds: ReadonlyArray<StartingWorld>) =>
+        Effect.gen(function* () {
+          const anchors = Arr.dedupeWith(
+            Arr.map(worlds, anchorOf),
+            (a: StartingWorld, b: StartingWorld) => a.name === b.name,
+          );
+          yield* Ref.set(
+            toSave,
+            Arr.map(anchors, (world) => world.name),
+          );
+          yield* Effect.forEach(anchors, templateOf, { discard: true });
+        });
+
+      /** The one world's name, once it is made. */
+      const oneWorld = Effect.flatMap(Ref.get(one), (name) =>
+        Effect.fromOption(name).pipe(
+          Effect.mapError(() =>
+            RunnerFailure.make({ step: "starting world", message: "the run's one world was not made" }),
+          ),
         ),
-      ),
-    );
-
-  /**
-   * Makes, once and in order, every starting world `worlds` start from in the one world, and saves those they reset
-   * to. The first made from nothing creates the one world.
-   */
-  const prepare = (worlds: ReadonlyArray<StartingWorld>) =>
-    Effect.gen(function* () {
-      const anchors = Arr.dedupeWith(
-        Arr.map(worlds, anchorOf),
-        (a: StartingWorld, b: StartingWorld) => a.name === b.name,
       );
-      yield* Ref.set(
-        toSave,
-        Arr.map(anchors, (world) => world.name),
-      );
-      yield* Effect.forEach(anchors, templateOf, { discard: true });
-    });
 
-  /** The one world's name, once it is made. */
-  const oneWorld = Effect.flatMap(Ref.get(one), (name) =>
-    Effect.fromOption(name).pipe(
-      Effect.mapError(() =>
-        RunnerFailure.make({ step: "starting world", message: "the run's one world was not made" }),
-      ),
-    ),
+      // TODO: a reset does not pause the bench's scheduler for the world's sites
+      // (packages/platform/docs/site-templates.md).
+      /** Resets the one world in place to the snapshot a journey of `world` starts from; answers the reset's account. */
+      const resetFor = (world: StartingWorld, journey: string) =>
+        Effect.gen(function* () {
+          const to = anchorOf(world).name;
+          const name = yield* oneWorld;
+          const template = (yield* Ref.get(kept)).get(to);
+          return yield* timings.timed(
+            "reset",
+            { journey, of: to },
+            World.reset(name, to, template).pipe(
+              Effect.mapError((error) => RunnerFailure.make({ step: "reset", message: describe(Cause.fail(error)) })),
+            ),
+            (answer) => ({
+              parts: answer.ms,
+              note:
+                answer.sites === null
+                  ? "no bench"
+                  : `sites ${answer.sites.how}${answer.sites.removed.length > 0 ? `; removed ${Arr.join(answer.sites.removed, ", ")}` : ""}${answer.sites.claimed.length > 0 ? `; claimed ${Arr.join(answer.sites.claimed, ", ")}` : ""}`,
+            }),
+          );
+        });
+
+      /** The starting world of one journey, once the one world is reset: its template's facts, or made by its steps. */
+      const forScenario = (world: StartingWorld): Effect.Effect<Making, RunnerFailure, Needs> =>
+        Effect.gen(function* () {
+          if (world === startingWorlds.nothing) return nothing;
+          if (world.made === "from its template") {
+            const template = yield* templateOf(world);
+            return (yield* Ref.get(handed)).get(world.name) ?? template;
+          }
+          const from = world.from === null ? nothing : yield* forScenario(world.from);
+          return yield* run(world, yield* stepsOf(world), from);
+        });
+
+      return {
+        prepare,
+        resetFor,
+        forScenario,
+        oneWorld,
+        templateWorlds: Effect.map(Ref.get(one), (name) => (Option.isSome(name) ? [World.stageOf(name.value)] : [])),
+        kept: Ref.get(kept),
+        made: Ref.get(made),
+      };
+    },
   );
-
-  // TODO: a reset does not pause the bench's scheduler for the world's sites
-  // (packages/platform/docs/site-templates.md).
-  /** Resets the one world in place to the snapshot a journey of `world` starts from; answers the reset's account. */
-  const resetFor = (world: StartingWorld, journey: string) =>
-    Effect.gen(function* () {
-      const to = anchorOf(world).name;
-      const name = yield* oneWorld;
-      const template = (yield* Ref.get(kept)).get(to);
-      return yield* timings.timed(
-        "reset",
-        { journey, of: to },
-        World.reset(name, to, template).pipe(
-          Effect.mapError((error) => RunnerFailure.make({ step: "reset", message: describe(Cause.fail(error)) })),
-        ),
-        (answer) => ({
-          parts: answer.ms,
-          note:
-            answer.sites === null
-              ? "no bench"
-              : `sites ${answer.sites.how}${answer.sites.removed.length > 0 ? `; removed ${Arr.join(answer.sites.removed, ", ")}` : ""}${answer.sites.claimed.length > 0 ? `; claimed ${Arr.join(answer.sites.claimed, ", ")}` : ""}`,
-        }),
-      );
-    });
-
-  /** The starting world of one journey, once the one world is reset: its template's facts, or made by its steps. */
-  const forScenario = (world: StartingWorld): Effect.Effect<Making, RunnerFailure, Needs> =>
-    Effect.gen(function* () {
-      if (world === startingWorlds.nothing) return nothing;
-      if (world.made === "from its template") {
-        const template = yield* templateOf(world);
-        return (yield* Ref.get(handed)).get(world.name) ?? template;
-      }
-      const from = world.from === null ? nothing : yield* forScenario(world.from);
-      return yield* run(world, yield* stepsOf(world), from);
-    });
-
-  return {
-    prepare,
-    resetFor,
-    forScenario,
-    oneWorld,
-    templateWorlds: Effect.map(Ref.get(one), (name) => (Option.isSome(name) ? [World.stageOf(name.value)] : [])),
-    kept: Ref.get(kept),
-    made: Ref.get(made),
-  };
-});
 
 export type StartingWorlds = Effect.Success<ReturnType<typeof startingWorldsOf>>;

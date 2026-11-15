@@ -67,13 +67,19 @@ export class CallTraces extends Context.Service<
 >()("@capxul/scenarios/client/CallTraces") {}
 
 /**
- * The call an operation's check judges: its trace id, as the client told the try, or null when it did not. A check
- * judges what this call caused by it (`support/world.ts`, `entriesOfCall`), so calls of other journeys made at the
- * same time in the same world are not its business.
+ * The call an operation's check judges: the trace id of every attempt the try made of it (a wait calls again), as the
+ * client told the try, in order; none when it did not. A check judges what these attempts caused by them
+ * (`support/world.ts`, `entriesOfCall`), so calls of other journeys made at the same time in the same world are not
+ * its business, and an earlier attempt's side effect is not missed.
  */
-export class ThisCall extends Context.Service<ThisCall, { readonly trace: string | null }>()(
-  "@capxul/scenarios/client/ThisCall",
-) {}
+export class ThisCall extends Context.Service<
+  ThisCall,
+  {
+    readonly traces: ReadonlyArray<string>;
+    /** What Core recorded under each trace, read in one batch after the try (`Observations`); null without it. */
+    readonly observed: ReadonlyArray<Observed> | null;
+  }
+>()("@capxul/scenarios/client/ThisCall") {}
 
 type Json = typeof Values.Json.Type;
 
@@ -136,3 +142,11 @@ export class Observations extends Context.Service<
     ) => Effect.Effect<ReadonlyMap<string, Observed>>;
   }
 >()("@capxul/scenarios/client/Observations") {}
+
+/**
+ * Marks the calls a check makes to look at the world: what an operation's checks read before a call (`prepare`) and
+ * every check's own reads (`holds`). A try provides it around those, never around the call under test, so the run can
+ * retry a look whose transport failed without ever sending the call under test twice. The runner takes a call as a
+ * look when this is present and `CallTraces` is not.
+ */
+export class Observing extends Context.Service<Observing, {}>()("@capxul/scenarios/client/Observing") {}
