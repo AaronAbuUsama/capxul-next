@@ -15,11 +15,11 @@ import { entriesAfter, objectOf, recordOf, textOf, whereOf, type Json, type View
 export type Invitation = typeof People.Invitation.Type;
 export type Member = typeof People.Member.Type;
 
-/** The people of company `org`, as `org.member.list` answers its world's owner. */
+/** The people of company `org`, as `member.list` answers its world's owner. */
 export const peopleOf = (org: string, who: Who = {}) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
-    return (yield* capxul["org.member.list"]({ org }, whereOf(who))).members;
+    return (yield* capxul["member.list"]({ org }, whereOf(who))).members;
   });
 
 /** Every invitation sent to `person`'s email, as `invitation.list` answers them. */
