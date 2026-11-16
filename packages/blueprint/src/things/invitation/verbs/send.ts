@@ -7,7 +7,6 @@ import { OrgId, roles } from "../../../common/values.ts";
 import { startingPoints as w, type PromisesOf } from "../../../starting-points/points.ts";
 import { StepKind } from "../../../telemetry/step-kinds.ts";
 import { MemberInvited } from "../events.ts";
-import { invitation } from "../examples.ts";
 import { AlreadyAMember, AlreadyInvited, CannotManagePeople } from "../refusals.ts";
 import { Email, Invitation, InvitedRole, RefusalRule } from "../values.ts";
 
@@ -61,7 +60,16 @@ export const invitationSend = verb({
   examples: [
     {
       payload: { org: "org_northwind1", email: "olga@cast.test", role: "member" },
-      success: invitation("inv_olga01", "pending"),
+      success: {
+        id: "inv_olga01",
+        org: "org_northwind1",
+        handle: "northwind",
+        email: "olga@cast.test",
+        role: "member" as const,
+        invitedBy: "dana",
+        state: "pending" as const,
+        invitedAt: "2026-11-13T09:05:00.000Z",
+      },
     },
   ],
 });

@@ -1,0 +1,1498 @@
+<title>Rebuild Sitrep</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;700&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: a phone app (large titles, inset grouped lists, five tabs, a mini player) that becomes sidebar, list and
+   detail panel on a laptop. Every value below comes from these tokens; nothing else is used. */
+:root {
+  /* Colour: cool neutrals biased to the accent, one accent, and state colours used only for state. */
+  --bg: #f2f3f7;
+  --surface: #ffffff;
+  --fill: #e9ebf1;
+  --fill-strong: #dcdfe8;
+  --line: rgba(22, 28, 48, 0.1);
+  --ink: #12151d;
+  --ink-2: #4d5466;
+  --ink-3: #7c8396;
+  --accent: #3150e0;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(49, 80, 224, 0.1);
+  --good: #13843b;
+  --good-soft: rgba(19, 132, 59, 0.11);
+  --warn: #9a5b00;
+  --warn-soft: rgba(214, 140, 0, 0.14);
+  --bad: #c9302c;
+  --bad-soft: rgba(201, 48, 44, 0.1);
+  --chart-1: #2a78d6;
+  --chart-ref: #7c8396;
+  --grid: #e3e5ec;
+  --shadow: 0 1px 2px rgba(18, 21, 29, 0.06), 0 8px 24px rgba(18, 21, 29, 0.06);
+  --scrim: rgba(18, 21, 29, 0.28);
+  --glass: rgba(242, 243, 247, 0.82);
+  --toast: #1c2030;
+  --toast-ink: #f3f4f8;
+
+  /* Type: five sizes, three faces. */
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Inter Tight", "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --t1: 12px;
+  --t2: 14px;
+  --t3: 16px;
+  --t4: 20px;
+  --t5: 30px;
+
+  /* Space: a 4-pixel scale. Radii: two. Motion: under 250 ms. */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 20px;
+  --s6: 24px;
+  --s8: 32px;
+  --s10: 40px;
+  --s12: 48px;
+  --r-s: 8px;
+  --r-l: 14px;
+  --fast: 160ms;
+  --slow: 240ms;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --tabbar: 56px;
+  --icon-stroke: 1.75;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c0e13;
+    --surface: #171a22;
+    --fill: #222632;
+    --fill-strong: #2d3240;
+    --line: rgba(220, 226, 255, 0.1);
+    --ink: #eef0f6;
+    --ink-2: #b4bacb;
+    --ink-3: #868da0;
+    --accent: #7b91ff;
+    --accent-ink: #0c0e13;
+    --accent-soft: rgba(123, 145, 255, 0.16);
+    --good: #41c46f;
+    --good-soft: rgba(65, 196, 111, 0.14);
+    --warn: #f0b13a;
+    --warn-soft: rgba(240, 177, 58, 0.15);
+    --bad: #ff6b66;
+    --bad-soft: rgba(255, 107, 102, 0.14);
+    --chart-1: #3987e5;
+    --chart-ref: #868da0;
+    --grid: #262a35;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+    --scrim: rgba(0, 0, 0, 0.5);
+    --glass: rgba(12, 14, 19, 0.82);
+    --toast: #eef0f6;
+    --toast-ink: #12151d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c0e13;
+  --surface: #171a22;
+  --fill: #222632;
+  --fill-strong: #2d3240;
+  --line: rgba(220, 226, 255, 0.1);
+  --ink: #eef0f6;
+  --ink-2: #b4bacb;
+  --ink-3: #868da0;
+  --accent: #7b91ff;
+  --accent-ink: #0c0e13;
+  --accent-soft: rgba(123, 145, 255, 0.16);
+  --good: #41c46f;
+  --good-soft: rgba(65, 196, 111, 0.14);
+  --warn: #f0b13a;
+  --warn-soft: rgba(240, 177, 58, 0.15);
+  --bad: #ff6b66;
+  --bad-soft: rgba(255, 107, 102, 0.14);
+  --chart-1: #3987e5;
+  --chart-ref: #868da0;
+  --grid: #262a35;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+  --scrim: rgba(0, 0, 0, 0.5);
+  --glass: rgba(12, 14, 19, 0.82);
+  --toast: #eef0f6;
+  --toast-ink: #12151d;
+  color-scheme: dark;
+}
+
+/* Base */
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 var(--t3)/1.45 var(--font);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+* { box-sizing: border-box; }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: 0; padding: 0; text-align: inherit; }
+a { color: var(--accent); text-decoration: none; }
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-s); }
+.num { font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--font-mono); font-size: var(--t1); letter-spacing: 0; }
+.muted { color: var(--ink-3); }
+.ink2 { color: var(--ink-2); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: var(--icon-stroke); stroke-linecap: round; stroke-linejoin: round; }
+svg.i.sm { width: 16px; height: 16px; }
+svg.i.fill { fill: currentColor; stroke: none; }
+
+/* App frame */
+#app { height: 100%; }
+.app { position: relative; height: 100%; display: flex; }
+.main { position: relative; flex: 1; min-width: 0; height: 100%; overflow: hidden; }
+.page {
+  position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; background: var(--bg);
+  overscroll-behavior: contain; scroll-padding-bottom: calc(var(--tabbar) + 96px);
+}
+.page.pushed { box-shadow: -8px 0 24px rgba(0, 0, 0, 0.08); }
+.page.enter { animation: push-in var(--slow) var(--ease); }
+.page.under { transform: translateX(-24%); transition: transform var(--slow) var(--ease); }
+@keyframes push-in { from { transform: translateX(100%); } to { transform: none; } }
+.content {
+  max-width: 720px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 calc(var(--tabbar) + 120px + env(safe-area-inset-bottom, 0px));
+  display: flex; flex-direction: column; gap: var(--s6);
+}
+
+/* Navigation bar with a large title that shrinks into it on scroll */
+.navbar {
+  position: sticky; top: 0; z-index: 5; height: 48px;
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+  padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px));
+  background: transparent; border-bottom: 1px solid transparent;
+  transition: background var(--fast), border-color var(--fast);
+}
+.scrolled .navbar { background: var(--glass); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border-bottom-color: var(--line); }
+.navbar .small-title {
+  font-weight: 600; font-size: var(--t3); opacity: 0; transform: translateY(4px);
+  transition: opacity var(--fast), transform var(--fast); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 56vw;
+}
+.scrolled .navbar .small-title { opacity: 1; transform: none; }
+.navbar .end { justify-self: end; display: flex; gap: var(--s1); }
+.back { display: inline-flex; align-items: center; gap: 2px; color: var(--accent); font-size: var(--t3); padding: var(--s2); min-height: 44px; }
+.icon-btn { width: 40px; height: 40px; display: inline-grid; place-items: center; border-radius: var(--r-s); color: var(--ink-2); }
+.icon-btn:hover { background: var(--fill); }
+.large { display: flex; flex-direction: column; gap: var(--s1); padding-top: var(--s1); }
+.large h1 {
+  margin: 0; font: 700 var(--t5)/1.15 var(--font-display); letter-spacing: -0.02em; text-wrap: balance;
+  transform-origin: left bottom; transition: opacity var(--fast);
+}
+.scrolled .large h1 { opacity: 0; }
+.large .sub { color: var(--ink-3); font-size: var(--t2); display: flex; flex-wrap: wrap; gap: var(--s1) var(--s2); align-items: center; }
+.eyebrow { font: 600 var(--t1)/1.3 var(--font); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+
+/* Sections and inset grouped lists */
+.section { display: flex; flex-direction: column; gap: var(--s2); }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s3); padding: 0 var(--s1); }
+.section-head h2 { margin: 0; font: 700 var(--t4)/1.25 var(--font-display); letter-spacing: -0.01em; }
+.section-head h2 .count { color: var(--ink-3); font-weight: 600; margin-left: var(--s1); }
+.section-foot { padding: 0 var(--s1); font-size: var(--t1); color: var(--ink-3); display: flex; gap: var(--s1); align-items: center; }
+.section-foot.stale { color: var(--warn); }
+.group { background: var(--surface); border-radius: var(--r-l); overflow: hidden; }
+.row {
+  position: relative; display: flex; align-items: center; gap: var(--s3); width: 100%;
+  padding: var(--s3) var(--s4); min-height: 52px; color: var(--ink);
+}
+.row + .row::before { content: ""; position: absolute; top: 0; left: var(--s4); right: 0; border-top: 1px solid var(--line); }
+.row.indent + .row.indent::before { left: 60px; }
+button.row:hover, a.row:hover { background: var(--fill); }
+button.row:active, a.row:active { background: var(--fill-strong); }
+.row .body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.row .title { font-weight: 500; overflow-wrap: anywhere; }
+.row .meta { font-size: var(--t2); color: var(--ink-3); display: flex; flex-wrap: wrap; gap: var(--s1) var(--s2); align-items: center; }
+.row .end { display: flex; align-items: center; gap: var(--s2); color: var(--ink-3); font-size: var(--t2); flex: none; }
+.row .chev { color: var(--ink-3); opacity: 0.7; }
+.row.dim .title, .row.dim .meta { color: var(--ink-3); }
+.lead-icon { width: 32px; height: 32px; flex: none; border-radius: var(--r-s); display: grid; place-items: center; background: var(--fill); color: var(--ink-2); font-size: var(--t3); }
+.lead-icon.accent { background: var(--accent-soft); color: var(--accent); }
+.lead-icon.good { background: var(--good-soft); color: var(--good); }
+.lead-icon.warn { background: var(--warn-soft); color: var(--warn); }
+.lead-icon.bad { background: var(--bad-soft); color: var(--bad); }
+
+/* Chips: one shape, colour only for state */
+.chip {
+  display: inline-flex; align-items: center; gap: var(--s1); height: 22px; padding: 0 var(--s2);
+  border-radius: var(--r-s); background: var(--fill); color: var(--ink-2);
+  font: 600 var(--t1)/1 var(--font); white-space: nowrap;
+}
+.chip.accent { background: var(--accent-soft); color: var(--accent); }
+.chip.good { background: var(--good-soft); color: var(--good); }
+.chip.warn { background: var(--warn-soft); color: var(--warn); }
+.chip.bad { background: var(--bad-soft); color: var(--bad); }
+.chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.dot-unheard { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
+
+/* Cards */
+.card { background: var(--surface); border-radius: var(--r-l); padding: var(--s4); display: flex; flex-direction: column; gap: var(--s3); }
+.prose { display: flex; flex-direction: column; gap: var(--s4); }
+.prose .part { display: flex; flex-direction: column; gap: var(--s1); }
+.prose p { margin: 0; color: var(--ink); max-width: 65ch; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: var(--s2) var(--s4); font-size: var(--t2); }
+.kv dt { color: var(--ink-3); }
+.kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); min-height: 40px;
+  padding: 0 var(--s4); border-radius: var(--r-s); font-weight: 600; font-size: var(--t2);
+  background: var(--fill); color: var(--ink);
+}
+.btn:hover { background: var(--fill-strong); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { filter: brightness(1.06); }
+.btn.ghost { background: transparent; color: var(--accent); padding: 0 var(--s2); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn-row { display: flex; flex-wrap: wrap; gap: var(--s2); }
+
+/* Folds */
+.fold-head { display: flex; align-items: center; gap: var(--s2); width: 100%; min-height: 44px; padding: var(--s2) var(--s1); color: var(--ink-2); font-weight: 600; font-size: var(--t2); }
+.fold-head .chev { transition: transform var(--fast) var(--ease); }
+.fold-head[aria-expanded="true"] .chev { transform: rotate(90deg); }
+.fold-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--slow) var(--ease); }
+.fold-body > div { overflow: hidden; min-height: 0; }
+.fold-body.open { grid-template-rows: 1fr; }
+
+/* Ask cards */
+.ask { background: var(--surface); border-radius: var(--r-l); padding: var(--s4); display: flex; flex-direction: column; gap: var(--s3); box-shadow: var(--shadow); }
+.ask-who { display: flex; align-items: center; gap: var(--s3); font-size: var(--t2); }
+.ask-who .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--fill); display: grid; place-items: center; flex: none; }
+.ask-who .who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ask-who .who b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ask h3 { margin: 0; font: 600 var(--t4)/1.3 var(--font-display); letter-spacing: -0.01em; text-wrap: balance; }
+.options { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-l); overflow: hidden; }
+.option { position: relative; display: flex; gap: var(--s3); align-items: flex-start; padding: var(--s3); width: 100%; }
+.option + .option { border-top: 1px solid var(--line); }
+.option:hover { background: var(--fill); }
+.option .letter {
+  width: 28px; height: 28px; border-radius: var(--r-s); flex: none; display: grid; place-items: center;
+  background: var(--fill); color: var(--ink-2); font: 600 var(--t2)/1 var(--font-mono);
+}
+.option.recommended .letter { background: var(--accent-soft); color: var(--accent); }
+.option .o-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.option .o-title { font-weight: 600; display: flex; flex-wrap: wrap; gap: var(--s1) var(--s2); align-items: center; }
+.option .o-detail { font-size: var(--t2); color: var(--ink-2); }
+.own { display: flex; flex-direction: column; gap: var(--s2); padding: 0 var(--s3) var(--s3); }
+.own textarea {
+  width: 100%; min-height: 96px; resize: vertical; padding: var(--s3); border-radius: var(--r-s);
+  border: 1px solid var(--line); background: var(--bg); font-size: var(--t3);
+}
+.own textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+.details { display: flex; flex-direction: column; gap: var(--s4); padding: var(--s1) var(--s1) var(--s2); }
+.details h4 { margin: 0 0 var(--s1); }
+.details ul { margin: 0; padding-left: var(--s5); display: flex; flex-direction: column; gap: var(--s1); }
+.answered { display: flex; gap: var(--s3); align-items: flex-start; }
+.answered .body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ask.resolved { animation: resolve var(--slow) var(--ease); box-shadow: none; }
+@keyframes resolve { from { transform: scale(0.98); opacity: 0.6; } to { transform: none; opacity: 1; } }
+.empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--s2); padding: var(--s8) var(--s6); }
+.empty .badge { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: var(--good-soft); color: var(--good); }
+.empty h3 { margin: 0; font: 600 var(--t4)/1.3 var(--font-display); }
+.empty p { margin: 0; color: var(--ink-3); font-size: var(--t2); max-width: 36ch; }
+
+/* Progress */
+.bar { height: 6px; border-radius: 3px; background: var(--fill-strong); overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.bar.good > i { background: var(--good); }
+.ring { --p: 0; width: 32px; height: 32px; border-radius: 50%; flex: none;
+  background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--fill-strong) 0); display: grid; place-items: center; }
+.ring::after { content: ""; width: 22px; height: 22px; border-radius: 50%; background: var(--surface); }
+.ring.done { background: var(--good); }
+.ring.done::after { display: none; }
+
+/* History */
+.history { display: flex; flex-direction: column; }
+.h-item { position: relative; display: grid; grid-template-columns: 28px 1fr; gap: var(--s3); padding: var(--s3) var(--s4); }
+.h-item::before { content: ""; position: absolute; left: calc(var(--s4) + 13px); top: 40px; bottom: -4px; width: 2px; background: var(--fill-strong); }
+.h-item:last-child::before { display: none; }
+.h-icon { width: 28px; height: 28px; border-radius: 50%; background: var(--fill); display: grid; place-items: center; font-size: var(--t2); color: var(--ink-2); }
+.h-icon.person { background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: var(--t1); }
+.h-icon.pipeline { background: var(--good-soft); color: var(--good); }
+.h-body { min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: var(--t2); }
+.h-body .what { font-weight: 600; color: var(--ink); font-size: var(--t2); }
+.h-body .quote { color: var(--ink-2); border-left: 2px solid var(--fill-strong); padding-left: var(--s2); }
+
+/* Charts */
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { font: 500 11px var(--font); fill: var(--ink-3); }
+.chart .tip {
+  position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow);
+  border-radius: var(--r-s); padding: var(--s2) var(--s3); font-size: var(--t1); white-space: nowrap; transform: translate(-50%, calc(-100% - 12px));
+}
+.legend { display: flex; flex-wrap: wrap; gap: var(--s4); font-size: var(--t1); color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: var(--s1); }
+.legend i { width: 14px; height: 0; border-top: 2px solid var(--chart-1); }
+.legend i.ref { border-top: 2px dashed var(--chart-ref); }
+.verdict { margin: 0; font: 600 var(--t3)/1.4 var(--font); text-wrap: balance; }
+.verdict-sub { margin: 0; font-size: var(--t2); color: var(--ink-3); }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--s3); }
+.trend { background: var(--surface); border-radius: var(--r-l); padding: var(--s4); display: grid; grid-template-columns: 1fr 120px; gap: var(--s1) var(--s3); align-items: end; }
+.trend .name { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: var(--s2); color: var(--ink-2); font-size: var(--t2); font-weight: 500; }
+.trend .big { font: 700 var(--t5)/1 var(--font-display); letter-spacing: -0.02em; }
+.trend .what { font-size: var(--t2); font-weight: 600; }
+.budget-bar { position: relative; height: 12px; border-radius: 6px; background: var(--fill-strong); }
+.budget-bar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px; background: var(--good); }
+.budget-bar.over > i { background: var(--bad); }
+.budget-bar .tick { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink-2); }
+.budget-bar .tick.review { background: var(--bad); }
+.budget-scale { position: relative; height: 16px; font-size: var(--t1); color: var(--ink-3); }
+.budget-scale span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+
+/* Sitreps */
+.day-head { padding: 0 var(--s1); font: 600 var(--t2) var(--font); color: var(--ink-3); }
+.sitrep-row .title { font-weight: 600; }
+.sitrep-row.heard .title { font-weight: 500; color: var(--ink-3); }
+.sitrep-row .progress { width: 64px; }
+.sitrep-open { padding: 0 var(--s4) var(--s4); display: flex; flex-direction: column; gap: var(--s3); }
+.part-btn { display: flex; gap: var(--s3); width: 100%; padding: var(--s2) var(--s3); border-radius: var(--r-s); text-align: left; }
+.part-btn:hover { background: var(--fill); }
+.part-btn .n { font: 600 var(--t1)/1.9 var(--font-mono); color: var(--ink-3); flex: none; width: 16px; }
+.part-btn.playing { background: var(--accent-soft); }
+.part-btn.playing .n { color: var(--accent); }
+.note { display: flex; gap: var(--s2); align-items: flex-start; font-size: var(--t2); color: var(--ink-2); background: var(--fill); border-radius: var(--r-s); padding: var(--s3); }
+
+/* Player */
+.player {
+  position: fixed; z-index: 20; left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--tabbar) + env(safe-area-inset-bottom, 0px) + var(--s2));
+  background: var(--surface); border-radius: var(--r-l); box-shadow: var(--shadow); border: 1px solid var(--line);
+  padding: var(--s2) var(--s3) var(--s3); display: flex; flex-direction: column; gap: var(--s2);
+  animation: rise var(--slow) var(--ease);
+}
+@keyframes rise { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+.player .top { display: flex; align-items: center; gap: var(--s2); }
+.player .np { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.player .np b { font-size: var(--t2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.player .np span { font-size: var(--t1); color: var(--ink-3); }
+.player .ctl { display: flex; align-items: center; gap: 2px; }
+.player .play { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; }
+.speed { min-width: 44px; height: 32px; padding: 0 var(--s2); border-radius: var(--r-s); background: var(--fill); font: 600 var(--t1) var(--font-mono); }
+.speeds { display: flex; gap: var(--s1); justify-content: flex-end; }
+.speeds button { height: 32px; min-width: 44px; padding: 0 var(--s2); border-radius: var(--r-s); background: var(--fill); font: 600 var(--t1) var(--font-mono); }
+.speeds button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.parts { display: flex; gap: var(--s1); }
+.parts button { flex: 1; height: 16px; display: flex; align-items: center; }
+.parts button i { display: block; width: 100%; height: 4px; border-radius: 2px; background: var(--fill-strong); }
+.parts button.done i { background: var(--ink-3); }
+.parts button.current i { background: var(--accent); }
+
+/* Tab bar */
+.tabbar {
+  position: fixed; z-index: 15; left: 0; right: 0; bottom: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px));
+  background: var(--glass); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border-top: 1px solid var(--line);
+  display: grid; grid-template-columns: repeat(5, 1fr);
+}
+.tab { position: relative; height: var(--tabbar); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--ink-3); font: 500 11px/1 var(--font); }
+.tab[aria-current="page"] { color: var(--accent); }
+.badge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--bad); color: #ffffff; font: 700 11px/18px var(--font); text-align: center; }
+.tab .badge { position: absolute; top: 6px; left: calc(50% + 6px); }
+
+/* Toast */
+.toast {
+  position: fixed; z-index: 30; left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--tabbar) + env(safe-area-inset-bottom, 0px) + var(--s4));
+  width: min(420px, calc(100% - 32px)); display: flex; align-items: center; gap: var(--s3);
+  background: var(--toast); color: var(--toast-ink); border-radius: var(--r-l); padding: var(--s2) var(--s2) var(--s2) var(--s4);
+  box-shadow: var(--shadow); font-size: var(--t2); animation: toast-in var(--fast) var(--ease);
+}
+.toast.lift { bottom: calc(var(--tabbar) + env(safe-area-inset-bottom, 0px) + 128px); }
+.toast span { flex: 1; }
+.toast button { color: var(--toast-ink); font-weight: 700; padding: var(--s2) var(--s3); border-radius: var(--r-s); }
+.toast button:hover { background: rgba(127, 127, 127, 0.2); }
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/* Loading and error */
+.skeleton { display: flex; flex-direction: column; gap: var(--s4); padding: 56px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); max-width: 720px; margin: 0 auto; }
+.skeleton i { display: block; height: 16px; border-radius: var(--r-s); background: var(--fill); animation: shimmer 1.2s ease-in-out infinite alternate; }
+.skeleton i.t { height: 32px; width: 40%; }
+.skeleton i.c { height: 120px; border-radius: var(--r-l); }
+@keyframes shimmer { from { opacity: 1; } to { opacity: 0.55; } }
+.error-page { height: 100%; display: grid; place-items: center; padding: var(--s6) max(16px, env(safe-area-inset-right, 0px)) var(--s6) max(16px, env(safe-area-inset-left, 0px)); }
+.error-page .card { max-width: 420px; text-align: left; }
+.error-page .lead-icon { width: 40px; height: 40px; }
+.error-page h1 { margin: 0; font: 700 var(--t4)/1.3 var(--font-display); }
+.error-page p { margin: 0; color: var(--ink-2); font-size: var(--t2); }
+.error-page pre { margin: 0; font: var(--t1)/1.5 var(--font-mono); background: var(--fill); padding: var(--s3); border-radius: var(--r-s); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* Laptop: sidebar, list, detail panel */
+.sidebar, .panel, .scrim { display: none; }
+@media (min-width: 960px) {
+  .tabbar { display: none; }
+  .sidebar {
+    display: flex; flex-direction: column; gap: var(--s1); width: 248px; flex: none; height: 100%;
+    padding: var(--s4) var(--s3); border-right: 1px solid var(--line); background: var(--surface);
+  }
+  .brand { display: flex; align-items: center; gap: var(--s3); padding: var(--s2) var(--s2) var(--s4); }
+  .brand .mark { width: 32px; height: 32px; border-radius: var(--r-s); background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; }
+  .brand b { display: block; font: 700 var(--t3)/1.2 var(--font-display); }
+  .brand span { font-size: var(--t1); color: var(--ink-3); }
+  .side-item { display: flex; align-items: center; gap: var(--s3); padding: 0 var(--s3); height: 40px; border-radius: var(--r-s); color: var(--ink-2); font-weight: 500; font-size: var(--t2); }
+  .side-item:hover { background: var(--fill); }
+  .side-item[aria-current="page"] { background: var(--accent-soft); color: var(--accent); }
+  .side-item .badge { margin-left: auto; }
+  .side-foot { margin-top: auto; font-size: var(--t1); color: var(--ink-3); padding: var(--s2); display: flex; flex-direction: column; gap: var(--s1); }
+  .main > .page.pushed { display: none; }
+  .main > .page.under { transform: none; }
+  .panel {
+    display: block; position: relative; width: 440px; flex: none; height: 100%; border-left: 1px solid var(--line); background: var(--bg);
+    animation: panel-in var(--slow) var(--ease);
+  }
+  .panel .page { position: absolute; inset: 0; }
+  .panel .page.enter { animation: fade-in var(--fast) var(--ease); }
+  .panel .content { padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px)); }
+  .player { left: calc(248px + var(--s4)); right: auto; width: 440px; bottom: var(--s4); }
+  .toast, .toast.lift { bottom: var(--s6); }
+  .content { padding-bottom: 160px; }
+}
+@keyframes panel-in { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* The page stack: each pushed page slides over the one under it */
+.stack-page { position: absolute; inset: 0; background: var(--bg); }
+.stack-page.pushed { box-shadow: -8px 0 24px rgba(0, 0, 0, 0.08); }
+.stack-page.enter { animation: push-in var(--slow) var(--ease); }
+.stack-page.under { transform: translateX(-24%); transition: transform var(--slow) var(--ease); }
+.panel .stack-page.enter { animation: fade-in var(--fast) var(--ease); }
+
+/* Small pieces the screens share */
+.good-ink { color: var(--good); }
+.warn-ink { color: var(--warn); }
+.bad-ink { color: var(--bad); }
+.step-id { width: 32px; flex: none; text-align: center; color: var(--ink-3); }
+.dot-slot { width: 32px; flex: none; display: grid; place-items: center; }
+.sitrep-item + .sitrep-item { border-top: 1px solid var(--line); }
+.sitrep-item .history { background: var(--bg); border-radius: var(--r-l); }
+.sitrep-item .section-head h2 { font-size: var(--t3); }
+.part-btn:disabled { cursor: default; }
+.part-btn:disabled:hover { background: transparent; }
+.sidebar .side-item { width: 100%; }
+.content > .note { margin-top: calc(-1 * var(--s2)); }
+
+/* Asks: compact lettered rows; once answered, the chosen row keeps its check and the rest dim (resolved in place) */
+.ask-who .who b { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.option .o-title > span:first-child { min-width: 0; }
+.options.decided .option { cursor: default; }
+.options.decided .option:hover { background: transparent; }
+.options.decided .option:not(.chosen) { opacity: 0.5; }
+.option.chosen { background: var(--accent-soft); }
+.option.chosen .letter { background: var(--accent); color: var(--accent-ink); }
+.option:disabled { color: inherit; }
+.ask-foot { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s2); }
+.ask-foot .fold { flex: 1; min-width: 0; }
+.ask-foot > .btn { flex: none; min-height: 44px; }
+
+/* Day groups, like a podcast feed: the day large, with its count */
+.day-head { font: 700 var(--t4)/1.25 var(--font-display); letter-spacing: -0.01em; color: var(--ink); }
+.day-head .count { color: var(--ink-3); font-weight: 600; margin-left: var(--s1); }
+.rel { display: block; font-size: var(--t1); color: var(--ink-3); font-weight: 500; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* Fixes after the first look */
+.back span { max-width: 40vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.legend i.tick-key { width: 2px; height: 12px; border: 0; background: var(--ink-2); }
+.legend i.tick-key.review { background: var(--bad); }
+.legend i.bar-key { width: 12px; height: 8px; border: 0; border-radius: 4px; background: var(--good); }
+.legend i.bar-key.over { background: var(--bad); }
+.panel .back span { max-width: 240px; }
+.sidebar .brand b { color: var(--ink); }
+.lifted .navbar { background: var(--glass); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border-bottom-color: var(--line); }
+
+</style>
+<div id="app" aria-busy="true">
+  <div class="skeleton" role="status" aria-label="Loading the sitrep">
+    <i class="t"></i><i></i><i class="c"></i><i class="c"></i><i></i><i></i>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/preact@10.19.3/dist/preact.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/preact@10.19.3/hooks/dist/hooks.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.umd.js"></script>
+<script>
+window.SNAPSHOT = {"at":"2026-11-15T20:10:11Z","plan":{"id":"rebuild","state":"agreed","history":[{"event":"plan_written","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:18:51Z","state":"draft"},{"event":"plan_agreed","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:19:51Z","state":"agreed"},{"event":"plan_revised","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T17:10:00Z","state":"draft"},{"event":"plan_agreed","by":{"kind":"person","person":"aaron"},"at":"2026-11-15T17:20:00Z","state":"agreed"}],"since":"2026-11-15T17:20:00Z","fields":{"title":"The Capxul rebuild","why":"The product line drifted from its own description: facts were typed twice, and nothing proved the system did what it said.","what":"Rebuild on one owner for every fact. The blueprint declares what Capxul does, the world says what runs where, and verdicts made by CI say what is proven. Every feature is measured by run records, not by code written.","endState":"Capxul's own company runs a month on the rebuilt system in production, with every journey proven by CI and every measure watched.","outOfScope":"New product features before the accounts pilot, and anything on main or integration/build, which carry the product work in flight.","milestones":["0","1","2","3","4","C","5","6","7"]}},"milestones":[{"id":"0","state":"active","history":[{"event":"milestone_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:18:51Z","state":"planned"},{"event":"milestone_started","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-13T08:35:05Z","state":"active"}],"since":"2026-11-13T08:35:05Z","fields":{"plan":"rebuild","title":"Shape","goal":"The remaining spikes and the decisions they settle","why":"The rebuild rests on a handful of risky bets; each had to be proven or killed by a run before anything was built on it.","doneWhen":"Each risk has a run that proves or kills it","steps":["0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9"]},"done":9,"of":9},{"id":"1","state":"active","history":[{"event":"milestone_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:18:51Z","state":"planned"},{"event":"milestone_started","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-13T10:27:05Z","state":"active"}],"since":"2026-11-13T10:27:05Z","fields":{"plan":"rebuild","title":"Walking pipeline","goal":"The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master","why":"The thin line in the new shape is the smallest whole system, so every later step has something real to run against.","doneWhen":"The thin line's scenarios pass in CI in a fresh private world","steps":["1.1","1.2","1.3","1.4","1.5","1.6","1.7","1.8","1.9","1.10","1.11","1.12","1.13","1.14","1.15","1.16","1.17","1.18"]},"done":43,"of":44},{"id":"2","state":"active","history":[{"event":"milestone_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:18:51Z","state":"planned"},{"event":"milestone_started","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-14T16:12:05Z","state":"active"}],"since":"2026-11-14T16:12:05Z","fields":{"plan":"rebuild","title":"Staging","goal":"The same line on a shared hosted world, deployed by Alchemy","why":"A shared hosted world is where the product will live; the thin line must pass there, deployed by Alchemy, before it grows.","doneWhen":"The scenarios pass there after a deploy, and the drift check is clean","steps":["2.1","2.2","2.3","2.4","2.5"]},"done":7,"of":7},{"id":"7","state":"planned","history":[{"event":"milestone_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:19:21Z","state":"planned"}],"since":"2026-11-13T07:19:21Z","fields":{"plan":"rebuild","title":"Breadth","goal":"Journeys ported in waves; typed starting worlds; every lifecycle a machine and every ratchet empty. Its waves start once 3.1 to 3.6 are Done","why":"Breadth ports the journeys in waves once the format and its checks hold, so parallel agents cannot drift.","doneWhen":"Steps 7.1 and 7.2 are Done","steps":["7.1","7.2"]},"done":0,"of":2},{"id":"3","state":"active","history":[{"event":"milestone_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T13:25:34Z","state":"planned"},{"event":"milestone_started","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T13:25:39Z","state":"active"}],"since":"2026-11-15T13:25:39Z","fields":{"plan":"rebuild","title":"Foundations core","goal":"One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)","why":"Everything later is declared in the blueprint first, so the blueprint and its checks must exist before any feature goes through it.","doneWhen":"Steps 3.1 to 3.6, 3.8, 3.10 and 3.11 are Done","steps":["3.1","3.2","3.3","3.4","3.5","3.6","3.8","3.10","3.11"]},"done":5,"of":9},{"id":"4","state":"active","history":[{"event":"milestone_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T13:25:34Z","state":"planned"},{"event":"milestone_started","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T17:46:41Z","state":"active"}],"since":"2026-11-15T17:46:41Z","fields":{"plan":"rebuild","title":"Measurement","goal":"Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done","why":"A feature is done when run records prove it and its measures are watched, so measurement comes before the first feature.","doneWhen":"Steps 4.1 to 4.12, 3.7 and 3.9 are Done","steps":["3.7","3.9","4.1","4.2","4.3","4.4","4.5","4.6","4.7","4.8","4.9","4.10","4.11","4.12"]},"done":0,"of":14},{"id":"5","state":"planned","history":[{"event":"milestone_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T13:25:34Z","state":"planned"}],"since":"2026-11-15T13:25:34Z","fields":{"plan":"rebuild","title":"The accounts pilot","goal":"The first feature through the loop: account identity, and who may call. It needs 4.1's format and lint rule; 4.2 and 4.3 land alongside, measured on its runs","why":"Account identity is the first feature through the whole loop, and every later feature depends on who may call.","doneWhen":"Steps 5.1 to 5.4 are Done","steps":["5.1","5.2","5.3","5.4"]},"done":0,"of":4},{"id":"6","state":"planned","history":[{"event":"milestone_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T13:25:34Z","state":"planned"}],"since":"2026-11-15T13:25:34Z","fields":{"plan":"rebuild","title":"The invoice ledger","goal":"Versions, and the ledger built side by side, flipped and retired, once the accounts pilot is finished","why":"The invoice ledger proves side by side, flip and retire on real behaviour once versions exist.","doneWhen":"Steps 6.1 and 6.2 are Done","steps":["6.1","6.2"]},"done":0,"of":2},{"id":"C","state":"planned","history":[{"event":"milestone_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T14:46:34Z","state":"planned"}],"since":"2026-11-15T14:46:34Z","fields":{"plan":"rebuild","title":"The climb","goal":"Every existing thing brought up to spec in parallel lanes, one thing per unit, measured as a rehearsal of breadth (decision \"Build the system, then climb, then breadth\")","why":"Bringing every existing thing up to spec in parallel lanes rehearses breadth at a size where a mistake is cheap.","doneWhen":"Steps C.1 to C.3 are Done","steps":["C.1","C.2","C.3"]},"done":0,"of":15}],"steps":[{"id":"0.1","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:50:24Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43428401954"},"at":"2026-11-13T12:49:00Z","state":"done"}],"since":"2026-11-13T12:49:00Z","fields":{"milestone":"0","title":"Alchemy deploys from an agent's container with no key","what":"Alchemy deploys from an agent's container with no key inside it","why":"Milestone 0 needs it: The remaining spikes and the decisions they settle","doneWhen":"Its proof is committed on master: packages/world/records/commands.proof.json","needs":[],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/99e1dd65/packages/world/records/commands.proof.json"}},{"id":"0.2","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:50:24Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43428401954"},"at":"2026-11-13T12:49:00Z","state":"done"}],"since":"2026-11-13T12:49:00Z","fields":{"milestone":"0","title":"A world's one database is a Neon branch","what":"A world's one database is a Neon branch: created, isolated, forked from another world","why":"Milestone 0 needs it: The remaining spikes and the decisions they settle","doneWhen":"Its proof is committed on master: packages/world/records/fresh.proof.json","needs":[],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/99e1dd65/packages/world/records/fresh.proof.json"}},{"id":"0.3","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:50:24Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43428401954"},"at":"2026-11-13T12:49:00Z","state":"done"}],"since":"2026-11-13T12:49:00Z","fields":{"milestone":"0","title":"A world is created, used and destroyed as one","what":"A world is created, used and destroyed as one unit, with an owner, an expiry and timed steps","why":"Milestone 0 needs it: The remaining spikes and the decisions they settle","doneWhen":"Its proof is committed on master: packages/world/records/commands.proof.json; packages/world/records/fails.proof.json; packages/world/records/timeout.proof.json; packages/world/records/interrupted.proof.json","needs":["0.2"],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/99e1dd65/packages/world/records/commands.proof.json"}},{"id":"0.4","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:50:24Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43428401954"},"at":"2026-11-13T12:49:00Z","state":"done"}],"since":"2026-11-13T12:49:00Z","fields":{"milestone":"0","title":"Alchemy state is shared, so any container can see","what":"Alchemy state is shared, so any container can see and destroy any world","why":"Milestone 0 needs it: The remaining spikes and the decisions they settle","doneWhen":"Its proof is committed on master: packages/world/records/sweep.proof.json; packages/world/records/race.proof.json","needs":["0.1"],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/99e1dd65/packages/world/records/sweep.proof.json"}},{"id":"0.5","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:50:24Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43428401954"},"at":"2026-11-13T12:49:00Z","state":"done"}],"since":"2026-11-13T12:49:00Z","fields":{"milestone":"0","title":"Expired worlds are deleted without anyone remembering to, Cloudflare","what":"Expired worlds are deleted without anyone remembering to, Cloudflare resources included","why":"Milestone 0 needs it: The remaining spikes and the decisions they settle","doneWhen":"Its proof is committed on master: packages/world/records/sweep.proof.json; packages/world/records/keep.proof.json","needs":["0.4"],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/99e1dd65/packages/world/records/sweep.proof.json"}},{"id":"0.6","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:50:24Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43394356173"},"at":"2026-11-13T08:35:00Z","state":"done"}],"since":"2026-11-13T08:35:00Z","fields":{"milestone":"0","title":"A world's chain and index run as Cloudflare Containers","what":"A world's chain and index run as Cloudflare Containers against its Neon branch and stop when idle","why":"Milestone 0 needs it: The remaining spikes and the decisions they settle","doneWhen":"Its proof is committed on master: spikes/containers/records/ct-w3.prove.txt","needs":["0.2"],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/b93a0a59/spikes/containers/records/ct-w3.prove.txt"}},{"id":"0.7","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:50:24Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43424222053"},"at":"2026-11-13T12:19:00Z","state":"done"}],"since":"2026-11-13T12:19:00Z","fields":{"milestone":"0","title":"One operation goes from an Effect contract, to a","what":"One operation goes from an Effect contract, to a scenario that fails on an empty handler, to a pass","why":"Milestone 0 needs it: The remaining spikes and the decisions they settle","doneWhen":"Its proof is committed on master: packages/runner/records/spike","needs":["0.2"],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/606b2b53/packages/runner/records/spike"}},{"id":"0.8","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:50:24Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43748883126"},"at":"2026-11-15T18:49:00Z","state":"done"}],"since":"2026-11-15T18:49:00Z","fields":{"milestone":"0","title":"Two worlds at different clocks share one Frappe bench","what":"Two worlds at different clocks share one Frappe bench","why":"Milestone 0 needs it: The remaining spikes and the decisions they settle","doneWhen":"Its proof is committed on master: packages/frappe-app/records/bench-clocks/observed.txt; packages/frappe-app/records/bench-clocks/observed-fixes.txt","needs":[],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/b55dff47/packages/frappe-app/records/bench-clocks/observed.txt"}},{"id":"0.9","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:50:24Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43622225409"},"at":"2026-11-14T17:38:00Z","state":"done"}],"since":"2026-11-14T17:38:00Z","fields":{"milestone":"0","title":"A scenario run from a template world is timed","what":"A scenario run from a template world is timed end to end","why":"Milestone 0 needs it: The remaining spikes and the decisions they settle","doneWhen":"Its proof is committed on master: packages/runner/records/run-138efc/summary.json","needs":["0.7","1.12"],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/494b63e0/packages/runner/records/run-138efc/summary.json"}},{"id":"1.1","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:50:24Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43748883126"},"at":"2026-11-15T18:49:00Z","state":"done"}],"since":"2026-11-15T18:49:00Z","fields":{"milestone":"1","title":"The thin line's operations are declared in the contract","what":"The thin line's operations are declared in the contract and the server compiles with empty handlers","why":"Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master","doneWhen":"Its proof is committed on master: packages/runner/records/core-5104bd","needs":["0.7"],"units":12,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/b55dff47/packages/runner/records/core-5104bd"}},{"id":"1.2","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:50:24Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43748883126"},"at":"2026-11-15T18:49:00Z","state":"done"}],"since":"2026-11-15T18:49:00Z","fields":{"milestone":"1","title":"The scenario runner checks declared events, spans and speed","what":"The scenario runner checks declared events, spans and speed on every run and stores the timings","why":"Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master","doneWhen":"Its proof is committed on master: packages/runner/records/core-5104bd; check:pnpm test","needs":["0.7"],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/b55dff47/packages/runner/records/core-5104bd"}},{"id":"1.3","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:50:24Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43428401954"},"at":"2026-11-13T12:49:00Z","state":"done"}],"since":"2026-11-13T12:49:00Z","fields":{"milestone":"1","title":"One command creates and destroys a private world","what":"One command creates and destroys a private world: chain, index, Core and database","why":"Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master","doneWhen":"Its proof is committed on master: packages/world/records/commands.proof.json; packages/world/records/fresh.proof.json; packages/world/records/fails.proof.json; packages/world/records/timeout.proof.json; packages/world/records/interrupted.proof.json; packages/world/records/keep.proof.json; packages/world/records/race.proof.json; packages/world/records/limits.proof.json; packages/world/records/sweep.proof.json","needs":["0.4","0.5","0.6"],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/99e1dd65/packages/world/records/commands.proof.json"}},{"id":"1.4","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:50:24Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43622225409"},"at":"2026-11-14T17:38:00Z","state":"done"}],"since":"2026-11-14T17:38:00Z","fields":{"milestone":"1","title":"A company's Frappe site in a private world is","what":"A company's Frappe site in a private world is reached through the door","why":"Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master","doneWhen":"Its proof is committed on master: packages/runner/records/run-138efc/summary.json; packages/world/records/site.proof.json","needs":["0.8","1.3","2.2"],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/494b63e0/packages/runner/records/run-138efc/summary.json"}},{"id":"1.5","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:50:24Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43428950884"},"at":"2026-11-13T12:53:00Z","state":"done"}],"since":"2026-11-13T12:53:00Z","fields":{"milestone":"1","title":"The thin line's scenarios are written by a separate","what":"The thin line's scenarios are written by a separate agent and fail on empty handlers","why":"Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master","doneWhen":"Its proof is committed on master: packages/runner/records/core-189d55/summary.json","needs":["1.1","1.2"],"units":12,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/1fd8698e/packages/runner/records/core-189d55/summary.json"}},{"id":"1.6","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:50:24Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43607749108"},"at":"2026-11-14T14:59:00Z","state":"done"}],"since":"2026-11-14T14:59:00Z","fields":{"milestone":"1","title":"The thin line's journeys pass in a fresh private","what":"The thin line's journeys pass in a fresh private world","why":"Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master","doneWhen":"Its proof is committed on master: packages/runner/records/run-22da37/summary.json","needs":["1.3","1.4","1.5","1.9","1.11","1.12","1.14","1.17","1.18"],"units":3,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/2ce229a7/packages/runner/records/run-22da37/summary.json"}},{"id":"1.7","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:50:24Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43409203313"},"at":"2026-11-13T10:27:00Z","state":"done"}],"since":"2026-11-13T10:27:00Z","fields":{"milestone":"1","title":"CI fails when TypeScript is not idiomatic Effect","what":"CI fails when TypeScript is not idiomatic Effect","why":"Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master","doneWhen":"Its proof is committed on master: check:pnpm lint","needs":[],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/blob/04637f78/.github/workflows/check.yml"}},{"id":"1.8","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:50:24Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43622225409"},"at":"2026-11-14T17:38:00Z","state":"done"}],"since":"2026-11-14T17:38:00Z","fields":{"milestone":"1","title":"CI on master creates a world, runs the thin","what":"CI on master creates a world, runs the thin line and destroys the world","why":"Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master","doneWhen":"Its proof is committed on master: packages/runner/records/run-138efc/summary.json; packages/runner/records/run-af2aae/summary.json","needs":["1.6"],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/494b63e0/packages/runner/records/run-138efc/summary.json"}},{"id":"2.1","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:50:24Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43614369752"},"at":"2026-11-14T16:12:00Z","state":"done"}],"since":"2026-11-14T16:12:00Z","fields":{"milestone":"2","title":"A host for the Frappe bench and a domain","what":"A host for the Frappe bench and a domain on Cloudflare exist","why":"Milestone 2 needs it: The same line on a shared hosted world, deployed by Alchemy","doneWhen":"Its proof is committed on master: packages/platform/records/staging/drift-run15.json","needs":[],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/312e27f9/packages/platform/records/staging/drift-run15.json"}},{"id":"2.2","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:50:24Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43614369752"},"at":"2026-11-14T16:12:00Z","state":"done"}],"since":"2026-11-14T16:12:00Z","fields":{"milestone":"2","title":"The platform","what":"The platform (bench, tunnel, shared state) is deployed by Alchemy","why":"Milestone 2 needs it: The same line on a shared hosted world, deployed by Alchemy","doneWhen":"Its proof is committed on master: packages/platform/records/staging/drift-run13.json; packages/platform/records/staging/drift-run15.json","needs":["2.1","0.4"],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/312e27f9/packages/platform/records/staging/drift-run13.json"}},{"id":"2.3","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:50:24Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43614369752"},"at":"2026-11-14T16:12:00Z","state":"done"}],"since":"2026-11-14T16:12:00Z","fields":{"milestone":"2","title":"A shared world exists whose sites are created with","what":"A shared world exists whose sites are created with a per-world token","why":"Milestone 2 needs it: The same line on a shared hosted world, deployed by Alchemy","doneWhen":"Its proof is committed on master: packages/runner/records/shared-09eeaf/shared.json; packages/runner/records/shared-dc9834/shared.json; packages/runner/records/shared-8eb1f8/shared.json","needs":["2.2","1.6"],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/312e27f9/packages/runner/records/shared-09eeaf/shared.json"}},{"id":"2.4","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:50:24Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43614369752"},"at":"2026-11-14T16:12:00Z","state":"done"}],"since":"2026-11-14T16:12:00Z","fields":{"milestone":"2","title":"The thin line's journeys pass on the shared world","what":"The thin line's journeys pass on the shared world after a deploy","why":"Milestone 2 needs it: The same line on a shared hosted world, deployed by Alchemy","doneWhen":"Its proof is committed on master: packages/runner/records/run-bc959e/summary.json","needs":["2.3"],"units":3,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/312e27f9/packages/runner/records/run-bc959e/summary.json"}},{"id":"2.5","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T07:50:24Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43675792052"},"at":"2026-11-15T04:13:00Z","state":"done"}],"since":"2026-11-15T04:13:00Z","fields":{"milestone":"2","title":"A drift check that catches changed settings and replaced","what":"A drift check that catches changed settings and replaced code runs on a schedule and is clean (the pinned Alchemy reports drift but exits 0, and misses code replaced by hand)","why":"Milestone 2 needs it: The same line on a shared hosted world, deployed by Alchemy","doneWhen":"Its proof is committed on master: packages/platform/records/staging/drift-scheduled-43625577747.json","needs":["2.2"],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/9a6e7b25/packages/platform/records/staging/drift-scheduled-43625577747.json"}},{"id":"1.9","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T10:35:08Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43424222053"},"at":"2026-11-13T12:19:00Z","state":"done"}],"since":"2026-11-13T12:19:00Z","fields":{"milestone":"1","title":"The SDK","what":"The SDK: a typed client of every blueprint operation, derived from the blueprint, through which the scenarios call Core","why":"Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master","doneWhen":"Its proof is committed on master: packages/sdk/test/operations.test.ts; check:pnpm test","needs":["1.1"],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/606b2b53/packages/sdk/test/operations.test.ts"}},{"id":"1.10","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T10:35:08Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43675739243"},"at":"2026-11-15T04:12:00Z","state":"done"}],"since":"2026-11-15T04:12:00Z","fields":{"milestone":"1","title":"The CLI","what":"The CLI: the one Capxul command line, every blueprint operation a command derived from the blueprint; the thin line's scenarios also pass through it, giving the same answers as the SDK","why":"Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master","doneWhen":"Its proof is committed on master: packages/runner/records/run-185cc4/summary.json","needs":["1.9"],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/066d8a24/packages/runner/records/run-185cc4/summary.json"}},{"id":"1.11","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T10:43:06Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43449250833"},"at":"2026-11-13T15:06:00Z","state":"done"}],"since":"2026-11-13T15:06:00Z","fields":{"milestone":"1","title":"A private world includes the bundler and a test","what":"A private world includes the bundler and a test paymaster, so a signed approval lands on the chain as one real UserOperation","why":"Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master","doneWhen":"Its proof is committed on master: packages/world/records/bundler.proof.json","needs":["1.3"],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/e19dbe55/packages/world/records/bundler.proof.json"}},{"id":"1.12","state":"planned","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T10:43:06Z","state":"planned"}],"since":"2026-11-13T10:43:06Z","fields":{"milestone":"1","title":"Every new private world gets its cast, funded from","what":"Every new private world gets its cast, funded from the test token's faucet, and a world can be saved as a template and started from it","why":"Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["1.3"],"units":1}},{"id":"1.13","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-13T10:43:06Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43421594813"},"at":"2026-11-13T12:00:00Z","state":"done"}],"since":"2026-11-13T12:00:00Z","fields":{"milestone":"1","title":"A step's state comes from run records","what":"A step's state comes from run records: each step names the proof that closes it, and the dashboard reads the records, not a hand-typed column","why":"Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master","doneWhen":"Its proof is committed on master: packages/status-feed/tests/test_feed.py; check:pnpm test","needs":[],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/bc9e2291/packages/status-feed/tests/test_feed.py"}},{"id":"1.14","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-14T04:41:34Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43561447990"},"at":"2026-11-14T05:25:00Z","state":"done"}],"since":"2026-11-14T05:25:00Z","fields":{"milestone":"1","title":"The thin line's journeys and each operation's checks are","what":"The thin line's journeys and each operation's checks are written by a separate agent and fail on empty handlers","why":"Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master","doneWhen":"Its proof is committed on master: packages/runner/records/run-fc53ef/summary.json","needs":["1.5"],"units":3,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/c2885a08/packages/runner/records/run-fc53ef/summary.json"}},{"id":"1.15","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-14T04:41:34Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43565236978"},"at":"2026-11-14T06:12:00Z","state":"done"}],"since":"2026-11-14T06:12:00Z","fields":{"milestone":"1","title":"The fleet hub","what":"The fleet hub: one container application per kind, deployed once per stage; world create makes a world on it","why":"Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master","doneWhen":"Its proof is committed on master: packages/world/records/hub.proof.json","needs":["1.3"],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/649ae401/packages/world/records/hub.proof.json"}},{"id":"1.16","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-14T04:41:34Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43565236978"},"at":"2026-11-14T06:12:00Z","state":"done"}],"since":"2026-11-14T06:12:00Z","fields":{"milestone":"1","title":"A world is reset in place to a snapshot,","what":"A world is reset in place to a snapshot, with one clock, and world.show then matches the snapshot","why":"Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master","doneWhen":"Its proof is committed on master: packages/world/records/reset.proof.json","needs":["1.15"],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/649ae401/packages/world/records/reset.proof.json"}},{"id":"1.17","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-14T04:41:34Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43560646124"},"at":"2026-11-14T05:15:00Z","state":"done"}],"since":"2026-11-14T05:15:00Z","fields":{"milestone":"1","title":"The bench gives a world its company sites from","what":"The bench gives a world its company sites from a pool of template copies and resets them in place","why":"Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master","doneWhen":"Its proof is committed on master: packages/platform/records/site-pool/pool.proof.json","needs":["0.8"],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/59418750/packages/platform/records/site-pool/pool.proof.json"}},{"id":"1.18","state":"done","history":[{"event":"step_planned","by":{"kind":"person","person":"aaron"},"at":"2026-11-14T04:41:34Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43622225409"},"at":"2026-11-14T17:38:00Z","state":"done"}],"since":"2026-11-14T17:38:00Z","fields":{"milestone":"1","title":"The runner runs journeys","what":"The runner runs journeys: one world per runner, a reset before each journey, timed (the shape of its day; replaced by one shared world, every journey side by side, at step 4.8)","why":"Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master","doneWhen":"Its proof is committed on master: packages/runner/records/run-138efc/summary.json","needs":["1.14","1.16"],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/494b63e0/packages/runner/records/run-138efc/summary.json"}},{"id":"3.1","state":"done","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T13:24:00Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43718972529"},"at":"2026-11-15T13:25:00Z","state":"done"}],"since":"2026-11-15T13:25:00Z","fields":{"milestone":"3","title":"Foundry is installed in CI's check job and in","what":"Foundry is installed in CI's check job and in the agents' cloud environment (its setup script, with the hosts its downloads need). pnpm generate writes every derived file from forge build's output, devnet.json and the blueprint, and pnpm generate:check in CI fails when generating again changes one. Generated files are committed like every other: one ABI module, imported by the blueprint, Core and the indexer; the seeded addresses; the Python names. TransferSingle's field names agree","why":"Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)","doneWhen":"Its proof is committed on master: check:pnpm generate:check","needs":[],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/blob/0f02747c/.github/workflows/check.yml"}},{"id":"3.3","state":"done","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T13:24:00Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43718972529"},"at":"2026-11-15T13:25:00Z","state":"done"}],"since":"2026-11-15T13:25:00Z","fields":{"milestone":"3","title":"Typed once, by lint, with a ratchet","what":"Typed once, by lint, with a ratchet: raw schemas only in the blueprint's values files and machines and in listed edge files; declared names imported, never retyped; Core's stores decode rows with the blueprint's schemas; every domain in each hub it needs. What the rules find today sits on their unmigrated list, which may only shrink","why":"Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)","doneWhen":"Its proof is committed on master: packages/lint/test/owned-values.test.ts","needs":[],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/0f02747c/packages/lint/test/owned-values.test.ts"}},{"id":"3.4","state":"done","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T13:24:00Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43718972529"},"at":"2026-11-15T13:25:00Z","state":"done"}],"since":"2026-11-15T13:25:00Z","fields":{"milestone":"3","title":"The machine format, proven on the invitation","what":"The machine format, proven on the invitation: states, start, moves, refusals; the derived state schema, refusal field, step and diagram, and the CHECK constraint in a new migration (an applied migration is never edited); graph and property tests; Core moves the invitation only through step; the runner checks each invitation's events form a path through its machine, and reports coverage","why":"Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)","doneWhen":"Its proof is committed on master: packages/blueprint/test/machines.test.ts","needs":["3.3"],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/tree/0f02747c/packages/blueprint/test/machines.test.ts"}},{"id":"3.5","state":"done","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T13:24:00Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43718972529"},"at":"2026-11-15T13:25:00Z","state":"done"}],"since":"2026-11-15T13:25:00Z","fields":{"milestone":"3","title":"pnpm delta:check fails when an operation lacks a format","what":"pnpm delta:check fails when an operation lacks a format that exists: its machine moves and the refusal from each state, and (from 4.1) its declared steps and logs; existing operations by the ratchet","why":"Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)","doneWhen":"Its proof is committed on master: check:pnpm delta:check","needs":["3.4"],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/blob/0f02747c/.github/workflows/check.yml"}},{"id":"3.2","state":"done","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T13:25:34Z","state":"planned"},{"event":"step_proven","by":{"kind":"pipeline","run":"ci-43721823010"},"at":"2026-11-15T13:58:00Z","state":"done"}],"since":"2026-11-15T13:58:00Z","fields":{"milestone":"3","title":"The seeded chain state","what":"The seeded chain state (packages/contracts/state/core.json, which every world starts from) is rebuilt from the contracts and their deploy script by one command, and CI fails when the rebuild differs from what is committed","why":"Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)","doneWhen":"Its proof is committed on master: check:pnpm seed:check","needs":["3.1"],"units":1,"proof":"https://github.com/AaronAbuUsama/capxul-next/blob/b2981233/.github/workflows/check.yml"}},{"id":"4.1","state":"planned","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T13:25:34Z","state":"planned"}],"since":"2026-11-15T13:25:34Z","fields":{"milestone":"4","title":"Steps and logs are declared per operation, first drafted","what":"Steps and logs are declared per operation, first drafted from the spans of measured runs. Every effectful function of our own code (Core, the world, the platform client, the runner's plumbing) is a span, Effect.fn with a name that is a declared step, imported from the blueprint and never written as a string; a lint rule fails a function of ours that does work without one, existing code by its ratchet. At run time a call fails when a step its operation declares is missing from the record while its path ran, or a refusal has no log naming the state or rule that refused. Library spans (postgres, HTTP GET and POST, rpc, bundler) are neither required nor forbidden, and the check ignores them. The waits a budget leaves out follow from the step kinds. Logs go through Effect's Logger, and the generic checks are written over OpenTelemetry spans and logs; the run-time checks of logs need 4.4","why":"Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["3.3"],"units":1}},{"id":"4.2","state":"planned","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T13:25:34Z","state":"planned"}],"since":"2026-11-15T13:25:34Z","fields":{"milestone":"4","title":"The explainability eval","what":"The explainability eval: each journey's record is scored (every refusal has its deciding log, every span its parent, the share of each call's time covered by its declared steps, and the share of the whole run's wall time inside declared spans), from the tap, written into the verdict; first reported from measured runs; a threshold is then set from the data, and from then a journey passes only when it meets it","why":"Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["4.1","4.7"],"units":1}},{"id":"4.3","state":"planned","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T13:25:34Z","state":"planned"}],"since":"2026-11-15T13:25:34Z","fields":{"milestone":"4","title":"The build evals","what":"The build evals: tries to green, breakage and recovery, speed and cost per journey, read from the verdicts, the sink and the cost metrics","why":"Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["4.2","4.5","4.6"],"units":1}},{"id":"5.1","state":"planned","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T13:25:34Z","state":"planned"}],"since":"2026-11-15T13:25:34Z","fields":{"milestone":"5","title":"Who may call","what":"Who may call: roles declared once, allowed on every operation, Core's one standing check, the refusal steps generated","why":"Milestone 5 needs it: The first feature through the loop: account identity, and who may call. It needs 4.1's format and lint rule; 4.2 and 4.3 land alongside, measured on its runs","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["3.4","4.1","C.2"],"units":1}},{"id":"5.2","state":"planned","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T13:25:34Z","state":"planned"}],"since":"2026-11-15T13:25:34Z","fields":{"milestone":"5","title":"The accounts pilot, the first feature through the loop","what":"The accounts pilot, the first feature through the loop: account identity as decided on 15 November 2026 (a chain id of its own for test worlds; the salt from the grade group's pepper and the account version; claim takes the salt, never the email; Companies House at one address per account version, approving the first-owner swap through a backend key's scoped role, with that role's operations, events, refusals and journeys; the email's normalisation in the blueprint; the blueprint's derivation checked against the contract's; grade, account version and chain id in every run record)","why":"Milestone 5 needs it: The first feature through the loop: account identity, and who may call. It needs 4.1's format and lint rule; 4.2 and 4.3 land alongside, measured on its runs","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["3.2","3.5","3.6","4.1","5.1"],"units":1}},{"id":"6.1","state":"planned","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T13:25:34Z","state":"planned"}],"since":"2026-11-15T13:25:34Z","fields":{"milestone":"6","title":"Operations and events carry a version, and run records","what":"Operations and events carry a version, and run records name it","why":"Milestone 6 needs it: Versions, and the ledger built side by side, flipped and retired, once the accounts pilot is finished","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["3.4"],"units":1}},{"id":"6.2","state":"planned","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T13:25:34Z","state":"planned"}],"since":"2026-11-15T13:25:34Z","fields":{"milestone":"6","title":"The invoice ledger, built side by side with what","what":"The invoice ledger, built side by side with what it replaces, flipped once it passes every journey, and the old retired, as AGENTS.md says","why":"Milestone 6 needs it: Versions, and the ledger built side by side, flipped and retired, once the accounts pilot is finished","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["5.2","6.1"],"units":1}},{"id":"7.1","state":"planned","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T13:25:34Z","state":"planned"}],"since":"2026-11-15T13:25:34Z","fields":{"milestone":"7","title":"Journeys ported in waves of units, in the order","what":"Journeys ported in waves of units, in the order they can be built safely in parallel (decision of 14 November 2026); each green in a private world, then on staging","why":"Milestone 7 needs it: Journeys ported in waves; typed starting worlds; every lifecycle a machine and every ratchet empty. Its waves start once 3.1 to 3.6 are Done","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["3.1","3.2","3.3","3.4","3.5","3.6","C.3"],"units":1}},{"id":"7.2","state":"planned","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T13:25:34Z","state":"planned"}],"since":"2026-11-15T13:25:34Z","fields":{"milestone":"7","title":"Starting worlds made by typed steps with their payloads,","what":"Starting worlds made by typed steps with their payloads, run by one generic maker in the runner","why":"Milestone 7 needs it: Journeys ported in waves; typed starting worlds; every lifecycle a machine and every ratchet empty. Its waves start once 3.1 to 3.6 are Done","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":[],"units":1}},{"id":"3.6","state":"active","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T14:15:47Z","state":"planned"},{"event":"step_started","by":{"kind":"agent","thread":"session_01S8RF79VUFRRBGBDTzB485K"},"at":"2026-11-15T17:09:48Z","state":"active"}],"since":"2026-11-15T17:09:48Z","fields":{"milestone":"3","title":"The blueprint's format","what":"The blueprint's format (docs/design/blueprint.md, parts 7 and 9): one file per operation holding everything about it; machines import their events, and operations name the moves they make; hubs, indexes and pages generated; src/telemetry/; the pipeline domain declared; the ratchet registry and pnpm ratchets, every ratchet counted; the domain people moved in full; its journeys and checks written first by another agent","why":"Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["3.5"],"units":1,"lane":"blueprint"}},{"id":"4.4","state":"active","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T14:15:47Z","state":"planned"},{"event":"step_started","by":{"kind":"agent","thread":"session_01S8RF7BnxXPJvTcMYQPWzPD"},"at":"2026-11-15T17:48:36Z","state":"active"}],"since":"2026-11-15T17:48:36Z","fields":{"milestone":"4","title":"Telemetry is OpenTelemetry","what":"Telemetry is OpenTelemetry: Core, the runner, the world and the platform client export OTLP through Effect's exporters; the telemetry door on staging; the test sink; the tap in test worlds, read by the runner side by side with app.spans, then flipped and app.spans retired","why":"Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["1.2"],"units":1,"lane":"telemetry"}},{"id":"4.5","state":"planned","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T14:15:47Z","state":"planned"}],"since":"2026-11-15T14:15:47Z","fields":{"milestone":"4","title":"Proof is a verdict","what":"Proof is a verdict: the proving workflows write verdicts, notarised by checks, on proofs, with the OTLP archived in R2; the status feed verifies them; prove.yml; the Proof column uses proof:","why":"Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["4.4"],"units":1}},{"id":"4.6","state":"planned","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T14:15:47Z","state":"planned"}],"since":"2026-11-15T14:15:47Z","fields":{"milestone":"4","title":"Cost is measured daily per world, run, journey and","what":"Cost is measured daily per world, run, journey and lane, against the cap","why":"Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["4.4"],"units":1}},{"id":"4.7","state":"active","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T14:15:47Z","state":"planned"},{"event":"step_started","by":{"kind":"agent","thread":"session_01S8RF7BnxXPJvTcMYQPWzPD"},"at":"2026-11-15T17:48:36Z","state":"active"}],"since":"2026-11-15T17:48:36Z","fields":{"milestone":"4","title":"The pipeline instrumented","what":"The pipeline instrumented: every pipeline operation's steps are spans of declared steps (ratchet R6 for the world, the runner and the platform client), and the gate's rungs are spans","why":"Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["3.6","4.4"],"units":1,"lane":"telemetry"}},{"id":"4.8","state":"active","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T14:15:47Z","state":"planned"},{"event":"step_started","by":{"kind":"agent","thread":"session_01S8RF7A5EFsECELJk2x94CG"},"at":"2026-11-15T17:53:08Z","state":"active"}],"since":"2026-11-15T17:53:08Z","fields":{"milestone":"4","title":"One shared world, every journey side by side","what":"One shared world, every journey side by side (\"One shared world, every journey side by side\"): the runner makes one world per run and starts every company journey in it at once, the journeys about worlds in worlds of their own; the runner's isolation check on every call and over the whole record at the end (a generic check, written by a different agent from the one who changes the runner); the bench's blank pool raised to 8 to 10 copies. The world run measured under 5 minutes, or the parts still over it named (builder: runner, world, bench)","why":"Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["4.11"],"units":1,"lane":"run-time"}},{"id":"3.8","state":"active","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T14:26:47Z","state":"planned"},{"event":"step_started","by":{"kind":"agent","thread":"session_01S8RF79VUFRRBGBDTzB485K"},"at":"2026-11-15T17:09:48Z","state":"active"}],"since":"2026-11-15T17:09:48Z","fields":{"milestone":"3","title":"The glossary in the blueprint","what":"The glossary in the blueprint (decision \"One glossary\"): every agreed word declared once; lint takes words from it; the rename of every old word on a ratchet, user-facing names side by side","why":"Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["3.6"],"units":1,"lane":"blueprint"}},{"id":"4.9","state":"planned","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T14:26:47Z","state":"planned"}],"since":"2026-11-15T14:26:47Z","fields":{"milestone":"4","title":"The pipeline's commands","what":"The pipeline's commands: every run.sh job a generated capxul command; the scripts gone; build tools that stay listed with their reasons on a ratchet","why":"Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["4.7","3.9"],"units":1}},{"id":"5.3","state":"planned","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T14:26:47Z","state":"planned"}],"since":"2026-11-15T14:26:47Z","fields":{"milestone":"5","title":"Frappe through the CLI","what":"Frappe through the CLI: the generic verbs declared once; typed commands per app generated from the pinned apps' metadata; Frappe's permissions from the caller's hat; the coverage list of what is not exposed, which may only shrink","why":"Milestone 5 needs it: The first feature through the loop: account identity, and who may call. It needs 4.1's format and lint rule; 4.2 and 4.3 land alongside, measured on its runs","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["3.9","5.1"],"units":1}},{"id":"5.4","state":"planned","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T14:26:47Z","state":"planned"}],"since":"2026-11-15T14:26:47Z","fields":{"milestone":"5","title":"The Safe through the CLI","what":"The Safe through the CLI: safe verbs generated from the contracts' ABI, allowed by the caller's roles, signed at the Safe's threshold, sent through the bundler, kept in the world's history","why":"Milestone 5 needs it: The first feature through the loop: account identity, and who may call. It needs 4.1's format and lint rule; 4.2 and 4.3 land alongside, measured on its runs","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["5.1","5.2"],"units":1}},{"id":"3.10","state":"active","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T14:46:34Z","state":"planned"},{"event":"step_started","by":{"kind":"agent","thread":"session_01S8RF79VUFRRBGBDTzB485K"},"at":"2026-11-15T17:09:48Z","state":"active"}],"since":"2026-11-15T17:09:48Z","fields":{"milestone":"3","title":"Every format exists in packages/blueprint-tools","what":"Every format exists in packages/blueprint-tools (lifecycle, who may call, spans and logs, budget, promises, telemetry names, glossary words, the pipeline's things), proven on the invitation end to end: its declaration, the generated code, the API's handler moving it only through its lifecycle, its journeys and the telemetry checks, with nothing drifting","why":"Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["3.6","3.8"],"units":1,"lane":"blueprint"}},{"id":"3.11","state":"active","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T14:46:34Z","state":"planned"},{"event":"step_started","by":{"kind":"agent","thread":"session_01S8RF79VUFRRBGBDTzB485K"},"at":"2026-11-15T17:09:48Z","state":"active"}],"since":"2026-11-15T17:09:48Z","fields":{"milestone":"3","title":"The scorecard","what":"The scorecard: every thing against every format, generated from the ratchet lists and shown on the dashboard","why":"Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["3.6"],"units":1,"lane":"blueprint"}},{"id":"C.1","state":"planned","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T14:46:34Z","state":"planned"}],"since":"2026-11-15T14:46:34Z","fields":{"milestone":"C","title":"The climb","what":"The climb: every existing thing brought up to spec in parallel lanes, one thing per unit (its lifecycle declared and the API moving it only through it, every format, the glossary's words, its spans declared and instrumented, journeys reaching every new declaration); states that disagree or were never written down are agreed with Aaron as they are declared","why":"Milestone C needs it: Every existing thing brought up to spec in parallel lanes, one thing per unit, measured as a rehearsal of breadth (decision \"Build the system, then climb, then breadth\")","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["3.10","3.11"],"units":13}},{"id":"C.2","state":"planned","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T14:46:34Z","state":"planned"}],"since":"2026-11-15T14:46:34Z","fields":{"milestone":"C","title":"The scorecard all green","what":"The scorecard all green: every ratchet list empty for every existing thing (this absorbs 7.3 and 7.4)","why":"Milestone C needs it: Every existing thing brought up to spec in parallel lanes, one thing per unit, measured as a rehearsal of breadth (decision \"Build the system, then climb, then breadth\")","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["C.1"],"units":1}},{"id":"C.3","state":"planned","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T14:46:34Z","state":"planned"}],"since":"2026-11-15T14:46:34Z","fields":{"milestone":"C","title":"The climb measured as breadth's rehearsal","what":"The climb measured as breadth's rehearsal: things brought to spec per day, tries to green, conflicts between lanes, time waiting; a report that sets breadth's lane size","why":"Milestone C needs it: Every existing thing brought up to spec in parallel lanes, one thing per unit, measured as a rehearsal of breadth (decision \"Build the system, then climb, then breadth\")","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["C.2"],"units":1}},{"id":"4.10","state":"planned","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T17:53:20Z","state":"planned"}],"since":"2026-11-15T17:53:20Z","fields":{"milestone":"4","title":"Core next to its data","what":"Core next to its data (\"Core runs next to its data\"): Core's Worker placed in Europe beside Neon and the hub, and one measured run shows its queries, lookups and chain calls inside Europe (builder: world); fast-tracked 15 November 2026; measured by the slice's world run: Core's recorded colo and its postgres span times","why":"Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":[],"units":1}},{"id":"4.11","state":"active","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T17:53:20Z","state":"planned"},{"event":"step_started","by":{"kind":"agent","thread":"session_01S8RF7A5EFsECELJk2x94CG"},"at":"2026-11-15T17:54:20Z","state":"active"}],"since":"2026-11-15T17:54:20Z","fields":{"milestone":"4","title":"The journeys made side-by-side safe, and observation from telemetry","what":"The journeys made side-by-side safe, and observation from telemetry (journey author, never the builder): checks judge what their own call caused (the record by the call's trace, the chain by the journey's own accounts); a cast per journey; each journey builds its own starting company; the operation checks read the call's spans, logs and events in one batch per step instead of world.show and record.export around every try; a snapshot's round trip a journey of its own; every journey still fails on empty handlers and passes one after another in today's runner","why":"Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":[],"units":1,"lane":"run-time"}},{"id":"4.12","state":"active","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T17:53:20Z","state":"planned"},{"event":"step_started","by":{"kind":"agent","thread":"session_01S8RF7A5EFsECELJk2x94CG"},"at":"2026-11-15T17:54:20Z","state":"active"}],"since":"2026-11-15T17:54:20Z","fields":{"milestone":"4","title":"The run's plumbing","what":"The run's plumbing (builder: runner, world, world.yml): a site restored beside the world's create; the bundler kept running across a reset; readiness 5 probes, not 20; Core's upload skipped when unchanged; the clock warp's time explained; the verdict reported before teardown, the teardown in a job that always runs","why":"Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":[],"units":1,"lane":"run-time"}},{"id":"3.7","state":"planned","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T20:09:11Z","state":"planned"}],"since":"2026-11-15T20:09:11Z","fields":{"milestone":"4","title":"The coverage gate","what":"The coverage gate: in world.yml, a slice whose newly declared moves, refusals or outcomes no journey reaches does not merge into master; existing ones by ratchet R9","why":"Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["3.6"],"units":1}},{"id":"3.9","state":"planned","history":[{"event":"step_planned","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T20:09:11Z","state":"planned"}],"since":"2026-11-15T20:09:11Z","fields":{"milestone":"4","title":"The CLI's grammar","what":"The CLI's grammar (decision \"The CLI is the one surface\"): capxul <thing> <verb>, login, use <world>, readable output and --json, generated from the blueprint","why":"Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done","doneWhen":"A passing run record, named in the roadmap's Proof column, is committed on master.","needs":["3.6"],"units":1}}],"lanes":[{"id":"blueprint","state":"open","history":[{"event":"lane_opened","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T17:08:18Z","state":"open"},{"event":"lane_led","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T17:08:28Z","state":"open"}],"since":"2026-11-15T17:08:28Z","fields":{"title":"Blueprint 2b","branch":"slice/blueprint","steps":["3.6","3.8","3.10"],"lead":"session_01S8RF79VUFRRBGBDTzB485K"}},{"id":"telemetry","state":"open","history":[{"event":"lane_opened","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T17:47:06Z","state":"open"},{"event":"lane_led","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T17:47:16Z","state":"open"}],"since":"2026-11-15T17:47:16Z","fields":{"title":"Telemetry","branch":"slice/telemetry","steps":["4.4","4.7"],"lead":"session_01S8RF7BnxXPJvTcMYQPWzPD"}},{"id":"placement","state":"open","history":[{"event":"lane_opened","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T17:47:30Z","state":"open"}],"since":"2026-11-15T17:47:30Z","fields":{"title":"Placement","branch":"slice/placement","steps":["4.10"]}},{"id":"run-time","state":"open","history":[{"event":"lane_opened","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T17:51:38Z","state":"open"},{"event":"lane_led","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T17:51:48Z","state":"open"}],"since":"2026-11-15T17:51:48Z","fields":{"title":"Speed","branch":"slice/run-time","steps":["4.12","4.11","4.8"],"lead":"session_01S8RF7A5EFsECELJk2x94CG"}}],"threads":[{"id":"session_01S8RF7Ce7ysZNMXvaxLQkix","state":"active","history":[{"event":"thread_started","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T17:06:21Z","state":"active"}],"since":"2026-11-15T17:06:21Z","fields":{"type":"conductor","title":"Conductor: the Capxul rebuild","agent":"claude-code","link":"https://claude.ai/code/session_01S8RF7Ce7ysZNMXvaxLQkix"}},{"id":"session_01S8RF79VUFRRBGBDTzB485K","state":"waiting","history":[{"event":"thread_started","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T17:07:48Z","state":"active"},{"event":"thread_waiting","by":{"kind":"agent","thread":"session_01S8RF79VUFRRBGBDTzB485K"},"at":"2026-11-15T19:30:05Z","state":"waiting"}],"since":"2026-11-15T19:30:05Z","fields":{"type":"lead","title":"Lead: blueprint stage 2 (2a lands, then 2b)","agent":"claude-code","link":"https://claude.ai/code/session_01S8RF79VUFRRBGBDTzB485K","lane":"blueprint","parent":"session_01S8RF7Ce7ysZNMXvaxLQkix"}},{"id":"session_01S8RF7D33sfKcWfHsnDPd8z","state":"active","history":[{"event":"thread_started","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T17:39:15Z","state":"active"}],"since":"2026-11-15T17:39:15Z","fields":{"type":"lead","title":"Lead: docs, one set by progressive disclosure","agent":"claude-code","link":"https://claude.ai/code/session_01S8RF7D33sfKcWfHsnDPd8z","parent":"session_01S8RF7Ce7ysZNMXvaxLQkix"}},{"id":"session_01S8RF7BnxXPJvTcMYQPWzPD","state":"active","history":[{"event":"thread_started","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T17:46:36Z","state":"active"}],"since":"2026-11-15T17:46:36Z","fields":{"type":"lead","title":"Lead: instrumentation, telemetry to Axiom","agent":"claude-code","link":"https://claude.ai/code/session_01S8RF7BnxXPJvTcMYQPWzPD","lane":"telemetry","parent":"session_01S8RF7Ce7ysZNMXvaxLQkix"}},{"id":"session_01S8RF7A5EFsECELJk2x94CG","state":"waiting","history":[{"event":"thread_started","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T17:51:08Z","state":"active"},{"event":"thread_waiting","by":{"kind":"agent","thread":"session_01S8RF7A5EFsECELJk2x94CG"},"at":"2026-11-15T19:12:05Z","state":"waiting"}],"since":"2026-11-15T19:12:05Z","fields":{"type":"lead","title":"Lead: run time under 5 minutes","agent":"claude-code","link":"https://claude.ai/code/session_01S8RF7A5EFsECELJk2x94CG","lane":"run-time","parent":"session_01S8RF7Ce7ysZNMXvaxLQkix"}},{"id":"session_01S8RF79ozyx81cyXgaj9eUZ","state":"active","history":[{"event":"thread_started","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T17:54:39Z","state":"active"}],"since":"2026-11-15T17:54:39Z","fields":{"type":"author","title":"Author: journeys safe side by side (4.11)","agent":"claude-code","link":"https://claude.ai/code/session_01S8RF79ozyx81cyXgaj9eUZ","lane":"run-time","parent":"session_01S8RF7Ce7ysZNMXvaxLQkix"}},{"id":"session_01S8RF7CdntXG9ZAhQTJ6GA8","state":"active","history":[{"event":"thread_started","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T18:08:07Z","state":"active"}],"since":"2026-11-15T18:08:07Z","fields":{"type":"designer","title":"Designer: the sitrep page's UX (with Aaron)","agent":"claude-code","link":"https://claude.ai/code/session_01S8RF7CdntXG9ZAhQTJ6GA8","parent":"session_01S8RF7Ce7ysZNMXvaxLQkix"}}],"asks":[{"id":"ask-example-shared-world","state":"open","history":[{"event":"ask_opened","by":{"kind":"agent","thread":"session_01S8RF7A5EFsECELJk2x94CG"},"at":"2026-11-15T19:12:00Z","state":"open"}],"since":"2026-11-15T19:12:00Z","fields":{"from":"session_01S8RF7A5EFsECELJk2x94CG","question":"Share one world across every journey now, or after telemetry lands?","problem":"Step 4.8 puts every journey side by side in one shared world, the biggest cut in the full run's time. It can start now, or wait until telemetry is on master.","context":"A full run takes about thirty minutes against a target of five. When journeys share a world, a failure in one can show up in another, and without telemetry the record cannot say which call caused it.","rubric":[{"name":"Time to a faster run","why":"Every day the run stays slow, every slice waits longer at its merge."},{"name":"Explainable failures","why":"A failure we cannot explain from its record costs a rerun, and reruns cost money under the daily cap."}],"options":[{"key":"A","title":"Start now","detail":"Build the shared world tonight on the runner's own records.","tradeoffs":"The fastest cut, but a cross-journey failure is hard to explain until telemetry lands."},{"key":"B","title":"After telemetry","detail":"Start once 4.4 is on master, with the isolation check reading spans.","tradeoffs":"About a day later, but every failure names the call that caused it."},{"key":"C","title":"Company journeys first","detail":"Share the world only for company journeys now; world journeys keep their own.","tradeoffs":"Half the gain now with little risk; a second change later."}],"recommended":"C","because":"It takes most of the gain tonight while keeping the journeys whose failures are hardest to explain in worlds of their own.","lane":"run-time","step":"4.8"}},{"id":"ask-example-glossary-renames","state":"open","history":[{"event":"ask_opened","by":{"kind":"agent","thread":"session_01S8RF79VUFRRBGBDTzB485K"},"at":"2026-11-15T19:30:00Z","state":"open"}],"since":"2026-11-15T19:30:00Z","fields":{"from":"session_01S8RF79VUFRRBGBDTzB485K","question":"Rename the glossary's old words in one sweep, or file by file on the ratchet?","problem":"The glossary is declared and counts its old words: several thousand across the code. They can be renamed in one pull request or a file at a time.","context":"Three lanes are building on master at once. A sweep touches most packages and would conflict with each of them; the ratchet lets each lane rename the files it already touches.","rubric":[{"name":"Conflicts with other lanes","why":"A conflict stops a lane until someone merges by hand."},{"name":"Time until the count is zero","why":"Step 3.8 is done only when the old words are gone."}],"options":[{"key":"A","title":"One sweep","detail":"One builder renames every old word in one pull request tonight.","tradeoffs":"Done in a day, but every open slice conflicts with it."},{"key":"B","title":"File by file","detail":"Each lane renames the old words in the files it touches; the ratchet only falls.","tradeoffs":"No conflicts, but the count falls slowly and 3.8 stays open for weeks."}],"recommended":"B","because":"Three lanes are mid-flight; a sweep would cost each of them a merge by hand for a step nothing else waits on.","lane":"blueprint","step":"3.8"}}],"sitreps":[{"id":"20261115-1400-foundations","state":"said","history":[{"event":"sitrep_said","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T14:00:00Z","state":"said"}],"since":"2026-11-15T14:00:00Z","fields":{"title":"Five foundation steps proven","parts":["Generated files, the seeded chain, the lint ratchet, machines and the delta check are all proven on master.","Five of the foundations milestone's eleven steps are done."],"links":[{"label":"The seeded chain","href":"https://github.com/AaronAbuUsama/capxul-next/pull/276"},{"label":"Lint, machines and the delta check","href":"https://github.com/AaronAbuUsama/capxul-next/pull/262"}],"lanes":[],"steps":[]}},{"id":"20261115-1450-plan-grew","state":"said","history":[{"event":"sitrep_said","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T14:50:00Z","state":"said"}],"since":"2026-11-15T14:50:00Z","fields":{"title":"The plan grew","parts":["After the blueprint restack, the foundations milestone grew to eleven steps.","Forty-six units of work were added to the plan today. That is why the burn-down jumps back up."],"links":[{"label":"The restack","href":"https://github.com/AaronAbuUsama/capxul-next/pull/275"}],"lanes":["blueprint"],"steps":["3.10","3.6","3.8"]}},{"id":"20261115-1740-stage-2a","state":"said","history":[{"event":"sitrep_said","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T17:40:00Z","state":"said"}],"since":"2026-11-15T17:40:00Z","fields":{"title":"Blueprint stage 2a landed","parts":["The whole blueprint moved into its new layout, and every journey still passes.","It went through the checks, a full run and an independent review before merging. Stage 2b is next."],"links":[{"label":"Stage 2a","href":"https://github.com/AaronAbuUsama/capxul-next/pull/295"}],"lanes":["blueprint"],"steps":["3.10","3.6","3.8"]}},{"id":"20261115-1755-run-time","state":"said","history":[{"event":"sitrep_said","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T17:55:00Z","state":"said"}],"since":"2026-11-15T17:55:00Z","fields":{"title":"The run-time plan is agreed","parts":["The plan to get a full run under five minutes is merged, with your decisions in it.","The speed lane builds it now, plumbing first. Today a full run takes twenty-seven minutes; the plan projects four and a half to five and a half."],"links":[{"label":"The run-time plan","href":"https://github.com/AaronAbuUsama/capxul-next/pull/316"},{"label":"The speed lane's lead","href":"https://claude.ai/code/session_01S8RF7A5EFsECELJk2x94CG"}],"lanes":["run-time"],"steps":["4.11","4.12","4.8"]}},{"id":"20261115-1850-lanes","state":"said","history":[{"event":"sitrep_said","by":{"kind":"agent","thread":"session_01S8RF7Ce7ysZNMXvaxLQkix"},"at":"2026-11-15T18:50:00Z","state":"said"}],"since":"2026-11-15T18:50:00Z","fields":{"title":"Four slices are heading for master","parts":["Master is green. Four slices have pull requests into master: the blueprint's stage 2b, the speed lane's first landing, telemetry, and the api moved to Europe.","Each merges once its full run passes. The docs slice is waiting on its full run too.","Nothing needs you."],"links":[{"label":"Blueprint 2b into master","href":"https://github.com/AaronAbuUsama/capxul-next/pull/319"},{"label":"Speed, landing 1","href":"https://github.com/AaronAbuUsama/capxul-next/pull/341"},{"label":"Telemetry into master","href":"https://github.com/AaronAbuUsama/capxul-next/pull/317"},{"label":"Placement into master","href":"https://github.com/AaronAbuUsama/capxul-next/pull/320"}],"lanes":["blueprint","run-time","telemetry","placement"],"steps":["3.10","3.6","3.8","4.10","4.11","4.12","4.4","4.7","4.8"]}}],"needsYou":{"asks":["ask-example-shared-world","ask-example-glossary-renames"],"threads":["session_01S8RF79VUFRRBGBDTzB485K","session_01S8RF7A5EFsECELJk2x94CG"]},"burn":[{"at":"2026-11-13T07:50:24Z","left":1,"done":0,"total":1,"what":"step 0.1 planned"},{"at":"2026-11-13T07:50:24Z","left":2,"done":0,"total":2,"what":"step 0.2 planned"},{"at":"2026-11-13T07:50:24Z","left":3,"done":0,"total":3,"what":"step 0.3 planned"},{"at":"2026-11-13T07:50:24Z","left":4,"done":0,"total":4,"what":"step 0.4 planned"},{"at":"2026-11-13T07:50:24Z","left":5,"done":0,"total":5,"what":"step 0.5 planned"},{"at":"2026-11-13T07:50:24Z","left":6,"done":0,"total":6,"what":"step 0.6 planned"},{"at":"2026-11-13T07:50:24Z","left":7,"done":0,"total":7,"what":"step 0.7 planned"},{"at":"2026-11-13T07:50:24Z","left":8,"done":0,"total":8,"what":"step 0.8 planned"},{"at":"2026-11-13T07:50:24Z","left":9,"done":0,"total":9,"what":"step 0.9 planned"},{"at":"2026-11-13T07:50:24Z","left":21,"done":0,"total":21,"what":"step 1.1 planned"},{"at":"2026-11-13T07:50:24Z","left":22,"done":0,"total":22,"what":"step 1.2 planned"},{"at":"2026-11-13T07:50:24Z","left":23,"done":0,"total":23,"what":"step 1.3 planned"},{"at":"2026-11-13T07:50:24Z","left":24,"done":0,"total":24,"what":"step 1.4 planned"},{"at":"2026-11-13T07:50:24Z","left":36,"done":0,"total":36,"what":"step 1.5 planned"},{"at":"2026-11-13T07:50:24Z","left":39,"done":0,"total":39,"what":"step 1.6 planned"},{"at":"2026-11-13T07:50:24Z","left":40,"done":0,"total":40,"what":"step 1.7 planned"},{"at":"2026-11-13T07:50:24Z","left":41,"done":0,"total":41,"what":"step 1.8 planned"},{"at":"2026-11-13T07:50:24Z","left":42,"done":0,"total":42,"what":"step 2.1 planned"},{"at":"2026-11-13T07:50:24Z","left":43,"done":0,"total":43,"what":"step 2.2 planned"},{"at":"2026-11-13T07:50:24Z","left":44,"done":0,"total":44,"what":"step 2.3 planned"},{"at":"2026-11-13T07:50:24Z","left":47,"done":0,"total":47,"what":"step 2.4 planned"},{"at":"2026-11-13T07:50:24Z","left":48,"done":0,"total":48,"what":"step 2.5 planned"},{"at":"2026-11-13T08:35:00Z","left":47,"done":1,"total":48,"what":"step 0.6 proven"},{"at":"2026-11-13T10:27:00Z","left":46,"done":2,"total":48,"what":"step 1.7 proven"},{"at":"2026-11-13T10:35:08Z","left":47,"done":2,"total":49,"what":"step 1.9 planned"},{"at":"2026-11-13T10:35:08Z","left":48,"done":2,"total":50,"what":"step 1.10 planned"},{"at":"2026-11-13T10:43:06Z","left":49,"done":2,"total":51,"what":"step 1.11 planned"},{"at":"2026-11-13T10:43:06Z","left":50,"done":2,"total":52,"what":"step 1.12 planned"},{"at":"2026-11-13T10:43:06Z","left":51,"done":2,"total":53,"what":"step 1.13 planned"},{"at":"2026-11-13T12:00:00Z","left":50,"done":3,"total":53,"what":"step 1.13 proven"},{"at":"2026-11-13T12:19:00Z","left":49,"done":4,"total":53,"what":"step 0.7 proven"},{"at":"2026-11-13T12:19:00Z","left":48,"done":5,"total":53,"what":"step 1.9 proven"},{"at":"2026-11-13T12:49:00Z","left":47,"done":6,"total":53,"what":"step 0.1 proven"},{"at":"2026-11-13T12:49:00Z","left":46,"done":7,"total":53,"what":"step 0.2 proven"},{"at":"2026-11-13T12:49:00Z","left":45,"done":8,"total":53,"what":"step 0.3 proven"},{"at":"2026-11-13T12:49:00Z","left":44,"done":9,"total":53,"what":"step 0.4 proven"},{"at":"2026-11-13T12:49:00Z","left":43,"done":10,"total":53,"what":"step 0.5 proven"},{"at":"2026-11-13T12:49:00Z","left":42,"done":11,"total":53,"what":"step 1.3 proven"},{"at":"2026-11-13T12:53:00Z","left":30,"done":23,"total":53,"what":"step 1.5 proven"},{"at":"2026-11-13T15:06:00Z","left":29,"done":24,"total":53,"what":"step 1.11 proven"},{"at":"2026-11-14T04:41:34Z","left":32,"done":24,"total":56,"what":"step 1.14 planned"},{"at":"2026-11-14T04:41:34Z","left":33,"done":24,"total":57,"what":"step 1.15 planned"},{"at":"2026-11-14T04:41:34Z","left":34,"done":24,"total":58,"what":"step 1.16 planned"},{"at":"2026-11-14T04:41:34Z","left":35,"done":24,"total":59,"what":"step 1.17 planned"},{"at":"2026-11-14T04:41:34Z","left":36,"done":24,"total":60,"what":"step 1.18 planned"},{"at":"2026-11-14T05:15:00Z","left":35,"done":25,"total":60,"what":"step 1.17 proven"},{"at":"2026-11-14T05:25:00Z","left":32,"done":28,"total":60,"what":"step 1.14 proven"},{"at":"2026-11-14T06:12:00Z","left":31,"done":29,"total":60,"what":"step 1.15 proven"},{"at":"2026-11-14T06:12:00Z","left":30,"done":30,"total":60,"what":"step 1.16 proven"},{"at":"2026-11-14T14:59:00Z","left":27,"done":33,"total":60,"what":"step 1.6 proven"},{"at":"2026-11-14T16:12:00Z","left":26,"done":34,"total":60,"what":"step 2.1 proven"},{"at":"2026-11-14T16:12:00Z","left":25,"done":35,"total":60,"what":"step 2.2 proven"},{"at":"2026-11-14T16:12:00Z","left":24,"done":36,"total":60,"what":"step 2.3 proven"},{"at":"2026-11-14T16:12:00Z","left":21,"done":39,"total":60,"what":"step 2.4 proven"},{"at":"2026-11-14T17:38:00Z","left":20,"done":40,"total":60,"what":"step 0.9 proven"},{"at":"2026-11-14T17:38:00Z","left":19,"done":41,"total":60,"what":"step 1.4 proven"},{"at":"2026-11-14T17:38:00Z","left":18,"done":42,"total":60,"what":"step 1.8 proven"},{"at":"2026-11-14T17:38:00Z","left":17,"done":43,"total":60,"what":"step 1.18 proven"},{"at":"2026-11-15T04:12:00Z","left":16,"done":44,"total":60,"what":"step 1.10 proven"},{"at":"2026-11-15T04:13:00Z","left":15,"done":45,"total":60,"what":"step 2.5 proven"},{"at":"2026-11-15T13:24:00Z","left":16,"done":45,"total":61,"what":"step 3.1 planned"},{"at":"2026-11-15T13:24:00Z","left":17,"done":45,"total":62,"what":"step 3.3 planned"},{"at":"2026-11-15T13:24:00Z","left":18,"done":45,"total":63,"what":"step 3.4 planned"},{"at":"2026-11-15T13:24:00Z","left":19,"done":45,"total":64,"what":"step 3.5 planned"},{"at":"2026-11-15T13:25:00Z","left":18,"done":46,"total":64,"what":"step 3.1 proven"},{"at":"2026-11-15T13:25:00Z","left":17,"done":47,"total":64,"what":"step 3.3 proven"},{"at":"2026-11-15T13:25:00Z","left":16,"done":48,"total":64,"what":"step 3.4 proven"},{"at":"2026-11-15T13:25:00Z","left":15,"done":49,"total":64,"what":"step 3.5 proven"},{"at":"2026-11-15T13:25:34Z","left":16,"done":49,"total":65,"what":"step 3.2 planned"},{"at":"2026-11-15T13:25:34Z","left":17,"done":49,"total":66,"what":"step 4.1 planned"},{"at":"2026-11-15T13:25:34Z","left":18,"done":49,"total":67,"what":"step 4.2 planned"},{"at":"2026-11-15T13:25:34Z","left":19,"done":49,"total":68,"what":"step 4.3 planned"},{"at":"2026-11-15T13:25:34Z","left":20,"done":49,"total":69,"what":"step 5.1 planned"},{"at":"2026-11-15T13:25:34Z","left":21,"done":49,"total":70,"what":"step 5.2 planned"},{"at":"2026-11-15T13:25:34Z","left":22,"done":49,"total":71,"what":"step 6.1 planned"},{"at":"2026-11-15T13:25:34Z","left":23,"done":49,"total":72,"what":"step 6.2 planned"},{"at":"2026-11-15T13:25:34Z","left":24,"done":49,"total":73,"what":"step 7.1 planned"},{"at":"2026-11-15T13:25:34Z","left":25,"done":49,"total":74,"what":"step 7.2 planned"},{"at":"2026-11-15T13:58:00Z","left":24,"done":50,"total":74,"what":"step 3.2 proven"},{"at":"2026-11-15T14:15:47Z","left":25,"done":50,"total":75,"what":"step 3.6 planned"},{"at":"2026-11-15T14:15:47Z","left":26,"done":50,"total":76,"what":"step 4.4 planned"},{"at":"2026-11-15T14:15:47Z","left":27,"done":50,"total":77,"what":"step 4.5 planned"},{"at":"2026-11-15T14:15:47Z","left":28,"done":50,"total":78,"what":"step 4.6 planned"},{"at":"2026-11-15T14:15:47Z","left":29,"done":50,"total":79,"what":"step 4.7 planned"},{"at":"2026-11-15T14:15:47Z","left":30,"done":50,"total":80,"what":"step 4.8 planned"},{"at":"2026-11-15T14:26:47Z","left":31,"done":50,"total":81,"what":"step 3.8 planned"},{"at":"2026-11-15T14:26:47Z","left":32,"done":50,"total":82,"what":"step 4.9 planned"},{"at":"2026-11-15T14:26:47Z","left":33,"done":50,"total":83,"what":"step 5.3 planned"},{"at":"2026-11-15T14:26:47Z","left":34,"done":50,"total":84,"what":"step 5.4 planned"},{"at":"2026-11-15T14:46:34Z","left":35,"done":50,"total":85,"what":"step 3.10 planned"},{"at":"2026-11-15T14:46:34Z","left":36,"done":50,"total":86,"what":"step 3.11 planned"},{"at":"2026-11-15T14:46:34Z","left":49,"done":50,"total":99,"what":"step C.1 planned"},{"at":"2026-11-15T14:46:34Z","left":50,"done":50,"total":100,"what":"step C.2 planned"},{"at":"2026-11-15T14:46:34Z","left":51,"done":50,"total":101,"what":"step C.3 planned"},{"at":"2026-11-15T17:53:20Z","left":52,"done":50,"total":102,"what":"step 4.10 planned"},{"at":"2026-11-15T17:53:20Z","left":53,"done":50,"total":103,"what":"step 4.11 planned"},{"at":"2026-11-15T17:53:20Z","left":54,"done":50,"total":104,"what":"step 4.12 planned"},{"at":"2026-11-15T18:49:00Z","left":53,"done":51,"total":104,"what":"step 0.8 proven"},{"at":"2026-11-15T18:49:00Z","left":41,"done":63,"total":104,"what":"step 1.1 proven"},{"at":"2026-11-15T18:49:00Z","left":40,"done":64,"total":104,"what":"step 1.2 proven"},{"at":"2026-11-15T20:09:11Z","left":41,"done":64,"total":105,"what":"step 3.7 planned"},{"at":"2026-11-15T20:09:11Z","left":42,"done":64,"total":106,"what":"step 3.9 planned"}],"derived":{"sources":[{"id":"roadmap","name":"The roadmap and master's history","read":"2026-11-15T20:10:11Z"},{"id":"github","name":"GitHub Actions","read":"2026-11-15T20:22:52Z"},{"id":"conductor","name":"The conductor's lanes and pull requests","read":"2026-11-15T18:50:00Z"}],"health":{"master":{"state":"green","label":"a1aa96c","href":"https://github.com/AaronAbuUsama/capxul-next/actions/runs/43756426573","at":"2026-11-15T20:11:36Z"},"runs":[{"slice":"slice/blueprint","outcome":"passed","minutes":28.5,"at":"2026-11-15T15:47:16Z","href":"https://github.com/AaronAbuUsama/capxul-next/actions/runs/43729159341"},{"slice":"slice/world-layout","outcome":"passed","minutes":29.2,"at":"2026-11-15T16:01:43Z","href":"https://github.com/AaronAbuUsama/capxul-next/actions/runs/43730455893"},{"slice":"slice/docs","outcome":"passed","minutes":31.6,"at":"2026-11-15T16:11:23Z","href":"https://github.com/AaronAbuUsama/capxul-next/actions/runs/43731122192"},{"slice":"slice/blueprint","outcome":"passed","minutes":34.2,"at":"2026-11-15T16:39:26Z","href":"https://github.com/AaronAbuUsama/capxul-next/actions/runs/43733471806"},{"slice":"slice/world-layout","outcome":"passed","minutes":36.8,"at":"2026-11-15T16:42:49Z","href":"https://github.com/AaronAbuUsama/capxul-next/actions/runs/43733548394"},{"slice":"slice/docs","outcome":"passed","minutes":32,"at":"2026-11-15T17:09:36Z","href":"https://github.com/AaronAbuUsama/capxul-next/actions/runs/43736529998"},{"slice":"slice/blueprint","outcome":"passed","minutes":30,"at":"2026-11-15T17:38:08Z","href":"https://github.com/AaronAbuUsama/capxul-next/actions/runs/43739380878"},{"slice":"slice/docs","outcome":"passed","minutes":47.2,"at":"2026-11-15T18:43:17Z","href":"https://github.com/AaronAbuUsama/capxul-next/actions/runs/43743871074"},{"slice":"slice/run-time","outcome":"failed","minutes":54.2,"at":"2026-11-15T19:41:31Z","href":"https://github.com/AaronAbuUsama/capxul-next/actions/runs/43748713626"},{"slice":"slice/telemetry","outcome":"failed","minutes":30.8,"at":"2026-11-15T19:19:18Z","href":"https://github.com/AaronAbuUsama/capxul-next/actions/runs/43748823395"},{"slice":"slice/placement","outcome":"failed","minutes":41.6,"at":"2026-11-15T19:31:08Z","href":"https://github.com/AaronAbuUsama/capxul-next/actions/runs/43748913939"},{"slice":"slice/blueprint","outcome":"passed","minutes":52.2,"at":"2026-11-15T19:44:00Z","href":"https://github.com/AaronAbuUsama/capxul-next/actions/runs/43749125267"}]},"pulls":[{"number":319,"title":"slice/blueprint into master","state":"draft","lane":"blueprint","href":"https://github.com/AaronAbuUsama/capxul-next/pull/319"},{"number":339,"title":"Each journey's own cast, declared once","state":"open","lane":"blueprint","href":"https://github.com/AaronAbuUsama/capxul-next/pull/339"},{"number":323,"title":"Stage 2 small follow-up","state":"draft","lane":"blueprint","href":"https://github.com/AaronAbuUsama/capxul-next/pull/323"},{"number":341,"title":"slice/run-time into master, landing 1","state":"draft","lane":"run-time","href":"https://github.com/AaronAbuUsama/capxul-next/pull/341"},{"number":344,"title":"Every journey says where it runs","state":"open","lane":"run-time","href":"https://github.com/AaronAbuUsama/capxul-next/pull/344"},{"number":345,"title":"The reset's bundler check retries","state":"draft","lane":"run-time","href":"https://github.com/AaronAbuUsama/capxul-next/pull/345"},{"number":337,"title":"Bench door: ready blank copies","state":"draft","lane":"run-time","href":"https://github.com/AaronAbuUsama/capxul-next/pull/337"},{"number":317,"title":"slice/telemetry into master","state":"draft","lane":"telemetry","href":"https://github.com/AaronAbuUsama/capxul-next/pull/317"},{"number":346,"title":"The runner exports from CI","state":"draft","lane":"telemetry","href":"https://github.com/AaronAbuUsama/capxul-next/pull/346"},{"number":318,"title":"Place the api's Worker in Europe","state":"merged","lane":"placement","href":"https://github.com/AaronAbuUsama/capxul-next/pull/318"},{"number":320,"title":"slice/placement into master","state":"draft","lane":"placement","href":"https://github.com/AaronAbuUsama/capxul-next/pull/320"}],"landed":[{"at":"2026-11-15T20:09:11Z","title":"Roadmap","href":"https://github.com/AaronAbuUsama/capxul-next/pull/355"},{"at":"2026-11-15T20:05:43Z","title":"slice/placement","href":"https://github.com/AaronAbuUsama/capxul-next/pull/320"},{"at":"2026-11-15T20:01:33Z","title":"slice/blueprint","href":"https://github.com/AaronAbuUsama/capxul-next/pull/356"},{"at":"2026-11-15T19:48:31Z","title":"Full runs paused until the run is fast","href":"https://github.com/AaronAbuUsama/capxul-next/pull/338"},{"at":"2026-11-15T19:44:33Z","title":"slice/blueprint","href":"https://github.com/AaronAbuUsama/capxul-next/pull/319"},{"at":"2026-11-15T18:49:05Z","title":"slice/docs","href":"https://github.com/AaronAbuUsama/capxul-next/pull/304"},{"at":"2026-11-15T17:53:20Z","title":"📐 The world run in under 5 minutes","href":"https://github.com/AaronAbuUsama/capxul-next/pull/316"},{"at":"2026-11-15T17:38:27Z","title":"slice/blueprint","href":"https://github.com/AaronAbuUsama/capxul-next/pull/295"}],"measures":{"ratchets":[{"id":"R1","name":"Raw schemas","holds":"Raw schemas outside values files, machines and listed edges, as findings of capxul/owned-values.","closes":"3.3","count":667,"series":[{"at":"2026-11-15T13:25:34Z","count":681},{"at":"2026-11-15T13:58:50Z","count":671},{"at":"2026-11-15T17:38:27Z","count":667}]},{"id":"R2","name":"Names typed as strings","holds":"Declared names retyped as strings outside the blueprint, as findings of capxul/declared-names.","closes":"3.3","count":766,"series":[{"at":"2026-11-15T13:25:34Z","count":766}]},{"id":"R3","name":"Rows not decoded","holds":"Stored rows cast to hand-written types instead of decoded, as findings of capxul/decoded-rows.","closes":"3.3","count":38,"series":[{"at":"2026-11-15T13:25:34Z","count":38}]},{"id":"R4","name":"Lifecycles not machines","holds":"Things with a lifecycle not yet declared as a machine (site, approval, world, budget among them).","closes":"C.1 (was 7.3)","count":null,"countedBy":"C.1","series":[]},{"id":"R5","name":"Operations not in the full format","holds":"Operations on a format's unmigrated list: missing machine moves, and later allowed, steps, logs, budget.","closes":"3.5, 4.1, 5.1","count":13,"series":[{"at":"2026-11-15T17:38:27Z","count":13}]},{"id":"R6","name":"Undeclared spans","holds":"Effectful functions of our own code (Core, the world, the platform client, the runner) with no declared step.","closes":"4.1","count":null,"countedBy":"4.1","series":[]},{"id":"R7","name":"Operations not in one file","holds":"Operations whose declaration is still split across files beside their verb's own file.","closes":"Decision 3","count":null,"countedBy":"3.6","series":[]},{"id":"R8","name":"Long or hand-mapped docs","holds":"READMEs over one screen (60 lines), hand-written file maps, and docs not yet folded.","closes":"Decision 3","count":null,"countedBy":"3.6","series":[]},{"id":"R9","name":"Unreached declarations","holds":"Declared moves, refusals and outcomes no journey reaches.","closes":"3.7","count":null,"countedBy":"3.7","series":[]},{"id":"R10","name":"Non-Effect code","holds":"Non-Effect constructs outside entry files, and non-Effect runtime dependencies.","closes":"Phase 7","count":null,"countedBy":"3.6","series":[]},{"id":"R11","name":"Untyped starting worlds","holds":"Starting-world steps in prose, and payloads retyped in the runner.","closes":"7.2","count":null,"countedBy":"7.2","series":[]},{"id":"R12","name":"Proofs by file path","holds":"Roadmap proof entries naming files instead of verdicts, for steps not yet Done.","closes":"4.5","count":null,"countedBy":"4.5","series":[]},{"id":"R13","name":"Provisional budgets","holds":"Operations whose budget is not yet set from a measured verdict.","closes":"4.1 and the measured runs","count":null,"countedBy":"4.1","series":[]},{"id":"R14","name":"Own telemetry tables","holds":"Readers of app.spans and the runner's JSON records beside OTLP.","closes":"4.4","count":null,"countedBy":"4.4","series":[]},{"id":"R15","name":"Old words","holds":"The glossary's old words still written as names in code, counted per word in generated/old-words.json; its count is their total.","closes":"3.8","count":7604,"series":[{"at":"2026-11-15T19:44:33Z","count":7629},{"at":"2026-11-15T20:01:33Z","count":7604}]}],"budgets":[{"name":"A full run","budget":5,"unit":"min","source":"github","measured":[29.2,31.6,34.2,36.8,32,30,47.2,52.2]}],"evals":[{"step":"4.2","name":"Explainability","what":"Every refusal has its deciding log, every span its parent, and the share of each call's time its declared steps explain."},{"step":"4.3","name":"The build evals","what":"Tries to green, breakage and recovery, and speed and cost per journey, read from the verdicts."}]}}};
+</script>
+<script>
+(function () {
+"use strict";
+// ---- core.js
+// Core: Preact through htm, the icon set, the snapshot's indexes, time in words, and who made a change.
+// The page reads only window.SNAPSHOT (embedded by build.mjs from snapshot.json) and window.MACHINES.
+const { h, render } = preact;
+const { useState, useEffect, useRef, useMemo, useCallback } = preactHooks;
+const html = htm.bind(h);
+
+/* One icon set: 24-unit paths, drawn with one stroke width (--icon-stroke). */
+const PATHS = {
+  now: "M22 12h-6l-2 3h-4l-2-3H2M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1Z",
+  plan: "M4 22V4a1 1 0 0 1 1-1h12l-2 4 2 4H5",
+  lanes: "M6 3v12M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM18 9a9 9 0 0 1-9 9",
+  measures: "M22 12h-4l-3 9L9 3l-3 9H2",
+  sitreps: "M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3",
+  right: "m9 18 6-6-6-6",
+  left: "m15 18-6-6 6-6",
+  play: "M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5Z",
+  pause: "M8 5v14M16 5v14",
+  back: "M11 19 4 12l7-7M20 19l-7-7 7-7",
+  fwd: "m13 19 7-7-7-7M4 19l7-7-7-7",
+  x: "M18 6 6 18M6 6l12 12",
+  check: "M20 6 9 17l-5-5",
+  warn: "M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z",
+  pr: "M6 3v12M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM18 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM18 15V8a2 2 0 0 0-2-2h-5M13 3l-2 3 2 3",
+  link: "M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6",
+  clock: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20ZM12 6v6l4 2",
+  pen: "M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z",
+  stop: "M6 6h12v12H6z",
+  speaker: "M11 5 6 9H2v6h4l5 4V5ZM15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14",
+  info: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20ZM12 16v-4M12 8h.01",
+};
+const Icon = ({ n, sm, label }) =>
+  html`<svg class=${"i" + (sm ? " sm" : "")} viewBox="0 0 24 24" aria-hidden=${label ? undefined : "true"} role=${label ? "img" : undefined} aria-label=${label}><path d=${PATHS[n]} /></svg>`;
+
+/* The snapshot and its indexes. */
+const SNAP = window.SNAPSHOT;
+const byId = (list) => Object.fromEntries((list || []).map((x) => [x.id, x]));
+const IX = SNAP
+  ? {
+      milestones: byId(SNAP.milestones),
+      steps: byId(SNAP.steps),
+      lanes: byId(SNAP.lanes),
+      threads: byId(SNAP.threads),
+      asks: byId(SNAP.asks),
+      sitreps: byId(SNAP.sitreps),
+    }
+  : {};
+const laneOfStep = (stepId) => (SNAP.lanes || []).find((l) => (l.fields.steps || []).includes(stepId));
+
+/* Time. "Now" is the snapshot's own time plus however long the page has been open, so ages are those the refresh saw. */
+const T0 = performance.now();
+const nowMs = () => Date.parse(SNAP.at) + (performance.now() - T0);
+const nowIso = () => new Date(nowMs()).toISOString().replace(/\.\d+Z$/, "Z");
+const UTC = { timeZone: "UTC" };
+const clock = (at) => new Date(at).toLocaleTimeString("en-GB", { ...UTC, hour: "2-digit", minute: "2-digit" });
+function ago(at, short) {
+  const m = Math.max(0, Math.round((nowMs() - Date.parse(at)) / 60000));
+  if (m < 1) return "just now";
+  if (m < 60) return short ? m + "m" : m + (m === 1 ? " minute" : " minutes") + " ago";
+  const hrs = Math.round(m / 60);
+  if (hrs < 24) return short ? hrs + "h" : hrs + (hrs === 1 ? " hour" : " hours") + " ago";
+  const d = Math.round(hrs / 24);
+  return short ? d + "d" : d + (d === 1 ? " day" : " days") + " ago";
+}
+function dayLabel(at) {
+  const day = (ms) => new Date(ms).toISOString().slice(0, 10);
+  const d = day(Date.parse(at)), today = day(nowMs()), yday = day(nowMs() - 864e5);
+  if (d === today) return "Today";
+  if (d === yday) return "Yesterday";
+  return new Date(at).toLocaleDateString("en-GB", { ...UTC, weekday: "long", day: "numeric", month: "long" });
+}
+const when = (at) => (dayLabel(at) === "Today" ? clock(at) : dayLabel(at) + ", " + clock(at));
+const STALE_MS = 30 * 60000;
+const isStale = (at) => nowMs() - Date.parse(at) > STALE_MS;
+
+/* Who made a change: an agent's thread (its type's emoji), a person, or the pipeline's run. */
+const THREAD_TYPES = {
+  conductor: "🎼", lead: "🧭", author: "✍️", builder: "🔨", reviewer: "🔍", designer: "📐", triage: "🧹", keeper: "🕒", local: "🖥️",
+};
+const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
+function threadLabel(id) {
+  const t = IX.threads[id];
+  if (!t) return { emoji: "🤖", name: "Agent thread", type: "agent" };
+  return { emoji: THREAD_TYPES[t.fields.type] || "🤖", name: t.fields.title, type: t.fields.type };
+}
+function who(by) {
+  if (!by) return { kind: "agent", emoji: "?", name: "Unknown" };
+  if (by.kind === "person") return { kind: "person", emoji: "A", name: cap(by.person) };
+  if (by.kind === "pipeline") return { kind: "pipeline", emoji: "⚙︎", name: "CI run " + String(by.run).replace(/^ci-/, "") };
+  const t = threadLabel(by.thread);
+  return { kind: "agent", emoji: t.emoji, name: t.name, type: t.type };
+}
+
+/* Words for events and states. */
+const EVENT_WORDS = {
+  plan_written: "Plan written", plan_agreed: "Plan agreed", plan_revised: "Plan revised",
+  milestone_planned: "Milestone planned", milestone_started: "Milestone started", milestone_revised: "Milestone revised",
+  step_planned: "Step planned", step_started: "Step started", step_proven: "Step proven", step_reopened: "Step reopened", step_dropped: "Step dropped",
+  lane_opened: "Lane opened", lane_led: "Lead started", lane_landed: "Lane landed",
+  thread_started: "Thread started", thread_waiting: "Waiting on Aaron", thread_resumed: "Thread resumed", thread_archived: "Thread archived",
+  ask_opened: "Asked", ask_answered: "Answered", ask_reopened: "Answer undone", ask_withdrawn: "Withdrawn",
+  sitrep_said: "Sitrep said", sitrep_heard: "Heard",
+};
+const STATE_CHIP = {
+  done: ["good", "Done"], active: ["accent", "Moving"], planned: ["", "Not started"], dropped: ["", "Dropped"],
+  agreed: ["good", "Agreed"], draft: ["warn", "Draft"], open: ["accent", "Open"], landed: ["good", "Landed"],
+  answered: ["good", "Answered"], withdrawn: ["", "Withdrawn"], waiting: ["warn", "Waiting on you"], archived: ["", "Archived"],
+  green: ["good", "Green"], red: ["bad", "Red"], passed: ["good", "Passed"], failed: ["bad", "Failed"],
+  draft_pr: ["", "Draft"], merged: ["good", "Merged"], closed: ["", "Closed"],
+};
+const Chip = ({ s, label }) => {
+  const [tone, words] = STATE_CHIP[s] || ["", cap(s)];
+  return html`<span class=${"chip " + tone}><span class="dot"></span>${label || words}</span>`;
+};
+const plural = (n, one, many) => n + " " + (n === 1 ? one : many || one + "s");
+
+// ---- store.js
+// The page's state: which tab, what is pushed on each tab, and the events Aaron adds on this page (ask_answered,
+// sitrep_heard), each stamped with his name and the time. A thing's state on the page is the snapshot's state with
+// his events played on top, the same way the projection replays the log.
+const TABS = [
+  { id: "now", label: "Now", icon: "now" },
+  { id: "plan", label: "Plan", icon: "plan" },
+  { id: "lanes", label: "Lanes", icon: "lanes" },
+  { id: "measures", label: "Measures", icon: "measures" },
+  { id: "sitreps", label: "Sitreps", icon: "sitreps" },
+];
+const AARON = { kind: "person", person: "aaron" };
+
+const store = {
+  s: {
+    tab: "now",
+    stacks: { now: [], plan: [], lanes: [], measures: [], sitreps: [] },
+    added: [], // { thing, id, event, by, at, state, answer? }
+    toast: null, // { text, undo }
+    heardParts: {}, // sitrep id -> parts heard
+    rate: 1,
+  },
+  subs: new Set(),
+  set(patch) {
+    this.s = { ...this.s, ...(typeof patch === "function" ? patch(this.s) : patch) };
+    this.subs.forEach((f) => f(this.s));
+  },
+};
+function useStore() {
+  const [, force] = useState(0);
+  useEffect(() => {
+    const f = () => force((n) => n + 1);
+    store.subs.add(f);
+    return () => store.subs.delete(f);
+  }, []);
+  return store.s;
+}
+
+/* Navigation: a stack of pushed pages per tab. */
+const nav = {
+  tab(id) { store.set((s) => ({ tab: id, stacks: s.tab === id ? { ...s.stacks, [id]: [] } : s.stacks })); },
+  push(page) { store.set((s) => ({ stacks: { ...s.stacks, [s.tab]: [...s.stacks[s.tab], page] } })); },
+  pop() { store.set((s) => ({ stacks: { ...s.stacks, [s.tab]: s.stacks[s.tab].slice(0, -1) } })); },
+  top() { const st = store.s.stacks[store.s.tab]; return st[st.length - 1]; },
+};
+
+/* Aaron's events. */
+const added = (thing, id) => store.s.added.filter((e) => e.thing === thing && e.id === id);
+const historyOf = (thing, item) => [...item.history, ...added(thing, item.id)];
+function stateOf(thing, item) {
+  const mine = added(thing, item.id);
+  return mine.length ? mine[mine.length - 1].state : item.state;
+}
+let toastTimer = null;
+function toast(text, undo) {
+  clearTimeout(toastTimer);
+  store.set({ toast: { text, undo } });
+  toastTimer = setTimeout(() => store.set({ toast: null }), 6000);
+}
+function addEvent(e) {
+  const ev = { by: AARON, at: nowIso(), ...e };
+  store.set((s) => ({ added: [...s.added, ev] }));
+  return ev;
+}
+function removeEvent(ev) { store.set((s) => ({ added: s.added.filter((x) => x !== ev) })); }
+
+function answerAsk(ask, answer) {
+  const ev = addEvent({ thing: "ask", id: ask.id, event: "ask_answered", state: "answered", answer });
+  const what = answer.chose ? "Answered " + answer.chose : "Answered in your own words";
+  toast(what, () => { removeEvent(ev); store.set({ toast: null }); });
+}
+function markHeard(sitrep) {
+  if (stateOf("sitrep", sitrep) === "heard") return;
+  addEvent({ thing: "sitrep", id: sitrep.id, event: "sitrep_heard", state: "heard" });
+  store.set((s) => ({ heardParts: { ...s.heardParts, [sitrep.id]: sitrep.fields.parts.length } }));
+}
+const openAsks = () => SNAP.needsYou.asks.map((id) => IX.asks[id]).filter((a) => a && stateOf("ask", a) === "open");
+
+// ---- ui.js
+// Shared pieces: a page with a large title that shrinks into the bar on scroll, sections, inset grouped rows, folds,
+// and the history every plan, milestone, step, lane, ask and sitrep ends with.
+
+/* A page. `back` is the label of the page underneath; a root page has none. */
+function Page({ title, sub, back, end, children, cls, pageKey }) {
+  const [scrolled, setScrolled] = useState(false);
+  const [lifted, setLifted] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => { if (ref.current) ref.current.scrollTop = 0; setScrolled(false); setLifted(false); }, [pageKey]);
+  const onScroll = (e) => {
+    const top = e.currentTarget.scrollTop;
+    if (top > 36 !== scrolled) setScrolled(top > 36);
+    if (top > 2 !== lifted) setLifted(top > 2);
+  };
+  return html`<section ref=${ref} class=${"page " + (cls || "") + (scrolled ? " scrolled" : "") + (lifted ? " lifted" : "")} onScroll=${onScroll} aria-label=${title}>
+    <header class="navbar">
+      <div>${back ? html`<button class="back" onClick=${() => nav.pop()} aria-label=${"Back to " + back}><${Icon} n="left" /><span>${back}</span></button>` : null}</div>
+      <div class="small-title" aria-hidden="true">${title}</div>
+      <div class="end">${end}</div>
+    </header>
+    <div class="content">
+      <div class="large">
+        <h1>${title}</h1>
+        ${sub ? html`<div class="sub">${sub}</div>` : null}
+      </div>
+      ${children}
+    </div>
+  </section>`;
+}
+
+const Section = ({ title, count, foot, stale, children, id }) => html`<section class="section" aria-labelledby=${id}>
+  ${title ? html`<div class="section-head"><h2 id=${id}>${title}${count != null ? html`<span class="count">${count}</span>` : null}</h2></div>` : null}
+  ${children}
+  ${foot ? html`<div class=${"section-foot" + (stale ? " stale" : "")}>${stale ? html`<${Icon} n="clock" sm />` : null}${foot}</div>` : null}
+</section>`;
+
+/* One row of an inset grouped list. A row with `onClick` is a button; with `href`, a link out. */
+function Row({ lead, title, meta, end, onClick, href, dim, cls, label }) {
+  const inner = html`${lead}
+    <span class="body"><span class="title">${title}</span>${meta ? html`<span class="meta">${meta}</span>` : null}</span>
+    ${end != null ? html`<span class="end">${end}</span>` : null}
+    ${onClick ? html`<span class="chev"><${Icon} n="right" sm /></span>` : href ? html`<span class="chev"><${Icon} n="link" sm /></span>` : null}`;
+  const c = "row" + (dim ? " dim" : "") + (cls ? " " + cls : "");
+  if (onClick) return html`<button class=${c} onClick=${onClick} aria-label=${label}>${inner}</button>`;
+  if (href) return html`<a class=${c} href=${href} target="_blank" rel="noopener" aria-label=${label}>${inner}</a>`;
+  return html`<div class=${c}>${inner}</div>`;
+}
+const Lead = ({ tone, children }) => html`<span class=${"lead-icon " + (tone || "")} aria-hidden="true">${children}</span>`;
+
+/* A fold: a head that opens and closes a body. Escape closes the fold that has focus inside it. */
+function Fold({ label, children, open: initial, id }) {
+  const [open, setOpen] = useState(!!initial);
+  const bodyId = "fold-" + id;
+  const onKey = (e) => { if (e.key === "Escape" && open) { e.stopPropagation(); setOpen(false); e.currentTarget.querySelector(".fold-head").focus(); } };
+  return html`<div class="fold" onKeyDown=${onKey}>
+    <button class="fold-head" aria-expanded=${open} aria-controls=${bodyId} onClick=${() => setOpen(!open)}>
+      <span class="chev"><${Icon} n="right" sm /></span>${label}
+    </button>
+    <div id=${bodyId} class=${"fold-body" + (open ? " open" : "")} inert=${open ? undefined : true}><div>${children}</div></div>
+  </div>`;
+}
+
+/* A thing's history: each event, who made it and when. */
+function History({ entries, id }) {
+  const list = [...entries].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+  return html`<${Section} title="History" count=${list.length} id=${"history-" + id}>
+    <div class="group history">
+      ${list.map((e) => {
+        const w = who(e.by);
+        const quote = e.answer ? (e.answer.chose ? "Chose " + e.answer.chose + (e.answer.note ? ": " + e.answer.note : "") : "“" + e.answer.own + "”") : null;
+        return html`<div class="h-item">
+          <span class=${"h-icon " + w.kind} aria-hidden="true">${w.emoji}</span>
+          <div class="h-body">
+            <span class="what">${EVENT_WORDS[e.event] || e.event}</span>
+            ${quote ? html`<span class="quote">${quote}</span>` : null}
+            <span class="ink2">${w.name}</span>
+            <span class="muted">${w.kind === "agent" ? cap(w.type) + " thread" : w.kind === "pipeline" ? "Pipeline" : "Person"} · <time datetime=${e.at}>${when(e.at)}</time></span>
+          </div>
+        </div>`;
+      })}
+    </div>
+  </${Section}>`;
+}
+
+/* Labelled paragraphs, for a plan's or a step's written parts. */
+const Prose = ({ parts }) => html`<div class="card prose">
+  ${parts.filter((p) => p[1]).map(([label, text]) => html`<div class="part"><span class="eyebrow">${label}</span>${Array.isArray(text) ? text : html`<p>${text}</p>`}</div>`)}
+</div>`;
+
+/* Where a section's facts came from, with their age; amber and in words once older than 30 minutes. */
+function SourceFoot({ source }) {
+  const src = (SNAP.derived.sources || []).find((s) => s.id === source);
+  if (!src) return null;
+  const stale = isStale(src.read);
+  return { foot: (stale ? "Stale: " : "") + src.name + ", read " + ago(src.read), stale };
+}
+
+// ---- charts.js
+// Charts: the burn-down (units left over time, with the line at the current pace to zero, and a crosshair tooltip),
+// the ratchet sparkline, and the budget bar. One series each, drawn to one scale, text in the theme's ink.
+
+/* Units left at each change, for any set of steps: planned adds its units, proven or dropped takes them away. */
+function burnOf(steps) {
+  const evs = [];
+  steps.forEach((s) => s.history.forEach((e) => {
+    const u = s.fields.units || 1;
+    if (e.event === "step_planned") evs.push({ at: e.at, d: u, done: 0, what: "step " + s.id + " planned" });
+    if (e.event === "step_proven") evs.push({ at: e.at, d: -u, done: u, what: "step " + s.id + " proven" });
+    if (e.event === "step_dropped") evs.push({ at: e.at, d: -u, done: 0, what: "step " + s.id + " dropped" });
+    if (e.event === "step_reopened") evs.push({ at: e.at, d: u, done: -u, what: "step " + s.id + " reopened" });
+  }));
+  evs.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+  let left = 0, done = 0;
+  return evs.map((e) => ({ at: e.at, left: (left += e.d), done: (done += e.done), what: e.what }));
+}
+
+/* The verdict: what is left, and how long the rest takes at the pace since the first unit was proven. */
+function burnVerdict(series) {
+  if (!series.length) return { text: "Nothing planned yet.", sub: "", rate: 0 };
+  const last = series[series.length - 1];
+  const firstDone = series.find((p) => p.done > 0);
+  if (last.left === 0) return { text: "Everything planned is done.", sub: plural(last.done, "unit") + " proven.", rate: 0 };
+  if (!firstDone) return { text: plural(last.left, "unit") + " left, none proven yet.", sub: "A pace shows once the first step is proven.", rate: 0 };
+  const days = Math.max((nowMs() - Date.parse(firstDone.at)) / 864e5, 0.25);
+  const rate = last.done / days;
+  const need = last.left / rate;
+  const span = need < 1 ? Math.max(1, Math.round(need * 24)) + " hours" : (Math.round(need * 10) / 10) + " days";
+  return {
+    text: plural(last.left, "unit") + " left. At this pace, about " + span + " more.",
+    sub: plural(last.done, "unit") + " proven in " + (Math.round(days * 10) / 10) + " days, about " + Math.round(rate) + " a day.",
+    rate,
+  };
+}
+
+function BurnChart({ series, label }) {
+  const [hover, setHover] = useState(null);
+  if (series.length < 2) return html`<p class="muted">Not enough history to draw yet.</p>`;
+  const W = 340, H = 150, L = 28, R = 8, Tp = 8, B = 22;
+  const v = burnVerdict(series);
+  const t0 = Date.parse(series[0].at), tNow = nowMs();
+  const last = series[series.length - 1];
+  const tEnd = v.rate > 0 ? Math.max(tNow, tNow + (last.left / v.rate) * 864e5) : tNow;
+  const maxY = Math.max(...series.map((p) => p.left), 1);
+  const x = (t) => L + ((t - t0) / Math.max(tEnd - t0, 1)) * (W - L - R);
+  const y = (n) => Tp + (1 - n / maxY) * (H - Tp - B);
+  let d = "", prev = null;
+  series.forEach((p) => {
+    const px = x(Date.parse(p.at)), py = y(p.left);
+    d += prev == null ? `M${px},${py}` : `H${px}V${py}`;
+    prev = py;
+  });
+  d += `H${x(tNow)}`;
+  const area = d + `V${y(0)}H${x(t0)}Z`;
+  const ticks = [0, Math.round(maxY / 2), maxY];
+  const day = (t) => new Date(t).toLocaleDateString("en-GB", { ...UTC, day: "numeric", month: "short" });
+  const onMove = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const t = t0 + (((e.clientX - r.left) / r.width) * W - L) / (W - L - R) * (tEnd - t0);
+    let p = null;
+    for (const q of series) if (Date.parse(q.at) <= t) p = q;
+    setHover(p && t <= tNow ? { p, px: x(Date.parse(p.at)) / W, py: y(p.left) / H } : null);
+  };
+  return html`<div class="chart" role="img" aria-label=${label + ": " + v.text}>
+    <svg viewBox=${`0 0 ${W} ${H}`} onPointerMove=${onMove} onPointerLeave=${() => setHover(null)}>
+      ${ticks.map((n) => html`<g><line x1=${L} x2=${W - R} y1=${y(n)} y2=${y(n)} stroke="var(--grid)" stroke-width="1" /><text x=${L - 6} y=${y(n) + 4} text-anchor="end">${n}</text></g>`)}
+      <path d=${area} fill="var(--chart-1)" fill-opacity="0.1" />
+      <path d=${d} fill="none" stroke="var(--chart-1)" stroke-width="2" stroke-linejoin="round" />
+      ${v.rate > 0 ? html`<line x1=${x(tNow)} y1=${y(last.left)} x2=${x(tEnd)} y2=${y(0)} stroke="var(--chart-ref)" stroke-width="2" stroke-dasharray="4 4" />` : null}
+      <circle cx=${x(tNow)} cy=${y(last.left)} r="4" fill="var(--chart-1)" stroke="var(--surface)" stroke-width="2" />
+      <text x=${L} y=${H - 4}>${day(t0)}</text>
+      <text x=${x(tNow)} y=${H - 4} text-anchor=${tEnd > tNow + 3600e3 ? "middle" : "end"}>Now</text>
+      ${tEnd > tNow + 3600e3 ? html`<text x=${W - R} y=${H - 4} text-anchor="end">${day(tEnd)}</text>` : null}
+      ${hover ? html`<line x1=${hover.px * W} x2=${hover.px * W} y1=${Tp} y2=${y(0)} stroke="var(--ink-3)" stroke-width="1" />` : null}
+    </svg>
+    ${hover ? html`<div class="tip" style=${`left:${hover.px * 100}%;top:${hover.py * 100}%`}><b class="num">${hover.p.left} left</b> · ${hover.p.what}<br /><span class="muted">${when(hover.p.at)}</span></div>` : null}
+  </div>`;
+}
+
+function BurnCard({ steps, series, label }) {
+  const s = series || burnOf(steps);
+  const v = burnVerdict(s);
+  return html`<div class="card">
+    <div><p class="verdict">${v.text}</p>${v.sub ? html`<p class="verdict-sub">${v.sub}</p>` : null}</div>
+    <${BurnChart} series=${s} label=${label} />
+    <div class="legend"><span><i></i>Units left</span>${v.rate > 0 ? html`<span><i class="ref"></i>At this pace</span>` : null}</div>
+  </div>`;
+}
+
+function Sparkline({ series }) {
+  const W = 120, H = 40, P = 4;
+  const pts = series.map((p) => p.count);
+  if (pts.length < 2) {
+    return html`<svg viewBox=${`0 0 ${W} ${H}`} aria-hidden="true"><line x1=${P} x2=${W - P} y1=${H / 2} y2=${H / 2} stroke="var(--chart-1)" stroke-width="2" /><circle cx=${W - P} cy=${H / 2} r="3" fill="var(--chart-1)" /></svg>`;
+  }
+  const t = series.map((p) => Date.parse(p.at));
+  const min = Math.min(...pts), max = Math.max(...pts), span = Math.max(max - min, 1);
+  const x = (i) => P + ((t[i] - t[0]) / Math.max(t[t.length - 1] - t[0], 1)) * (W - 2 * P);
+  const y = (n) => P + (1 - (n - min) / span) * (H - 2 * P);
+  const d = pts.map((n, i) => (i ? "L" : "M") + x(i) + "," + y(n)).join("");
+  return html`<svg viewBox=${`0 0 ${W} ${H}`} aria-hidden="true">
+    <line x1=${P} x2=${W - P} y1=${y(max)} y2=${y(max)} stroke="var(--chart-ref)" stroke-width="1" stroke-dasharray="3 3" />
+    <path d=${d + `L${x(pts.length - 1)},${H}L${x(0)},${H}Z`} fill="var(--chart-1)" fill-opacity="0.1" />
+    <path d=${d} fill="none" stroke="var(--chart-1)" stroke-width="2" stroke-linejoin="round" />
+    <circle cx=${x(pts.length - 1)} cy=${y(pts[pts.length - 1])} r="3" fill="var(--chart-1)" />
+  </svg>`;
+}
+
+/* The p95 of a list of measures. */
+function p95(xs) {
+  const s = [...xs].sort((a, b) => a - b);
+  return s[Math.min(s.length - 1, Math.ceil(0.95 * s.length) - 1)];
+}
+
+// ---- now.js
+// Now: only what needs Aaron. Each ask is a card he answers in place (an option, or his own words), with an undo
+// toast; then the threads waiting on him, the health of master and the last full run, and the sitreps not yet heard.
+
+function AskCard({ ask, standalone }) {
+  const f = ask.fields;
+  const state = stateOf("ask", ask);
+  const [own, setOwn] = useState(false);
+  const [text, setText] = useState("");
+  const t = threadLabel(f.from);
+  const done = state === "answered";
+  const ans = done ? [...historyOf("ask", ask)].reverse().find((e) => e.event === "ask_answered") : null;
+  const a = ans && ans.answer;
+  const example = /^ask-example-/.test(ask.id);
+  const send = () => { if (text.trim().length >= 3) { answerAsk(ask, { own: text.trim() }); setOwn(false); setText(""); } };
+  return html`<article class=${"ask" + (done ? " resolved" : "")} aria-label=${(done ? "Answered: " : "") + f.question} data-ask=${ask.id}>
+    <div class="ask-who">
+      <span class="avatar" aria-hidden="true">${t.emoji}</span>
+      <span class="who"><b>${t.name}</b><span class="muted">${done ? "Answered by you, " + clock(ans.at) : "Waiting " + ago(ask.since).replace(" ago", "")}</span></span>
+      ${example ? html`<span class="chip">Example</span>` : null}
+    </div>
+    <h3>${f.question}</h3>
+    <div class=${"options" + (done ? " decided" : "")} role="group" aria-label="Options">
+      ${f.options.map((o) => {
+        const chosen = a && a.chose === o.key;
+        return html`<button class=${"option" + (o.key === f.recommended ? " recommended" : "") + (chosen ? " chosen" : "")} disabled=${done} onClick=${() => answerAsk(ask, { chose: o.key })}
+          aria-label=${(chosen ? "Chosen: " : "Choose ") + o.key + ": " + o.title + (o.key === f.recommended ? ", recommended" : "")}>
+          <span class="letter" aria-hidden="true">${chosen ? html`<${Icon} n="check" sm />` : o.key}</span>
+          <span class="o-body">
+            <span class="o-title"><span>${o.title}</span>${o.key === f.recommended ? html`<span class="chip accent">Recommended</span>` : null}</span>
+            <span class="o-detail">${o.detail}</span>
+          </span>
+        </button>`;
+      })}
+      ${done && a && a.own ? html`<div class="option chosen own-answer"><span class="letter" aria-hidden="true"><${Icon} n="check" sm /></span>
+        <span class="o-body"><span class="o-title">In your own words</span><span class="o-detail">${a.own}</span></span></div>` : null}
+      ${done ? null : html`<button class="option own-option" aria-expanded=${own} onClick=${() => setOwn(!own)}>
+        <span class="letter" aria-hidden="true"><${Icon} n="pen" sm /></span>
+        <span class="o-body"><span class="o-title">Answer in my own words</span></span>
+      </button>`}
+      ${own && !done ? html`<div class="own">
+        <label class="sr" for=${"own-" + ask.id}>Your answer</label>
+        <textarea id=${"own-" + ask.id} value=${text} onInput=${(e) => setText(e.currentTarget.value)} placeholder="Say what you want done, and why." onKeyDown=${(e) => { if (e.key === "Escape") { e.stopPropagation(); setOwn(false); } }} />
+        <div class="btn-row"><button class="btn primary" disabled=${text.trim().length < 3} onClick=${send}>Send answer</button><button class="btn" onClick=${() => setOwn(false)}>Cancel</button></div>
+      </div>` : null}
+    </div>
+    <div class="ask-foot">
+      <${Fold} label="Details" id=${"details-" + ask.id}>
+        <div class="details">
+          <div><h4 class="eyebrow">Problem</h4><p>${f.problem}</p></div>
+          <div><h4 class="eyebrow">Context</h4><p>${f.context}</p></div>
+          <div><h4 class="eyebrow">Rubric</h4><ul>${f.rubric.map((r) => html`<li><b>${r.name}.</b> <span class="ink2">${r.why}</span></li>`)}</ul></div>
+          <div><h4 class="eyebrow">Trade-offs</h4><ul>${f.options.map((o) => html`<li><b>${o.key}.</b> <span class="ink2">${o.tradeoffs}</span></li>`)}</ul></div>
+          <div><h4 class="eyebrow">Why this recommendation</h4><p>${f.because}</p></div>
+        </div>
+      </${Fold}>
+      ${standalone ? null : html`<button class="btn ghost" onClick=${() => nav.push({ kind: "ask", id: ask.id })}>History<${Icon} n="right" sm /></button>`}
+    </div>
+  </article>`;
+}
+
+function AskPage({ id, back }) {
+  const ask = IX.asks[id];
+  return html`<${Page} title="Ask" back=${back} pageKey=${id} sub=${html`<${Chip} s=${stateOf("ask", ask)} />${ask.fields.lane ? html`<span>Lane ${ask.fields.lane}</span>` : null}`}>
+    <${AskCard} ask=${ask} standalone=${true} />
+    <${History} entries=${historyOf("ask", ask)} id=${id} />
+  </${Page}>`;
+}
+
+function NowScreen() {
+  useStore();
+  const asks = SNAP.needsYou.asks.map((id) => IX.asks[id]).filter(Boolean);
+  const open = openAsks();
+  const waiting = SNAP.needsYou.threads.map((id) => IX.threads[id]).filter(Boolean);
+  const h = SNAP.derived.health;
+  const run = h.runs[h.runs.length - 1];
+  const budget = (SNAP.derived.measures.budgets || [])[0];
+  const unheard = SNAP.sitreps.filter((s) => stateOf("sitrep", s) !== "heard").sort((a, b) => Date.parse(b.since) - Date.parse(a.since));
+  const gh = SourceFoot({ source: "github" });
+  const cond = SourceFoot({ source: "conductor" });
+  return html`<${Page} title="Now" pageKey="now" sub=${open.length ? plural(open.length, "decision") + " waiting on you" : "Nothing waiting on you"}>
+    <${Section} title="Asks" count=${open.length || null} id="sec-asks">
+      ${asks.map((a) => html`<${AskCard} ask=${a} key=${a.id} />`)}
+      ${open.length === 0 ? html`<div class="card empty" role="status">
+        <span class="badge"><${Icon} n="check" /></span>
+        <h3>Nothing needs you</h3>
+        <p>Every ask is answered. The lanes carry on; the next sitrep says what moved.</p>
+      </div>` : null}
+    </${Section}>
+    ${waiting.length ? html`<${Section} title="Threads waiting on you" count=${waiting.length} id="sec-waiting" ...${cond}>
+      <div class="group">
+        ${waiting.map((t) => html`<div class="row" key=${t.id}>
+          <${Lead}>${THREAD_TYPES[t.fields.type] || "🤖"}</${Lead}>
+          <span class="body"><span class="title">${t.fields.title}</span><span class="meta"><${Chip} s="waiting" /><span>${ago(t.since)}</span></span></span>
+          <a class="btn" href=${t.fields.link} target="_blank" rel="noopener">Open</a>
+        </div>`)}
+      </div>
+    </${Section}>` : null}
+    <${Section} title="Health" id="sec-health" ...${gh}>
+      <div class="group">
+        <${Row} href=${h.master.href} lead=${html`<${Lead} tone=${h.master.state === "green" ? "good" : "bad"}><${Icon} n=${h.master.state === "green" ? "check" : "warn"} /></${Lead}>`}
+          title="master" meta=${html`<${Chip} s=${h.master.state} /><span class="mono">${h.master.label}</span><span>${ago(h.master.at)}</span>`} />
+        ${run ? html`<${Row} href=${run.href} lead=${html`<${Lead} tone=${run.outcome === "passed" ? "good" : "bad"}><${Icon} n="clock" /></${Lead}>`}
+          title="Last full run" meta=${html`<${Chip} s=${run.outcome} /><span>${run.slice}</span><span>${ago(run.at)}</span>`}
+          end=${html`<span class=${"num" + (budget && run.minutes > budget.budget * 1.5 ? " bad-ink" : "")}>${run.minutes} min</span>`} />` : null}
+      </div>
+    </${Section}>
+    <${Section} title="New sitreps" count=${unheard.length || null} id="sec-new">
+      ${unheard.length ? html`<div class="group">
+        ${unheard.slice(0, 3).map((s) => html`<${Row} key=${s.id} cls="sitrep-row" onClick=${() => { store.set({ openSitrep: s.id }); nav.tab("sitreps"); }}
+          lead=${html`<span class="dot-unheard" aria-label="Not heard"></span>`} title=${s.fields.title} meta=${html`<span>${when(s.since)}</span><span>${plural(s.fields.parts.length, "part")}</span>`} />`)}
+      </div>` : html`<p class="muted section-foot">You have heard every sitrep.</p>`}
+    </${Section}>
+  </${Page}>`;
+}
+
+// ---- plan.js
+// Plan: the written plan, its state and burn-down, then its milestones. A milestone's page groups its steps Moving
+// and Not started, with Done folded; a step's page shows what it needs (linked), its lane, proof, pull requests and
+// the ratchet it closes. Each ends with its history.
+
+const stepsOf = (m) => (m.fields.steps || []).map((id) => IX.steps[id]).filter(Boolean);
+const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
+const ratchetsClosing = (stepId) =>
+  SNAP.derived.measures.ratchets.filter((r) => String(r.closes).split(/[ ,]+/).includes(stepId));
+
+function StepRow({ step, rel }) {
+  const lane = laneOfStep(step.id);
+  return html`<${Row} onClick=${() => nav.push({ kind: "step", id: step.id })} dim=${step.state === "done" && !rel}
+    lead=${html`<span class="mono step-id">${step.id}</span>`}
+    title=${rel ? html`<span class="rel">${rel}</span>${step.fields.title}` : step.fields.title}
+    meta=${html`<${Chip} s=${step.state} />${lane ? html`<span>${lane.fields.title}</span>` : null}${step.state !== "planned" ? html`<span>${ago(step.since)}</span>` : null}`} />`;
+}
+
+function MilestoneRow({ m }) {
+  return html`<${Row} onClick=${() => nav.push({ kind: "milestone", id: m.id })}
+    lead=${html`<span class=${"ring" + (m.done === m.of && m.of ? " done" : "")} style=${"--p:" + pct(m.done, m.of)} aria-hidden="true">${m.done === m.of && m.of ? html`<${Icon} n="check" sm />` : null}</span>`}
+    title=${m.fields.title}
+    meta=${html`<${Chip} s=${m.done === m.of && m.of ? "done" : m.state} /><span>Milestone ${m.id}</span><span class="num">${m.done} of ${m.of} units</span>`}
+    label=${"Milestone " + m.id + ": " + m.fields.title} />`;
+}
+
+function PlanScreen() {
+  useStore();
+  const p = SNAP.plan, f = p.fields;
+  const agreed = [...p.history].reverse().find((e) => e.event === "plan_agreed");
+  const ms = f.milestones.map((id) => IX.milestones[id]).filter(Boolean);
+  const src = SourceFoot({ source: "roadmap" });
+  return html`<${Page} title=${f.title} pageKey="plan"
+    sub=${html`<${Chip} s=${p.state} label=${p.state === "agreed" && agreed ? "Agreed by " + who(agreed.by).name + ", " + clock(agreed.at) : null} />`}>
+    <${Prose} parts=${[["Why", f.why], ["What", f.what], ["Where it ends", f.endState], ["What it leaves out", f.outOfScope]]} />
+    <${Section} title="Progress" id="sec-burn" ...${src}>
+      <${BurnCard} series=${SNAP.burn} label="The whole plan's burn-down" />
+    </${Section}>
+    <${Section} title="Milestones" count=${ms.length} id="sec-ms">
+      <div class="group">${ms.map((m) => html`<${MilestoneRow} m=${m} key=${m.id} />`)}</div>
+    </${Section}>
+    <${History} entries=${historyOf("plan", p)} id="plan" />
+  </${Page}>`;
+}
+
+function MilestonePage({ id, back }) {
+  const m = IX.milestones[id], f = m.fields;
+  const steps = stepsOf(m);
+  const moving = steps.filter((s) => s.state === "active");
+  const waiting = steps.filter((s) => s.state === "planned");
+  const done = steps.filter((s) => s.state === "done" || s.state === "dropped");
+  return html`<${Page} title=${f.title} back=${back} pageKey=${"m" + id}
+    sub=${html`<${Chip} s=${m.done === m.of && m.of ? "done" : m.state} /><span>Milestone ${m.id}</span>`}>
+    <${Prose} parts=${[["Goal", f.goal], ["Why now", f.why], ["Done when", f.doneWhen]]} />
+    <div class="card">
+      <div class="section-head"><span class="eyebrow">Progress</span><span class="num ink2">${m.done} of ${m.of} units · ${pct(m.done, m.of)}%</span></div>
+      <div class=${"bar" + (m.done === m.of ? " good" : "")} role="progressbar" aria-valuenow=${m.done} aria-valuemax=${m.of} aria-label="Units done"><i style=${"width:" + pct(m.done, m.of) + "%"}></i></div>
+    </div>
+    <${Section} title="Burn-down" id=${"sec-burn-" + id}><${BurnCard} steps=${steps} label=${"Milestone " + id + " burn-down"} /></${Section}>
+    ${moving.length ? html`<${Section} title="Moving" count=${moving.length} id=${"sec-moving-" + id}><div class="group">${moving.map((s) => html`<${StepRow} step=${s} key=${s.id} />`)}</div></${Section}>` : null}
+    ${waiting.length ? html`<${Section} title="Not started" count=${waiting.length} id=${"sec-wait-" + id}><div class="group">${waiting.map((s) => html`<${StepRow} step=${s} key=${s.id} />`)}</div></${Section}>` : null}
+    ${done.length ? html`<${Fold} label=${"Done (" + done.length + ")"} id=${"done-" + id} open=${!moving.length && !waiting.length}>
+      <div class="group">${done.map((s) => html`<${StepRow} step=${s} key=${s.id} />`)}</div>
+    </${Fold}>` : null}
+    <${History} entries=${historyOf("milestone", m)} id=${"m" + id} />
+  </${Page}>`;
+}
+
+function StepPage({ id, back }) {
+  const s = IX.steps[id], f = s.fields;
+  const lane = laneOfStep(id);
+  const pulls = lane ? SNAP.derived.pulls.filter((p) => p.lane === lane.id) : [];
+  const ratchets = ratchetsClosing(id);
+  const ms = IX.milestones[f.milestone];
+  return html`<${Page} title=${f.title} back=${back} pageKey=${"s" + id}
+    sub=${html`<${Chip} s=${s.state} /><span>Step ${id}</span>${ms ? html`<span>${ms.fields.title}</span>` : null}<span>${plural(f.units || 1, "unit")}</span>`}>
+    <${Prose} parts=${[["What", f.what], ["Why", f.why], ["Done when", f.doneWhen]]} />
+    <${Section} title="Needs" count=${(f.needs || []).length || null} id=${"sec-needs-" + id}>
+      ${(f.needs || []).length ? html`<div class="group">${f.needs.map((n) => IX.steps[n]).filter(Boolean).map((n) => html`<${StepRow} step=${n} key=${n.id} rel=${n.state === "done" ? "Needed, done" : "Waiting on"} />`)}</div>`
+        : html`<p class="section-foot">Needs no other step.</p>`}
+    </${Section}>
+    <${Section} title="Lane" id=${"sec-lane-" + id}>
+      ${lane ? html`<div class="group"><${Row} onClick=${() => nav.push({ kind: "lane", id: lane.id })} lead=${html`<${Lead}>${threadLabel(lane.fields.lead).emoji}</${Lead}>`}
+        title=${lane.fields.title} meta=${html`<span class="mono">${lane.fields.branch}</span>`} /></div>` : html`<p class="section-foot">No lane has taken it yet.</p>`}
+    </${Section}>
+    <${Section} title="Proof" id=${"sec-proof-" + id}>
+      ${f.proof ? html`<div class="group"><${Row} href=${f.proof} lead=${html`<${Lead} tone="good"><${Icon} n="check" /></${Lead}>`} title="Proof on master" meta=${html`<span class="mono">${f.proof.split("/").pop()}</span>`} /></div>`
+        : html`<p class="section-foot">No proof yet. It is proven when CI commits one.</p>`}
+    </${Section}>
+    ${pulls.length ? html`<${Section} title="Pull requests" count=${pulls.length} id=${"sec-prs-" + id}><div class="group">${pulls.map((p) => html`<${PullRow} p=${p} key=${p.number} />`)}</div></${Section}>` : null}
+    ${ratchets.length ? html`<${Section} title="Closes" id=${"sec-ratchet-" + id}><div class="group">${ratchets.map((r) => html`<${Row} key=${r.id}
+      lead=${html`<${Lead} tone="accent"><span class="mono">${r.id}</span></${Lead}>`} title=${r.name} meta=${html`<span>${r.count != null ? r.count + " left" : "Not counted yet"}</span>`} />`)}</div></${Section}>` : null}
+    <${History} entries=${historyOf("step", s)} id=${"s" + id} />
+  </${Page}>`;
+}
+
+const PR_TONE = { open: "accent", draft: "", merged: "good", closed: "" };
+const PullRow = ({ p }) => html`<${Row} href=${p.href} lead=${html`<${Lead} tone=${PR_TONE[p.state]}><${Icon} n="pr" /></${Lead}>`}
+  title=${p.title} meta=${html`<span class=${"chip " + (PR_TONE[p.state] || "")}><span class="dot"></span>${cap(p.state)}</span><span class="mono">#${p.number}</span>`} />`;
+
+// ---- lanes.js
+// Lanes: one row per lane, like an agent's session (its lead, its current step, its pull request, its age). A lane's
+// page has its lead, steps, pull requests, threads, sitreps and history. Measures: ratchets, the run's budget, evals.
+
+function laneFacts(l) {
+  const steps = (l.fields.steps || []).map((id) => IX.steps[id]).filter(Boolean);
+  const current = steps.find((s) => s.state === "active") || steps.find((s) => s.state === "planned") || steps[steps.length - 1];
+  const pulls = SNAP.derived.pulls.filter((p) => p.lane === l.id);
+  const slice = pulls.find((p) => /^slice\//.test(p.title));
+  const threads = SNAP.threads.filter((t) => t.fields.lane === l.id);
+  const latest = [l.since, ...threads.map((t) => t.since), ...steps.map((s) => s.since)].sort().pop();
+  return { steps, current, pulls, slice, threads, latest };
+}
+
+function LanesScreen() {
+  useStore();
+  const lanes = SNAP.lanes;
+  const loose = SNAP.threads.filter((t) => !t.fields.lane);
+  const cond = SourceFoot({ source: "conductor" });
+  return html`<${Page} title="Lanes" pageKey="lanes" sub=${plural(lanes.filter((l) => l.state === "open").length, "lane") + " open · " + plural(SNAP.threads.filter((t) => t.state !== "archived").length, "thread") + " working"}>
+    <${Section} title="Lanes" count=${lanes.length} id="sec-lanes" ...${cond}>
+      <div class="group">
+        ${lanes.map((l) => {
+          const x = laneFacts(l);
+          const lead = l.fields.lead ? IX.threads[l.fields.lead] : null;
+          return html`<${Row} key=${l.id} cls="lane-row" onClick=${() => nav.push({ kind: "lane", id: l.id })}
+            lead=${html`<${Lead} tone=${lead && lead.state === "waiting" ? "warn" : "accent"}>${lead ? THREAD_TYPES[lead.fields.type] : html`<${Icon} n="lanes" />`}</${Lead}>`}
+            title=${l.fields.title}
+            meta=${html`${x.current ? html`<span>Step ${x.current.id}</span>` : null}
+              ${lead && lead.state === "waiting" ? html`<${Chip} s="waiting" />` : lead ? null : html`<span class="chip warn"><span class="dot"></span>No lead</span>`}
+              ${x.slice ? html`<span class="mono">#${x.slice.number}</span>` : null}`}
+            end=${html`<span class="num">${ago(x.latest, true)}</span>`} />`;
+        })}
+      </div>
+    </${Section}>
+    <${Section} title="Other threads" count=${loose.length} id="sec-threads">
+      <div class="group">${loose.map((t) => html`<${ThreadRow} t=${t} key=${t.id} />`)}</div>
+    </${Section}>
+  </${Page}>`;
+}
+
+const ThreadRow = ({ t }) => html`<${Row} href=${t.fields.link} lead=${html`<${Lead}>${THREAD_TYPES[t.fields.type] || "🤖"}</${Lead}>`}
+  title=${t.fields.title} meta=${html`<${Chip} s=${t.state === "active" ? "active" : t.state} label=${t.state === "active" ? "Working" : null} /><span>${cap(t.fields.type)}</span><span>${ago(t.since)}</span>`} />`;
+
+function LanePage({ id, back }) {
+  const l = IX.lanes[id];
+  const x = laneFacts(l);
+  const lead = l.fields.lead ? IX.threads[l.fields.lead] : null;
+  const reps = SNAP.sitreps.filter((s) => (s.fields.lanes || []).includes(id)).sort((a, b) => Date.parse(b.since) - Date.parse(a.since));
+  const others = x.threads.filter((t) => t.id !== l.fields.lead);
+  return html`<${Page} title=${l.fields.title} back=${back} pageKey=${"l" + id} sub=${html`<${Chip} s=${l.state} /><span class="mono">${l.fields.branch}</span>`}>
+    <${Section} title="Lead" id=${"sec-lead-" + id}>
+      ${lead ? html`<div class="group"><${ThreadRow} t=${lead} /></div>` : html`<p class="section-foot">No lead has started on this lane yet.</p>`}
+    </${Section}>
+    <${Section} title="Steps" count=${x.steps.length} id=${"sec-lsteps-" + id}><div class="group">${x.steps.map((s) => html`<${StepRow} step=${s} key=${s.id} />`)}</div></${Section}>
+    <${Section} title="Pull requests" count=${x.pulls.length} id=${"sec-lprs-" + id}>
+      ${x.pulls.length ? html`<div class="group">${x.pulls.map((p) => html`<${PullRow} p=${p} key=${p.number} />`)}</div>` : html`<p class="section-foot">No pull requests yet.</p>`}
+    </${Section}>
+    ${others.length ? html`<${Section} title="Threads" count=${others.length} id=${"sec-lthreads-" + id}><div class="group">${others.map((t) => html`<${ThreadRow} t=${t} key=${t.id} />`)}</div></${Section}>` : null}
+    ${reps.length ? html`<${Section} title="Sitreps" count=${reps.length} id=${"sec-lreps-" + id}><div class="group">${reps.map((s) => html`<${Row} key=${s.id}
+      onClick=${() => { store.set({ openSitrep: s.id }); nav.tab("sitreps"); }} dim=${stateOf("sitrep", s) === "heard"}
+      lead=${stateOf("sitrep", s) === "heard" ? html`<${Lead}><${Icon} n="check" sm /></${Lead}>` : html`<${Lead} tone="accent"><${Icon} n="sitreps" sm /></${Lead}>`}
+      title=${s.fields.title} meta=${html`<span>${when(s.since)}</span>`} />`)}</div></${Section}>` : null}
+    <${History} entries=${historyOf("lane", l)} id=${"l" + id} />
+  </${Page}>`;
+}
+
+function verdictOf(r) {
+  const s = r.series || [];
+  if (s.length < 2) return { text: "One reading so far", tone: "" };
+  const today = s.filter((p) => dayLabel(p.at) === "Today");
+  const base = (today.length > 1 ? today : s)[0].count, d = s[s.length - 1].count - base;
+  const span = today.length > 1 ? " today" : "";
+  if (d < 0) return { text: "Down " + -d + span, tone: "good" };
+  if (d > 0) return { text: "Up " + d + span, tone: "bad" };
+  return { text: "Flat" + span, tone: "" };
+}
+
+function MeasuresScreen() {
+  const rs = SNAP.derived.measures.ratchets;
+  const counted = rs.filter((r) => r.count != null), uncounted = rs.filter((r) => r.count == null);
+  const gh = SourceFoot({ source: "github" });
+  return html`<${Page} title="Measures" pageKey="measures" sub=${plural(counted.length, "ratchet") + " counted · " + uncounted.length + " not yet"}>
+    <${Section} title="Ratchets" count=${counted.length} id="sec-ratchets">
+      <div class="cards">${counted.map((r) => {
+        const v = verdictOf(r);
+        return html`<div class="trend" key=${r.id}>
+          <div class="name"><span>${r.name}</span><span class="mono muted">${r.id}</span></div>
+          <div><div class="big num">${r.count.toLocaleString("en-GB")}</div><div class=${"what " + (v.tone ? v.tone + "-ink" : "muted")}>${v.text}</div></div>
+          <${Sparkline} series=${r.series || []} />
+          <div class="name muted"><span>Closes ${r.closes}</span></div>
+        </div>`;
+      })}</div>
+      <${Fold} label=${"Not counted yet (" + uncounted.length + ")"} id="uncounted">
+        <div class="group">${uncounted.map((r) => html`<${Row} key=${r.id} lead=${html`<${Lead}><span class="mono">${r.id}</span></${Lead}>`} title=${r.name} meta=${html`<span>Closes ${r.closes}</span>`} />`)}</div>
+      </${Fold}>
+    </${Section}>
+    <${Section} title="Budgets" id="sec-budgets" ...${gh}>${SNAP.derived.measures.budgets.map((b) => html`<${BudgetCard} b=${b} key=${b.name} />`)}</${Section}>
+    <${Section} title="Evals" id="sec-evals">
+      <div class="group">${SNAP.derived.measures.evals.map((e) => html`<${Row} key=${e.step} lead=${html`<${Lead}><${Icon} n="info" /></${Lead}>`}
+        title=${e.name} meta=${html`<span class="chip">Not measured yet</span><span>Step ${e.step}</span>`} />`)}</div>
+    </${Section}>
+  </${Page}>`;
+}
+
+function BudgetCard({ b }) {
+  const p = p95(b.measured), review = b.budget * 1.5, max = Math.max(p, review) * 1.1;
+  const over = p > review;
+  const at = (n) => (n / max) * 100 + "%";
+  return html`<div class="card">
+    <div class="section-head"><span class="what"><b>${b.name}</b></span><span class=${"chip " + (over ? "bad" : "good")}><span class="dot"></span>${over ? "Review due" : "Within"}</span></div>
+    <p class="verdict">p95 is ${p} ${b.unit}, ${Math.round((p / b.budget) * 10) / 10}× the ${b.budget}-${b.unit === "min" ? "minute" : b.unit} budget.</p>
+    <p class="verdict-sub">${over ? "Past 1.5 times its budget, so an architecture review is raised. A budget never fails a run." : "Within 1.5 times its budget."} ${plural(b.measured.length, "run")} measured.</p>
+    <div class=${"budget-bar" + (over ? " over" : "")} role="meter" aria-valuenow=${p} aria-valuemax=${max} aria-label=${b.name + " p95 against budget"}>
+      <i style=${"width:" + at(p)}></i><span class="tick" style=${"left:" + at(b.budget)}></span><span class="tick review" style=${"left:" + at(review)}></span>
+    </div>
+    <div class="legend"><span><i class="tick-key"></i>Budget ${b.budget} ${b.unit}</span><span><i class="tick-key review"></i>Review at ${review} ${b.unit}</span><span><i class=${"bar-key" + (over ? " over" : "")}></i>p95 ${p} ${b.unit}</span></div>
+  </div>`;
+}
+
+// ---- sitreps.js
+// Sitreps: a feed by day, unheard bold with a dot, partly heard with a bar, heard dimmed. Tap one to fold it open:
+// its parts (tap a part to play from it), play, mark heard, links, history. The player reads through the artifact's
+// tts capability: one line per part, so back, forward and the parts bar start a new reading from another part.
+
+let TTS; // undefined while asking, null where reading aloud is not available
+const P = { sid: null, cur: -1, state: "idle", n: 0 };
+function setP(patch) { Object.assign(P, patch); store.set({ player: { ...P } }); }
+
+function initTts() {
+  const use = window.claude && window.claude.use;
+  if (!use) { TTS = null; store.set({ tts: "no" }); return; }
+  Promise.resolve(use("tts")).then((t) => {
+    TTS = t || null;
+    store.set({ tts: TTS ? "yes" : "no" });
+    if (!TTS) return;
+    TTS.onState(({ state, reason }) => {
+      if (state === "idle") {
+        const s = IX.sitreps[P.sid];
+        if (reason === "completed" && s) markHeard(s);
+        if (reason !== "replaced") setP({ state: "idle" });
+      } else setP({ state });
+    });
+    TTS.onLine(({ id }) => {
+      const i = Number(id);
+      if (Number.isNaN(i)) return;
+      setP({ cur: i });
+      store.set((s) => ({ heardParts: { ...s.heardParts, [P.sid]: Math.max(s.heardParts[P.sid] || 0, i) } }));
+    });
+  }, () => { TTS = null; store.set({ tts: "no" }); });
+}
+
+function speakFrom(sitrep, i) {
+  if (!TTS) return;
+  const parts = sitrep.fields.parts;
+  if (i < 0 || i >= parts.length) return;
+  setP({ sid: sitrep.id, cur: i, state: "starting", n: parts.length });
+  const lines = parts.slice(i).map((text, k) => ({ id: String(i + k), text: (i + k === 0 ? sitrep.fields.title + ". " : "") + text }));
+  TTS.speak(lines, { rate: store.s.rate }).catch((err) => {
+    if (err && err.code === "stopped") return;
+    if (err && (err.code === "not_granted" || err.code === "unavailable")) { TTS = null; store.set({ tts: "no" }); }
+    if (err && err.code === "rate_limited") toast("Reading aloud is busy. Try again in a minute.");
+    setP({ state: "idle" });
+  });
+}
+const player = {
+  toggle() { if (!TTS) return; if (P.state === "paused") TTS.resume(); else if (P.state !== "idle") TTS.pause(); },
+  back() { const s = IX.sitreps[P.sid]; if (s) speakFrom(s, Math.max(0, P.cur - 1)); },
+  forward() { const s = IX.sitreps[P.sid]; if (!s) return; if (P.cur + 1 < s.fields.parts.length) speakFrom(s, P.cur + 1); else player.stop(); },
+  jump(i) { const s = IX.sitreps[P.sid]; if (s) speakFrom(s, i); },
+  stop() { if (TTS) TTS.stop(); setP({ state: "idle" }); },
+  rate(r) { store.set({ rate: r }); if (TTS && TTS.setRate) TTS.setRate(r); },
+};
+const SPEEDS = [0.75, 1, 1.25, 1.5];
+
+function MiniPlayer() {
+  const st = useStore();
+  const [speeds, setSpeeds] = useState(false);
+  const s = IX.sitreps[P.sid];
+  if (!s || P.state === "idle") return null;
+  const n = s.fields.parts.length;
+  return html`<div class="player" role="region" aria-label="Player">
+    <div class="top">
+      <span class="np"><b>${s.fields.title}</b><span>Part ${P.cur + 1} of ${n}${P.state === "paused" ? " · Paused" : ""}</span></span>
+      <span class="ctl">
+        <button class="icon-btn" onClick=${player.back} aria-label="Back one part"><${Icon} n="back" /></button>
+        <button class="play" onClick=${player.toggle} aria-label=${P.state === "paused" ? "Resume" : "Pause"}><${Icon} n=${P.state === "paused" ? "play" : "pause"} /></button>
+        <button class="icon-btn" onClick=${player.forward} aria-label="Forward one part"><${Icon} n="fwd" /></button>
+        <button class="speed num" onClick=${() => setSpeeds(!speeds)} aria-expanded=${speeds} aria-label=${"Speed " + st.rate + "×"}>${st.rate}×</button>
+        <button class="icon-btn" onClick=${player.stop} aria-label="Stop"><${Icon} n="x" /></button>
+      </span>
+    </div>
+    ${speeds ? html`<div class="speeds" role="group" aria-label="Speed">${SPEEDS.map((r) => html`<button class="num" aria-pressed=${st.rate === r} onClick=${() => { player.rate(r); setSpeeds(false); }}>${r}×</button>`)}</div>` : null}
+    <div class="parts" role="group" aria-label="Parts">${s.fields.parts.map((_, i) => html`<button class=${i < P.cur ? "done" : i === P.cur ? "current" : ""} onClick=${() => player.jump(i)} aria-label=${"Play part " + (i + 1)} aria-current=${i === P.cur ? "true" : undefined}><i></i></button>`)}</div>
+  </div>`;
+}
+
+function SitrepItem({ s, open }) {
+  const st = store.s;
+  const heard = stateOf("sitrep", s) === "heard";
+  const n = s.fields.parts.length, got = st.heardParts[s.id] || 0;
+  const partly = !heard && got > 0;
+  const playingThis = P.sid === s.id && P.state !== "idle";
+  const toggle = () => store.set({ openSitrep: open ? null : s.id });
+  return html`<div class=${"sitrep-item" + (heard ? " heard" : "")} data-sitrep=${s.id}>
+    <button class=${"row sitrep-row" + (heard ? " heard dim" : "")} aria-expanded=${open} onClick=${toggle}>
+      ${heard ? html`<${Lead}><${Icon} n="check" sm /></${Lead}>` : html`<span class="dot-slot">${partly ? null : html`<span class="dot-unheard"></span>`}</span>`}
+      <span class="body"><span class="title">${s.fields.title}</span>
+        <span class="meta"><span>${clock(s.since)}</span><span>${plural(n, "part")}</span>${heard ? html`<span>Heard</span>` : partly ? html`<span class="bar progress" aria-label=${"Heard " + got + " of " + n}><i style=${"width:" + Math.round((got / n) * 100) + "%"}></i></span>` : html`<span class="sr">Not heard</span>`}</span></span>
+      <span class="chev"><${Icon} n=${open ? "x" : "right"} sm /></span>
+    </button>
+    ${open ? html`<div class="sitrep-open">
+      <div>${s.fields.parts.map((t, i) => html`<button class=${"part-btn" + (playingThis && P.cur === i ? " playing" : "")} disabled=${st.tts !== "yes"} onClick=${() => speakFrom(s, i)} aria-label=${"Play from part " + (i + 1)}><span class="n">${i + 1}</span><span>${t}</span></button>`)}</div>
+      <div class="btn-row">
+        ${st.tts === "yes" ? html`<button class="btn primary" onClick=${() => (playingThis ? player.toggle() : speakFrom(s, 0))}><${Icon} n=${playingThis && P.state !== "paused" ? "pause" : "play"} sm />${playingThis ? (P.state === "paused" ? "Resume" : "Pause") : "Play"}</button>` : null}
+        <button class="btn" disabled=${heard} onClick=${() => markHeard(s)}><${Icon} n="check" sm />${heard ? "Heard" : "Mark heard"}</button>
+      </div>
+      ${(s.fields.links || []).length ? html`<div class="group">${s.fields.links.map((l) => html`<${Row} href=${l.href} key=${l.href} title=${l.label} />`)}</div>` : null}
+      <${History} entries=${historyOf("sitrep", s)} id=${"r" + s.id} />
+    </div>` : null}
+  </div>`;
+}
+
+function SitrepsScreen() {
+  const st = useStore();
+  const reps = [...SNAP.sitreps].sort((a, b) => Date.parse(b.since) - Date.parse(a.since));
+  const days = [];
+  reps.forEach((s) => { const d = dayLabel(s.since); const g = days.find((x) => x.d === d); g ? g.list.push(s) : days.push({ d, list: [s] }); });
+  const unheard = reps.filter((s) => stateOf("sitrep", s) !== "heard").length;
+  return html`<${Page} title="Sitreps" pageKey="sitreps" sub=${unheard ? unheard + " not heard" : "All heard"}>
+    ${st.tts === "no" ? html`<div class="note" role="status"><${Icon} n="speaker" sm /><span>Reading aloud is not available here. Every sitrep stays readable below.</span></div>` : null}
+    ${days.map((g) => html`<${Section} key=${g.d} id=${"day-" + g.d}>
+      <div class="day-head">${g.d}<span class="count">${g.list.length}</span></div>
+      <div class="group">${g.list.map((s) => html`<${SitrepItem} s=${s} open=${st.openSitrep === s.id} key=${s.id} />`)}</div>
+    </${Section}>`)}
+  </${Page}>`;
+}
+
+// ---- app.js
+// The shell: five tabs on a phone (a sidebar on a laptop), pushed pages with a back chevron (a right panel on a
+// laptop), the toast, the mini player, and the loading, error and empty states. #loading, #error and #empty show
+// those states on purpose, for review.
+
+const ROOTS = { now: NowScreen, plan: PlanScreen, lanes: LanesScreen, measures: MeasuresScreen, sitreps: SitrepsScreen };
+const ROOT_TITLES = { now: "Now", plan: "Plan", lanes: "Lanes", measures: "Measures", sitreps: "Sitreps" };
+const PAGES = { milestone: MilestonePage, step: StepPage, lane: LanePage, ask: AskPage };
+function titleOf(e) {
+  if (e.kind === "milestone") return IX.milestones[e.id].fields.title;
+  if (e.kind === "step") return "Step " + e.id;
+  if (e.kind === "lane") return IX.lanes[e.id].fields.title;
+  return "Ask";
+}
+
+function useWide() {
+  const q = window.matchMedia("(min-width: 960px)");
+  const [wide, setWide] = useState(q.matches);
+  useEffect(() => { const f = () => setWide(q.matches); q.addEventListener("change", f); return () => q.removeEventListener("change", f); }, []);
+  return wide;
+}
+
+function Tabs({ cls, itemCls }) {
+  const st = useStore();
+  const badge = openAsks().length;
+  return html`<nav class=${cls} aria-label="Sections">
+    ${cls === "sidebar" ? html`<div class="brand"><span class="mark"><${Icon} n="plan" /></span><span><b>Sitrep</b><span>The Capxul rebuild</span></span></div>` : null}
+    ${TABS.map((t) => html`<button class=${itemCls} key=${t.id} aria-current=${st.tab === t.id ? "page" : undefined} onClick=${() => nav.tab(t.id)} data-tab=${t.id}>
+      <${Icon} n=${t.icon} /><span>${t.label}</span>
+      ${t.id === "now" && badge ? html`<span class="badge num" aria-label=${badge + " waiting"}>${badge}</span>` : null}
+    </button>`)}
+    ${cls === "sidebar" ? html`<div class="side-foot">${SNAP.derived.sources.map((s) => html`<span class=${isStale(s.read) ? "warn-ink" : ""} key=${s.id}>${s.name}: ${ago(s.read)}</span>`)}</div>` : null}
+  </nav>`;
+}
+
+function Toast() {
+  const st = useStore();
+  if (!st.toast) return null;
+  const lift = P.state !== "idle";
+  return html`<div class=${"toast" + (lift ? " lift" : "")} role="status" aria-live="polite">
+    <span>${st.toast.text}</span>
+    ${st.toast.undo ? html`<button onClick=${st.toast.undo}>Undo</button>` : null}
+  </div>`;
+}
+
+function App() {
+  const st = useStore();
+  const wide = useWide();
+  const stack = st.stacks[st.tab];
+  const Root = ROOTS[st.tab];
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      if (store.s.openSitrep) store.set({ openSitrep: null });
+      else if (store.s.stacks[store.s.tab].length) nav.pop();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  const pageAt = (e, i, cls) => {
+    const C = PAGES[e.kind];
+    const back = i === 0 ? ROOT_TITLES[st.tab] : titleOf(stack[i - 1]);
+    return html`<div class=${"stack-page " + cls} key=${e.kind + e.id + i}><${C} id=${e.id} back=${back} /></div>`;
+  };
+  const top = stack.length - 1;
+  return html`<div class="app" data-wide=${wide}>
+    ${wide ? html`<${Tabs} cls="sidebar" itemCls="side-item" />` : null}
+    <main class="main">
+      <div class=${"stack-page" + (!wide && stack.length ? " under" : "")} key=${"root-" + st.tab}><${Root} /></div>
+      ${!wide ? stack.map((e, i) => pageAt(e, i, i === top ? "pushed enter" : "under")) : null}
+    </main>
+    ${wide && stack.length ? html`<aside class="panel" aria-label="Detail">${pageAt(stack[top], top, "enter")}</aside>` : null}
+    ${wide ? null : html`<${Tabs} cls="tabbar" itemCls="tab" />`}
+    <${MiniPlayer} />
+    <${Toast} />
+  </div>`;
+}
+
+class Boundary extends preact.Component {
+  constructor() { super(); this.state = { error: null }; }
+  componentDidCatch(error) { this.setState({ error }); }
+  render() { return this.state.error ? html`<${ErrorPage} error=${this.state.error} />` : this.props.children; }
+}
+const ErrorPage = ({ error }) => html`<div class="error-page" role="alert"><div class="card">
+  <span class="lead-icon bad"><${Icon} n="warn" /></span>
+  <h1>The sitrep could not be shown</h1>
+  <p>The snapshot did not match the blueprint's shapes, so nothing is shown rather than something wrong. The next refresh rebuilds it; if this stays, the refresh's run says why.</p>
+  <pre>${String(error && error.message ? error.message : error)}</pre>
+</div></div>`;
+
+(function start() {
+  const root = document.getElementById("app");
+  const demo = location.hash.slice(1);
+  if (demo === "loading") return;
+  if (!SNAP || demo === "error") {
+    render(html`<${ErrorPage} error=${SNAP ? "Demo: snapshot refused (event 41 is no declared event)." : "No snapshot was embedded in the page."} />`, root);
+    return;
+  }
+  if (demo === "empty") { SNAP.needsYou = { asks: [], threads: [] }; }
+  root.textContent = "";
+  initTts();
+  render(html`<${Boundary}><${App} /></${Boundary}>`, root);
+})();
+
+})();
+</script>

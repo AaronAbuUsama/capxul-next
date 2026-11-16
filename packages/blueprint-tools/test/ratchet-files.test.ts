@@ -1,4 +1,4 @@
-// The ratchets counted from the repository's files (roadmap item 3.6): R7, R8 and R10's counters on made-up files,
+// The ratchets counted from the repository's files (roadmap items 3.6 and 3.8): R7, R8, R10 and R20's counters on made-up files,
 // each through the registry's counter of its name. The repository's own counts are tested where its files are gathered
 // (packages/generate/test/ratchets.test.ts). Run with `pnpm test`.
 import { strict as assert } from "node:assert";
@@ -6,17 +6,27 @@ import { test } from "node:test";
 import * as Arr from "effect/Array";
 import type { Ratchet } from "../src/language/ratchet.ts";
 import type { RepositoryFiles } from "../src/checks/ratchet-files.ts";
+import type { Entry } from "../src/language/glossary.ts";
 import { tally, type Lists } from "../src/checks/ratchets.ts";
 
-const none: RepositoryFiles = { verbs: {}, longReadmes: [], docs: {}, nonEffect: {}, dependencies: {} };
-const lists = (files: Partial<RepositoryFiles>): Lists => ({
+const none: RepositoryFiles = {
+  verbs: {},
+  longReadmes: [],
+  docs: {},
+  nonEffect: {},
+  dependencies: {},
+  tracked: [],
+  scripts: [],
+};
+const lists = (files: Partial<RepositoryFiles>, glossary: ReadonlyArray<Entry>): Lists => ({
   lint: {},
   formats: {},
   oldWords: {},
   files: { ...none, ...files },
+  glossary,
 });
-const one = (ratchet: Ratchet, files: Partial<RepositoryFiles>) => {
-  const [counted] = tally([ratchet], lists(files));
+const one = (ratchet: Ratchet, files: Partial<RepositoryFiles>, glossary: ReadonlyArray<Entry> = []) => {
+  const [counted] = tally([ratchet], lists(files, glossary));
   return { count: counted?.count, items: counted?.items };
 };
 
@@ -83,4 +93,32 @@ test("R10 counts effect-only's findings and each runtime dependency that is not 
     ],
   });
   assert.deepEqual(one(R10, {}), { count: 0, items: [] });
+});
+
+const R20: Ratchet = { id: "R20", name: "Landed", holds: "words", closes: "3.8", count: "glossary:not-landed" };
+
+test("R20 counts each landing place not there yet and each file still named by an old word", () => {
+  const glossary: ReadonlyArray<Entry> = [
+    { word: "api", meaning: "m", replaces: ["core"], scope: "internal", lands: "packages/api" },
+    { word: "sites", meaning: "m", replaces: [], scope: "internal", lands: "packages/sites" },
+    { word: "gate", meaning: "m", replaces: [], scope: "internal", lands: "pnpm gate" },
+    { word: "words", meaning: "m", replaces: [], scope: "internal", lands: "pnpm words" },
+    { word: "endpoint", meaning: "m", replaces: [], scope: "user-facing", lands: "--world <name>" },
+    { word: "index.ts", meaning: "m", replaces: [{ kind: "code", text: "door.ts" }], scope: "internal" },
+    { word: "flag", meaning: "m", replaces: [{ kind: "code", text: "--at" }], scope: "internal" },
+  ];
+  const files = {
+    tracked: ["packages/sites/README.md", "packages/core/src/door.ts", "packages/a/door.ts.md", "door.ts"],
+    scripts: ["words"],
+  };
+  assert.deepEqual(one(R20, files, glossary), {
+    count: 4,
+    items: [
+      "not landed: api: packages/api",
+      "not landed: gate: pnpm gate",
+      "not renamed: door.ts (index.ts)",
+      "not renamed: packages/core/src/door.ts (index.ts)",
+    ],
+  });
+  assert.deepEqual(one(R20, {}, []), { count: 0, items: [] });
 });

@@ -5,7 +5,14 @@
 import type { Counter, Ratchet } from "../language/ratchet.ts";
 import * as Arr from "effect/Array";
 import * as Rec from "effect/Record";
-import { longOrMappedDocs, nonEffectCode, verbsWithExamplesApart, type RepositoryFiles } from "./ratchet-files.ts";
+import type { Entry } from "../language/glossary.ts";
+import {
+  longOrMappedDocs,
+  nonEffectCode,
+  verbsWithExamplesApart,
+  wordsNotLanded,
+  type RepositoryFiles,
+} from "./ratchet-files.ts";
 
 export { NOT_LINTED, type RepositoryFiles } from "./ratchet-files.ts";
 
@@ -20,8 +27,10 @@ export interface Lists {
   readonly formats: { readonly [format: string]: ReadonlyArray<string> };
   /** The glossary's old words as generated/old-words.json counts them (old-words.ts): a word, and its count. */
   readonly oldWords: { readonly [word: string]: number };
-  /** The repository's files R7, R8 and R10 are counted from (ratchet-files.ts). */
+  /** The repository's files R7, R8, R10 and R20 are counted from (ratchet-files.ts). */
   readonly files: RepositoryFiles;
+  /** The blueprint's glossary, whose landing places and old file names R20 counts. */
+  readonly glossary: ReadonlyArray<Entry>;
 }
 
 /** One ratchet, counted: its count and the items behind it, or null when it is not yet counted. */
@@ -89,6 +98,7 @@ const counters: { readonly [C in Counter]: (lists: Lists, ratchet: Ratchet) => O
   "verbs:examples": (lists) => verbsWithExamplesApart(lists.files),
   "docs:long-or-mapped": (lists, ratchet) => longOrMappedDocs(lists.files, ratchet.unmigrated ?? []),
   "effect:non-effect": (lists) => nonEffectCode(lists.files),
+  "glossary:not-landed": (lists) => wordsNotLanded(lists.files, lists.glossary),
 };
 
 /** Every ratchet of `registry`, counted from `lists`. */

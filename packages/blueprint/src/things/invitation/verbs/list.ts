@@ -6,7 +6,6 @@ import { NotImplemented } from "../../../common/refusals.ts";
 import { roles } from "../../../common/values.ts";
 import { startingPoints as w, type PromisesOf } from "../../../starting-points/points.ts";
 import { StepKind } from "../../../telemetry/step-kinds.ts";
-import { invitation } from "../examples.ts";
 import { Invitation } from "../values.ts";
 
 export const invitationList = verb({
@@ -33,7 +32,25 @@ export const invitationList = verb({
     ms: 1_000,
     basis: "one read of the world's database",
   },
-  examples: [{ payload: {}, success: { invitations: [invitation("inv_olga01", "pending")] } }],
+  examples: [
+    {
+      payload: {},
+      success: {
+        invitations: [
+          {
+            id: "inv_olga01",
+            org: "org_northwind1",
+            handle: "northwind",
+            email: "olga@cast.test",
+            role: "member" as const,
+            invitedBy: "dana",
+            state: "pending" as const,
+            invitedAt: "2026-11-13T09:05:00.000Z",
+          },
+        ],
+      },
+    },
+  ],
 });
 
 /** Who serves it: a world's Core, through the world's door (`WorldRpcs`). */

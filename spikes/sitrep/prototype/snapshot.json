@@ -1,0 +1,4462 @@
+{
+ "at": "2026-11-15T20:10:11Z",
+ "plan": {
+  "id": "rebuild",
+  "state": "agreed",
+  "history": [
+   {
+    "event": "plan_written",
+    "by": {
+     "kind": "person",
+     "person": "aaron"
+    },
+    "at": "2026-11-13T07:18:51Z",
+    "state": "draft"
+   },
+   {
+    "event": "plan_agreed",
+    "by": {
+     "kind": "person",
+     "person": "aaron"
+    },
+    "at": "2026-11-13T07:19:51Z",
+    "state": "agreed"
+   },
+   {
+    "event": "plan_revised",
+    "by": {
+     "kind": "agent",
+     "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+    },
+    "at": "2026-11-15T17:10:00Z",
+    "state": "draft"
+   },
+   {
+    "event": "plan_agreed",
+    "by": {
+     "kind": "person",
+     "person": "aaron"
+    },
+    "at": "2026-11-15T17:20:00Z",
+    "state": "agreed"
+   }
+  ],
+  "since": "2026-11-15T17:20:00Z",
+  "fields": {
+   "title": "The Capxul rebuild",
+   "why": "The product line drifted from its own description: facts were typed twice, and nothing proved the system did what it said.",
+   "what": "Rebuild on one owner for every fact. The blueprint declares what Capxul does, the world says what runs where, and verdicts made by CI say what is proven. Every feature is measured by run records, not by code written.",
+   "endState": "Capxul's own company runs a month on the rebuilt system in production, with every journey proven by CI and every measure watched.",
+   "outOfScope": "New product features before the accounts pilot, and anything on main or integration/build, which carry the product work in flight.",
+   "milestones": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "C",
+    "5",
+    "6",
+    "7"
+   ]
+  }
+ },
+ "milestones": [
+  {
+   "id": "0",
+   "state": "active",
+   "history": [
+    {
+     "event": "milestone_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:18:51Z",
+     "state": "planned"
+    },
+    {
+     "event": "milestone_started",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-13T08:35:05Z",
+     "state": "active"
+    }
+   ],
+   "since": "2026-11-13T08:35:05Z",
+   "fields": {
+    "plan": "rebuild",
+    "title": "Shape",
+    "goal": "The remaining spikes and the decisions they settle",
+    "why": "The rebuild rests on a handful of risky bets; each had to be proven or killed by a run before anything was built on it.",
+    "doneWhen": "Each risk has a run that proves or kills it",
+    "steps": [
+     "0.1",
+     "0.2",
+     "0.3",
+     "0.4",
+     "0.5",
+     "0.6",
+     "0.7",
+     "0.8",
+     "0.9"
+    ]
+   },
+   "done": 9,
+   "of": 9
+  },
+  {
+   "id": "1",
+   "state": "active",
+   "history": [
+    {
+     "event": "milestone_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:18:51Z",
+     "state": "planned"
+    },
+    {
+     "event": "milestone_started",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-13T10:27:05Z",
+     "state": "active"
+    }
+   ],
+   "since": "2026-11-13T10:27:05Z",
+   "fields": {
+    "plan": "rebuild",
+    "title": "Walking pipeline",
+    "goal": "The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master",
+    "why": "The thin line in the new shape is the smallest whole system, so every later step has something real to run against.",
+    "doneWhen": "The thin line's scenarios pass in CI in a fresh private world",
+    "steps": [
+     "1.1",
+     "1.2",
+     "1.3",
+     "1.4",
+     "1.5",
+     "1.6",
+     "1.7",
+     "1.8",
+     "1.9",
+     "1.10",
+     "1.11",
+     "1.12",
+     "1.13",
+     "1.14",
+     "1.15",
+     "1.16",
+     "1.17",
+     "1.18"
+    ]
+   },
+   "done": 43,
+   "of": 44
+  },
+  {
+   "id": "2",
+   "state": "active",
+   "history": [
+    {
+     "event": "milestone_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:18:51Z",
+     "state": "planned"
+    },
+    {
+     "event": "milestone_started",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-14T16:12:05Z",
+     "state": "active"
+    }
+   ],
+   "since": "2026-11-14T16:12:05Z",
+   "fields": {
+    "plan": "rebuild",
+    "title": "Staging",
+    "goal": "The same line on a shared hosted world, deployed by Alchemy",
+    "why": "A shared hosted world is where the product will live; the thin line must pass there, deployed by Alchemy, before it grows.",
+    "doneWhen": "The scenarios pass there after a deploy, and the drift check is clean",
+    "steps": [
+     "2.1",
+     "2.2",
+     "2.3",
+     "2.4",
+     "2.5"
+    ]
+   },
+   "done": 7,
+   "of": 7
+  },
+  {
+   "id": "7",
+   "state": "planned",
+   "history": [
+    {
+     "event": "milestone_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:19:21Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-13T07:19:21Z",
+   "fields": {
+    "plan": "rebuild",
+    "title": "Breadth",
+    "goal": "Journeys ported in waves; typed starting worlds; every lifecycle a machine and every ratchet empty. Its waves start once 3.1 to 3.6 are Done",
+    "why": "Breadth ports the journeys in waves once the format and its checks hold, so parallel agents cannot drift.",
+    "doneWhen": "Steps 7.1 and 7.2 are Done",
+    "steps": [
+     "7.1",
+     "7.2"
+    ]
+   },
+   "done": 0,
+   "of": 2
+  },
+  {
+   "id": "3",
+   "state": "active",
+   "history": [
+    {
+     "event": "milestone_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T13:25:34Z",
+     "state": "planned"
+    },
+    {
+     "event": "milestone_started",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T13:25:39Z",
+     "state": "active"
+    }
+   ],
+   "since": "2026-11-15T13:25:39Z",
+   "fields": {
+    "plan": "rebuild",
+    "title": "Foundations core",
+    "goal": "One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)",
+    "why": "Everything later is declared in the blueprint first, so the blueprint and its checks must exist before any feature goes through it.",
+    "doneWhen": "Steps 3.1 to 3.6, 3.8, 3.10 and 3.11 are Done",
+    "steps": [
+     "3.1",
+     "3.2",
+     "3.3",
+     "3.4",
+     "3.5",
+     "3.6",
+     "3.8",
+     "3.10",
+     "3.11"
+    ]
+   },
+   "done": 5,
+   "of": 9
+  },
+  {
+   "id": "4",
+   "state": "active",
+   "history": [
+    {
+     "event": "milestone_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T13:25:34Z",
+     "state": "planned"
+    },
+    {
+     "event": "milestone_started",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T17:46:41Z",
+     "state": "active"
+    }
+   ],
+   "since": "2026-11-15T17:46:41Z",
+   "fields": {
+    "plan": "rebuild",
+    "title": "Measurement",
+    "goal": "Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
+    "why": "A feature is done when run records prove it and its measures are watched, so measurement comes before the first feature.",
+    "doneWhen": "Steps 4.1 to 4.12, 3.7 and 3.9 are Done",
+    "steps": [
+     "3.7",
+     "3.9",
+     "4.1",
+     "4.2",
+     "4.3",
+     "4.4",
+     "4.5",
+     "4.6",
+     "4.7",
+     "4.8",
+     "4.9",
+     "4.10",
+     "4.11",
+     "4.12"
+    ]
+   },
+   "done": 0,
+   "of": 14
+  },
+  {
+   "id": "5",
+   "state": "planned",
+   "history": [
+    {
+     "event": "milestone_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T13:25:34Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T13:25:34Z",
+   "fields": {
+    "plan": "rebuild",
+    "title": "The accounts pilot",
+    "goal": "The first feature through the loop: account identity, and who may call. It needs 4.1's format and lint rule; 4.2 and 4.3 land alongside, measured on its runs",
+    "why": "Account identity is the first feature through the whole loop, and every later feature depends on who may call.",
+    "doneWhen": "Steps 5.1 to 5.4 are Done",
+    "steps": [
+     "5.1",
+     "5.2",
+     "5.3",
+     "5.4"
+    ]
+   },
+   "done": 0,
+   "of": 4
+  },
+  {
+   "id": "6",
+   "state": "planned",
+   "history": [
+    {
+     "event": "milestone_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T13:25:34Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T13:25:34Z",
+   "fields": {
+    "plan": "rebuild",
+    "title": "The invoice ledger",
+    "goal": "Versions, and the ledger built side by side, flipped and retired, once the accounts pilot is finished",
+    "why": "The invoice ledger proves side by side, flip and retire on real behaviour once versions exist.",
+    "doneWhen": "Steps 6.1 and 6.2 are Done",
+    "steps": [
+     "6.1",
+     "6.2"
+    ]
+   },
+   "done": 0,
+   "of": 2
+  },
+  {
+   "id": "C",
+   "state": "planned",
+   "history": [
+    {
+     "event": "milestone_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T14:46:34Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T14:46:34Z",
+   "fields": {
+    "plan": "rebuild",
+    "title": "The climb",
+    "goal": "Every existing thing brought up to spec in parallel lanes, one thing per unit, measured as a rehearsal of breadth (decision \"Build the system, then climb, then breadth\")",
+    "why": "Bringing every existing thing up to spec in parallel lanes rehearses breadth at a size where a mistake is cheap.",
+    "doneWhen": "Steps C.1 to C.3 are Done",
+    "steps": [
+     "C.1",
+     "C.2",
+     "C.3"
+    ]
+   },
+   "done": 0,
+   "of": 15
+  }
+ ],
+ "steps": [
+  {
+   "id": "0.1",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:50:24Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43428401954"
+     },
+     "at": "2026-11-13T12:49:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-13T12:49:00Z",
+   "fields": {
+    "milestone": "0",
+    "title": "Alchemy deploys from an agent's container with no key",
+    "what": "Alchemy deploys from an agent's container with no key inside it",
+    "why": "Milestone 0 needs it: The remaining spikes and the decisions they settle",
+    "doneWhen": "Its proof is committed on master: packages/world/records/commands.proof.json",
+    "needs": [],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/99e1dd65/packages/world/records/commands.proof.json"
+   }
+  },
+  {
+   "id": "0.2",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:50:24Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43428401954"
+     },
+     "at": "2026-11-13T12:49:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-13T12:49:00Z",
+   "fields": {
+    "milestone": "0",
+    "title": "A world's one database is a Neon branch",
+    "what": "A world's one database is a Neon branch: created, isolated, forked from another world",
+    "why": "Milestone 0 needs it: The remaining spikes and the decisions they settle",
+    "doneWhen": "Its proof is committed on master: packages/world/records/fresh.proof.json",
+    "needs": [],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/99e1dd65/packages/world/records/fresh.proof.json"
+   }
+  },
+  {
+   "id": "0.3",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:50:24Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43428401954"
+     },
+     "at": "2026-11-13T12:49:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-13T12:49:00Z",
+   "fields": {
+    "milestone": "0",
+    "title": "A world is created, used and destroyed as one",
+    "what": "A world is created, used and destroyed as one unit, with an owner, an expiry and timed steps",
+    "why": "Milestone 0 needs it: The remaining spikes and the decisions they settle",
+    "doneWhen": "Its proof is committed on master: packages/world/records/commands.proof.json; packages/world/records/fails.proof.json; packages/world/records/timeout.proof.json; packages/world/records/interrupted.proof.json",
+    "needs": [
+     "0.2"
+    ],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/99e1dd65/packages/world/records/commands.proof.json"
+   }
+  },
+  {
+   "id": "0.4",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:50:24Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43428401954"
+     },
+     "at": "2026-11-13T12:49:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-13T12:49:00Z",
+   "fields": {
+    "milestone": "0",
+    "title": "Alchemy state is shared, so any container can see",
+    "what": "Alchemy state is shared, so any container can see and destroy any world",
+    "why": "Milestone 0 needs it: The remaining spikes and the decisions they settle",
+    "doneWhen": "Its proof is committed on master: packages/world/records/sweep.proof.json; packages/world/records/race.proof.json",
+    "needs": [
+     "0.1"
+    ],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/99e1dd65/packages/world/records/sweep.proof.json"
+   }
+  },
+  {
+   "id": "0.5",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:50:24Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43428401954"
+     },
+     "at": "2026-11-13T12:49:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-13T12:49:00Z",
+   "fields": {
+    "milestone": "0",
+    "title": "Expired worlds are deleted without anyone remembering to, Cloudflare",
+    "what": "Expired worlds are deleted without anyone remembering to, Cloudflare resources included",
+    "why": "Milestone 0 needs it: The remaining spikes and the decisions they settle",
+    "doneWhen": "Its proof is committed on master: packages/world/records/sweep.proof.json; packages/world/records/keep.proof.json",
+    "needs": [
+     "0.4"
+    ],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/99e1dd65/packages/world/records/sweep.proof.json"
+   }
+  },
+  {
+   "id": "0.6",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:50:24Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43394356173"
+     },
+     "at": "2026-11-13T08:35:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-13T08:35:00Z",
+   "fields": {
+    "milestone": "0",
+    "title": "A world's chain and index run as Cloudflare Containers",
+    "what": "A world's chain and index run as Cloudflare Containers against its Neon branch and stop when idle",
+    "why": "Milestone 0 needs it: The remaining spikes and the decisions they settle",
+    "doneWhen": "Its proof is committed on master: spikes/containers/records/ct-w3.prove.txt",
+    "needs": [
+     "0.2"
+    ],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/b93a0a59/spikes/containers/records/ct-w3.prove.txt"
+   }
+  },
+  {
+   "id": "0.7",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:50:24Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43424222053"
+     },
+     "at": "2026-11-13T12:19:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-13T12:19:00Z",
+   "fields": {
+    "milestone": "0",
+    "title": "One operation goes from an Effect contract, to a",
+    "what": "One operation goes from an Effect contract, to a scenario that fails on an empty handler, to a pass",
+    "why": "Milestone 0 needs it: The remaining spikes and the decisions they settle",
+    "doneWhen": "Its proof is committed on master: packages/runner/records/spike",
+    "needs": [
+     "0.2"
+    ],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/606b2b53/packages/runner/records/spike"
+   }
+  },
+  {
+   "id": "0.8",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:50:24Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43748883126"
+     },
+     "at": "2026-11-15T18:49:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-15T18:49:00Z",
+   "fields": {
+    "milestone": "0",
+    "title": "Two worlds at different clocks share one Frappe bench",
+    "what": "Two worlds at different clocks share one Frappe bench",
+    "why": "Milestone 0 needs it: The remaining spikes and the decisions they settle",
+    "doneWhen": "Its proof is committed on master: packages/frappe-app/records/bench-clocks/observed.txt; packages/frappe-app/records/bench-clocks/observed-fixes.txt",
+    "needs": [],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/b55dff47/packages/frappe-app/records/bench-clocks/observed.txt"
+   }
+  },
+  {
+   "id": "0.9",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:50:24Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43622225409"
+     },
+     "at": "2026-11-14T17:38:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-14T17:38:00Z",
+   "fields": {
+    "milestone": "0",
+    "title": "A scenario run from a template world is timed",
+    "what": "A scenario run from a template world is timed end to end",
+    "why": "Milestone 0 needs it: The remaining spikes and the decisions they settle",
+    "doneWhen": "Its proof is committed on master: packages/runner/records/run-138efc/summary.json",
+    "needs": [
+     "0.7",
+     "1.12"
+    ],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/494b63e0/packages/runner/records/run-138efc/summary.json"
+   }
+  },
+  {
+   "id": "1.1",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:50:24Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43748883126"
+     },
+     "at": "2026-11-15T18:49:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-15T18:49:00Z",
+   "fields": {
+    "milestone": "1",
+    "title": "The thin line's operations are declared in the contract",
+    "what": "The thin line's operations are declared in the contract and the server compiles with empty handlers",
+    "why": "Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master",
+    "doneWhen": "Its proof is committed on master: packages/runner/records/core-5104bd",
+    "needs": [
+     "0.7"
+    ],
+    "units": 12,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/b55dff47/packages/runner/records/core-5104bd"
+   }
+  },
+  {
+   "id": "1.2",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:50:24Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43748883126"
+     },
+     "at": "2026-11-15T18:49:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-15T18:49:00Z",
+   "fields": {
+    "milestone": "1",
+    "title": "The scenario runner checks declared events, spans and speed",
+    "what": "The scenario runner checks declared events, spans and speed on every run and stores the timings",
+    "why": "Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master",
+    "doneWhen": "Its proof is committed on master: packages/runner/records/core-5104bd; check:pnpm test",
+    "needs": [
+     "0.7"
+    ],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/b55dff47/packages/runner/records/core-5104bd"
+   }
+  },
+  {
+   "id": "1.3",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:50:24Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43428401954"
+     },
+     "at": "2026-11-13T12:49:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-13T12:49:00Z",
+   "fields": {
+    "milestone": "1",
+    "title": "One command creates and destroys a private world",
+    "what": "One command creates and destroys a private world: chain, index, Core and database",
+    "why": "Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master",
+    "doneWhen": "Its proof is committed on master: packages/world/records/commands.proof.json; packages/world/records/fresh.proof.json; packages/world/records/fails.proof.json; packages/world/records/timeout.proof.json; packages/world/records/interrupted.proof.json; packages/world/records/keep.proof.json; packages/world/records/race.proof.json; packages/world/records/limits.proof.json; packages/world/records/sweep.proof.json",
+    "needs": [
+     "0.4",
+     "0.5",
+     "0.6"
+    ],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/99e1dd65/packages/world/records/commands.proof.json"
+   }
+  },
+  {
+   "id": "1.4",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:50:24Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43622225409"
+     },
+     "at": "2026-11-14T17:38:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-14T17:38:00Z",
+   "fields": {
+    "milestone": "1",
+    "title": "A company's Frappe site in a private world is",
+    "what": "A company's Frappe site in a private world is reached through the door",
+    "why": "Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master",
+    "doneWhen": "Its proof is committed on master: packages/runner/records/run-138efc/summary.json; packages/world/records/site.proof.json",
+    "needs": [
+     "0.8",
+     "1.3",
+     "2.2"
+    ],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/494b63e0/packages/runner/records/run-138efc/summary.json"
+   }
+  },
+  {
+   "id": "1.5",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:50:24Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43428950884"
+     },
+     "at": "2026-11-13T12:53:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-13T12:53:00Z",
+   "fields": {
+    "milestone": "1",
+    "title": "The thin line's scenarios are written by a separate",
+    "what": "The thin line's scenarios are written by a separate agent and fail on empty handlers",
+    "why": "Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master",
+    "doneWhen": "Its proof is committed on master: packages/runner/records/core-189d55/summary.json",
+    "needs": [
+     "1.1",
+     "1.2"
+    ],
+    "units": 12,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/1fd8698e/packages/runner/records/core-189d55/summary.json"
+   }
+  },
+  {
+   "id": "1.6",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:50:24Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43607749108"
+     },
+     "at": "2026-11-14T14:59:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-14T14:59:00Z",
+   "fields": {
+    "milestone": "1",
+    "title": "The thin line's journeys pass in a fresh private",
+    "what": "The thin line's journeys pass in a fresh private world",
+    "why": "Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master",
+    "doneWhen": "Its proof is committed on master: packages/runner/records/run-22da37/summary.json",
+    "needs": [
+     "1.3",
+     "1.4",
+     "1.5",
+     "1.9",
+     "1.11",
+     "1.12",
+     "1.14",
+     "1.17",
+     "1.18"
+    ],
+    "units": 3,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/2ce229a7/packages/runner/records/run-22da37/summary.json"
+   }
+  },
+  {
+   "id": "1.7",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:50:24Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43409203313"
+     },
+     "at": "2026-11-13T10:27:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-13T10:27:00Z",
+   "fields": {
+    "milestone": "1",
+    "title": "CI fails when TypeScript is not idiomatic Effect",
+    "what": "CI fails when TypeScript is not idiomatic Effect",
+    "why": "Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master",
+    "doneWhen": "Its proof is committed on master: check:pnpm lint",
+    "needs": [],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/blob/04637f78/.github/workflows/check.yml"
+   }
+  },
+  {
+   "id": "1.8",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:50:24Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43622225409"
+     },
+     "at": "2026-11-14T17:38:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-14T17:38:00Z",
+   "fields": {
+    "milestone": "1",
+    "title": "CI on master creates a world, runs the thin",
+    "what": "CI on master creates a world, runs the thin line and destroys the world",
+    "why": "Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master",
+    "doneWhen": "Its proof is committed on master: packages/runner/records/run-138efc/summary.json; packages/runner/records/run-af2aae/summary.json",
+    "needs": [
+     "1.6"
+    ],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/494b63e0/packages/runner/records/run-138efc/summary.json"
+   }
+  },
+  {
+   "id": "2.1",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:50:24Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43614369752"
+     },
+     "at": "2026-11-14T16:12:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-14T16:12:00Z",
+   "fields": {
+    "milestone": "2",
+    "title": "A host for the Frappe bench and a domain",
+    "what": "A host for the Frappe bench and a domain on Cloudflare exist",
+    "why": "Milestone 2 needs it: The same line on a shared hosted world, deployed by Alchemy",
+    "doneWhen": "Its proof is committed on master: packages/platform/records/staging/drift-run15.json",
+    "needs": [],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/312e27f9/packages/platform/records/staging/drift-run15.json"
+   }
+  },
+  {
+   "id": "2.2",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:50:24Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43614369752"
+     },
+     "at": "2026-11-14T16:12:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-14T16:12:00Z",
+   "fields": {
+    "milestone": "2",
+    "title": "The platform",
+    "what": "The platform (bench, tunnel, shared state) is deployed by Alchemy",
+    "why": "Milestone 2 needs it: The same line on a shared hosted world, deployed by Alchemy",
+    "doneWhen": "Its proof is committed on master: packages/platform/records/staging/drift-run13.json; packages/platform/records/staging/drift-run15.json",
+    "needs": [
+     "2.1",
+     "0.4"
+    ],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/312e27f9/packages/platform/records/staging/drift-run13.json"
+   }
+  },
+  {
+   "id": "2.3",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:50:24Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43614369752"
+     },
+     "at": "2026-11-14T16:12:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-14T16:12:00Z",
+   "fields": {
+    "milestone": "2",
+    "title": "A shared world exists whose sites are created with",
+    "what": "A shared world exists whose sites are created with a per-world token",
+    "why": "Milestone 2 needs it: The same line on a shared hosted world, deployed by Alchemy",
+    "doneWhen": "Its proof is committed on master: packages/runner/records/shared-09eeaf/shared.json; packages/runner/records/shared-dc9834/shared.json; packages/runner/records/shared-8eb1f8/shared.json",
+    "needs": [
+     "2.2",
+     "1.6"
+    ],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/312e27f9/packages/runner/records/shared-09eeaf/shared.json"
+   }
+  },
+  {
+   "id": "2.4",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:50:24Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43614369752"
+     },
+     "at": "2026-11-14T16:12:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-14T16:12:00Z",
+   "fields": {
+    "milestone": "2",
+    "title": "The thin line's journeys pass on the shared world",
+    "what": "The thin line's journeys pass on the shared world after a deploy",
+    "why": "Milestone 2 needs it: The same line on a shared hosted world, deployed by Alchemy",
+    "doneWhen": "Its proof is committed on master: packages/runner/records/run-bc959e/summary.json",
+    "needs": [
+     "2.3"
+    ],
+    "units": 3,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/312e27f9/packages/runner/records/run-bc959e/summary.json"
+   }
+  },
+  {
+   "id": "2.5",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T07:50:24Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43675792052"
+     },
+     "at": "2026-11-15T04:13:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-15T04:13:00Z",
+   "fields": {
+    "milestone": "2",
+    "title": "A drift check that catches changed settings and replaced",
+    "what": "A drift check that catches changed settings and replaced code runs on a schedule and is clean (the pinned Alchemy reports drift but exits 0, and misses code replaced by hand)",
+    "why": "Milestone 2 needs it: The same line on a shared hosted world, deployed by Alchemy",
+    "doneWhen": "Its proof is committed on master: packages/platform/records/staging/drift-scheduled-43625577747.json",
+    "needs": [
+     "2.2"
+    ],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/9a6e7b25/packages/platform/records/staging/drift-scheduled-43625577747.json"
+   }
+  },
+  {
+   "id": "1.9",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T10:35:08Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43424222053"
+     },
+     "at": "2026-11-13T12:19:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-13T12:19:00Z",
+   "fields": {
+    "milestone": "1",
+    "title": "The SDK",
+    "what": "The SDK: a typed client of every blueprint operation, derived from the blueprint, through which the scenarios call Core",
+    "why": "Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master",
+    "doneWhen": "Its proof is committed on master: packages/sdk/test/operations.test.ts; check:pnpm test",
+    "needs": [
+     "1.1"
+    ],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/606b2b53/packages/sdk/test/operations.test.ts"
+   }
+  },
+  {
+   "id": "1.10",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T10:35:08Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43675739243"
+     },
+     "at": "2026-11-15T04:12:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-15T04:12:00Z",
+   "fields": {
+    "milestone": "1",
+    "title": "The CLI",
+    "what": "The CLI: the one Capxul command line, every blueprint operation a command derived from the blueprint; the thin line's scenarios also pass through it, giving the same answers as the SDK",
+    "why": "Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master",
+    "doneWhen": "Its proof is committed on master: packages/runner/records/run-185cc4/summary.json",
+    "needs": [
+     "1.9"
+    ],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/066d8a24/packages/runner/records/run-185cc4/summary.json"
+   }
+  },
+  {
+   "id": "1.11",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T10:43:06Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43449250833"
+     },
+     "at": "2026-11-13T15:06:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-13T15:06:00Z",
+   "fields": {
+    "milestone": "1",
+    "title": "A private world includes the bundler and a test",
+    "what": "A private world includes the bundler and a test paymaster, so a signed approval lands on the chain as one real UserOperation",
+    "why": "Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master",
+    "doneWhen": "Its proof is committed on master: packages/world/records/bundler.proof.json",
+    "needs": [
+     "1.3"
+    ],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/e19dbe55/packages/world/records/bundler.proof.json"
+   }
+  },
+  {
+   "id": "1.12",
+   "state": "planned",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T10:43:06Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-13T10:43:06Z",
+   "fields": {
+    "milestone": "1",
+    "title": "Every new private world gets its cast, funded from",
+    "what": "Every new private world gets its cast, funded from the test token's faucet, and a world can be saved as a template and started from it",
+    "why": "Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "1.3"
+    ],
+    "units": 1
+   }
+  },
+  {
+   "id": "1.13",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-13T10:43:06Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43421594813"
+     },
+     "at": "2026-11-13T12:00:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-13T12:00:00Z",
+   "fields": {
+    "milestone": "1",
+    "title": "A step's state comes from run records",
+    "what": "A step's state comes from run records: each step names the proof that closes it, and the dashboard reads the records, not a hand-typed column",
+    "why": "Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master",
+    "doneWhen": "Its proof is committed on master: packages/status-feed/tests/test_feed.py; check:pnpm test",
+    "needs": [],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/bc9e2291/packages/status-feed/tests/test_feed.py"
+   }
+  },
+  {
+   "id": "1.14",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-14T04:41:34Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43561447990"
+     },
+     "at": "2026-11-14T05:25:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-14T05:25:00Z",
+   "fields": {
+    "milestone": "1",
+    "title": "The thin line's journeys and each operation's checks are",
+    "what": "The thin line's journeys and each operation's checks are written by a separate agent and fail on empty handlers",
+    "why": "Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master",
+    "doneWhen": "Its proof is committed on master: packages/runner/records/run-fc53ef/summary.json",
+    "needs": [
+     "1.5"
+    ],
+    "units": 3,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/c2885a08/packages/runner/records/run-fc53ef/summary.json"
+   }
+  },
+  {
+   "id": "1.15",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-14T04:41:34Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43565236978"
+     },
+     "at": "2026-11-14T06:12:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-14T06:12:00Z",
+   "fields": {
+    "milestone": "1",
+    "title": "The fleet hub",
+    "what": "The fleet hub: one container application per kind, deployed once per stage; world create makes a world on it",
+    "why": "Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master",
+    "doneWhen": "Its proof is committed on master: packages/world/records/hub.proof.json",
+    "needs": [
+     "1.3"
+    ],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/649ae401/packages/world/records/hub.proof.json"
+   }
+  },
+  {
+   "id": "1.16",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-14T04:41:34Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43565236978"
+     },
+     "at": "2026-11-14T06:12:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-14T06:12:00Z",
+   "fields": {
+    "milestone": "1",
+    "title": "A world is reset in place to a snapshot,",
+    "what": "A world is reset in place to a snapshot, with one clock, and world.show then matches the snapshot",
+    "why": "Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master",
+    "doneWhen": "Its proof is committed on master: packages/world/records/reset.proof.json",
+    "needs": [
+     "1.15"
+    ],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/649ae401/packages/world/records/reset.proof.json"
+   }
+  },
+  {
+   "id": "1.17",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-14T04:41:34Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43560646124"
+     },
+     "at": "2026-11-14T05:15:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-14T05:15:00Z",
+   "fields": {
+    "milestone": "1",
+    "title": "The bench gives a world its company sites from",
+    "what": "The bench gives a world its company sites from a pool of template copies and resets them in place",
+    "why": "Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master",
+    "doneWhen": "Its proof is committed on master: packages/platform/records/site-pool/pool.proof.json",
+    "needs": [
+     "0.8"
+    ],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/59418750/packages/platform/records/site-pool/pool.proof.json"
+   }
+  },
+  {
+   "id": "1.18",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "person",
+      "person": "aaron"
+     },
+     "at": "2026-11-14T04:41:34Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43622225409"
+     },
+     "at": "2026-11-14T17:38:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-14T17:38:00Z",
+   "fields": {
+    "milestone": "1",
+    "title": "The runner runs journeys",
+    "what": "The runner runs journeys: one world per runner, a reset before each journey, timed (the shape of its day; replaced by one shared world, every journey side by side, at step 4.8)",
+    "why": "Milestone 1 needs it: The thin line in the new shape: contract, scenarios, a world created and destroyed by one command, timings stored, Effect lint, CI on master",
+    "doneWhen": "Its proof is committed on master: packages/runner/records/run-138efc/summary.json",
+    "needs": [
+     "1.14",
+     "1.16"
+    ],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/494b63e0/packages/runner/records/run-138efc/summary.json"
+   }
+  },
+  {
+   "id": "3.1",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T13:24:00Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43718972529"
+     },
+     "at": "2026-11-15T13:25:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-15T13:25:00Z",
+   "fields": {
+    "milestone": "3",
+    "title": "Foundry is installed in CI's check job and in",
+    "what": "Foundry is installed in CI's check job and in the agents' cloud environment (its setup script, with the hosts its downloads need). pnpm generate writes every derived file from forge build's output, devnet.json and the blueprint, and pnpm generate:check in CI fails when generating again changes one. Generated files are committed like every other: one ABI module, imported by the blueprint, Core and the indexer; the seeded addresses; the Python names. TransferSingle's field names agree",
+    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)",
+    "doneWhen": "Its proof is committed on master: check:pnpm generate:check",
+    "needs": [],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/blob/0f02747c/.github/workflows/check.yml"
+   }
+  },
+  {
+   "id": "3.3",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T13:24:00Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43718972529"
+     },
+     "at": "2026-11-15T13:25:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-15T13:25:00Z",
+   "fields": {
+    "milestone": "3",
+    "title": "Typed once, by lint, with a ratchet",
+    "what": "Typed once, by lint, with a ratchet: raw schemas only in the blueprint's values files and machines and in listed edge files; declared names imported, never retyped; Core's stores decode rows with the blueprint's schemas; every domain in each hub it needs. What the rules find today sits on their unmigrated list, which may only shrink",
+    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)",
+    "doneWhen": "Its proof is committed on master: packages/lint/test/owned-values.test.ts",
+    "needs": [],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/0f02747c/packages/lint/test/owned-values.test.ts"
+   }
+  },
+  {
+   "id": "3.4",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T13:24:00Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43718972529"
+     },
+     "at": "2026-11-15T13:25:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-15T13:25:00Z",
+   "fields": {
+    "milestone": "3",
+    "title": "The machine format, proven on the invitation",
+    "what": "The machine format, proven on the invitation: states, start, moves, refusals; the derived state schema, refusal field, step and diagram, and the CHECK constraint in a new migration (an applied migration is never edited); graph and property tests; Core moves the invitation only through step; the runner checks each invitation's events form a path through its machine, and reports coverage",
+    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)",
+    "doneWhen": "Its proof is committed on master: packages/blueprint/test/machines.test.ts",
+    "needs": [
+     "3.3"
+    ],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/tree/0f02747c/packages/blueprint/test/machines.test.ts"
+   }
+  },
+  {
+   "id": "3.5",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T13:24:00Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43718972529"
+     },
+     "at": "2026-11-15T13:25:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-15T13:25:00Z",
+   "fields": {
+    "milestone": "3",
+    "title": "pnpm delta:check fails when an operation lacks a format",
+    "what": "pnpm delta:check fails when an operation lacks a format that exists: its machine moves and the refusal from each state, and (from 4.1) its declared steps and logs; existing operations by the ratchet",
+    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)",
+    "doneWhen": "Its proof is committed on master: check:pnpm delta:check",
+    "needs": [
+     "3.4"
+    ],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/blob/0f02747c/.github/workflows/check.yml"
+   }
+  },
+  {
+   "id": "3.2",
+   "state": "done",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T13:25:34Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_proven",
+     "by": {
+      "kind": "pipeline",
+      "run": "ci-43721823010"
+     },
+     "at": "2026-11-15T13:58:00Z",
+     "state": "done"
+    }
+   ],
+   "since": "2026-11-15T13:58:00Z",
+   "fields": {
+    "milestone": "3",
+    "title": "The seeded chain state",
+    "what": "The seeded chain state (packages/contracts/state/core.json, which every world starts from) is rebuilt from the contracts and their deploy script by one command, and CI fails when the rebuild differs from what is committed",
+    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)",
+    "doneWhen": "Its proof is committed on master: check:pnpm seed:check",
+    "needs": [
+     "3.1"
+    ],
+    "units": 1,
+    "proof": "https://github.com/AaronAbuUsama/capxul-next/blob/b2981233/.github/workflows/check.yml"
+   }
+  },
+  {
+   "id": "4.1",
+   "state": "planned",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T13:25:34Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T13:25:34Z",
+   "fields": {
+    "milestone": "4",
+    "title": "Steps and logs are declared per operation, first drafted",
+    "what": "Steps and logs are declared per operation, first drafted from the spans of measured runs. Every effectful function of our own code (Core, the world, the platform client, the runner's plumbing) is a span, Effect.fn with a name that is a declared step, imported from the blueprint and never written as a string; a lint rule fails a function of ours that does work without one, existing code by its ratchet. At run time a call fails when a step its operation declares is missing from the record while its path ran, or a refusal has no log naming the state or rule that refused. Library spans (postgres, HTTP GET and POST, rpc, bundler) are neither required nor forbidden, and the check ignores them. The waits a budget leaves out follow from the step kinds. Logs go through Effect's Logger, and the generic checks are written over OpenTelemetry spans and logs; the run-time checks of logs need 4.4",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "3.3"
+    ],
+    "units": 1
+   }
+  },
+  {
+   "id": "4.2",
+   "state": "planned",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T13:25:34Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T13:25:34Z",
+   "fields": {
+    "milestone": "4",
+    "title": "The explainability eval",
+    "what": "The explainability eval: each journey's record is scored (every refusal has its deciding log, every span its parent, the share of each call's time covered by its declared steps, and the share of the whole run's wall time inside declared spans), from the tap, written into the verdict; first reported from measured runs; a threshold is then set from the data, and from then a journey passes only when it meets it",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "4.1",
+     "4.7"
+    ],
+    "units": 1
+   }
+  },
+  {
+   "id": "4.3",
+   "state": "planned",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T13:25:34Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T13:25:34Z",
+   "fields": {
+    "milestone": "4",
+    "title": "The build evals",
+    "what": "The build evals: tries to green, breakage and recovery, speed and cost per journey, read from the verdicts, the sink and the cost metrics",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "4.2",
+     "4.5",
+     "4.6"
+    ],
+    "units": 1
+   }
+  },
+  {
+   "id": "5.1",
+   "state": "planned",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T13:25:34Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T13:25:34Z",
+   "fields": {
+    "milestone": "5",
+    "title": "Who may call",
+    "what": "Who may call: roles declared once, allowed on every operation, Core's one standing check, the refusal steps generated",
+    "why": "Milestone 5 needs it: The first feature through the loop: account identity, and who may call. It needs 4.1's format and lint rule; 4.2 and 4.3 land alongside, measured on its runs",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "3.4",
+     "4.1",
+     "C.2"
+    ],
+    "units": 1
+   }
+  },
+  {
+   "id": "5.2",
+   "state": "planned",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T13:25:34Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T13:25:34Z",
+   "fields": {
+    "milestone": "5",
+    "title": "The accounts pilot, the first feature through the loop",
+    "what": "The accounts pilot, the first feature through the loop: account identity as decided on 15 November 2026 (a chain id of its own for test worlds; the salt from the grade group's pepper and the account version; claim takes the salt, never the email; Companies House at one address per account version, approving the first-owner swap through a backend key's scoped role, with that role's operations, events, refusals and journeys; the email's normalisation in the blueprint; the blueprint's derivation checked against the contract's; grade, account version and chain id in every run record)",
+    "why": "Milestone 5 needs it: The first feature through the loop: account identity, and who may call. It needs 4.1's format and lint rule; 4.2 and 4.3 land alongside, measured on its runs",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "3.2",
+     "3.5",
+     "3.6",
+     "4.1",
+     "5.1"
+    ],
+    "units": 1
+   }
+  },
+  {
+   "id": "6.1",
+   "state": "planned",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T13:25:34Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T13:25:34Z",
+   "fields": {
+    "milestone": "6",
+    "title": "Operations and events carry a version, and run records",
+    "what": "Operations and events carry a version, and run records name it",
+    "why": "Milestone 6 needs it: Versions, and the ledger built side by side, flipped and retired, once the accounts pilot is finished",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "3.4"
+    ],
+    "units": 1
+   }
+  },
+  {
+   "id": "6.2",
+   "state": "planned",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T13:25:34Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T13:25:34Z",
+   "fields": {
+    "milestone": "6",
+    "title": "The invoice ledger, built side by side with what",
+    "what": "The invoice ledger, built side by side with what it replaces, flipped once it passes every journey, and the old retired, as AGENTS.md says",
+    "why": "Milestone 6 needs it: Versions, and the ledger built side by side, flipped and retired, once the accounts pilot is finished",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "5.2",
+     "6.1"
+    ],
+    "units": 1
+   }
+  },
+  {
+   "id": "7.1",
+   "state": "planned",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T13:25:34Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T13:25:34Z",
+   "fields": {
+    "milestone": "7",
+    "title": "Journeys ported in waves of units, in the order",
+    "what": "Journeys ported in waves of units, in the order they can be built safely in parallel (decision of 14 November 2026); each green in a private world, then on staging",
+    "why": "Milestone 7 needs it: Journeys ported in waves; typed starting worlds; every lifecycle a machine and every ratchet empty. Its waves start once 3.1 to 3.6 are Done",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "3.1",
+     "3.2",
+     "3.3",
+     "3.4",
+     "3.5",
+     "3.6",
+     "C.3"
+    ],
+    "units": 1
+   }
+  },
+  {
+   "id": "7.2",
+   "state": "planned",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T13:25:34Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T13:25:34Z",
+   "fields": {
+    "milestone": "7",
+    "title": "Starting worlds made by typed steps with their payloads,",
+    "what": "Starting worlds made by typed steps with their payloads, run by one generic maker in the runner",
+    "why": "Milestone 7 needs it: Journeys ported in waves; typed starting worlds; every lifecycle a machine and every ratchet empty. Its waves start once 3.1 to 3.6 are Done",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [],
+    "units": 1
+   }
+  },
+  {
+   "id": "3.6",
+   "state": "active",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T14:15:47Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_started",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF79VUFRRBGBDTzB485K"
+     },
+     "at": "2026-11-15T17:09:48Z",
+     "state": "active"
+    }
+   ],
+   "since": "2026-11-15T17:09:48Z",
+   "fields": {
+    "milestone": "3",
+    "title": "The blueprint's format",
+    "what": "The blueprint's format (docs/design/blueprint.md, parts 7 and 9): one file per operation holding everything about it; machines import their events, and operations name the moves they make; hubs, indexes and pages generated; src/telemetry/; the pipeline domain declared; the ratchet registry and pnpm ratchets, every ratchet counted; the domain people moved in full; its journeys and checks written first by another agent",
+    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "3.5"
+    ],
+    "units": 1,
+    "lane": "blueprint"
+   }
+  },
+  {
+   "id": "4.4",
+   "state": "active",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T14:15:47Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_started",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7BnxXPJvTcMYQPWzPD"
+     },
+     "at": "2026-11-15T17:48:36Z",
+     "state": "active"
+    }
+   ],
+   "since": "2026-11-15T17:48:36Z",
+   "fields": {
+    "milestone": "4",
+    "title": "Telemetry is OpenTelemetry",
+    "what": "Telemetry is OpenTelemetry: Core, the runner, the world and the platform client export OTLP through Effect's exporters; the telemetry door on staging; the test sink; the tap in test worlds, read by the runner side by side with app.spans, then flipped and app.spans retired",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "1.2"
+    ],
+    "units": 1,
+    "lane": "telemetry"
+   }
+  },
+  {
+   "id": "4.5",
+   "state": "planned",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T14:15:47Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T14:15:47Z",
+   "fields": {
+    "milestone": "4",
+    "title": "Proof is a verdict",
+    "what": "Proof is a verdict: the proving workflows write verdicts, notarised by checks, on proofs, with the OTLP archived in R2; the status feed verifies them; prove.yml; the Proof column uses proof:",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "4.4"
+    ],
+    "units": 1
+   }
+  },
+  {
+   "id": "4.6",
+   "state": "planned",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T14:15:47Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T14:15:47Z",
+   "fields": {
+    "milestone": "4",
+    "title": "Cost is measured daily per world, run, journey and",
+    "what": "Cost is measured daily per world, run, journey and lane, against the cap",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "4.4"
+    ],
+    "units": 1
+   }
+  },
+  {
+   "id": "4.7",
+   "state": "active",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T14:15:47Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_started",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7BnxXPJvTcMYQPWzPD"
+     },
+     "at": "2026-11-15T17:48:36Z",
+     "state": "active"
+    }
+   ],
+   "since": "2026-11-15T17:48:36Z",
+   "fields": {
+    "milestone": "4",
+    "title": "The pipeline instrumented",
+    "what": "The pipeline instrumented: every pipeline operation's steps are spans of declared steps (ratchet R6 for the world, the runner and the platform client), and the gate's rungs are spans",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "3.6",
+     "4.4"
+    ],
+    "units": 1,
+    "lane": "telemetry"
+   }
+  },
+  {
+   "id": "4.8",
+   "state": "active",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T14:15:47Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_started",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7A5EFsECELJk2x94CG"
+     },
+     "at": "2026-11-15T17:53:08Z",
+     "state": "active"
+    }
+   ],
+   "since": "2026-11-15T17:53:08Z",
+   "fields": {
+    "milestone": "4",
+    "title": "One shared world, every journey side by side",
+    "what": "One shared world, every journey side by side (\"One shared world, every journey side by side\"): the runner makes one world per run and starts every company journey in it at once, the journeys about worlds in worlds of their own; the runner's isolation check on every call and over the whole record at the end (a generic check, written by a different agent from the one who changes the runner); the bench's blank pool raised to 8 to 10 copies. The world run measured under 5 minutes, or the parts still over it named (builder: runner, world, bench)",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "4.11"
+    ],
+    "units": 1,
+    "lane": "run-time"
+   }
+  },
+  {
+   "id": "3.8",
+   "state": "active",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T14:26:47Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_started",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF79VUFRRBGBDTzB485K"
+     },
+     "at": "2026-11-15T17:09:48Z",
+     "state": "active"
+    }
+   ],
+   "since": "2026-11-15T17:09:48Z",
+   "fields": {
+    "milestone": "3",
+    "title": "The glossary in the blueprint",
+    "what": "The glossary in the blueprint (decision \"One glossary\"): every agreed word declared once; lint takes words from it; the rename of every old word on a ratchet, user-facing names side by side",
+    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "3.6"
+    ],
+    "units": 1,
+    "lane": "blueprint"
+   }
+  },
+  {
+   "id": "4.9",
+   "state": "planned",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T14:26:47Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T14:26:47Z",
+   "fields": {
+    "milestone": "4",
+    "title": "The pipeline's commands",
+    "what": "The pipeline's commands: every run.sh job a generated capxul command; the scripts gone; build tools that stay listed with their reasons on a ratchet",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "4.7",
+     "3.9"
+    ],
+    "units": 1
+   }
+  },
+  {
+   "id": "5.3",
+   "state": "planned",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T14:26:47Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T14:26:47Z",
+   "fields": {
+    "milestone": "5",
+    "title": "Frappe through the CLI",
+    "what": "Frappe through the CLI: the generic verbs declared once; typed commands per app generated from the pinned apps' metadata; Frappe's permissions from the caller's hat; the coverage list of what is not exposed, which may only shrink",
+    "why": "Milestone 5 needs it: The first feature through the loop: account identity, and who may call. It needs 4.1's format and lint rule; 4.2 and 4.3 land alongside, measured on its runs",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "3.9",
+     "5.1"
+    ],
+    "units": 1
+   }
+  },
+  {
+   "id": "5.4",
+   "state": "planned",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T14:26:47Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T14:26:47Z",
+   "fields": {
+    "milestone": "5",
+    "title": "The Safe through the CLI",
+    "what": "The Safe through the CLI: safe verbs generated from the contracts' ABI, allowed by the caller's roles, signed at the Safe's threshold, sent through the bundler, kept in the world's history",
+    "why": "Milestone 5 needs it: The first feature through the loop: account identity, and who may call. It needs 4.1's format and lint rule; 4.2 and 4.3 land alongside, measured on its runs",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "5.1",
+     "5.2"
+    ],
+    "units": 1
+   }
+  },
+  {
+   "id": "3.10",
+   "state": "active",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T14:46:34Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_started",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF79VUFRRBGBDTzB485K"
+     },
+     "at": "2026-11-15T17:09:48Z",
+     "state": "active"
+    }
+   ],
+   "since": "2026-11-15T17:09:48Z",
+   "fields": {
+    "milestone": "3",
+    "title": "Every format exists in packages/blueprint-tools",
+    "what": "Every format exists in packages/blueprint-tools (lifecycle, who may call, spans and logs, budget, promises, telemetry names, glossary words, the pipeline's things), proven on the invitation end to end: its declaration, the generated code, the API's handler moving it only through its lifecycle, its journeys and the telemetry checks, with nothing drifting",
+    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "3.6",
+     "3.8"
+    ],
+    "units": 1,
+    "lane": "blueprint"
+   }
+  },
+  {
+   "id": "3.11",
+   "state": "active",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T14:46:34Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_started",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF79VUFRRBGBDTzB485K"
+     },
+     "at": "2026-11-15T17:09:48Z",
+     "state": "active"
+    }
+   ],
+   "since": "2026-11-15T17:09:48Z",
+   "fields": {
+    "milestone": "3",
+    "title": "The scorecard",
+    "what": "The scorecard: every thing against every format, generated from the ratchet lists and shown on the dashboard",
+    "why": "Milestone 3 needs it: One owner for every fact, checked: generated files, the seeded chain rebuilt, the lint and its ratchet, machines, the delta check, the blueprint's format with the ratchet registry (decisions of 15 November 2026)",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "3.6"
+    ],
+    "units": 1,
+    "lane": "blueprint"
+   }
+  },
+  {
+   "id": "C.1",
+   "state": "planned",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T14:46:34Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T14:46:34Z",
+   "fields": {
+    "milestone": "C",
+    "title": "The climb",
+    "what": "The climb: every existing thing brought up to spec in parallel lanes, one thing per unit (its lifecycle declared and the API moving it only through it, every format, the glossary's words, its spans declared and instrumented, journeys reaching every new declaration); states that disagree or were never written down are agreed with Aaron as they are declared",
+    "why": "Milestone C needs it: Every existing thing brought up to spec in parallel lanes, one thing per unit, measured as a rehearsal of breadth (decision \"Build the system, then climb, then breadth\")",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "3.10",
+     "3.11"
+    ],
+    "units": 13
+   }
+  },
+  {
+   "id": "C.2",
+   "state": "planned",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T14:46:34Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T14:46:34Z",
+   "fields": {
+    "milestone": "C",
+    "title": "The scorecard all green",
+    "what": "The scorecard all green: every ratchet list empty for every existing thing (this absorbs 7.3 and 7.4)",
+    "why": "Milestone C needs it: Every existing thing brought up to spec in parallel lanes, one thing per unit, measured as a rehearsal of breadth (decision \"Build the system, then climb, then breadth\")",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "C.1"
+    ],
+    "units": 1
+   }
+  },
+  {
+   "id": "C.3",
+   "state": "planned",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T14:46:34Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T14:46:34Z",
+   "fields": {
+    "milestone": "C",
+    "title": "The climb measured as breadth's rehearsal",
+    "what": "The climb measured as breadth's rehearsal: things brought to spec per day, tries to green, conflicts between lanes, time waiting; a report that sets breadth's lane size",
+    "why": "Milestone C needs it: Every existing thing brought up to spec in parallel lanes, one thing per unit, measured as a rehearsal of breadth (decision \"Build the system, then climb, then breadth\")",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "C.2"
+    ],
+    "units": 1
+   }
+  },
+  {
+   "id": "4.10",
+   "state": "planned",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T17:53:20Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T17:53:20Z",
+   "fields": {
+    "milestone": "4",
+    "title": "Core next to its data",
+    "what": "Core next to its data (\"Core runs next to its data\"): Core's Worker placed in Europe beside Neon and the hub, and one measured run shows its queries, lookups and chain calls inside Europe (builder: world); fast-tracked 15 November 2026; measured by the slice's world run: Core's recorded colo and its postgres span times",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [],
+    "units": 1
+   }
+  },
+  {
+   "id": "4.11",
+   "state": "active",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T17:53:20Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_started",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7A5EFsECELJk2x94CG"
+     },
+     "at": "2026-11-15T17:54:20Z",
+     "state": "active"
+    }
+   ],
+   "since": "2026-11-15T17:54:20Z",
+   "fields": {
+    "milestone": "4",
+    "title": "The journeys made side-by-side safe, and observation from telemetry",
+    "what": "The journeys made side-by-side safe, and observation from telemetry (journey author, never the builder): checks judge what their own call caused (the record by the call's trace, the chain by the journey's own accounts); a cast per journey; each journey builds its own starting company; the operation checks read the call's spans, logs and events in one batch per step instead of world.show and record.export around every try; a snapshot's round trip a journey of its own; every journey still fails on empty handlers and passes one after another in today's runner",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [],
+    "units": 1,
+    "lane": "run-time"
+   }
+  },
+  {
+   "id": "4.12",
+   "state": "active",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T17:53:20Z",
+     "state": "planned"
+    },
+    {
+     "event": "step_started",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7A5EFsECELJk2x94CG"
+     },
+     "at": "2026-11-15T17:54:20Z",
+     "state": "active"
+    }
+   ],
+   "since": "2026-11-15T17:54:20Z",
+   "fields": {
+    "milestone": "4",
+    "title": "The run's plumbing",
+    "what": "The run's plumbing (builder: runner, world, world.yml): a site restored beside the world's create; the bundler kept running across a reset; readiness 5 probes, not 20; Core's upload skipped when unchanged; the clock warp's time explained; the verdict reported before teardown, the teardown in a job that always runs",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [],
+    "units": 1,
+    "lane": "run-time"
+   }
+  },
+  {
+   "id": "3.7",
+   "state": "planned",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T20:09:11Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T20:09:11Z",
+   "fields": {
+    "milestone": "4",
+    "title": "The coverage gate",
+    "what": "The coverage gate: in world.yml, a slice whose newly declared moves, refusals or outcomes no journey reaches does not merge into master; existing ones by ratchet R9",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "3.6"
+    ],
+    "units": 1
+   }
+  },
+  {
+   "id": "3.9",
+   "state": "planned",
+   "history": [
+    {
+     "event": "step_planned",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T20:09:11Z",
+     "state": "planned"
+    }
+   ],
+   "since": "2026-11-15T20:09:11Z",
+   "fields": {
+    "milestone": "4",
+    "title": "The CLI's grammar",
+    "what": "The CLI's grammar (decision \"The CLI is the one surface\"): capxul <thing> <verb>, login, use <world>, readable output and --json, generated from the blueprint",
+    "why": "Milestone 4 needs it: Declared steps and logs, OpenTelemetry through the door, proof as verdicts, cost, the pipeline instrumented, one shared world with every journey side by side, the explainability eval, then the build evals; also the coverage gate (3.7) and the CLI's grammar (3.9), as lanes of their own once 3.6 is Done",
+    "doneWhen": "A passing run record, named in the roadmap's Proof column, is committed on master.",
+    "needs": [
+     "3.6"
+    ],
+    "units": 1
+   }
+  }
+ ],
+ "lanes": [
+  {
+   "id": "blueprint",
+   "state": "open",
+   "history": [
+    {
+     "event": "lane_opened",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T17:08:18Z",
+     "state": "open"
+    },
+    {
+     "event": "lane_led",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T17:08:28Z",
+     "state": "open"
+    }
+   ],
+   "since": "2026-11-15T17:08:28Z",
+   "fields": {
+    "title": "Blueprint 2b",
+    "branch": "slice/blueprint",
+    "steps": [
+     "3.6",
+     "3.8",
+     "3.10"
+    ],
+    "lead": "session_01S8RF79VUFRRBGBDTzB485K"
+   }
+  },
+  {
+   "id": "telemetry",
+   "state": "open",
+   "history": [
+    {
+     "event": "lane_opened",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T17:47:06Z",
+     "state": "open"
+    },
+    {
+     "event": "lane_led",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T17:47:16Z",
+     "state": "open"
+    }
+   ],
+   "since": "2026-11-15T17:47:16Z",
+   "fields": {
+    "title": "Telemetry",
+    "branch": "slice/telemetry",
+    "steps": [
+     "4.4",
+     "4.7"
+    ],
+    "lead": "session_01S8RF7BnxXPJvTcMYQPWzPD"
+   }
+  },
+  {
+   "id": "placement",
+   "state": "open",
+   "history": [
+    {
+     "event": "lane_opened",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T17:47:30Z",
+     "state": "open"
+    }
+   ],
+   "since": "2026-11-15T17:47:30Z",
+   "fields": {
+    "title": "Placement",
+    "branch": "slice/placement",
+    "steps": [
+     "4.10"
+    ]
+   }
+  },
+  {
+   "id": "run-time",
+   "state": "open",
+   "history": [
+    {
+     "event": "lane_opened",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T17:51:38Z",
+     "state": "open"
+    },
+    {
+     "event": "lane_led",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T17:51:48Z",
+     "state": "open"
+    }
+   ],
+   "since": "2026-11-15T17:51:48Z",
+   "fields": {
+    "title": "Speed",
+    "branch": "slice/run-time",
+    "steps": [
+     "4.12",
+     "4.11",
+     "4.8"
+    ],
+    "lead": "session_01S8RF7A5EFsECELJk2x94CG"
+   }
+  }
+ ],
+ "threads": [
+  {
+   "id": "session_01S8RF7Ce7ysZNMXvaxLQkix",
+   "state": "active",
+   "history": [
+    {
+     "event": "thread_started",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T17:06:21Z",
+     "state": "active"
+    }
+   ],
+   "since": "2026-11-15T17:06:21Z",
+   "fields": {
+    "type": "conductor",
+    "title": "Conductor: the Capxul rebuild",
+    "agent": "claude-code",
+    "link": "https://claude.ai/code/session_01S8RF7Ce7ysZNMXvaxLQkix"
+   }
+  },
+  {
+   "id": "session_01S8RF79VUFRRBGBDTzB485K",
+   "state": "waiting",
+   "history": [
+    {
+     "event": "thread_started",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T17:07:48Z",
+     "state": "active"
+    },
+    {
+     "event": "thread_waiting",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF79VUFRRBGBDTzB485K"
+     },
+     "at": "2026-11-15T19:30:05Z",
+     "state": "waiting"
+    }
+   ],
+   "since": "2026-11-15T19:30:05Z",
+   "fields": {
+    "type": "lead",
+    "title": "Lead: blueprint stage 2 (2a lands, then 2b)",
+    "agent": "claude-code",
+    "link": "https://claude.ai/code/session_01S8RF79VUFRRBGBDTzB485K",
+    "lane": "blueprint",
+    "parent": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+   }
+  },
+  {
+   "id": "session_01S8RF7D33sfKcWfHsnDPd8z",
+   "state": "active",
+   "history": [
+    {
+     "event": "thread_started",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T17:39:15Z",
+     "state": "active"
+    }
+   ],
+   "since": "2026-11-15T17:39:15Z",
+   "fields": {
+    "type": "lead",
+    "title": "Lead: docs, one set by progressive disclosure",
+    "agent": "claude-code",
+    "link": "https://claude.ai/code/session_01S8RF7D33sfKcWfHsnDPd8z",
+    "parent": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+   }
+  },
+  {
+   "id": "session_01S8RF7BnxXPJvTcMYQPWzPD",
+   "state": "active",
+   "history": [
+    {
+     "event": "thread_started",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T17:46:36Z",
+     "state": "active"
+    }
+   ],
+   "since": "2026-11-15T17:46:36Z",
+   "fields": {
+    "type": "lead",
+    "title": "Lead: instrumentation, telemetry to Axiom",
+    "agent": "claude-code",
+    "link": "https://claude.ai/code/session_01S8RF7BnxXPJvTcMYQPWzPD",
+    "lane": "telemetry",
+    "parent": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+   }
+  },
+  {
+   "id": "session_01S8RF7A5EFsECELJk2x94CG",
+   "state": "waiting",
+   "history": [
+    {
+     "event": "thread_started",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T17:51:08Z",
+     "state": "active"
+    },
+    {
+     "event": "thread_waiting",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7A5EFsECELJk2x94CG"
+     },
+     "at": "2026-11-15T19:12:05Z",
+     "state": "waiting"
+    }
+   ],
+   "since": "2026-11-15T19:12:05Z",
+   "fields": {
+    "type": "lead",
+    "title": "Lead: run time under 5 minutes",
+    "agent": "claude-code",
+    "link": "https://claude.ai/code/session_01S8RF7A5EFsECELJk2x94CG",
+    "lane": "run-time",
+    "parent": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+   }
+  },
+  {
+   "id": "session_01S8RF79ozyx81cyXgaj9eUZ",
+   "state": "active",
+   "history": [
+    {
+     "event": "thread_started",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T17:54:39Z",
+     "state": "active"
+    }
+   ],
+   "since": "2026-11-15T17:54:39Z",
+   "fields": {
+    "type": "author",
+    "title": "Author: journeys safe side by side (4.11)",
+    "agent": "claude-code",
+    "link": "https://claude.ai/code/session_01S8RF79ozyx81cyXgaj9eUZ",
+    "lane": "run-time",
+    "parent": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+   }
+  },
+  {
+   "id": "session_01S8RF7CdntXG9ZAhQTJ6GA8",
+   "state": "active",
+   "history": [
+    {
+     "event": "thread_started",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T18:08:07Z",
+     "state": "active"
+    }
+   ],
+   "since": "2026-11-15T18:08:07Z",
+   "fields": {
+    "type": "designer",
+    "title": "Designer: the sitrep page's UX (with Aaron)",
+    "agent": "claude-code",
+    "link": "https://claude.ai/code/session_01S8RF7CdntXG9ZAhQTJ6GA8",
+    "parent": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+   }
+  }
+ ],
+ "asks": [
+  {
+   "id": "ask-example-shared-world",
+   "state": "open",
+   "history": [
+    {
+     "event": "ask_opened",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7A5EFsECELJk2x94CG"
+     },
+     "at": "2026-11-15T19:12:00Z",
+     "state": "open"
+    }
+   ],
+   "since": "2026-11-15T19:12:00Z",
+   "fields": {
+    "from": "session_01S8RF7A5EFsECELJk2x94CG",
+    "question": "Share one world across every journey now, or after telemetry lands?",
+    "problem": "Step 4.8 puts every journey side by side in one shared world, the biggest cut in the full run's time. It can start now, or wait until telemetry is on master.",
+    "context": "A full run takes about thirty minutes against a target of five. When journeys share a world, a failure in one can show up in another, and without telemetry the record cannot say which call caused it.",
+    "rubric": [
+     {
+      "name": "Time to a faster run",
+      "why": "Every day the run stays slow, every slice waits longer at its merge."
+     },
+     {
+      "name": "Explainable failures",
+      "why": "A failure we cannot explain from its record costs a rerun, and reruns cost money under the daily cap."
+     }
+    ],
+    "options": [
+     {
+      "key": "A",
+      "title": "Start now",
+      "detail": "Build the shared world tonight on the runner's own records.",
+      "tradeoffs": "The fastest cut, but a cross-journey failure is hard to explain until telemetry lands."
+     },
+     {
+      "key": "B",
+      "title": "After telemetry",
+      "detail": "Start once 4.4 is on master, with the isolation check reading spans.",
+      "tradeoffs": "About a day later, but every failure names the call that caused it."
+     },
+     {
+      "key": "C",
+      "title": "Company journeys first",
+      "detail": "Share the world only for company journeys now; world journeys keep their own.",
+      "tradeoffs": "Half the gain now with little risk; a second change later."
+     }
+    ],
+    "recommended": "C",
+    "because": "It takes most of the gain tonight while keeping the journeys whose failures are hardest to explain in worlds of their own.",
+    "lane": "run-time",
+    "step": "4.8"
+   }
+  },
+  {
+   "id": "ask-example-glossary-renames",
+   "state": "open",
+   "history": [
+    {
+     "event": "ask_opened",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF79VUFRRBGBDTzB485K"
+     },
+     "at": "2026-11-15T19:30:00Z",
+     "state": "open"
+    }
+   ],
+   "since": "2026-11-15T19:30:00Z",
+   "fields": {
+    "from": "session_01S8RF79VUFRRBGBDTzB485K",
+    "question": "Rename the glossary's old words in one sweep, or file by file on the ratchet?",
+    "problem": "The glossary is declared and counts its old words: several thousand across the code. They can be renamed in one pull request or a file at a time.",
+    "context": "Three lanes are building on master at once. A sweep touches most packages and would conflict with each of them; the ratchet lets each lane rename the files it already touches.",
+    "rubric": [
+     {
+      "name": "Conflicts with other lanes",
+      "why": "A conflict stops a lane until someone merges by hand."
+     },
+     {
+      "name": "Time until the count is zero",
+      "why": "Step 3.8 is done only when the old words are gone."
+     }
+    ],
+    "options": [
+     {
+      "key": "A",
+      "title": "One sweep",
+      "detail": "One builder renames every old word in one pull request tonight.",
+      "tradeoffs": "Done in a day, but every open slice conflicts with it."
+     },
+     {
+      "key": "B",
+      "title": "File by file",
+      "detail": "Each lane renames the old words in the files it touches; the ratchet only falls.",
+      "tradeoffs": "No conflicts, but the count falls slowly and 3.8 stays open for weeks."
+     }
+    ],
+    "recommended": "B",
+    "because": "Three lanes are mid-flight; a sweep would cost each of them a merge by hand for a step nothing else waits on.",
+    "lane": "blueprint",
+    "step": "3.8"
+   }
+  }
+ ],
+ "sitreps": [
+  {
+   "id": "20261115-1400-foundations",
+   "state": "said",
+   "history": [
+    {
+     "event": "sitrep_said",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T14:00:00Z",
+     "state": "said"
+    }
+   ],
+   "since": "2026-11-15T14:00:00Z",
+   "fields": {
+    "title": "Five foundation steps proven",
+    "parts": [
+     "Generated files, the seeded chain, the lint ratchet, machines and the delta check are all proven on master.",
+     "Five of the foundations milestone's eleven steps are done."
+    ],
+    "links": [
+     {
+      "label": "The seeded chain",
+      "href": "https://github.com/AaronAbuUsama/capxul-next/pull/276"
+     },
+     {
+      "label": "Lint, machines and the delta check",
+      "href": "https://github.com/AaronAbuUsama/capxul-next/pull/262"
+     }
+    ],
+    "lanes": [],
+    "steps": []
+   }
+  },
+  {
+   "id": "20261115-1450-plan-grew",
+   "state": "said",
+   "history": [
+    {
+     "event": "sitrep_said",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T14:50:00Z",
+     "state": "said"
+    }
+   ],
+   "since": "2026-11-15T14:50:00Z",
+   "fields": {
+    "title": "The plan grew",
+    "parts": [
+     "After the blueprint restack, the foundations milestone grew to eleven steps.",
+     "Forty-six units of work were added to the plan today. That is why the burn-down jumps back up."
+    ],
+    "links": [
+     {
+      "label": "The restack",
+      "href": "https://github.com/AaronAbuUsama/capxul-next/pull/275"
+     }
+    ],
+    "lanes": [
+     "blueprint"
+    ],
+    "steps": [
+     "3.10",
+     "3.6",
+     "3.8"
+    ]
+   }
+  },
+  {
+   "id": "20261115-1740-stage-2a",
+   "state": "said",
+   "history": [
+    {
+     "event": "sitrep_said",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T17:40:00Z",
+     "state": "said"
+    }
+   ],
+   "since": "2026-11-15T17:40:00Z",
+   "fields": {
+    "title": "Blueprint stage 2a landed",
+    "parts": [
+     "The whole blueprint moved into its new layout, and every journey still passes.",
+     "It went through the checks, a full run and an independent review before merging. Stage 2b is next."
+    ],
+    "links": [
+     {
+      "label": "Stage 2a",
+      "href": "https://github.com/AaronAbuUsama/capxul-next/pull/295"
+     }
+    ],
+    "lanes": [
+     "blueprint"
+    ],
+    "steps": [
+     "3.10",
+     "3.6",
+     "3.8"
+    ]
+   }
+  },
+  {
+   "id": "20261115-1755-run-time",
+   "state": "said",
+   "history": [
+    {
+     "event": "sitrep_said",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T17:55:00Z",
+     "state": "said"
+    }
+   ],
+   "since": "2026-11-15T17:55:00Z",
+   "fields": {
+    "title": "The run-time plan is agreed",
+    "parts": [
+     "The plan to get a full run under five minutes is merged, with your decisions in it.",
+     "The speed lane builds it now, plumbing first. Today a full run takes twenty-seven minutes; the plan projects four and a half to five and a half."
+    ],
+    "links": [
+     {
+      "label": "The run-time plan",
+      "href": "https://github.com/AaronAbuUsama/capxul-next/pull/316"
+     },
+     {
+      "label": "The speed lane's lead",
+      "href": "https://claude.ai/code/session_01S8RF7A5EFsECELJk2x94CG"
+     }
+    ],
+    "lanes": [
+     "run-time"
+    ],
+    "steps": [
+     "4.11",
+     "4.12",
+     "4.8"
+    ]
+   }
+  },
+  {
+   "id": "20261115-1850-lanes",
+   "state": "said",
+   "history": [
+    {
+     "event": "sitrep_said",
+     "by": {
+      "kind": "agent",
+      "thread": "session_01S8RF7Ce7ysZNMXvaxLQkix"
+     },
+     "at": "2026-11-15T18:50:00Z",
+     "state": "said"
+    }
+   ],
+   "since": "2026-11-15T18:50:00Z",
+   "fields": {
+    "title": "Four slices are heading for master",
+    "parts": [
+     "Master is green. Four slices have pull requests into master: the blueprint's stage 2b, the speed lane's first landing, telemetry, and the api moved to Europe.",
+     "Each merges once its full run passes. The docs slice is waiting on its full run too.",
+     "Nothing needs you."
+    ],
+    "links": [
+     {
+      "label": "Blueprint 2b into master",
+      "href": "https://github.com/AaronAbuUsama/capxul-next/pull/319"
+     },
+     {
+      "label": "Speed, landing 1",
+      "href": "https://github.com/AaronAbuUsama/capxul-next/pull/341"
+     },
+     {
+      "label": "Telemetry into master",
+      "href": "https://github.com/AaronAbuUsama/capxul-next/pull/317"
+     },
+     {
+      "label": "Placement into master",
+      "href": "https://github.com/AaronAbuUsama/capxul-next/pull/320"
+     }
+    ],
+    "lanes": [
+     "blueprint",
+     "run-time",
+     "telemetry",
+     "placement"
+    ],
+    "steps": [
+     "3.10",
+     "3.6",
+     "3.8",
+     "4.10",
+     "4.11",
+     "4.12",
+     "4.4",
+     "4.7",
+     "4.8"
+    ]
+   }
+  }
+ ],
+ "needsYou": {
+  "asks": [
+   "ask-example-shared-world",
+   "ask-example-glossary-renames"
+  ],
+  "threads": [
+   "session_01S8RF79VUFRRBGBDTzB485K",
+   "session_01S8RF7A5EFsECELJk2x94CG"
+  ]
+ },
+ "burn": [
+  {
+   "at": "2026-11-13T07:50:24Z",
+   "left": 1,
+   "done": 0,
+   "total": 1,
+   "what": "step 0.1 planned"
+  },
+  {
+   "at": "2026-11-13T07:50:24Z",
+   "left": 2,
+   "done": 0,
+   "total": 2,
+   "what": "step 0.2 planned"
+  },
+  {
+   "at": "2026-11-13T07:50:24Z",
+   "left": 3,
+   "done": 0,
+   "total": 3,
+   "what": "step 0.3 planned"
+  },
+  {
+   "at": "2026-11-13T07:50:24Z",
+   "left": 4,
+   "done": 0,
+   "total": 4,
+   "what": "step 0.4 planned"
+  },
+  {
+   "at": "2026-11-13T07:50:24Z",
+   "left": 5,
+   "done": 0,
+   "total": 5,
+   "what": "step 0.5 planned"
+  },
+  {
+   "at": "2026-11-13T07:50:24Z",
+   "left": 6,
+   "done": 0,
+   "total": 6,
+   "what": "step 0.6 planned"
+  },
+  {
+   "at": "2026-11-13T07:50:24Z",
+   "left": 7,
+   "done": 0,
+   "total": 7,
+   "what": "step 0.7 planned"
+  },
+  {
+   "at": "2026-11-13T07:50:24Z",
+   "left": 8,
+   "done": 0,
+   "total": 8,
+   "what": "step 0.8 planned"
+  },
+  {
+   "at": "2026-11-13T07:50:24Z",
+   "left": 9,
+   "done": 0,
+   "total": 9,
+   "what": "step 0.9 planned"
+  },
+  {
+   "at": "2026-11-13T07:50:24Z",
+   "left": 21,
+   "done": 0,
+   "total": 21,
+   "what": "step 1.1 planned"
+  },
+  {
+   "at": "2026-11-13T07:50:24Z",
+   "left": 22,
+   "done": 0,
+   "total": 22,
+   "what": "step 1.2 planned"
+  },
+  {
+   "at": "2026-11-13T07:50:24Z",
+   "left": 23,
+   "done": 0,
+   "total": 23,
+   "what": "step 1.3 planned"
+  },
+  {
+   "at": "2026-11-13T07:50:24Z",
+   "left": 24,
+   "done": 0,
+   "total": 24,
+   "what": "step 1.4 planned"
+  },
+  {
+   "at": "2026-11-13T07:50:24Z",
+   "left": 36,
+   "done": 0,
+   "total": 36,
+   "what": "step 1.5 planned"
+  },
+  {
+   "at": "2026-11-13T07:50:24Z",
+   "left": 39,
+   "done": 0,
+   "total": 39,
+   "what": "step 1.6 planned"
+  },
+  {
+   "at": "2026-11-13T07:50:24Z",
+   "left": 40,
+   "done": 0,
+   "total": 40,
+   "what": "step 1.7 planned"
+  },
+  {
+   "at": "2026-11-13T07:50:24Z",
+   "left": 41,
+   "done": 0,
+   "total": 41,
+   "what": "step 1.8 planned"
+  },
+  {
+   "at": "2026-11-13T07:50:24Z",
+   "left": 42,
+   "done": 0,
+   "total": 42,
+   "what": "step 2.1 planned"
+  },
+  {
+   "at": "2026-11-13T07:50:24Z",
+   "left": 43,
+   "done": 0,
+   "total": 43,
+   "what": "step 2.2 planned"
+  },
+  {
+   "at": "2026-11-13T07:50:24Z",
+   "left": 44,
+   "done": 0,
+   "total": 44,
+   "what": "step 2.3 planned"
+  },
+  {
+   "at": "2026-11-13T07:50:24Z",
+   "left": 47,
+   "done": 0,
+   "total": 47,
+   "what": "step 2.4 planned"
+  },
+  {
+   "at": "2026-11-13T07:50:24Z",
+   "left": 48,
+   "done": 0,
+   "total": 48,
+   "what": "step 2.5 planned"
+  },
+  {
+   "at": "2026-11-13T08:35:00Z",
+   "left": 47,
+   "done": 1,
+   "total": 48,
+   "what": "step 0.6 proven"
+  },
+  {
+   "at": "2026-11-13T10:27:00Z",
+   "left": 46,
+   "done": 2,
+   "total": 48,
+   "what": "step 1.7 proven"
+  },
+  {
+   "at": "2026-11-13T10:35:08Z",
+   "left": 47,
+   "done": 2,
+   "total": 49,
+   "what": "step 1.9 planned"
+  },
+  {
+   "at": "2026-11-13T10:35:08Z",
+   "left": 48,
+   "done": 2,
+   "total": 50,
+   "what": "step 1.10 planned"
+  },
+  {
+   "at": "2026-11-13T10:43:06Z",
+   "left": 49,
+   "done": 2,
+   "total": 51,
+   "what": "step 1.11 planned"
+  },
+  {
+   "at": "2026-11-13T10:43:06Z",
+   "left": 50,
+   "done": 2,
+   "total": 52,
+   "what": "step 1.12 planned"
+  },
+  {
+   "at": "2026-11-13T10:43:06Z",
+   "left": 51,
+   "done": 2,
+   "total": 53,
+   "what": "step 1.13 planned"
+  },
+  {
+   "at": "2026-11-13T12:00:00Z",
+   "left": 50,
+   "done": 3,
+   "total": 53,
+   "what": "step 1.13 proven"
+  },
+  {
+   "at": "2026-11-13T12:19:00Z",
+   "left": 49,
+   "done": 4,
+   "total": 53,
+   "what": "step 0.7 proven"
+  },
+  {
+   "at": "2026-11-13T12:19:00Z",
+   "left": 48,
+   "done": 5,
+   "total": 53,
+   "what": "step 1.9 proven"
+  },
+  {
+   "at": "2026-11-13T12:49:00Z",
+   "left": 47,
+   "done": 6,
+   "total": 53,
+   "what": "step 0.1 proven"
+  },
+  {
+   "at": "2026-11-13T12:49:00Z",
+   "left": 46,
+   "done": 7,
+   "total": 53,
+   "what": "step 0.2 proven"
+  },
+  {
+   "at": "2026-11-13T12:49:00Z",
+   "left": 45,
+   "done": 8,
+   "total": 53,
+   "what": "step 0.3 proven"
+  },
+  {
+   "at": "2026-11-13T12:49:00Z",
+   "left": 44,
+   "done": 9,
+   "total": 53,
+   "what": "step 0.4 proven"
+  },
+  {
+   "at": "2026-11-13T12:49:00Z",
+   "left": 43,
+   "done": 10,
+   "total": 53,
+   "what": "step 0.5 proven"
+  },
+  {
+   "at": "2026-11-13T12:49:00Z",
+   "left": 42,
+   "done": 11,
+   "total": 53,
+   "what": "step 1.3 proven"
+  },
+  {
+   "at": "2026-11-13T12:53:00Z",
+   "left": 30,
+   "done": 23,
+   "total": 53,
+   "what": "step 1.5 proven"
+  },
+  {
+   "at": "2026-11-13T15:06:00Z",
+   "left": 29,
+   "done": 24,
+   "total": 53,
+   "what": "step 1.11 proven"
+  },
+  {
+   "at": "2026-11-14T04:41:34Z",
+   "left": 32,
+   "done": 24,
+   "total": 56,
+   "what": "step 1.14 planned"
+  },
+  {
+   "at": "2026-11-14T04:41:34Z",
+   "left": 33,
+   "done": 24,
+   "total": 57,
+   "what": "step 1.15 planned"
+  },
+  {
+   "at": "2026-11-14T04:41:34Z",
+   "left": 34,
+   "done": 24,
+   "total": 58,
+   "what": "step 1.16 planned"
+  },
+  {
+   "at": "2026-11-14T04:41:34Z",
+   "left": 35,
+   "done": 24,
+   "total": 59,
+   "what": "step 1.17 planned"
+  },
+  {
+   "at": "2026-11-14T04:41:34Z",
+   "left": 36,
+   "done": 24,
+   "total": 60,
+   "what": "step 1.18 planned"
+  },
+  {
+   "at": "2026-11-14T05:15:00Z",
+   "left": 35,
+   "done": 25,
+   "total": 60,
+   "what": "step 1.17 proven"
+  },
+  {
+   "at": "2026-11-14T05:25:00Z",
+   "left": 32,
+   "done": 28,
+   "total": 60,
+   "what": "step 1.14 proven"
+  },
+  {
+   "at": "2026-11-14T06:12:00Z",
+   "left": 31,
+   "done": 29,
+   "total": 60,
+   "what": "step 1.15 proven"
+  },
+  {
+   "at": "2026-11-14T06:12:00Z",
+   "left": 30,
+   "done": 30,
+   "total": 60,
+   "what": "step 1.16 proven"
+  },
+  {
+   "at": "2026-11-14T14:59:00Z",
+   "left": 27,
+   "done": 33,
+   "total": 60,
+   "what": "step 1.6 proven"
+  },
+  {
+   "at": "2026-11-14T16:12:00Z",
+   "left": 26,
+   "done": 34,
+   "total": 60,
+   "what": "step 2.1 proven"
+  },
+  {
+   "at": "2026-11-14T16:12:00Z",
+   "left": 25,
+   "done": 35,
+   "total": 60,
+   "what": "step 2.2 proven"
+  },
+  {
+   "at": "2026-11-14T16:12:00Z",
+   "left": 24,
+   "done": 36,
+   "total": 60,
+   "what": "step 2.3 proven"
+  },
+  {
+   "at": "2026-11-14T16:12:00Z",
+   "left": 21,
+   "done": 39,
+   "total": 60,
+   "what": "step 2.4 proven"
+  },
+  {
+   "at": "2026-11-14T17:38:00Z",
+   "left": 20,
+   "done": 40,
+   "total": 60,
+   "what": "step 0.9 proven"
+  },
+  {
+   "at": "2026-11-14T17:38:00Z",
+   "left": 19,
+   "done": 41,
+   "total": 60,
+   "what": "step 1.4 proven"
+  },
+  {
+   "at": "2026-11-14T17:38:00Z",
+   "left": 18,
+   "done": 42,
+   "total": 60,
+   "what": "step 1.8 proven"
+  },
+  {
+   "at": "2026-11-14T17:38:00Z",
+   "left": 17,
+   "done": 43,
+   "total": 60,
+   "what": "step 1.18 proven"
+  },
+  {
+   "at": "2026-11-15T04:12:00Z",
+   "left": 16,
+   "done": 44,
+   "total": 60,
+   "what": "step 1.10 proven"
+  },
+  {
+   "at": "2026-11-15T04:13:00Z",
+   "left": 15,
+   "done": 45,
+   "total": 60,
+   "what": "step 2.5 proven"
+  },
+  {
+   "at": "2026-11-15T13:24:00Z",
+   "left": 16,
+   "done": 45,
+   "total": 61,
+   "what": "step 3.1 planned"
+  },
+  {
+   "at": "2026-11-15T13:24:00Z",
+   "left": 17,
+   "done": 45,
+   "total": 62,
+   "what": "step 3.3 planned"
+  },
+  {
+   "at": "2026-11-15T13:24:00Z",
+   "left": 18,
+   "done": 45,
+   "total": 63,
+   "what": "step 3.4 planned"
+  },
+  {
+   "at": "2026-11-15T13:24:00Z",
+   "left": 19,
+   "done": 45,
+   "total": 64,
+   "what": "step 3.5 planned"
+  },
+  {
+   "at": "2026-11-15T13:25:00Z",
+   "left": 18,
+   "done": 46,
+   "total": 64,
+   "what": "step 3.1 proven"
+  },
+  {
+   "at": "2026-11-15T13:25:00Z",
+   "left": 17,
+   "done": 47,
+   "total": 64,
+   "what": "step 3.3 proven"
+  },
+  {
+   "at": "2026-11-15T13:25:00Z",
+   "left": 16,
+   "done": 48,
+   "total": 64,
+   "what": "step 3.4 proven"
+  },
+  {
+   "at": "2026-11-15T13:25:00Z",
+   "left": 15,
+   "done": 49,
+   "total": 64,
+   "what": "step 3.5 proven"
+  },
+  {
+   "at": "2026-11-15T13:25:34Z",
+   "left": 16,
+   "done": 49,
+   "total": 65,
+   "what": "step 3.2 planned"
+  },
+  {
+   "at": "2026-11-15T13:25:34Z",
+   "left": 17,
+   "done": 49,
+   "total": 66,
+   "what": "step 4.1 planned"
+  },
+  {
+   "at": "2026-11-15T13:25:34Z",
+   "left": 18,
+   "done": 49,
+   "total": 67,
+   "what": "step 4.2 planned"
+  },
+  {
+   "at": "2026-11-15T13:25:34Z",
+   "left": 19,
+   "done": 49,
+   "total": 68,
+   "what": "step 4.3 planned"
+  },
+  {
+   "at": "2026-11-15T13:25:34Z",
+   "left": 20,
+   "done": 49,
+   "total": 69,
+   "what": "step 5.1 planned"
+  },
+  {
+   "at": "2026-11-15T13:25:34Z",
+   "left": 21,
+   "done": 49,
+   "total": 70,
+   "what": "step 5.2 planned"
+  },
+  {
+   "at": "2026-11-15T13:25:34Z",
+   "left": 22,
+   "done": 49,
+   "total": 71,
+   "what": "step 6.1 planned"
+  },
+  {
+   "at": "2026-11-15T13:25:34Z",
+   "left": 23,
+   "done": 49,
+   "total": 72,
+   "what": "step 6.2 planned"
+  },
+  {
+   "at": "2026-11-15T13:25:34Z",
+   "left": 24,
+   "done": 49,
+   "total": 73,
+   "what": "step 7.1 planned"
+  },
+  {
+   "at": "2026-11-15T13:25:34Z",
+   "left": 25,
+   "done": 49,
+   "total": 74,
+   "what": "step 7.2 planned"
+  },
+  {
+   "at": "2026-11-15T13:58:00Z",
+   "left": 24,
+   "done": 50,
+   "total": 74,
+   "what": "step 3.2 proven"
+  },
+  {
+   "at": "2026-11-15T14:15:47Z",
+   "left": 25,
+   "done": 50,
+   "total": 75,
+   "what": "step 3.6 planned"
+  },
+  {
+   "at": "2026-11-15T14:15:47Z",
+   "left": 26,
+   "done": 50,
+   "total": 76,
+   "what": "step 4.4 planned"
+  },
+  {
+   "at": "2026-11-15T14:15:47Z",
+   "left": 27,
+   "done": 50,
+   "total": 77,
+   "what": "step 4.5 planned"
+  },
+  {
+   "at": "2026-11-15T14:15:47Z",
+   "left": 28,
+   "done": 50,
+   "total": 78,
+   "what": "step 4.6 planned"
+  },
+  {
+   "at": "2026-11-15T14:15:47Z",
+   "left": 29,
+   "done": 50,
+   "total": 79,
+   "what": "step 4.7 planned"
+  },
+  {
+   "at": "2026-11-15T14:15:47Z",
+   "left": 30,
+   "done": 50,
+   "total": 80,
+   "what": "step 4.8 planned"
+  },
+  {
+   "at": "2026-11-15T14:26:47Z",
+   "left": 31,
+   "done": 50,
+   "total": 81,
+   "what": "step 3.8 planned"
+  },
+  {
+   "at": "2026-11-15T14:26:47Z",
+   "left": 32,
+   "done": 50,
+   "total": 82,
+   "what": "step 4.9 planned"
+  },
+  {
+   "at": "2026-11-15T14:26:47Z",
+   "left": 33,
+   "done": 50,
+   "total": 83,
+   "what": "step 5.3 planned"
+  },
+  {
+   "at": "2026-11-15T14:26:47Z",
+   "left": 34,
+   "done": 50,
+   "total": 84,
+   "what": "step 5.4 planned"
+  },
+  {
+   "at": "2026-11-15T14:46:34Z",
+   "left": 35,
+   "done": 50,
+   "total": 85,
+   "what": "step 3.10 planned"
+  },
+  {
+   "at": "2026-11-15T14:46:34Z",
+   "left": 36,
+   "done": 50,
+   "total": 86,
+   "what": "step 3.11 planned"
+  },
+  {
+   "at": "2026-11-15T14:46:34Z",
+   "left": 49,
+   "done": 50,
+   "total": 99,
+   "what": "step C.1 planned"
+  },
+  {
+   "at": "2026-11-15T14:46:34Z",
+   "left": 50,
+   "done": 50,
+   "total": 100,
+   "what": "step C.2 planned"
+  },
+  {
+   "at": "2026-11-15T14:46:34Z",
+   "left": 51,
+   "done": 50,
+   "total": 101,
+   "what": "step C.3 planned"
+  },
+  {
+   "at": "2026-11-15T17:53:20Z",
+   "left": 52,
+   "done": 50,
+   "total": 102,
+   "what": "step 4.10 planned"
+  },
+  {
+   "at": "2026-11-15T17:53:20Z",
+   "left": 53,
+   "done": 50,
+   "total": 103,
+   "what": "step 4.11 planned"
+  },
+  {
+   "at": "2026-11-15T17:53:20Z",
+   "left": 54,
+   "done": 50,
+   "total": 104,
+   "what": "step 4.12 planned"
+  },
+  {
+   "at": "2026-11-15T18:49:00Z",
+   "left": 53,
+   "done": 51,
+   "total": 104,
+   "what": "step 0.8 proven"
+  },
+  {
+   "at": "2026-11-15T18:49:00Z",
+   "left": 41,
+   "done": 63,
+   "total": 104,
+   "what": "step 1.1 proven"
+  },
+  {
+   "at": "2026-11-15T18:49:00Z",
+   "left": 40,
+   "done": 64,
+   "total": 104,
+   "what": "step 1.2 proven"
+  },
+  {
+   "at": "2026-11-15T20:09:11Z",
+   "left": 41,
+   "done": 64,
+   "total": 105,
+   "what": "step 3.7 planned"
+  },
+  {
+   "at": "2026-11-15T20:09:11Z",
+   "left": 42,
+   "done": 64,
+   "total": 106,
+   "what": "step 3.9 planned"
+  }
+ ],
+ "derived": {
+  "sources": [
+   {
+    "id": "roadmap",
+    "name": "The roadmap and master's history",
+    "read": "2026-11-15T20:10:11Z"
+   },
+   {
+    "id": "github",
+    "name": "GitHub Actions",
+    "read": "2026-11-15T20:22:52Z"
+   },
+   {
+    "id": "conductor",
+    "name": "The conductor's lanes and pull requests",
+    "read": "2026-11-15T18:50:00Z"
+   }
+  ],
+  "health": {
+   "master": {
+    "state": "green",
+    "label": "a1aa96c",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43756426573",
+    "at": "2026-11-15T20:11:36Z"
+   },
+   "runs": [
+    {
+     "slice": "slice/blueprint",
+     "outcome": "passed",
+     "minutes": 28.5,
+     "at": "2026-11-15T15:47:16Z",
+     "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43729159341"
+    },
+    {
+     "slice": "slice/world-layout",
+     "outcome": "passed",
+     "minutes": 29.2,
+     "at": "2026-11-15T16:01:43Z",
+     "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43730455893"
+    },
+    {
+     "slice": "slice/docs",
+     "outcome": "passed",
+     "minutes": 31.6,
+     "at": "2026-11-15T16:11:23Z",
+     "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43731122192"
+    },
+    {
+     "slice": "slice/blueprint",
+     "outcome": "passed",
+     "minutes": 34.2,
+     "at": "2026-11-15T16:39:26Z",
+     "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43733471806"
+    },
+    {
+     "slice": "slice/world-layout",
+     "outcome": "passed",
+     "minutes": 36.8,
+     "at": "2026-11-15T16:42:49Z",
+     "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43733548394"
+    },
+    {
+     "slice": "slice/docs",
+     "outcome": "passed",
+     "minutes": 32,
+     "at": "2026-11-15T17:09:36Z",
+     "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43736529998"
+    },
+    {
+     "slice": "slice/blueprint",
+     "outcome": "passed",
+     "minutes": 30,
+     "at": "2026-11-15T17:38:08Z",
+     "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43739380878"
+    },
+    {
+     "slice": "slice/docs",
+     "outcome": "passed",
+     "minutes": 47.2,
+     "at": "2026-11-15T18:43:17Z",
+     "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43743871074"
+    },
+    {
+     "slice": "slice/run-time",
+     "outcome": "failed",
+     "minutes": 54.2,
+     "at": "2026-11-15T19:41:31Z",
+     "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43748713626"
+    },
+    {
+     "slice": "slice/telemetry",
+     "outcome": "failed",
+     "minutes": 30.8,
+     "at": "2026-11-15T19:19:18Z",
+     "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43748823395"
+    },
+    {
+     "slice": "slice/placement",
+     "outcome": "failed",
+     "minutes": 41.6,
+     "at": "2026-11-15T19:31:08Z",
+     "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43748913939"
+    },
+    {
+     "slice": "slice/blueprint",
+     "outcome": "passed",
+     "minutes": 52.2,
+     "at": "2026-11-15T19:44:00Z",
+     "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43749125267"
+    }
+   ]
+  },
+  "pulls": [
+   {
+    "number": 319,
+    "title": "slice/blueprint into master",
+    "state": "draft",
+    "lane": "blueprint",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/319"
+   },
+   {
+    "number": 339,
+    "title": "Each journey's own cast, declared once",
+    "state": "open",
+    "lane": "blueprint",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/339"
+   },
+   {
+    "number": 323,
+    "title": "Stage 2 small follow-up",
+    "state": "draft",
+    "lane": "blueprint",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/323"
+   },
+   {
+    "number": 341,
+    "title": "slice/run-time into master, landing 1",
+    "state": "draft",
+    "lane": "run-time",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/341"
+   },
+   {
+    "number": 344,
+    "title": "Every journey says where it runs",
+    "state": "open",
+    "lane": "run-time",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/344"
+   },
+   {
+    "number": 345,
+    "title": "The reset's bundler check retries",
+    "state": "draft",
+    "lane": "run-time",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/345"
+   },
+   {
+    "number": 337,
+    "title": "Bench door: ready blank copies",
+    "state": "draft",
+    "lane": "run-time",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/337"
+   },
+   {
+    "number": 317,
+    "title": "slice/telemetry into master",
+    "state": "draft",
+    "lane": "telemetry",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/317"
+   },
+   {
+    "number": 346,
+    "title": "The runner exports from CI",
+    "state": "draft",
+    "lane": "telemetry",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/346"
+   },
+   {
+    "number": 318,
+    "title": "Place the api's Worker in Europe",
+    "state": "merged",
+    "lane": "placement",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/318"
+   },
+   {
+    "number": 320,
+    "title": "slice/placement into master",
+    "state": "draft",
+    "lane": "placement",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/320"
+   }
+  ],
+  "landed": [
+   {
+    "at": "2026-11-15T20:09:11Z",
+    "title": "Roadmap",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/355"
+   },
+   {
+    "at": "2026-11-15T20:05:43Z",
+    "title": "slice/placement",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/320"
+   },
+   {
+    "at": "2026-11-15T20:01:33Z",
+    "title": "slice/blueprint",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/356"
+   },
+   {
+    "at": "2026-11-15T19:48:31Z",
+    "title": "Full runs paused until the run is fast",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/338"
+   },
+   {
+    "at": "2026-11-15T19:44:33Z",
+    "title": "slice/blueprint",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/319"
+   },
+   {
+    "at": "2026-11-15T18:49:05Z",
+    "title": "slice/docs",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/304"
+   },
+   {
+    "at": "2026-11-15T17:53:20Z",
+    "title": "📐 The world run in under 5 minutes",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/316"
+   },
+   {
+    "at": "2026-11-15T17:38:27Z",
+    "title": "slice/blueprint",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/295"
+   }
+  ],
+  "measures": {
+   "ratchets": [
+    {
+     "id": "R1",
+     "name": "Raw schemas",
+     "holds": "Raw schemas outside values files, machines and listed edges, as findings of capxul/owned-values.",
+     "closes": "3.3",
+     "count": 667,
+     "series": [
+      {
+       "at": "2026-11-15T13:25:34Z",
+       "count": 681
+      },
+      {
+       "at": "2026-11-15T13:58:50Z",
+       "count": 671
+      },
+      {
+       "at": "2026-11-15T17:38:27Z",
+       "count": 667
+      }
+     ]
+    },
+    {
+     "id": "R2",
+     "name": "Names typed as strings",
+     "holds": "Declared names retyped as strings outside the blueprint, as findings of capxul/declared-names.",
+     "closes": "3.3",
+     "count": 766,
+     "series": [
+      {
+       "at": "2026-11-15T13:25:34Z",
+       "count": 766
+      }
+     ]
+    },
+    {
+     "id": "R3",
+     "name": "Rows not decoded",
+     "holds": "Stored rows cast to hand-written types instead of decoded, as findings of capxul/decoded-rows.",
+     "closes": "3.3",
+     "count": 38,
+     "series": [
+      {
+       "at": "2026-11-15T13:25:34Z",
+       "count": 38
+      }
+     ]
+    },
+    {
+     "id": "R4",
+     "name": "Lifecycles not machines",
+     "holds": "Things with a lifecycle not yet declared as a machine (site, approval, world, budget among them).",
+     "closes": "C.1 (was 7.3)",
+     "count": null,
+     "countedBy": "C.1",
+     "series": []
+    },
+    {
+     "id": "R5",
+     "name": "Operations not in the full format",
+     "holds": "Operations on a format's unmigrated list: missing machine moves, and later allowed, steps, logs, budget.",
+     "closes": "3.5, 4.1, 5.1",
+     "count": 13,
+     "series": [
+      {
+       "at": "2026-11-15T17:38:27Z",
+       "count": 13
+      }
+     ]
+    },
+    {
+     "id": "R6",
+     "name": "Undeclared spans",
+     "holds": "Effectful functions of our own code (Core, the world, the platform client, the runner) with no declared step.",
+     "closes": "4.1",
+     "count": null,
+     "countedBy": "4.1",
+     "series": []
+    },
+    {
+     "id": "R7",
+     "name": "Operations not in one file",
+     "holds": "Operations whose declaration is still split across files beside their verb's own file.",
+     "closes": "Decision 3",
+     "count": null,
+     "countedBy": "3.6",
+     "series": []
+    },
+    {
+     "id": "R8",
+     "name": "Long or hand-mapped docs",
+     "holds": "READMEs over one screen (60 lines), hand-written file maps, and docs not yet folded.",
+     "closes": "Decision 3",
+     "count": null,
+     "countedBy": "3.6",
+     "series": []
+    },
+    {
+     "id": "R9",
+     "name": "Unreached declarations",
+     "holds": "Declared moves, refusals and outcomes no journey reaches.",
+     "closes": "3.7",
+     "count": null,
+     "countedBy": "3.7",
+     "series": []
+    },
+    {
+     "id": "R10",
+     "name": "Non-Effect code",
+     "holds": "Non-Effect constructs outside entry files, and non-Effect runtime dependencies.",
+     "closes": "Phase 7",
+     "count": null,
+     "countedBy": "3.6",
+     "series": []
+    },
+    {
+     "id": "R11",
+     "name": "Untyped starting worlds",
+     "holds": "Starting-world steps in prose, and payloads retyped in the runner.",
+     "closes": "7.2",
+     "count": null,
+     "countedBy": "7.2",
+     "series": []
+    },
+    {
+     "id": "R12",
+     "name": "Proofs by file path",
+     "holds": "Roadmap proof entries naming files instead of verdicts, for steps not yet Done.",
+     "closes": "4.5",
+     "count": null,
+     "countedBy": "4.5",
+     "series": []
+    },
+    {
+     "id": "R13",
+     "name": "Provisional budgets",
+     "holds": "Operations whose budget is not yet set from a measured verdict.",
+     "closes": "4.1 and the measured runs",
+     "count": null,
+     "countedBy": "4.1",
+     "series": []
+    },
+    {
+     "id": "R14",
+     "name": "Own telemetry tables",
+     "holds": "Readers of app.spans and the runner's JSON records beside OTLP.",
+     "closes": "4.4",
+     "count": null,
+     "countedBy": "4.4",
+     "series": []
+    },
+    {
+     "id": "R15",
+     "name": "Old words",
+     "holds": "The glossary's old words still written as names in code, counted per word in generated/old-words.json; its count is their total.",
+     "closes": "3.8",
+     "count": 7604,
+     "series": [
+      {
+       "at": "2026-11-15T19:44:33Z",
+       "count": 7629
+      },
+      {
+       "at": "2026-11-15T20:01:33Z",
+       "count": 7604
+      }
+     ]
+    }
+   ],
+   "budgets": [
+    {
+     "name": "A full run",
+     "budget": 5,
+     "unit": "min",
+     "source": "github",
+     "measured": [
+      29.2,
+      31.6,
+      34.2,
+      36.8,
+      32,
+      30,
+      47.2,
+      52.2
+     ]
+    }
+   ],
+   "evals": [
+    {
+     "step": "4.2",
+     "name": "Explainability",
+     "what": "Every refusal has its deciding log, every span its parent, and the share of each call's time its declared steps explain."
+    },
+    {
+     "step": "4.3",
+     "name": "The build evals",
+     "what": "Tries to green, breakage and recovery, and speed and cost per journey, read from the verdicts."
+    }
+   ]
+  }
+ }
+}

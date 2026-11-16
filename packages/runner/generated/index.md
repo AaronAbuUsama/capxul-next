@@ -50,6 +50,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 
 ## `src/telemetry/`
 
+- [`chain.ts`](../src/telemetry/chain.ts): The chain reads a journey makes (roadmap 4.7): every JSON-RPC request the scenarios' `capxul.chain` sends to a world's chain, each in a span of its own (`journey.run.chain`) with its method and, for `eth_getLogs`, its block range, and each heard by the step it was made in (`ChainReads`, provided by steps.ts), so a step's record shows where its chain time went.
 - [`export.ts`](../src/telemetry/export.ts): The runner's OTLP export (roadmap 4.4): the layer its entry (main.ts) provides once, so every span, log and metric it makes is posted over OTLP/HTTP JSON to the collector, under a resource naming the producer (`service.name`, the blueprint's producer) and the code's revision (`service.version`).
 - [`flat.ts`](../src/telemetry/flat.ts): A decoded OTLP trace (otlp.ts) as flat spans, from which kept.ts makes the rows the runner's checks read (world/database.ts, `SpanRow`).
 - [`kept.ts`](../src/telemetry/kept.ts): The runner's one reader of a call's spans (roadmap 4.4): they come from the tap (tap.ts), the OTLP Core exports and writes into the world's database.
