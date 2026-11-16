@@ -7,10 +7,11 @@
 // - a company founded on the way holds one of the bench's site slots while it is built, and a journey holds its
 //   worlds' places for as long as it runs (places.ts): the shared world's place is taken off the bound at the start.
 //
-// Until each journey has its own cast (4.11, scenarios' `Casting`), two journeys of the shared world found the same
-// company and meet each other; RUNNER_SHAPE stays `serial` by default until then.
+// Each journey is played by its own cast (4.11): the people every world makes for its key, and its own company handle,
+// so journeys side by side never found the same company or share a person's Safe. RUNNER_SHAPE stays `serial` by
+// default until a world run proves `shared`.
 import { startingWorlds, type OperationName, type StartingWorld } from "@capxul/blueprint";
-import type { Journey } from "@capxul/scenarios";
+import { Casting, declaredCast, type Journey, type JourneyKey } from "@capxul/scenarios";
 import * as World from "@capxul/world";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
@@ -48,7 +49,15 @@ const foundsCompany = (world: StartingWorld): boolean =>
 export const aroundJourney =
   (places: Places, journey: Journey) =>
   <A, E, R>(effect: Effect.Effect<A, E, R>) =>
-    effect.pipe(places.worlds.held(journey.name, (journey.world === "own" ? 1 : 0) + worldsOf(journey)));
+    effect.pipe(
+      places.worlds.held(journey.name, (journey.world === "own" ? 1 : 0) + worldsOf(journey)),
+      // Each journey is played by its own cast, as the blueprint declares it and the world makes it (4.11): its
+      // starting world's makers (company.ts) and its steps (scenarios' cast.ts) read it.
+      Effect.provideService(Casting, CAST_AS_DECLARED),
+    );
+
+/** Every journey cast as the blueprint declares it: the people every world makes for it, and its company's handle. */
+const CAST_AS_DECLARED = { castOf: (key: JourneyKey) => Effect.succeed(declaredCast(key)) };
 
 /** The starting worlds of a run in one shared world; `places` bound the worlds and sites it holds at once. */
 export const sideBySideOf = (settings: Settings, platformUrl: string, places: Places) =>

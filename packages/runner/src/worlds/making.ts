@@ -2,9 +2,8 @@
 // a shared world (shared.ts). Each making is its own program with a client of its own, so its calls are recorded
 // apart from any other's; every call is kept for the checks (`made`) and appended to the world's `calls` fact.
 import type { StartingWorld } from "@capxul/blueprint";
-import type { Capxul, Journey } from "@capxul/scenarios";
+import type { Capxul } from "@capxul/scenarios";
 import * as Arr from "effect/Array";
-import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import type * as FileSystem from "effect/FileSystem";
 import * as Option from "effect/Option";
@@ -16,19 +15,16 @@ import type * as World from "@capxul/world";
 import { capxulFor, type Call, type Target } from "../client.ts";
 import type { RunnerFailure } from "../failure.ts";
 import type { Settings } from "../settings.ts";
+import { JourneyMaking, type MakingCall } from "./journey-making.ts";
 import { madeCallOf, type Facts, type Making } from "./makers.ts";
+
+export { JourneyMaking, type MakingCall };
 
 /**
  * What making a starting world needs: the client's HTTP, the shared state the bench is found by, and the files its
  * template's code is fingerprinted from.
  */
 export type Needs = HttpClient.HttpClient | World.SharedState | FileSystem.FileSystem | Path.Path;
-
-/** One call made in making a starting world, with the world it was made for: what the starting worlds' record keeps. */
-export interface MakingCall {
-  readonly world: string;
-  readonly call: Call;
-}
 
 export const callsOf = (facts: Facts): ReadonlyArray<unknown> => {
   const calls = facts["calls"];
@@ -52,20 +48,6 @@ export const targetOf = (settings: Settings, platformUrl: string): Target => ({
   warmUntil: 0,
   every: settings.probeEvery,
 });
-
-/**
- * Where the calls made for one journey's starting world go, besides the run's `made`: the journey's own log. Provided
- * per journey (worlds/run.ts), so a journey reads its own making calls, not a slice of a list other journeys append to
- * at the same time (roadmap 4.8). A making with none provided records into `made` alone.
- */
-export class JourneyMaking extends Context.Service<
-  JourneyMaking,
-  {
-    readonly calls: Ref.Ref<ReadonlyArray<MakingCall>>;
-    /** The journey whose starting world is being made: a run in one shared world makes it by the journey's kind. */
-    readonly journey?: Journey;
-  }
->()("@capxul/runner/worlds/making/JourneyMaking") {}
 
 /** Runs `steps` of `world` from `making`, recording each call into `made`, and appends them to the world's `calls`. */
 export const recorder =
