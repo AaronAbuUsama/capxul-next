@@ -28,6 +28,7 @@ import type { ExpectationFailed } from "./expectation.ts";
 import { Journal, Steps, type Made, type StepOutline } from "./journal.ts";
 import { said } from "./said.ts";
 import { triesOf, type Tries } from "./tries.ts";
+import { ChainScans, noScans } from "./support/scans.ts";
 
 /** What a journey's steps may fail with: a declared refusal it did not expect, or an expectation that did not hold. */
 export type Failed = ExpectationFailed | Failure;
@@ -145,6 +146,8 @@ export const journey = (
     }).pipe(
       Effect.provideServiceEffect(Journal, Effect.all({ next: Ref.make(1), made: Ref.make<ReadonlyArray<Made>>([]) })),
       Effect.provideServiceEffect(JourneyCast, castFor(declared.key)),
+      // The journey's log scans, kept: each kind read from genesis once, then only the blocks since (support/scans.ts).
+      Effect.provideServiceEffect(ChainScans, noScans),
     ),
   };
 };

@@ -14,6 +14,7 @@ import { present, same, sameAddress, sameAmount } from "./expect.ts";
 import { peopleOf } from "./people.ts";
 import { ownCast, recordOf, textOf, whereOf, type View, type Who } from "./world.ts";
 import { steady } from "./steady.ts";
+import { logsSoFar } from "./scans.ts";
 
 export type Budget = typeof Budgets.Budget.Type;
 export type OnChain = NonNullable<Chain.ReadAnswer<"budget">>;
@@ -77,11 +78,7 @@ export const budgetsCreated = (world: View, logs: ReadonlyArray<Chain.Log>) =>
 /** The ids of every budget the chain made for the company Safe `safe`, in the order it made them. */
 export const madeFor = (world: View, safe: string, who: Who = {}) =>
   Effect.gen(function* () {
-    const capxul = yield* Capxul;
-    const logs = yield* steady(capxul.chain).logs(
-      { log: "BudgetCreated", address: world.contracts.budgets, fromBlock: null, toBlock: null },
-      whereOf(who),
-    );
+    const logs = yield* logsSoFar("BudgetCreated", world.contracts.budgets, who);
     return Arr.map(
       Arr.filter(budgetsCreated(world, logs), (log) => isAddress(log.safe, safe)),
       (log) => log.id,
