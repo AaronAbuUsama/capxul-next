@@ -14,6 +14,7 @@ import { millis, present, same, sameAddress } from "../support/expect.ts";
 import { entriesOfCall, view, whereOf } from "../support/world.ts";
 import { callerIn, callerOf, nothingRecorded, worldBefore, type Before } from "./common.ts";
 import { check, checks, type Asked, type Check } from "./format.ts";
+import { steady } from "../support/steady.ts";
 
 type Asking = Asked<"approval.sign">;
 
@@ -36,7 +37,7 @@ const landed = (asked: Asking, transaction: string, block: number): Check =>
     "its transaction is in the chain, in the block it answered, and did not revert",
     Effect.gen(function* () {
       const capxul = yield* Capxul;
-      const sent = yield* capxul.chain.transaction({ transaction }, whereOf(asked.options));
+      const sent = yield* steady(capxul.chain).transaction({ transaction }, whereOf(asked.options));
       yield* same("the transaction's status and block", [sent.status, sent.block], ["success", block]);
     }),
   );
@@ -63,7 +64,7 @@ const ownOperation = (asked: Asking, transaction: string, before: Before, kind: 
       const capxul = yield* Capxul;
       const signer = yield* callerIn(before, asked.options);
       const safe = yield* present(`${signer.person}'s Safe`, signer.safe);
-      const sent = yield* capxul.chain.transaction({ transaction }, whereOf(asked.options));
+      const sent = yield* steady(capxul.chain).transaction({ transaction }, whereOf(asked.options));
       const ops = Arr.filter(logsOf(sent.logs, "UserOperationEvent"), (log) =>
         isAddress(log.address, before.world.contracts.entryPoint),
       );

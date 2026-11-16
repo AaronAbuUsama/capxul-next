@@ -22,6 +22,7 @@ import {
   type View,
   type Who,
 } from "./world.ts";
+import { steady } from "./steady.ts";
 
 export type Invitation = typeof People.Invitation.Type;
 export type Member = typeof People.Member.Type;
@@ -73,7 +74,7 @@ export const emailOf = (world: View, person: string): string =>
 export const chainBlock = (who: Who) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
-    return (yield* capxul.chain.head({}, whereOf(who))).number;
+    return (yield* steady(capxul.chain).head({}, whereOf(who))).number;
   });
 
 /**
@@ -86,7 +87,7 @@ export const chainUntouched = (world: View, who: Who, before: number, org: strin
     const capxul = yield* Capxul;
     const where = whereOf(who);
     const since = (log: Chain.LogName) =>
-      Effect.map(capxul.chain.logs({ log, address: null, fromBlock: before, toBlock: null }, where), (logs) =>
+      Effect.map(steady(capxul.chain).logs({ log, address: null, fromBlock: before, toBlock: null }, where), (logs) =>
         Arr.filter(logs, (each) => each.block > before),
       );
     const minted = org === null ? [] : yield* companySafesOf(org, who);
