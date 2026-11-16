@@ -359,6 +359,7 @@ does becomes a declared operation with no Rpc: its steps, logs, budget and the r
 | `starting-world.make` | The one generic maker of a starting world from its typed steps (7.2, R11) | the steps' own operations, wait | `packages/runner/src/worlds/*`, by hand |
 | `journey` | One journey: its reset, its steps, its checks | reset, the operations it calls, check | Runner spans |
 | `check.gate`, `check.call`, `check.confirm`, `check.watch` | The layers of part 3 | one step per rung or check | Not spanned |
+| `check.isolation` | Read a shared world's whole run once, so each journey's records can be checked as its own (4.8 b, 4.11) | database | Declared 16 November 2026, for the telemetry export builder |
 | `run.verdict` | Write the verdict, set the check, archive the telemetry (4.5) | chain of writes, upload | Not built |
 | `run.teardown`, `world.sweep` | Destroy what the run made; sweep what expired | deploy, branch, site | Spanned in part |
 | `ratchets.count` | Count every ratchet (part 4) | one step per ratchet | Not built |

@@ -18,6 +18,7 @@ const DECLARED = [
   "check.call",
   "check.confirm",
   "check.gate",
+  "check.isolation",
   "check.watch",
   "cluster.down",
   "cluster.show",
