@@ -28,6 +28,7 @@ export const noGoingBack = journey(
   {
     name: "no going back on an accepted invitation",
     world: "shared",
+    worlds: 0,
     key: "nogo",
     story:
       "dana invites olga to Northwind and olga accepts; declining it afterwards is refused, the invitation closed in state accepted, and she stays a member.",
