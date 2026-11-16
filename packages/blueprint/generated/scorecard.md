@@ -52,7 +52,7 @@ and gated only by that command.
 | R3 Rows not decoded | Stored rows cast to hand-written types instead of decoded, as findings of capxul/decoded-rows. | 38 | 3.3 |
 | R4 Lifecycles not machines | Things with a lifecycle not yet declared as a machine (site, approval, world, budget among them). | not yet counted (C.1) | C.1 (was 7.3) |
 | R5 Operations not in the full format | Operations on the machine format's unmigrated list: those that start or move no machine, or leave a state's refusal undeclared. Who may call, steps and logs, and promises are R17 to R19. | 13 | 3.5 |
-| R6 Undeclared spans | Effectful functions of our own code (Core, the world, the platform client, the runner) with no declared step. | 315 | 4.1 |
+| R6 Undeclared spans | Effectful functions of our own code (Core, the world, the platform client, the runner) with no declared step. | 307 | 4.1 |
 | R7 Operations not in one file | Verbs whose declaration still reads its examples from their thing's `examples.ts` (part 13: until stage 2b folds it into the verbs). A thing's refusals and events have their own files by design (part 13, amended), so they are not counted. | 23 | Decision 3 |
 | R8 Long or hand-mapped docs | READMEs over one screen (60 lines), as the docs' shape lists them (`LONG_READMES`, packages/lint); READMEs and package docs that are hand-written file maps (three or more list items or table rows opening with a file's path); and the docs on this list, not yet folded into a declaration or a generated page. | 10 | Decision 3 |
 | R9 Unreached declarations | Declared moves, refusals and outcomes no journey reaches. | not yet counted (3.7) | 3.7 |
