@@ -78,6 +78,7 @@ const counters: { readonly [C in Counter]: (lists: Lists, ratchet: Ratchet) => O
   "lint:owned-values": (lists) => lintList(lists, "owned-values"),
   "lint:declared-names": (lists) => lintList(lists, "declared-names"),
   "lint:decoded-rows": (lists) => lintList(lists, "decoded-rows"),
+  "lint:declared-steps": (lists) => lintList(lists, "declared-steps"),
   formats: formatLists,
   "formats:machine": someFormats(["machine"]),
   "formats:allowed": someFormats(["allowed"]),

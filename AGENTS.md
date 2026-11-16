@@ -154,7 +154,7 @@ them by reading the diff.
 | Fact | Its one owner | Generated from it or checked against it |
 |---|---|---|
 | Operations, payloads, answers, refusals and exit codes, events, claims, starting worlds | The blueprint, in the verb's file under `src/things/<thing>/` | Core's server, the SDK, the CLI, the pages in `packages/blueprint/generated/`, the types of the scenarios' checks |
-| A thing's lifecycle (3.4) | The blueprint, the thing's `lifecycle.ts` | The state schema, the closing refusal's `state` field, the `step` function Core moves state with, the SQL CHECK constraint (in a new migration whenever the states change: an applied migration is never edited), the diagram in the thing's page, the runner's path check, coverage |
+| A thing's lifecycle (3.4) | The blueprint: its states in the thing's `values.ts`, its moves in its `lifecycle.ts`, checked against the states when it compiles | The closing refusal's `state` field, the `step` function Core moves state with, the SQL CHECK constraint (in a new migration whenever the states change: an applied migration is never edited), the diagram in the thing's page, the runner's path check, coverage |
 | Who may call an operation (5.1) | The blueprint: roles declared once, `allowed` on each operation | Core's one standing check, the generated refusal steps |
 | An operation's steps and logs (4.1) | The blueprint, the operation's own file (3.6) | The generic checks, the waits a budget leaves out |
 | The pipeline's own work: worlds, resets, sites, starting worlds, journeys, the checks, proofs (3.6) | The blueprint, the domain `pipeline` | The runner's and the world's spans (4.7), the proof names in the roadmap |

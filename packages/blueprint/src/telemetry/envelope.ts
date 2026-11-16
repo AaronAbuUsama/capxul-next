@@ -31,8 +31,12 @@ export const PipelineRunId = pattern(/^[0-9]{1,20}$/);
 export const OperationName = pattern(/^[a-z][a-z-]*(\.[a-z][a-z-]*)+$/);
 /** An operation's version; 1 until operations carry versions (roadmap item 6.1). */
 export const OperationVersion = Schema.Int.check(Schema.isGreaterThanOrEqualTo(1));
-/** How a call ended: a declared success, a declared refusal, or what nobody declared. */
-export const Outcome = Schema.Literals(["ok", "refused", "error"]);
+/**
+ * How a span's work ended: `ok` (a declared success), `refused` (a typed failure: a declared refusal), `error` (a
+ * defect, or anything nobody declared) or `interrupted`. OTLP's status cannot tell a refusal from a defect, so every
+ * span Core keeps carries this.
+ */
+export const Outcome = Schema.Literals(["ok", "refused", "error", "interrupted"]);
 /** A refusal, by its tag. */
 export const RefusalTag = pattern(/^[A-Z][A-Za-z]+$/);
 /** The caller's role, as the blueprint's roles name it (roadmap item 5.1). */
@@ -50,6 +54,7 @@ export type Where =
   | "a run's records"
   | "an operation's span"
   | "a step's span"
+  | "an operation's or a step's span"
   | "a check's span"
   | "a metric";
 
@@ -185,8 +190,8 @@ export const attributes = {
     name: "capxul.outcome",
     convention: false,
     schema: Outcome,
-    on: "an operation's span",
-    setBy: "the operation's middleware",
+    on: "an operation's or a step's span",
+    setBy: "Core: the operation's middleware on the operation's span, `KeepingSpan.end` on each step's",
     example: "refused",
   }),
   refusal: attribute({

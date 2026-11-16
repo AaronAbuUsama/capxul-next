@@ -17,6 +17,7 @@ export type Counter =
   | "lint:owned-values"
   | "lint:declared-names"
   | "lint:decoded-rows"
+  | "lint:declared-steps"
   | "formats"
   | "formats:machine"
   | "formats:allowed"
