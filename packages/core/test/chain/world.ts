@@ -35,7 +35,7 @@ import { hex, sameAddress } from "../../src/chain/hex.ts";
 import { SEEDED, TIER } from "../../src/chain/seeded.ts";
 import { WorldChain } from "../../src/chain/WorldChain.ts";
 import { topicsOf } from "../../src/organizations/found.ts";
-import { CoreIdentity, Served, SiteDoor, SqlSpanSink, type SiteCall } from "../../src/door.ts";
+import { CoreIdentity, Served, SiteDoor, ExportedSpans, type SiteCall } from "../../src/door.ts";
 import { siteOpsLive } from "../../src/site-ops/door.ts";
 
 export interface Urls {
@@ -119,7 +119,7 @@ export const core = (urls: Urls, site: Layer.Layer<SiteDoor>) => {
     Layer.provide(FetchHttpClient.layer),
   );
   return Served.pipe(
-    Layer.provide(SqlSpanSink),
+    Layer.provide(ExportedSpans),
     Layer.provide(Layer.succeed(CoreIdentity, IDENTITY)),
     Layer.provideMerge(siteOpsLive({})),
     Layer.provideMerge(Layer.mergeAll(chain, site, Cast.fromDatabase)),

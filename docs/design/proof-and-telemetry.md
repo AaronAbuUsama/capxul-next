@@ -457,7 +457,7 @@ runner either: the runner has no inbound route, and Cloudflare is never given on
 
 So in test worlds Core keeps a **tap**: the same OTLP it exports, written into the world's database
 (`telemetry.otlp`: the trace id, the signal, and the OTLP JSON as OpenTelemetry defines it), off the request path in
-`ctx.waitUntil`. The runner reads it by trace id, as it reads `app.spans` now, retrying briefly until the operation's
+`ctx.waitUntil`. The runner reads it by trace id, as it read `app.spans` until the retire, retrying briefly until the operation's
 span is there. It is per world, at once and isolated, as today, and destroyed with the world, which is right: history
 lives in the sink and the archive.
 

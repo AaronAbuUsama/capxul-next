@@ -1,10 +1,10 @@
-// The flip (src/telemetry/kept.ts): the generic checks read each call's spans from the tap. These show that the checks
-// get the same input from a tap fixture as from the matching `app.spans` rows, and so check a call the same way; that
+// The runner's span reader (src/telemetry/kept.ts): the generic checks read each call's spans from the tap. These show
+// that the checks get the same input from a tap fixture as from the rows Core's spans make, written by hand; that
 // a call the api answered whose trace is not in the tap is a plumbing failure; and that a call the api never answered needs
 // nothing of the tap. The checks themselves (src/checks) are not changed.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { Envelope, operations, servedBy } from "@capxul/blueprint";
+import { Envelope, operations } from "@capxul/blueprint";
 import { OUTCOME, SPAN_ATTRIBUTES } from "@capxul/core";
 import * as Arr from "effect/Array";
 import * as Duration from "effect/Duration";
@@ -21,11 +21,9 @@ import * as Redacted from "effect/Redacted";
 import { checkCall } from "../src/checks/checks.ts";
 import type { Call } from "../src/client.ts";
 import { flatSpans } from "../src/telemetry/flat.ts";
-import { appKeptOf, checkedOrPlumbing, rowOf, tapTelemetryOf } from "../src/telemetry/kept.ts";
+import { checkedOrPlumbing, rowOf, tapTelemetryOf } from "../src/telemetry/kept.ts";
 import { decodeTraces } from "../src/telemetry/otlp.ts";
 import type { SpanRow } from "../src/world/database.ts";
-import { OtherWorlds } from "../src/world/existing.ts";
-import { PlatformKept } from "../src/worlds/kept.ts";
 import { bodiesTo, exported } from "./support/capture.ts";
 
 const DATABASE = Redacted.make("postgresql://user:password@ep-kept.test/neondb");
@@ -60,7 +58,7 @@ const oneCall = Effect.gen(function* () {
   return { traceId, spans, rows: [{ trace_id: traceId, signal: "traces", body: JSON.parse(traces) }] };
 });
 
-/** The same spans as the api's sink keeps them in `app.spans`: written here by hand, from what the api keeps. */
+/** The same spans as rows of the shape the checks read (`SpanRow`), written here by hand from what the api keeps. */
 const appRows = (spans: ReturnType<typeof flatSpans>): ReadonlyArray<SpanRow> =>
   Arr.map(spans, (span) => ({
     trace_id: span.traceId,
@@ -104,13 +102,13 @@ const standIn = (otlp: ReadonlyArray<{ trace_id: string; signal: string; body: u
     }),
   );
 
-test("a tapped span is handed to the checks as the app.spans row the api keeps of it", async () => {
+test("a tapped span is handed to the checks as the row the api's span makes", async () => {
   const call = await Effect.runPromise(oneCall);
   const fromTap = Arr.map(call.spans, (span) => Result.getOrThrow(rowOf(span)));
   assert.deepEqual(fromTap, appRows(call.spans));
 });
 
-test("the checks give the same verdicts from the tap as from app.spans", async () => {
+test("the checks give the same verdicts from the tap as from the hand-written rows", async () => {
   const call = await Effect.runPromise(oneCall);
   const kept = await Effect.runPromise(
     tapTelemetryOf(DATABASE, [callOf(call.traceId, "refusal")], QUICK).pipe(Effect.provide(standIn(call.rows))),
@@ -154,79 +152,17 @@ test("a call the api never answered needs nothing of the tap", async () => {
   assert.deepEqual(kept, { spans: [], events: [] });
 });
 
-/** A row of `app.spans` with nothing but its trace and its name. */
-const row = (trace: string, name: string): SpanRow => ({
-  trace_id: trace,
-  span_id: `${name}-span`,
-  parent_span_id: null,
-  name,
-  outcome: "success",
-  duration_ms: 1,
-  ended_ms: 1_800_000_000_000,
-  attributes: null,
-});
-
-test("parity's app.spans side reads a call at another world's endpoint in that world's database", async () => {
-  const own = Redacted.make("postgresql://user:password@ep-own.test/neondb");
-  const theirs = Redacted.make("postgresql://user:password@ep-theirs.test/neondb");
-  const endpoint = "https://other-world.test";
-  const byHost: Readonly<Record<string, ReadonlyArray<SpanRow>>> = {
-    "ep-own.test": [row(Str.repeat(32)("a"), "own")],
-    "ep-theirs.test": [row(Str.repeat(32)("b"), "theirs")],
-  };
-  const tables = Layer.succeed(
-    HttpClient.HttpClient,
-    HttpClient.make((request, url) => {
-      const sent =
-        request.body._tag === "Uint8Array" ? JSON.parse(new TextDecoder().decode(request.body.body)) : { query: "" };
-      const ids: ReadonlyArray<string> = sent.params?.[0] ?? [];
-      const rows = Str.includes("from app.spans")(sent.query)
-        ? Arr.filter(byHost[url.hostname] ?? [], (each) => Arr.contains(ids, each.trace_id))
-        : [];
-      return Effect.succeed(HttpClientResponse.fromWeb(request, Response.json({ rows }, { status: 200 })));
-    }),
-  );
-  const otherWorlds = Layer.succeed(OtherWorlds, {
-    databaseAt: (at: string) => Effect.succeed(at === endpoint ? Option.some(theirs) : Option.none()),
-  });
-  const kept = await Effect.runPromise(
-    appKeptOf(own, [
-      { traceId: Str.repeat(32)("a"), at: null, operation: WORLD_SERVED },
-      { traceId: Str.repeat(32)("b"), at: endpoint, operation: WORLD_SERVED },
-      { traceId: Str.repeat(32)("c"), at: "https://unknown.test", operation: WORLD_SERVED },
-    ]).pipe(Effect.provide(Layer.merge(tables, otherWorlds))),
-  );
-  assert.deepEqual(
-    Arr.map(kept.spans, (span) => span.name),
-    ["own", "theirs"],
-  );
-});
-
-/** An operation each group serves: one served in this process in a run in private worlds, and one a world serves. */
-const SERVED_HERE = Option.getOrThrow(Arr.findFirst(Rec.keys(operations), (op) => servedBy(op) !== "world"));
-const WORLD_SERVED = Option.getOrThrow(Arr.findFirst(Rec.keys(operations), (op) => servedBy(op) === "world"));
-
 /** An HTTP client that fails the test on any request: nothing may be sent. */
 const sendsNothing = Layer.succeed(
   HttpClient.HttpClient,
   HttpClient.make((request) => Effect.die(new assert.AssertionError({ message: `${request.url} was sent` }))),
 );
 
-test("a stage with no world of its own reads nothing of app.spans for the calls served in this process", async () => {
-  // Run 43807337978: a journey given `quota-full` in the shared shape owns no world, so its stage's database is empty,
-  // and its own calls served in this process were read from app.spans there: "Transport error (POST https:///sql)".
-  const servedHere = Layer.succeed(PlatformKept, { kept: () => Effect.succeed({ spans: [], events: [] }) });
-  const kept = await Effect.runPromise(
-    appKeptOf(Redacted.make(""), [{ traceId: Str.repeat(32)("d"), at: null, operation: SERVED_HERE }]).pipe(
-      Effect.provide(Layer.merge(sendsNothing, servedHere)),
-    ),
-  );
-  assert.deepEqual(kept, { spans: [], events: [] });
-});
-
 test("a database with no host fails as plumbing, saying so, and sends nothing", async () => {
+  // Run 43807337978: a journey given `quota-full` in the shared shape owns no world, so its stage's database is empty;
+  // a read there went to "https:///sql". Now it is the runner's plumbing failure, and nothing is sent.
   const exit = await Effect.runPromiseExit(
-    appKeptOf(Redacted.make(""), [{ traceId: Str.repeat(32)("e"), at: null, operation: WORLD_SERVED }]).pipe(
+    tapTelemetryOf(Redacted.make(""), [callOf(Str.repeat(32)("e"), "success")], QUICK).pipe(
       Effect.provide(sendsNothing),
     ),
   );

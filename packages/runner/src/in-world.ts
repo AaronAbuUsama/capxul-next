@@ -12,7 +12,6 @@ import { describe, endedOf } from "./failure.ts";
 import { writeRecord } from "./record.ts";
 import { type Plan, use } from "./run.ts";
 import type { Settings } from "./settings.ts";
-import { tapFailures } from "./telemetry/side-by-side.ts";
 import { opened, OtherWorlds, startedNow, worldRecord } from "./world/existing.ts";
 import { RUN_SPANS, stepOptions } from "./telemetry/step.ts";
 
@@ -48,14 +47,13 @@ export const runInWorld = (plan: Plan, settings: Settings, name: string) =>
       ...(Exit.isFailure(ran) ? [`the run did not finish: ${describe(ran.cause)}`] : []),
       ...(used !== undefined && Exit.isFailure(used.run) ? [`the run failed: ${describe(used.run.cause)}`] : []),
       ...(used === undefined ? [] : failuresOf(used.calls)),
-      ...tapFailures(used?.tap),
     ];
     const record = worldRecord(
       {
         ...base,
         ended: used === undefined ? null : endedOf(used.run),
         calls: used?.calls ?? [],
-        ...(used === undefined ? {} : { coverage: used.coverage, tap: used.tap }),
+        ...(used === undefined ? {} : { coverage: used.coverage }),
         ms: {
           create: Math.round(Duration.toMillis(openTook)),
           run: used?.ms.run ?? null,

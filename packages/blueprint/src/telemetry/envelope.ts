@@ -33,19 +33,10 @@ import {
   RpcSystem,
   SessionId,
   Signal,
+  type Where,
 } from "./values.ts";
 
 export * from "./values.ts";
-
-/** Where an attribute is stamped. */
-export type Where =
-  | "every record"
-  | "a run's records"
-  | "an operation's span"
-  | "a step's span"
-  | "an operation's or a step's span"
-  | "a check's span"
-  | "a metric";
 
 /** One attribute of the envelope. */
 export interface Attribute<S extends Schema.Top = Schema.Top> {
@@ -259,7 +250,7 @@ export const attributes = {
     name: "rpc.system",
     convention: true,
     schema: RpcSystem,
-    on: "a step's span",
+    on: "the chain read's span",
     setBy: "the runner, on each chain read a journey makes (journey.run.chain)",
     example: "jsonrpc",
   }),
@@ -267,7 +258,7 @@ export const attributes = {
     name: "rpc.method",
     convention: true,
     schema: RpcMethod,
-    on: "a step's span",
+    on: "the chain read's span",
     setBy: "the runner, on each chain read a journey makes (journey.run.chain)",
     example: "eth_getLogs",
   }),
@@ -275,7 +266,7 @@ export const attributes = {
     name: "capxul.chain.block.from",
     convention: false,
     schema: BlockRef,
-    on: "a step's span",
+    on: "the chain read's span",
     setBy: "the runner, on a chain read of logs (`eth_getLogs`): its range's first block",
     example: "0x2dad0c4",
   }),
@@ -283,7 +274,7 @@ export const attributes = {
     name: "capxul.chain.block.to",
     convention: false,
     schema: BlockRef,
-    on: "a step's span",
+    on: "the chain read's span",
     setBy: "the runner, on a chain read of logs (`eth_getLogs`): its range's last block",
     example: "latest",
   }),

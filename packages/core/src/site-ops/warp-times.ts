@@ -2,7 +2,7 @@
 // attributes it is set as on the span of the site's call (site-ops/world.ts).
 //
 // The keys and their values' schema (WarpAttributes) are declared once here; telemetry/attributes.ts adds them to the
-// keys a span Core keeps in `app.spans` holds.
+// declared keys of a span Core exports.
 import * as Arr from "effect/Array";
 import * as Schema from "effect/Schema";
 

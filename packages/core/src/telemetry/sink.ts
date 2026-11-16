@@ -1,7 +1,6 @@
-// Where the spans of a call go. In a world they are rows of `app.spans` in the world's database, written through the
-// call's own SqlClient, so the runner can read them back by trace id; a test keeps them in memory.
-import * as PgClient from "@effect/sql-pg/PgClient";
-import * as Arr from "effect/Array";
+// Where the spans of a call go, besides its OTLP export (telemetry/export.ts): in a world, nowhere else
+// (`ExportedSpans`); on the platform, its own table (packages/world); in a test, memory.
+import type * as Arr from "effect/Array";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -16,26 +15,9 @@ export class SpanSink extends Context.Service<
 >()("@capxul/core/telemetry/sink/SpanSink") {}
 
 /**
- * Writes every span of a call to `app.spans` in one statement (`migrations/0001_telemetry.sql`). Its attributes
- * (0009) are kept as jsonb with Postgres's own JSON parameter, never as JSON text.
+ * A world's Core keeps no spans itself: every span of a call leaves through its OTLP export (telemetry/export.ts), to
+ * the collector and, in a test world, the tap, where the runner reads them back. `app.spans` is gone
+ * (migrations/0012_core_drop_spans.sql). The call's spans are still gathered (spans.ts), for the call's own
+ * attributes and for a sink that does keep them: the platform's (packages/world) and a test's.
  */
-export const SqlSpanSink = Layer.effect(
-  SpanSink,
-  Effect.gen(function* () {
-    const sql = yield* PgClient.PgClient;
-    return SpanSink.of({
-      // One row per span, written as its own fragment: a JSON parameter is a fragment, which goes into the statement
-      // only as part of a template, never as a value of `sql.insert` (the first world run with attributes, #122, died
-      // so on every call: "Cannot infer a PostgreSQL type").
-      keep: (spans) =>
-        sql`insert into app.spans (trace_id, span_id, parent_span_id, name, outcome, duration_ms, ended_ms, attributes)
-          values ${sql.csv(
-            Arr.map(
-              spans,
-              (span) =>
-                sql`(${span.traceId}, ${span.spanId}, ${span.parentSpanId}, ${span.name}, ${span.outcome}, ${span.durationMs}, ${span.endedMs}, ${span.attributes === null ? null : sql.json(span.attributes)})`,
-            ),
-          )}`.pipe(Effect.asVoid, Effect.orDie),
-    });
-  }),
-);
+export const ExportedSpans = Layer.succeed(SpanSink, SpanSink.of({ keep: () => Effect.void }));

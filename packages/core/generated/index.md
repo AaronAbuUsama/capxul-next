@@ -129,7 +129,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 ## `src/telemetry/`
 
 - [`attributes.ts`](../src/telemetry/attributes.ts): What a call's own span says about where and how it ran, beside its name and its time: the Cloudflare data centre that ran Core's Worker, and how much of the call Core spent in its Postgres round trips.
-- [`export.ts`](../src/telemetry/export.ts): Core's export of its telemetry over OTLP, beside the spans the sink keeps in `app.spans` (sink.ts).
+- [`export.ts`](../src/telemetry/export.ts): Core's export of its telemetry over OTLP: the only way its spans leave a world (sink.ts, `ExportedSpans`).
 - [`middleware.ts`](../src/telemetry/middleware.ts): The server half of the blueprint's three middlewares.
-- [`sink.ts`](../src/telemetry/sink.ts): Where the spans of a call go.
+- [`sink.ts`](../src/telemetry/sink.ts): Where the spans of a call go, besides its OTLP export (telemetry/export.ts): in a world, nowhere else (`ExportedSpans`); on the platform, its own table (packages/world); in a test, memory.
 - [`spans.ts`](../src/telemetry/spans.ts): One span per call, keyed by the caller's trace id, and every span beneath it handed to the `SpanSink`.

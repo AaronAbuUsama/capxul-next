@@ -80,7 +80,7 @@ export const migrate = Effect.fn(
   return files;
 });
 
-/** A server span Core kept for a call (`app.spans`). */
+/** A span of a call as the checks read it: a span Core exported, read from the tap (telemetry/kept.ts, `rowOf`). */
 export const SpanRow = Schema.Struct({
   trace_id: Schema.String,
   span_id: Schema.String,
@@ -118,29 +118,3 @@ export const eventsOf = (database: Redacted.Redacted, traceIds: ReadonlyArray<st
         "select trace_id, operation, event, payload from app.events where trace_id = any($1) order by id",
         [traceIds],
       ).pipe(Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(EventRow))));
-
-/**
- * Everything Core kept under the given trace ids in its own tables, in the order it was written: `app.spans` and
- * `app.events`. Since the flip the checks read the spans from the tap (telemetry/kept.ts); this is the side-by-side
- * parity's other record until the retire.
- */
-export const telemetryOf = Effect.fn(
-  Pipeline.checkCall.spans.read.name,
-  stepOptions(Pipeline.checkCall.spans.read),
-)(function* (database: Redacted.Redacted, traceIds: ReadonlyArray<string>) {
-  if (traceIds.length === 0) return { spans: [], events: [] } satisfies Kept;
-  const spans = yield* query(
-    database,
-    "select trace_id, span_id, parent_span_id, name, outcome, duration_ms, ended_ms, attributes from app.spans where trace_id = any($1) order by id",
-    [traceIds],
-  );
-  const events = yield* query(
-    database,
-    "select trace_id, operation, event, payload from app.events where trace_id = any($1) order by id",
-    [traceIds],
-  );
-  return {
-    spans: yield* Schema.decodeUnknownEffect(Schema.Array(SpanRow))(spans),
-    events: yield* Schema.decodeUnknownEffect(Schema.Array(EventRow))(events),
-  } satisfies Kept;
-});

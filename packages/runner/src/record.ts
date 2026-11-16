@@ -44,54 +44,6 @@ export const Coverage = Schema.Array(
 );
 export type Coverage = typeof Coverage.Type;
 
-/** One span as each record holds it, for the side-by-side read: `app.spans`' outcome, or the tap's OTLP status. */
-export const SpanSummary = Schema.Struct({
-  spanId: Schema.String,
-  parentSpanId: Schema.NullOr(Schema.String),
-  name: Schema.String,
-  outcome: Schema.String,
-  durationMs: Schema.Finite,
-});
-
-/**
- * The tap beside `app.spans` (telemetry/side-by-side.ts, roadmap 4.4): `absent` while the world's Core writes no tap,
- * which fails nothing; `on`, with each call's spans in both records and their parity, a disagreement failing the run
- * as the runner's plumbing; `unreadable` when the tap is on but could not be read, which fails it too.
- */
-export const TapReport = Schema.Struct({
-  state: Schema.Literals(["absent", "on", "unreadable"]),
-  /** Why the tap could not be read. */
-  reason: Schema.optional(Schema.String),
-  ms: Schema.Finite,
-  /**
-   * The endpoints calls were made at that no known world answers at: their calls are not compared. Absent on records
-   * made before it was kept.
-   */
-  unknownEndpoints: Schema.String.pipe(Schema.Array, Schema.optional),
-  calls: Schema.Array(
-    Schema.Struct({
-      traceId: Schema.String,
-      operation: Schema.String,
-      /** Whether the tap held the call's operation span, and so all of it, within the wait. */
-      complete: Schema.Boolean,
-      agrees: Schema.Boolean,
-      kept: Schema.Array(SpanSummary),
-      tapped: Schema.Array(SpanSummary),
-      differences: Schema.Array(
-        Schema.Struct({
-          about: Schema.String,
-          spanId: Schema.String,
-          name: Schema.String,
-          key: Schema.optional(Schema.String),
-          kept: Schema.Unknown,
-          tapped: Schema.Unknown,
-        }),
-      ),
-    }),
-  ),
-});
-export type TapReport = typeof TapReport.Type;
-
 export const RunRecord = Schema.Struct({
   /**
    * `door`: every operation called once with its blueprint example. `journey`: one registered journey. `scenario`:
@@ -137,8 +89,6 @@ export const RunRecord = Schema.Struct({
   making: CheckedCall.pipe(Schema.Array, Schema.optional),
   /** What its calls reached of each machine (checks/paths.ts); absent in records made before step 3.4. */
   coverage: Coverage.pipe(Schema.optional),
-  /** The tap beside `app.spans`, call by call; absent in records made before the tap was read. */
-  tap: TapReport.pipe(Schema.optional),
   afterwards: Schema.Struct({
     /** `left to its owner`: a world made by `world create`, which the runner neither made nor destroys. */
     stage: Schema.Literals(["destroying", "destroyed", "destroy failed", "left to its owner"]),

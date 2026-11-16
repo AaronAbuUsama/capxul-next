@@ -22,13 +22,12 @@ import { checkAll, scopeOf, type Scope } from "./checks/isolation.ts";
 import { capxulFor, type Call, type Target, type Via } from "./client.ts";
 import { describe, endedOf, RunnerFailure } from "./failure.ts";
 import { givenFor, type Handing } from "./given.ts";
-import { stepsFor, viaOf, writeRecord, type Coverage, type RunRecord, type TapReport } from "./record.ts";
+import { stepsFor, viaOf, writeRecord, type Coverage, type RunRecord } from "./record.ts";
 // The record's parts that worlds/run.ts builds its own record with.
 export { stepsFor, viaOf } from "./record.ts";
 import { hearing, stepsOf, type Heard, type StepResult } from "./steps.ts";
 import type { Settings } from "./settings.ts";
-import { sideBySide, tapFailures } from "./telemetry/side-by-side.ts";
-import { appKeptOf, tapTelemetryOf } from "./telemetry/kept.ts";
+import { tapTelemetryOf } from "./telemetry/kept.ts";
 import { isEmpty } from "./world/leftovers.ts";
 import { OtherWorlds } from "./world/existing.ts";
 import { PlatformKept } from "./worlds/kept.ts";
@@ -68,7 +67,6 @@ export interface Used {
   /** What its calls reached of each machine (checks/paths.ts), whose `path` check each call above carries. */
   readonly coverage: Coverage;
   readonly steps: ReadonlyArray<StepResult>;
-  readonly tap: TapReport;
   readonly ms: { readonly run: number; readonly checks: number };
 }
 
@@ -97,8 +95,6 @@ export const use = (plan: Plan, settings: Settings) => (stage: Stage) =>
       calls: checked,
       coverage,
       steps: stepsOf(plan.outline, yield* Ref.get(heard), checked),
-      // Parity still compares the tap with what Core keeps in `app.spans`, until the retire.
-      tap: yield* sideBySide(stage.database, calls, yield* appKeptOf(stage.database, calls)),
       ms: { run: millis(runTook), checks: millis(checksTook) },
     } satisfies Used;
   }).pipe(
@@ -169,7 +165,6 @@ const failuresIn = (lifecycle: Lifecycle<Used, RunnerFailure>): ReadonlyArray<st
   return [
     ...(Exit.isFailure(used.run) ? [`the run failed: ${describe(used.run.cause)}`] : []),
     ...failuresOf(used.calls),
-    ...tapFailures(used.tap),
     ...left,
   ];
 };
@@ -192,7 +187,7 @@ export const recordOf = (plan: Plan, startedAt: string, lifecycle: Lifecycle<Use
     ended: used === undefined ? null : endedOf(used.run),
     readiness: lifecycle.readiness,
     calls: used?.calls ?? [],
-    ...(used === undefined ? {} : { coverage: used.coverage, tap: used.tap }),
+    ...(used === undefined ? {} : { coverage: used.coverage }),
     ...stepsFor(plan, used?.steps ?? stepsOf(plan.outline, [], [])),
     afterwards: { stage: lifecycle.afterwards, before: lifecycle.found.before, after: lifecycle.found.after },
     ms: {

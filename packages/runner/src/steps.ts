@@ -33,6 +33,8 @@ export interface Heard {
   readonly tries: ReadonlyArray<Tried>;
   /** The chain reads it made, its checks' included, in the order they ended (telemetry/chain.ts). */
   readonly chain?: ReadonlyArray<ChainRead>;
+  /** The chain reads made after it ended, while no step was open: before the next began, or after the last. */
+  readonly after?: ReadonlyArray<ChainRead>;
   /** Why it failed, in the journey's words; null while it runs and when it did not. */
   readonly failure: string | null;
 }
@@ -61,10 +63,19 @@ export const hearing = (heard: Ref.Ref<ReadonlyArray<Heard>>, log: Ref.Ref<Reado
     }),
   );
 
-/** A chain read, kept by the step that is open while it is made; none is open between steps. */
+/**
+ * A chain read, kept by the step open while it is made; between steps, by the step that ended last, as made after it.
+ * A read before the first step begins is only its span.
+ */
 const chainHeard = (heard: Ref.Ref<ReadonlyArray<Heard>>) => (read: ChainRead) =>
   Ref.update(heard, (all) =>
-    Arr.map(all, (each) => (each.endedMs === null ? { ...each, chain: [...(each.chain ?? []), read] } : each)),
+    Arr.map(all, (each, index) =>
+      each.endedMs === null
+        ? { ...each, chain: [...(each.chain ?? []), read] }
+        : index === all.length - 1
+          ? { ...each, after: [...(each.after ?? []), read] }
+          : each,
+    ),
   );
 
 const heardSteps = (
@@ -146,6 +157,11 @@ export const StepResult = Schema.Struct({
    * spent reading the chain. Absent in records made before it was recorded (roadmap 4.7).
    */
   chain: Schema.Array(ChainRead).pipe(Schema.optional),
+  /**
+   * The chain reads made after it ended, while no step was open (before the next step began, or after the last), so
+   * every read a journey made is in its record. Absent in records made before they were recorded.
+   */
+  after: Schema.Array(ChainRead).pipe(Schema.optional),
 });
 export type StepResult = typeof StepResult.Type;
 
@@ -205,6 +221,7 @@ export const stepsOf = (
       calls: indexes,
       ms: it.endedMs === null ? null : it.endedMs - it.startedMs,
       chain: it.chain ?? [],
+      after: it.after ?? [],
     };
   });
 
