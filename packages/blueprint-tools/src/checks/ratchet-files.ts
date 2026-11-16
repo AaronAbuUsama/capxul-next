@@ -29,11 +29,15 @@ export interface RepositoryFiles {
 
 /**
  * The TypeScript `.oxlintrc.json` ignores that is still Capxul's code, in which R10 counts effect-only's findings:
- * Ponder's files (Ponder requires async handlers). The other ignored folders are out of R10: `spikes/` is temporary,
- * the contracts' JavaScript is vendored, and the Frappe app is outside Effect by the roadmap ("Effect everywhere it
- * can be").
+ * Ponder's files (Ponder requires async handlers) and the contracts' own TypeScript door. The other ignored folders are
+ * out of R10: `spikes/` is temporary, the contracts' `lib/` is vendored, and the Frappe app is outside Effect by the
+ * roadmap ("Effect everywhere it can be").
  */
-export const NOT_LINTED: ReadonlyArray<string> = ["packages/indexer", "packages/world/ponder"];
+export const NOT_LINTED: ReadonlyArray<string> = [
+  "packages/contracts/src",
+  "packages/indexer",
+  "packages/world/ponder",
+];
 
 /** How many lines of a doc name a file first, before a file map is counted (R8). */
 export const MAP_LINES = 3;

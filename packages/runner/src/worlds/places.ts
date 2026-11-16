@@ -1,0 +1,70 @@
+// How many worlds and company sites a run in one shared world has at once (roadmap 4.8 b; RUNNER_SHAPE=shared). Every
+// journey starts at once; these two bounds are what hold the run back. Worlds: the run's own shared world and each
+// world-level journey's worlds, under the smaller of `RUNNER_WORLDS_AT_ONCE` (Neon's concurrently active computes,
+// shared by every run; its documented default is 20) and the cluster's capacity (not its free places: the cluster's
+// ledger is not read). Sites: the companies being founded
+// at once, under `RUNNER_SITES_AT_ONCE`, the bench's ready blank copies (packages/platform, DOOR_BLANK_POOL_SIZE).
+//
+// A journey takes everything it needs at once, before it starts, and gives it back when its worlds are destroyed: two
+// journeys each holding part of what they need and waiting for the rest would wait for ever. A journey that needs more
+// than the bound can ever give fails at once, by name. Each wait is a timed part (`world place`, `site slot`), so the
+// record shows whether it is on the run's critical path.
+//
+// The journeys with worlds of their own share the run's two operators and their quotas of 5 worlds each: two operators
+// and their worlds and the inventory each fill an operator's quota. Today's bound (8 less the shared world, so 7) keeps
+// those two apart, one after the other. Raising RUNNER_WORLDS_AT_ONCE needs an owner of its own per such journey first,
+// or they meet each other's worlds in the quota (WorldQuotaReached early) and the inventory.
+import * as Effect from "effect/Effect";
+import * as Semaphore from "effect/Semaphore";
+import { RunnerFailure } from "../failure.ts";
+import type { Timings } from "../timings.ts";
+
+/** What one bound gives: `held(n)` runs an effect holding `n` places, waiting for them as one. */
+export interface Bound {
+  readonly size: number;
+  readonly held: (
+    journey: string,
+    n: number,
+  ) => <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E | RunnerFailure, R>;
+}
+
+/** The two bounds of a run in one shared world. */
+export interface Places {
+  readonly worlds: Bound;
+  readonly sites: Bound;
+}
+
+/** A bound of `size` places, its waits timed as `part`; `what` names a place in a failure. */
+const boundOf = (size: number, part: string, what: string, timings: Timings) =>
+  Effect.map(Semaphore.make(size), (semaphore): Bound => ({
+    size,
+    held: (journey, n) => (effect) =>
+      n === 0
+        ? effect
+        : n > size
+          ? Effect.fail(
+              RunnerFailure.make({
+                step: "places",
+                message: `${journey} needs ${String(n)} ${what} at once, more than the run's ${String(size)}`,
+              }),
+            )
+          : Effect.acquireUseRelease(
+              timings.timed(part, { journey, note: `${String(n)} of ${String(size)}` }, semaphore.take(n)),
+              () => effect,
+              () => semaphore.release(n),
+            ),
+  }));
+
+/**
+ * The run's places: worlds under the smaller of `worldsAtOnce` and the cluster's `capacity`, sites under
+ * `sitesAtOnce`. The shared world is one of the worlds, so it is taken first by whoever makes it.
+ */
+export const placesOf = (
+  settings: { readonly worldsAtOnce: number; readonly sitesAtOnce: number },
+  capacity: number,
+  timings: Timings,
+) =>
+  Effect.all({
+    worlds: boundOf(Math.max(0, Math.min(settings.worldsAtOnce, capacity)), "world place", "worlds", timings),
+    sites: boundOf(Math.max(0, settings.sitesAtOnce), "site slot", "company sites", timings),
+  }).pipe(Effect.map((bounds): Places => bounds));

@@ -1,7 +1,7 @@
 # Roadmap for the rebuild line (`master`)
 
 Agreed with Aaron on 13 November 2026. This page is the plan this line sticks to. It changes only when Aaron agrees a
-change, and the change is written here with its date.
+change; the plan's changes are written here with their date, and decisions in [docs/decisions.md](decisions.md).
 
 **Goal.** Capxul's own company runs on Capxul.
 

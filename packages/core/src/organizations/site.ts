@@ -97,11 +97,18 @@ export const reconcile = Effect.fn("site.reconcile")(function* (org: string) {
       );
     });
 
-  /** Removes the lost site, makes it again under its label, and counts the restart; it is then told everything again. */
+  /**
+   * Counts the restart, then removes the lost site and makes it again under its label; it is then told everything
+   * again. The restart is counted first, in a transaction of its own, so a remake that keeps failing is tried once, not
+   * on every reconcile: the next one finds the restart counted and stops the site (`afterFailure`).
+   */
   const makeAgain = (site: string, handle: string) =>
     Effect.gen(function* () {
       const door = yield* SiteDoor;
       const sql = yield* PgClient.PgClient;
+      yield* sql.withTransaction(
+        sql`update app.organizations set site_restarts = site_restarts + 1 where org = ${org}`,
+      );
       yield* door.remove(site).pipe(
         Effect.catchIf(
           (error) => error.code === NOT_IN_WORLD,
@@ -112,7 +119,6 @@ export const reconcile = Effect.fn("site.reconcile")(function* (org: string) {
       yield* Effect.logWarning(`the site ${site} was lost to the site door, so it is made again as ${made.site}`);
       yield* sql.withTransaction(
         Effect.all([
-          sql`update app.organizations set site_restarts = site_restarts + 1 where org = ${org}`,
           // A new site has been told nothing: it is handed every delivery again, in order.
           sql`update app.site_deliveries set delivered = false where org = ${org}`,
           Store.setSite(org, made.site, "creating"),

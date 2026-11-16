@@ -1,15 +1,12 @@
 // The makers of the starting worlds with a company (packages/blueprint, src/things/company/verbs/create.ts,
 // src/starting-points/points.ts, src/things/document/verbs/submit.ts, src/starting-points/facts.ts and
-// src/common/site.ts;
-// step 1.12): `founded`, `office-holder`, `payment-drafted`, `payment-held` and `paid`, each made by its declaration's
-// steps (packages/blueprint, src/starting-points/points.ts) through the door of the world the steps run in, from the
+// src/common/site.ts; step 1.12): `founded`, `office-holder`, `payment-drafted`, `payment-held` and `paid`, each made
+// by its declaration's steps (src/starting-points/points.ts) through the door of the world the steps run in, from the
 // one before. Every answer a step names becomes its fact, encoded as the blueprint encodes it.
 //
 // Signatures are made with the cast's keys, the blueprint's `CAST_KEYS`, as a person's agent would: the digest an
-// approval names, signed as it is (packages/blueprint, src/things/approval/values.ts and src/common/values.ts), with
-// viem
-// (packages/blueprint, src/common/chain/reads.ts). A wait polls an operation until it answers differently
-// (packages/blueprint, src/starting-points/points.ts; wait.ts).
+// approval names, signed as it is (src/things/approval/values.ts and src/common/values.ts), with viem
+// (src/common/chain/reads.ts). A wait polls an operation until it answers differently (points.ts; wait.ts).
 import { Site, Values, startingWorlds } from "@capxul/blueprint";
 import { Capxul } from "@capxul/scenarios";
 import * as Arr from "effect/Array";
@@ -19,9 +16,9 @@ import * as Option from "effect/Option";
 import * as Predicate from "effect/Predicate";
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
-import { mnemonicToAccount } from "viem/accounts";
 import { describe, RunnerFailure } from "../failure.ts";
 import { encodeAnswer } from "./encode.ts";
+import { castAccounts, northwindOf, playersNow } from "./players.ts";
 import type { Making, Steps } from "./makers.ts";
 import { seenExit, siteReading, until } from "./wait.ts";
 
@@ -43,26 +40,6 @@ const doorOf = (making: Making) =>
     Effect.mapError(() => failed("a company's starting world is made in a world, and none was made yet")),
   );
 
-/**
- * How `founded` founds Northwind (packages/blueprint, src/starting-points/points.ts): dana founds it with eli, 2 of 2,
- * sam and pat, 1,000 USDC.
- */
-const NORTHWIND = {
-  handle: "northwind",
-  profile: { name: "Northwind Trading", country: "NL", bio: null, size: null },
-  directors: ["eli"],
-  threshold: 2,
-  members: ["sam", "pat"],
-  capital: { asset: "USDC", amount: "1000" },
-} as const;
-
-/** The cast's well-known test keys (`CAST_KEYS`). */
-const accounts = Effect.sync(() =>
-  Arr.map(Arr.range(0, Values.CAST_KEYS.accounts - 1), (addressIndex) =>
-    mnemonicToAccount(Values.CAST_KEYS.mnemonic, { addressIndex }),
-  ),
-);
-
 type Approval = typeof Values.Approval.Type;
 
 /** The approval's signer signs its digest with their own key, and approval.sign takes it as them, at `door`. */
@@ -70,7 +47,7 @@ const approve = (approval: Approval, door: string) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
     const key = Arr.findFirst(
-      yield* accounts,
+      yield* castAccounts,
       (account) => Str.toLowerCase(account.address) === Str.toLowerCase(approval.signerAddress),
     );
     if (Option.isNone(key)) return yield* failed(`no test key signs as ${approval.signerAddress}`);
@@ -93,10 +70,14 @@ const founded: Steps = (making) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
     const own = yield* doorOf(making);
-    const answer = yield* must("org.create as dana", capxul["org.create"](NORTHWIND, { as: "dana", at: own.door }));
+    const players = yield* playersNow;
+    const answer = yield* must(
+      "org.create as dana",
+      capxul["org.create"](northwindOf(players), { as: players.dana, at: own.door }),
+    );
     const made = yield* tagged("org.create as dana", answer, "Founded");
-    const collected = yield* approve(yield* approvalOf(made.approvals, "dana"), own.door);
-    const sent = yield* approve(yield* approvalOf(made.approvals, "eli"), own.door);
+    const collected = yield* approve(yield* approvalOf(made.approvals, players.dana), own.door);
+    const sent = yield* approve(yield* approvalOf(made.approvals, players.eli), own.door);
     yield* until(
       "world.show to list northwind's site as ready",
       must("world.show", capxul["world.show"]({ world: own.world })),
@@ -122,14 +103,11 @@ const orgOf = (making: Making) => {
     : Effect.fail(failed("the facts hold no founded org"));
 };
 
-/** report.run of the General Ledger as sam. */
-const generalLedger = (org: string, door: string) =>
+/** report.run of the General Ledger as sam, played by `sam`. */
+const generalLedger = (org: string, door: string, sam: string) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
-    return yield* capxul["report.run"](
-      { org, report: Site.REPORTS.generalLedger, filters: {} },
-      { as: "sam", at: door },
-    );
+    return yield* capxul["report.run"]({ org, report: Site.REPORTS.generalLedger, filters: {} }, { as: sam, at: door });
   });
 
 /** `office-holder`: dana grants sam manage-books, dana and eli sign it, and sam's site user appears. */
@@ -138,18 +116,19 @@ const officeHolder: Steps = (making) =>
     const capxul = yield* Capxul;
     const own = yield* doorOf(making);
     const org = yield* orgOf(making);
+    const players = yield* playersNow;
     const grant = yield* must(
       "org.member.grant as dana",
       capxul["org.member.grant"](
-        { org, member: "sam", permission: "manage-books", note: null },
-        { as: "dana", at: own.door },
+        { org, member: players.sam, permission: "manage-books", note: null },
+        { as: players.dana, at: own.door },
       ),
     );
-    const collected = yield* approve(yield* approvalOf(grant.approvals, "dana"), own.door);
-    const sent = yield* approve(yield* approvalOf(grant.approvals, "eli"), own.door);
+    const collected = yield* approve(yield* approvalOf(grant.approvals, players.dana), own.door);
+    const sent = yield* approve(yield* approvalOf(grant.approvals, players.eli), own.door);
     yield* until(
       "report.run of the General Ledger as sam to stop refusing with NoSiteUser",
-      Effect.exit(generalLedger(org, own.door)),
+      Effect.exit(generalLedger(org, own.door, players.sam)),
       (exit) => exit._tag === "Success",
       { seen: seenExit },
     );
@@ -164,13 +143,13 @@ const officeHolder: Steps = (making) =>
     };
   });
 
-/** sam's doc.create and doc.submit, at the door the steps run in. */
-const asSam = (door: string) => ({ as: "sam", at: door }) as const;
+/** sam's doc.create and doc.submit, at the door the steps run in, sam played by `sam`. */
+const asSam = (door: string, sam: string) => ({ as: sam, at: door }) as const;
 
 /** The company Safe's ledger account, as the General Ledger names it: the account the founder's capital went to. */
-const safeAccount = (org: string, door: string) =>
+const safeAccount = (org: string, door: string, sam: string) =>
   Effect.gen(function* () {
-    const ledger = yield* must("report.run of the General Ledger as sam", generalLedger(org, door));
+    const ledger = yield* must("report.run of the General Ledger as sam", generalLedger(org, door, sam));
     const account = Arr.findFirst(
       Arr.filter(
         Arr.map(ledger.rows, (row) => row[Site.ROW_FIELDS.account]),
@@ -189,8 +168,9 @@ const paymentDrafted: Steps = (making) =>
     const capxul = yield* Capxul;
     const own = yield* doorOf(making);
     const org = yield* orgOf(making);
+    const players = yield* playersNow;
     const create = (doctype: string, fields: typeof Values.Fields.Type) =>
-      must(`doc.create of a ${doctype}`, capxul["doc.create"]({ org, doctype, fields }, asSam(own.door)));
+      must(`doc.create of a ${doctype}`, capxul["doc.create"]({ org, doctype, fields }, asSam(own.door, players.sam)));
     const supplier = yield* create(Site.DOCTYPES.supplier, Site.supplierFields(Site.BRIGHTSIDE));
     const invoice = yield* create(
       Site.DOCTYPES.purchaseInvoice,
@@ -198,10 +178,13 @@ const paymentDrafted: Steps = (making) =>
     );
     const submitted = yield* must(
       "doc.submit of the Purchase Invoice",
-      capxul["doc.submit"]({ org, doctype: Site.DOCTYPES.purchaseInvoice, name: invoice.name }, asSam(own.door)),
+      capxul["doc.submit"](
+        { org, doctype: Site.DOCTYPES.purchaseInvoice, name: invoice.name },
+        asSam(own.door, players.sam),
+      ),
     );
     const posted = yield* tagged("doc.submit of the Purchase Invoice", submitted, "Posted");
-    const account = yield* safeAccount(org, own.door);
+    const account = yield* safeAccount(org, own.door, players.sam);
     const payment = yield* create(
       Site.DOCTYPES.paymentEntry,
       Site.paymentFields(supplier.name, account, Site.INVOICE_AMOUNT, invoice.name),
@@ -233,9 +216,10 @@ const paymentHeld: Steps = (making) =>
     const own = yield* doorOf(making);
     const org = yield* orgOf(making);
     const name = yield* paymentOf(making);
+    const players = yield* playersNow;
     const submitted = yield* must(
       "doc.submit of the Payment Entry",
-      capxul["doc.submit"]({ org, doctype: Site.DOCTYPES.paymentEntry, name }, asSam(own.door)),
+      capxul["doc.submit"]({ org, doctype: Site.DOCTYPES.paymentEntry, name }, asSam(own.door, players.sam)),
     );
     const held = yield* tagged("doc.submit of the Payment Entry", submitted, "Held");
     return { facts: { ...making.facts, held: yield* encodeAnswer("doc.submit", held) }, own };
@@ -247,6 +231,7 @@ const paid: Steps = (making) =>
     const own = yield* doorOf(making);
     const org = yield* orgOf(making);
     const name = yield* paymentOf(making);
+    const players = yield* playersNow;
     const held = making.facts["held"];
     const decoded = yield* Schema.decodeUnknownEffect(Schema.toCodecJson(Values.Approval))(
       Predicate.hasProperty(held, "approval") ? held.approval : null,
@@ -254,7 +239,7 @@ const paid: Steps = (making) =>
     const sent = yield* approve(decoded, own.door);
     yield* until(
       "report.run's General Ledger to show the Payment Entry",
-      must("report.run of the General Ledger as sam", generalLedger(org, own.door)),
+      must("report.run of the General Ledger as sam", generalLedger(org, own.door, players.sam)),
       (ledger) => Arr.some(ledger.rows, (row) => row[Site.ROW_FIELDS.voucher] === name),
       { seen: (ledger) => `a General Ledger of ${ledger.rows.length} rows, none of ${name}` },
     );
