@@ -69,6 +69,11 @@ export const Settings = Config.all({
    * each call the `capxul` command that makes it, run in this process (packages/cli, src/call.ts).
    */
   via: Config.Literals(["sdk", "cli"], "RUNNER_VIA").pipe(Config.withDefault("sdk")),
+  /**
+   * The journeys `./run.sh scenarios` runs when none is named on its command line: registered journeys' names, comma
+   * separated (src/chosen.ts). Unset or empty, every journey. A deploy's check runs one as a smoke (platform.yml).
+   */
+  journeys: Config.String("RUNNER_JOURNEYS").pipe(Config.withDefault("")),
   /** Where run records are written, outside any world. */
   records: Config.String("RUNNER_RECORDS").pipe(Config.withDefault("records")),
   /**

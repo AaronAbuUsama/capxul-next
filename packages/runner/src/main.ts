@@ -29,6 +29,7 @@ import { runInWorlds } from "./worlds/run.ts";
 import { makeOrRenew } from "./shared/make.ts";
 import { timeStartingWorlds } from "./worlds/timing.ts";
 import { runScenarios } from "./scenario-runs.ts";
+import { chosenOf } from "./chosen.ts";
 import { Settings } from "./settings.ts";
 import { runnerExport } from "./telemetry/export.ts";
 import { ranAsExpected, type Expectation, type Mode } from "./summary.ts";
@@ -58,8 +59,6 @@ const flags = Arr.filter(
     each !== SHARED,
 );
 const names = Arr.filter(rest, (each) => !Str.startsWith("--")(each));
-/** The journeys to run, by the names given; all of them when none is. */
-const chosenJourneys = names.length === 0 ? journeys : Arr.filter(journeys, (each) => Arr.contains(names, each.name));
 
 const usage = (message: string) => Effect.fail(RunnerFailure.make({ step: "arguments", message }));
 
@@ -95,12 +94,11 @@ const plans = (settings: Settings): Effect.Effect<ReadonlyArray<Plan>, RunnerFai
   if (command === "chain")
     return flags.length === 0 && names.length === 0 ? Effect.succeed([chainJourney]) : usage(USAGE);
   if (command !== "scenarios") return usage(USAGE);
-  if (chosenJourneys.length < names.length)
-    return Effect.fail(
-      RunnerFailure.make({ step: "arguments", message: `no journey is named one of: ${Arr.join(names, "; ")}` }),
-    );
-  return Effect.map(options(), ({ expect }) =>
-    Arr.map(chosenJourneys, journeyPlan(settings, expect === "not-implemented" ? "examples" : "made only")),
+  // The journeys named on the command line, else in RUNNER_JOURNEYS, else all; an unknown name fails here (chosen.ts).
+  return Effect.flatMap(chosenOf(journeys, names, settings.journeys), (chosen) =>
+    Effect.map(options(), ({ expect }) =>
+      Arr.map(chosen, journeyPlan(settings, expect === "not-implemented" ? "examples" : "made only")),
+    ),
   );
 };
 
@@ -149,6 +147,10 @@ const onSharedWorld = (settings: Settings) =>
     return { ...settings, platformToken: shared.operatorToken };
   }).pipe(Effect.provide(Layer.provideMerge(SharedState.layer, BunServices.layer)));
 
+/** The registered journeys `chosen`'s plans were made from, in the registry's order. */
+const ofPlans = (chosen: ReadonlyArray<Plan>) =>
+  Arr.filter(journeys, (each) => Arr.some(chosen, (plan) => plan.name === each.name));
+
 const theScenarios = (given: Settings, chosen: ReadonlyArray<Plan>) =>
   Effect.gen(function* () {
     const { mode, expect } = yield* options();
@@ -167,7 +169,7 @@ const theScenarios = (given: Settings, chosen: ReadonlyArray<Plan>) =>
     const summary = inPrivateWorlds
       ? yield* inWorlds(
           settings,
-          runInWorlds(chosenJourneys, settings, onShared ? Option.some(settings.shared) : Option.none()).pipe(
+          runInWorlds(ofPlans(chosen), settings, onShared ? Option.some(settings.shared) : Option.none()).pipe(
             Effect.withSpan(
               RUN_SPANS.run.name,
               stepOptions(RUN_SPANS.run, { mode: onShared ? "shared world" : "one world" }),

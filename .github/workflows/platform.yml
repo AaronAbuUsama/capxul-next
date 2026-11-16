@@ -142,7 +142,11 @@ jobs:
           }
       - name: Make or renew the shared world
         run: RUNNER_RECORDS="$RUNNER_TEMP/records" packages/runner/run.sh shared
-      - name: Run the thin line's journeys on the shared world
+      # A deploy's check is a smoke: one journey, about 2 minutes, so it does not hold the staging bench for the whole
+      # thin line (45 minutes). world.yml runs every journey (packages/runner/src/chosen.ts reads RUNNER_JOURNEYS).
+      - name: Run one journey on the shared world, as a smoke
+        env:
+          RUNNER_JOURNEYS: found Northwind and give sam the books
         run: RUNNER_RECORDS="$RUNNER_TEMP/records" packages/runner/run.sh scenarios --shared
       - uses: actions/upload-artifact@v4
         if: always()
