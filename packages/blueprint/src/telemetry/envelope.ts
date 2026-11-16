@@ -2,7 +2,7 @@
 // name, whether the name is an OpenTelemetry convention (pinned in ./conventions.ts) or ours under `capxul.`, its
 // schema, where it is stamped and who stamps it. Conventions come first (decision T4): ours only where none fits.
 // Producers import these names; nothing writes them as strings. Generated from it, later: the attribute constants,
-// the collector's stamping and Axiom's field descriptions.
+// the collector's stamping and Axiom's field descriptions. The values they carry are in ./values.ts, re-exported here.
 //
 // Settled by part 10: the session is the convention `session.id` (not `capxul.session`); a run's shard is
 // `capxul.lane` (the decision's name; the glossary's word for it is shard). A refusal is not an error: it leaves the
@@ -17,36 +17,25 @@ import { RatchetName } from "../things/ratchet/values.ts";
 import { RunId, Shard, Trusted } from "../things/run/values.ts";
 import { StepKindValue } from "./step-kinds.ts";
 
-const pattern = (regex: RegExp) => Schema.String.check(Schema.isPattern(regex));
+import {
+  BlockRef,
+  BudgetMs,
+  CallerRole,
+  CostSource,
+  OperationName,
+  OperationVersion,
+  Outcome,
+  PipelineRunId,
+  RefName,
+  RefusalTag,
+  Revision,
+  RpcMethod,
+  RpcSystem,
+  SessionId,
+  Signal,
+} from "./values.ts";
 
-/** What caused the work: an agent's session, a CI run's or a person's sign-in. Opaque, as its producer writes it. */
-export const SessionId = pattern(/^[A-Za-z0-9_.:-]{1,128}$/);
-/** A commit, as its full hash. */
-export const Revision = pattern(/^[0-9a-f]{40}$/);
-/** A branch or tag's name. */
-export const RefName = pattern(/^[A-Za-z0-9._/-]{1,255}$/);
-/** A CI run, by its provider's id. */
-export const PipelineRunId = pattern(/^[0-9]{1,20}$/);
-/** An operation's or a piece of work's name, as the blueprint declares it. */
-export const OperationName = pattern(/^[a-z][a-z-]*(\.[a-z][a-z-]*)+$/);
-/** An operation's version; 1 until operations carry versions (roadmap item 6.1). */
-export const OperationVersion = Schema.Int.check(Schema.isGreaterThanOrEqualTo(1));
-/**
- * How a span's work ended: `ok` (a declared success), `refused` (a typed failure: a declared refusal), `error` (a
- * defect, or anything nobody declared) or `interrupted`. OTLP's status cannot tell a refusal from a defect, so every
- * span Core keeps carries this.
- */
-export const Outcome = Schema.Literals(["ok", "refused", "error", "interrupted"]);
-/** A refusal, by its tag. */
-export const RefusalTag = pattern(/^[A-Z][A-Za-z]+$/);
-/** The caller's role, as the blueprint's roles name it (roadmap item 5.1). */
-export const CallerRole = pattern(/^[a-z][a-z-]*(\.[a-z][a-zA-Z-]*)?$/);
-/** A declared budget, in milliseconds. */
-export const BudgetMs = Schema.Int.check(Schema.isGreaterThan(0));
-/** What a cost is for. */
-export const CostSource = Schema.Literals(["cloudflare", "neon", "ci", "model"]);
-/** An OpenTelemetry signal, or the typed events dataset. */
-export const Signal = Schema.Literals(["traces", "logs", "metrics", "events"]);
+export * from "./values.ts";
 
 /** Where an attribute is stamped. */
 export type Where =
@@ -265,6 +254,38 @@ export const attributes = {
     on: "a metric",
     setBy: "the cost job",
     example: "neon",
+  }),
+  rpcSystem: attribute({
+    name: "rpc.system",
+    convention: true,
+    schema: RpcSystem,
+    on: "a step's span",
+    setBy: "the runner, on each chain read a journey makes (journey.run.chain)",
+    example: "jsonrpc",
+  }),
+  rpcMethod: attribute({
+    name: "rpc.method",
+    convention: true,
+    schema: RpcMethod,
+    on: "a step's span",
+    setBy: "the runner, on each chain read a journey makes (journey.run.chain)",
+    example: "eth_getLogs",
+  }),
+  chainBlockFrom: attribute({
+    name: "capxul.chain.block.from",
+    convention: false,
+    schema: BlockRef,
+    on: "a step's span",
+    setBy: "the runner, on a chain read of logs (`eth_getLogs`): its range's first block",
+    example: "0x2dad0c4",
+  }),
+  chainBlockTo: attribute({
+    name: "capxul.chain.block.to",
+    convention: false,
+    schema: BlockRef,
+    on: "a step's span",
+    setBy: "the runner, on a chain read of logs (`eth_getLogs`): its range's last block",
+    example: "latest",
   }),
   signal: attribute({
     name: "capxul.signal",
