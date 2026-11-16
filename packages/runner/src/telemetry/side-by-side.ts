@@ -1,23 +1,27 @@
-// Side by side (roadmap 4.4): for every call a run made through its own stage's door, the spans Core kept in
+// Side by side (roadmap 4.4): for every call a run made, through its own stage's door or at another world's door (in
+// that world's database), the spans Core kept in
 // `app.spans` beside the spans the tap holds of it (tap.ts), and their parity (parity.ts), for the run record. The
 // generic checks still read `app.spans` alone until the flip. This is the runner's plumbing: a disagreement while the
 // tap is on fails the run as the runner's own failure, never as a check's.
 //
 // While a world's Core writes no tap (`CAPXUL_TAP` off), `telemetry.otlp` is empty: the tap is `absent`, nothing is
 // waited for and nothing fails.
-import { servedBy } from "@capxul/blueprint";
+import { Pipeline, servedBy } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import type * as HttpClient from "effect/http/HttpClient";
 import * as Option from "effect/Option";
+import * as Result from "effect/Result";
 import type * as Redacted from "effect/Redacted";
 import type { Call } from "../client.ts";
 import type { TapReport } from "../record.ts";
-import type { Kept, SpanRow } from "../world/database.ts";
+import { telemetryOf, type Kept, type SpanRow } from "../world/database.ts";
+import { OtherWorlds } from "../world/existing.ts";
 import { PlatformKept } from "../worlds/kept.ts";
 import type { FlatSpan } from "./flat.ts";
 import { parity } from "./parity.ts";
+import { stepOptions } from "./step.ts";
 import { tapFor, tapIsOn, WAIT, type Tapped, type Wait } from "./tap.ts";
 
 type CallParity = TapReport["calls"][number];
@@ -59,9 +63,35 @@ export const callParity = (
   };
 };
 
+/** The calls made at one door against that door's database: none when they are none or its tap is off. */
+const sideOf = Effect.fn(
+  Pipeline.checkCall.spans.read.name,
+  stepOptions(Pipeline.checkCall.spans.read),
+)(function* (where: Redacted.Redacted, these: ReadonlyArray<Call>, theirs: Kept, wait: Wait) {
+  if (Arr.isReadonlyArrayEmpty(these) || !(yield* tapIsOn(where))) return Option.none<Array<CallParity>>();
+  const waited = Arr.filter(these, (call) => Arr.isReadonlyArrayNonEmpty(spansOf(theirs, call)));
+  const once = Arr.filter(these, (call) => Arr.isReadonlyArrayEmpty(spansOf(theirs, call)));
+  const read = yield* Effect.zipWith(
+    tapFor(
+      where,
+      Arr.map(waited, (call) => call.traceId),
+      wait,
+    ),
+    tapFor(
+      where,
+      Arr.map(once, (call) => call.traceId),
+      { tries: 1, every: wait.every },
+    ),
+    (a, b) => new Map([...a, ...b]),
+  );
+  return Option.some(Arr.map(these, (call) => callParity(call, spansOf(theirs, call), read.get(call.traceId))));
+});
+
 /**
- * Every call through the stage's own door, side by side. A call with a span in `app.spans` waits up to `wait` for its
- * operation span in the tap; a call with none (rejected before Core, unanswered) is read once.
+ * Every call side by side: those through the stage's own door against its database, and those made `at` another
+ * world's door against that world's database, found as the checks find it (`OtherWorlds`, world/existing.ts). A call
+ * with a span in `app.spans` waits up to `wait` for its operation span in the tap; a call with none (rejected before
+ * Core, unanswered) is read once. A database whose tap is off adds nothing; the tap is `absent` only when none is on.
  */
 export const sideBySide = (
   database: Redacted.Redacted,
@@ -75,26 +105,26 @@ export const sideBySide = (
       calls,
       (call) => call.at === null && !(Option.isSome(served) && servedBy(call.operation) === "platform"),
     );
-    if (Arr.isReadonlyArrayEmpty(own) || !(yield* tapIsOn(database))) return { state: "absent" as const, calls: [] };
-    const waited = Arr.filter(own, (call) => Arr.isReadonlyArrayNonEmpty(spansOf(kept, call)));
-    const once = Arr.filter(own, (call) => Arr.isReadonlyArrayEmpty(spansOf(kept, call)));
-    const read = yield* Effect.zipWith(
-      tapFor(
-        database,
-        Arr.map(waited, (call) => call.traceId),
-        wait,
-      ),
-      tapFor(
-        database,
-        Arr.map(once, (call) => call.traceId),
-        { tries: 1, every: wait.every },
-      ),
-      (a, b) => new Map([...a, ...b]),
+    const sides = [yield* sideOf(database, own, kept, wait)];
+    // A call made at another world's door is kept by that world: its two records are compared in its database.
+    const others = yield* Effect.serviceOption(OtherWorlds);
+    const doors = Arr.dedupe(
+      Arr.filterMap(calls, (call) => (call.at === null ? Result.failVoid : Result.succeed(call.at))),
     );
-    return {
-      state: "on" as const,
-      calls: Arr.map(own, (call) => callParity(call, spansOf(kept, call), read.get(call.traceId))),
-    };
+    if (Option.isSome(others))
+      for (const door of doors) {
+        const theirs = yield* others.value.databaseAt(door);
+        if (Option.isNone(theirs)) continue;
+        const atEndpoint = Arr.filter(calls, (call) => call.at === door);
+        const theirKept = yield* telemetryOf(
+          theirs.value,
+          Arr.map(atEndpoint, (call) => call.traceId),
+        );
+        sides.push(yield* sideOf(theirs.value, atEndpoint, theirKept, wait));
+      }
+    const on = Arr.getSomes(sides);
+    if (Arr.isReadonlyArrayEmpty(on)) return { state: "absent" as const, calls: [] };
+    return { state: "on" as const, calls: Arr.flatten(on) };
   }).pipe(
     Effect.timed,
     Effect.map(([took, report]) => ({ ...report, ms: Math.round(Duration.toMillis(took)) })),
