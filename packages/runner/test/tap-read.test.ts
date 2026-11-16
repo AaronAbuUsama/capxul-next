@@ -1,8 +1,8 @@
-// The tap read beside app.spans (src/telemetry/tap.ts, side-by-side.ts, observe.ts) against a stand-in for a world's
+// The tap read (src/telemetry/tap.ts, observe.ts) against a stand-in for a world's
 // database: Neon's `/sql` endpoint, answering each query by what it reads. One call's traces and logs bodies, as
 // Effect wrote them, are in `telemetry.otlp` under its trace id.
 import { strict as assert } from "node:assert";
-import { Envelope, operations } from "@capxul/blueprint";
+import { Envelope } from "@capxul/blueprint";
 import { OUTCOME } from "@capxul/core";
 import { test } from "node:test";
 import * as Arr from "effect/Array";
@@ -16,18 +16,13 @@ import * as Str from "effect/String";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import * as Redacted from "effect/Redacted";
-import type { Call } from "../src/client.ts";
 import { decodeTraces } from "../src/telemetry/otlp.ts";
-import { flatSpans, type FlatSpan } from "../src/telemetry/flat.ts";
+import { flatSpans } from "../src/telemetry/flat.ts";
 import { observationsRead, observe } from "../src/telemetry/observe.ts";
-import { sideBySide, tapFailures } from "../src/telemetry/side-by-side.ts";
 import { tapFor } from "../src/telemetry/tap.ts";
-import type { SpanRow } from "../src/world/database.ts";
 import { bodiesTo, exported } from "./support/capture.ts";
 
 const DATABASE = Redacted.make("postgresql://user:password@ep-tap.test/neondb");
-/** Any operation: parity is about spans, whatever the call's operation. */
-const OPERATION = Rec.keys(operations)[0]!;
 const QUICK = { tries: 3, every: Duration.millis(1) };
 
 interface Tables {
@@ -77,30 +72,6 @@ const oneCall = Effect.gen(function* () {
   };
 });
 
-const rowOf = (span: FlatSpan): SpanRow => ({
-  trace_id: span.traceId,
-  span_id: span.spanId,
-  parent_span_id: span.parentSpanId,
-  name: span.name,
-  outcome: span.status === "ok" ? "success" : span.status === "error" ? "failure" : "interrupted",
-  duration_ms: span.durationMs,
-  ended_ms: span.endedMs,
-  attributes: null,
-});
-
-const callOf = (traceId: string): Call => ({
-  operation: OPERATION,
-  traceId,
-  at: null,
-  outcome: "success",
-  refusal: null,
-  payload: {},
-  success: Option.none(),
-  callerMs: 1,
-  resent: 0,
-  failure: null,
-});
-
 test("a complete trace carries its spans and its logs, flat", async () => {
   await Effect.gen(function* () {
     const call = yield* oneCall;
@@ -130,55 +101,6 @@ test("a trace whose server span never comes is incomplete, with nothing of it, a
     );
     assert.deepEqual(read.get(traceId), { traceId, complete: false });
     assert.equal(reads.count, QUICK.tries);
-  }).pipe(Effect.runPromise);
-});
-
-test("with no tap in the world, side by side is absent and fails nothing", async () => {
-  await Effect.gen(function* () {
-    const call = yield* oneCall;
-    const tap = yield* sideBySide(DATABASE, [callOf(call.traceId)], {
-      spans: Arr.map(call.spans, rowOf),
-      events: [],
-    }).pipe(Effect.provide(standIn({ otlp: [] })));
-    assert.equal(tap.state, "absent");
-    assert.deepEqual(tapFailures(tap), []);
-  }).pipe(Effect.runPromise);
-});
-
-test("with the tap on, a call app.spans and the tap agree on passes, and one they differ on fails the run", async () => {
-  await Effect.gen(function* () {
-    const call = yield* oneCall;
-    const kept = { spans: Arr.map(call.spans, rowOf), events: [] };
-    const agreed = yield* sideBySide(DATABASE, [callOf(call.traceId)], kept, QUICK).pipe(
-      Effect.provide(standIn({ otlp: call.rows })),
-    );
-    assert.equal(agreed.state, "on");
-    assert.equal(agreed.calls[0]!.agrees, true, JSON.stringify(agreed.calls[0]!.differences));
-    assert.equal(agreed.calls[0]!.tapped.length, 2);
-    assert.deepEqual(tapFailures(agreed), []);
-
-    const renamed = { ...kept, spans: Arr.map(kept.spans, (row) => ({ ...row, name: `${row.name}!` })) };
-    const differs = yield* sideBySide(DATABASE, [callOf(call.traceId)], renamed, QUICK).pipe(
-      Effect.provide(standIn({ otlp: call.rows })),
-    );
-    assert.equal(differs.calls[0]!.agrees, false);
-    assert.match(tapFailures(differs)[0]!, new RegExp(`plumbing: the tap and app.spans disagree on ${OPERATION}`));
-  }).pipe(Effect.runPromise);
-});
-
-test("with the tap on, a kept call missing from the tap is incomplete and fails the run", async () => {
-  await Effect.gen(function* () {
-    const call = yield* oneCall;
-    const other = yield* oneCall;
-    const tap = yield* sideBySide(
-      DATABASE,
-      [callOf(call.traceId)],
-      { spans: Arr.map(call.spans, rowOf), events: [] },
-      QUICK,
-    ).pipe(Effect.provide(standIn({ otlp: other.rows })));
-    assert.equal(tap.state, "on");
-    assert.equal(tap.calls[0]!.complete, false);
-    assert.match(tapFailures(tap)[0]!, /incomplete in the tap: empty-tap/);
   }).pipe(Effect.runPromise);
 });
 

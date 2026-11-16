@@ -1,6 +1,6 @@
 // The tap: in a test world, Core writes the OTLP it exports into the world's database as well (`telemetry.otlp`: the
 // trace id, the signal, the body), and the runner reads a call's spans and logs back from it by trace id, through the
-// same `/sql` endpoint it reads `app.spans` by (world/database.ts; roadmap 4.4; design note "Proof and telemetry",
+// same `/sql` endpoint it reads `app.events` by (world/database.ts; roadmap 4.4; design note "Proof and telemetry",
 // section 7).
 //
 // Core writes every body of one request in one statement, after every exporter has flushed (core/src/telemetry/

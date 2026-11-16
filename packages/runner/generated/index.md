@@ -51,15 +51,13 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 ## `src/telemetry/`
 
 - [`export.ts`](../src/telemetry/export.ts): The runner's OTLP export (roadmap 4.4): the layer its entry (main.ts) provides once, so every span, log and metric it makes is posted over OTLP/HTTP JSON to the collector, under a resource naming the producer (`service.name`, the blueprint's producer) and the code's revision (`service.version`).
-- [`flat.ts`](../src/telemetry/flat.ts): A decoded OTLP trace (otlp.ts) as flat spans: the shape the runner's checks read, in place of `app.spans`' columns (world/database.ts).
-- [`kept.ts`](../src/telemetry/kept.ts): The flip (roadmap 4.4): what the generic checks read of each call's spans comes from the tap (tap.ts), no longer from `app.spans`.
+- [`flat.ts`](../src/telemetry/flat.ts): A decoded OTLP trace (otlp.ts) as flat spans, from which kept.ts makes the rows the runner's checks read (world/database.ts, `SpanRow`).
+- [`kept.ts`](../src/telemetry/kept.ts): The runner's one reader of a call's spans (roadmap 4.4): they come from the tap (tap.ts), the OTLP Core exports and writes into the world's database.
 - [`logs.ts`](../src/telemetry/logs.ts): A decoded OTLP logs export (otlp.ts) as flat logs: what the tap holds of a call's logs, beside its flat spans (flat.ts).
 - [`observe.ts`](../src/telemetry/observe.ts): What the runner observed of each call, by trace: its spans and logs from the tap (tap.ts) and the events Core recorded under its trace id (`app.events`).
 - [`otlp.ts`](../src/telemetry/otlp.ts): OTLP JSON, as Effect's `OtlpSerialization.layerJson` writes it: the bodies of the trace, log and metric export requests (`/v1/traces`, `/v1/logs`, `/v1/metrics`).
-- [`parity.ts`](../src/telemetry/parity.ts): Parity between the two records of one call's spans while both exist (roadmap 4.4, side by side): `app.spans`, which Core writes today (world/database.ts), and the tap, the same spans as OTLP (tap.ts, flat.ts).
-- [`side-by-side.ts`](../src/telemetry/side-by-side.ts): Side by side (roadmap 4.4): for every call a run made, through its own stage's door or at another world's door (in that world's database), the spans Core kept in `app.spans` beside the spans the tap holds of it (tap.ts), and their parity (parity.ts), for the run record.
 - [`step.ts`](../src/telemetry/step.ts): A span the runner records under a name the blueprint declares (roadmap 4.7): its name from `Pipeline`, never written here as a string, and its kind under the envelope's `capxul.step.kind`.
-- [`tap.ts`](../src/telemetry/tap.ts): The tap: in a test world, Core writes the OTLP it exports into the world's database as well (`telemetry.otlp`: the trace id, the signal, the body), and the runner reads a call's spans and logs back from it by trace id, through the same `/sql` endpoint it reads `app.spans` by (world/database.ts; roadmap 4.4; design note "Proof and telemetry", section 7).
+- [`tap.ts`](../src/telemetry/tap.ts): The tap: in a test world, Core writes the OTLP it exports into the world's database as well (`telemetry.otlp`: the trace id, the signal, the body), and the runner reads a call's spans and logs back from it by trace id, through the same `/sql` endpoint it reads `app.events` by (world/database.ts; roadmap 4.4; design note "Proof and telemetry", section 7).
 - [`whole-run.ts`](../src/telemetry/whole-run.ts): A whole run as its world kept it, for the isolation check (roadmap 4.8, part B; written by 4.11's author): every event of `app.events` in the order of its ids, and, for each trace the tap holds (`telemetry.otlp`, tap.ts), the producer that exported its root server span and that span's name.
 
 ## `src/world/`

@@ -1,10 +1,7 @@
-// The flip (roadmap 4.4): what the generic checks read of each call's spans comes from the tap (tap.ts), no longer from
-// `app.spans`. Each tapped span is handed to the checks in the shape they already take (`SpanRow`,
-// world/database.ts), so the checks themselves do not change; the events still come from `app.events`.
-//
-// Until the retire, Core still writes `app.spans` and the side-by-side parity (side-by-side.ts) still compares the
-// two, so any drift shows. A call that reached Core and whose trace the tap does not hold whole is a plumbing failure
-// of the runner, as parity already makes it, never a check's.
+// The runner's one reader of a call's spans (roadmap 4.4): they come from the tap (tap.ts), the OTLP Core exports and
+// writes into the world's database. Each tapped span is handed to the checks in the shape they take (`SpanRow`,
+// world/database.ts); the events come from `app.events`. A call that reached Core and whose trace the tap does not hold
+// whole is a plumbing failure of the runner, never a check's.
 import { Envelope, Pipeline } from "@capxul/blueprint";
 import { OUTCOME, SpanAttributes, type SpanOutcome } from "@capxul/core";
 import * as Arr from "effect/Array";
@@ -18,8 +15,7 @@ import type * as Redacted from "effect/Redacted";
 import { checkCall, type CheckedCall } from "../checks/checks.ts";
 import type { Call } from "../client.ts";
 import { describe, RunnerFailure } from "../failure.ts";
-import { eventsOf, telemetryOf, type Kept, type SpanRow } from "../world/database.ts";
-import { OtherWorlds } from "../world/existing.ts";
+import { eventsOf, type Kept, type SpanRow } from "../world/database.ts";
 import type { FlatSpan } from "./flat.ts";
 import { stepOptions } from "./step.ts";
 import { tapFor, WAIT, type Wait } from "./tap.ts";
@@ -38,14 +34,14 @@ const keptOutcome = (stamped: unknown): Option.Option<SpanOutcome> =>
 const DECLARED: ReadonlyArray<string> = Rec.keys(SpanAttributes.fields);
 const decodeDeclared = Schema.decodeUnknownOption(SpanAttributes);
 
-/** The declared attributes of a tapped span, as `app.spans.attributes` holds them: null when it carries none. */
+/** The declared attributes of a tapped span, as a `SpanRow` holds them: null when it carries none. */
 const declaredOf = (attributes: Readonly<Record<string, unknown>>): SpanRow["attributes"] => {
   const kept = Rec.filter(attributes, (value, key) => DECLARED.includes(key) && value !== undefined && value !== null);
   return Arr.isReadonlyArrayEmpty(Rec.keys(kept)) ? null : Option.getOrNull(decodeDeclared(kept));
 };
 
 /**
- * A tapped span as the checks take a row of `app.spans`: the same ids, name, parent and declared attributes; its
+ * A tapped span as the checks take a `SpanRow`: the same ids, name, parent and declared attributes; its
  * outcome from its `capxul.outcome`; its time to the millisecond its end fell in, as Core keeps it. A span with no
  * outcome Core would stamp is not Core's, and fails.
  */
@@ -98,36 +94,6 @@ export const tapTelemetryOf = Effect.fn(
   if (Arr.isReadonlyArrayNonEmpty(bad))
     return yield* RunnerFailure.make({ step: "tap", message: `plumbing: ${Arr.join(bad, "; ")}` });
   return { spans: rows, events: yield* eventsOf(database, traceIdsOf(calls)) } satisfies Kept;
-});
-
-/**
- * What the api kept of `calls` in its own tables (`app.spans`, `app.events`): parity's other record until the retire.
- * A call through the stage's own endpoint is read in its database; one made at another world's endpoint in that
- * world's, found as the checks find it (`OtherWorlds`); one at an endpoint no known world answers at, nowhere.
- */
-export const appKeptOf = Effect.fn(
-  Pipeline.checkCall.spans.read.name,
-  stepOptions(Pipeline.checkCall.spans.read),
-)(function* (database: Redacted.Redacted, calls: ReadonlyArray<Pick<Call, "traceId" | "at">>) {
-  const own = yield* telemetryOf(database, traceIdsOf(Arr.filter(calls, (call) => call.at === null)));
-  const others = yield* Effect.serviceOption(OtherWorlds);
-  const endpoints = Arr.dedupe(
-    Arr.filterMap(calls, (call) => (call.at === null ? Result.failVoid : Result.succeed(call.at))),
-  );
-  const elsewhere = Option.isNone(others)
-    ? []
-    : yield* Effect.forEach(endpoints, (endpoint) =>
-        Effect.flatMap(others.value.databaseAt(endpoint), (theirs) =>
-          Option.match(theirs, {
-            onNone: () => Effect.succeed<Kept>({ spans: [], events: [] }),
-            onSome: (where) => telemetryOf(where, traceIdsOf(Arr.filter(calls, (call) => call.at === endpoint))),
-          }),
-        ),
-      );
-  return {
-    spans: Arr.flatten([own.spans, ...Arr.map(elsewhere, (kept) => kept.spans)]),
-    events: Arr.flatten([own.events, ...Arr.map(elsewhere, (kept) => kept.events)]),
-  } satisfies Kept;
 });
 
 /** What a maker of calls outside a journey's own run gets of them: each checked, or a plumbing failure and no checks. */

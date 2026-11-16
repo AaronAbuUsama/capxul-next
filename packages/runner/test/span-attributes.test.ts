@@ -28,7 +28,7 @@ const call: Call = {
   failure: null,
 };
 
-/** A row of `app.spans` as the runner reads it, with `attributes` as the column holds them. */
+/** A span row as the runner reads it (`SpanRow`), with `attributes` as given. */
 const row = (attributes: unknown) =>
   Schema.decodeUnknownEffect(SpanRow)({
     trace_id: TRACE,

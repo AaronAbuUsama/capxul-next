@@ -1,5 +1,5 @@
-// A decoded OTLP trace (otlp.ts) as flat spans: the shape the runner's checks read, in place of `app.spans`' columns
-// (world/database.ts). One flat span per OTLP span, its attributes and its events' attributes as plain values.
+// A decoded OTLP trace (otlp.ts) as flat spans, from which kept.ts makes the rows the runner's checks read
+// (world/database.ts, `SpanRow`). One flat span per OTLP span, its attributes and its events' attributes as plain values.
 import * as Arr from "effect/Array";
 import { pipe } from "effect/Function";
 import * as Option from "effect/Option";

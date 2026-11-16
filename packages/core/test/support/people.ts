@@ -18,7 +18,7 @@ import * as RpcTest from "effect/rpc/RpcTest";
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Cast } from "../../src/cast/Cast.ts";
 import { WorldChain } from "../../src/chain/WorldChain.ts";
-import { CoreIdentity, Served, SiteDoor, SqlSpanSink } from "../../src/door.ts";
+import { CoreIdentity, Served, SiteDoor, ExportedSpans } from "../../src/door.ts";
 import { millisOf, siteOpsLive } from "../../src/site-ops/door.ts";
 
 export const ORG = "org_northwind1";
@@ -39,7 +39,7 @@ const CAST = [
  */
 export const core = (url: string, chain: Layer.Layer<WorldChain> = WorldChain.fromEnv({})) =>
   Served.pipe(
-    Layer.provide(SqlSpanSink),
+    Layer.provide(ExportedSpans),
     Layer.provide(
       Layer.succeed(CoreIdentity, {
         world: "town",

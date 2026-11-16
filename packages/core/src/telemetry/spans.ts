@@ -39,7 +39,7 @@ export interface KeptSpan {
 }
 
 /**
- * Each outcome Core keeps (an Exit's kind, as `app.spans` stores it), as the envelope's `capxul.outcome` says it: a
+ * Each outcome Core keeps (an Exit's kind, as a `KeptSpan` holds it), as the envelope's `capxul.outcome` says it: a
  * typed failure is a refusal, a defect is an error. Each word is taken by name and checked by the compiler against the
  * blueprint's `Envelope.Outcome`: a word it renames or drops fails here, and its order does not matter.
  */
@@ -116,7 +116,7 @@ class KeepingSpan implements Tracer.Span {
     const status = this.inner.status;
     if (status._tag === "Ended") return;
     // How the span's work ended, on the span itself before it ends, so the export carries it: OTLP's status cannot tell
-    // a refusal from a defect (the blueprint's envelope, `capxul.outcome`). `app.spans` keeps it as its `outcome`.
+    // a refusal from a defect (the blueprint's envelope, `capxul.outcome`). A `KeptSpan` holds it as its `outcome`.
     this.inner.attribute(Envelope.attributes.outcome.name, OUTCOME[outcomeOf(exit)]);
     this.inner.end(endTime, exit);
     this.keep({
