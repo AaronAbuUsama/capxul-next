@@ -1,0 +1,308 @@
+{
+ "plan": {
+  "states": [
+   "draft",
+   "agreed"
+  ],
+  "start": {
+   "event": "plan_written",
+   "state": "draft"
+  },
+  "moves": [
+   {
+    "event": "plan_agreed",
+    "from": [
+     "draft"
+    ],
+    "to": "agreed"
+   },
+   {
+    "event": "plan_revised",
+    "from": [
+     "draft",
+     "agreed"
+    ],
+    "to": "draft"
+   }
+  ],
+  "allowed": {
+   "plan_written": [
+    "agent",
+    "person"
+   ],
+   "plan_agreed": [
+    "person"
+   ],
+   "plan_revised": [
+    "agent",
+    "person"
+   ]
+  }
+ },
+ "milestone": {
+  "states": [
+   "planned",
+   "active"
+  ],
+  "start": {
+   "event": "milestone_planned",
+   "state": "planned"
+  },
+  "moves": [
+   {
+    "event": "milestone_started",
+    "from": [
+     "planned"
+    ],
+    "to": "active"
+   },
+   {
+    "event": "milestone_revised",
+    "from": [
+     "planned",
+     "active"
+    ],
+    "to": "planned"
+   }
+  ],
+  "allowed": {
+   "milestone_planned": [
+    "agent",
+    "person"
+   ],
+   "milestone_started": [
+    "agent"
+   ],
+   "milestone_revised": [
+    "agent",
+    "person"
+   ]
+  }
+ },
+ "step": {
+  "states": [
+   "planned",
+   "active",
+   "done",
+   "dropped"
+  ],
+  "start": {
+   "event": "step_planned",
+   "state": "planned"
+  },
+  "moves": [
+   {
+    "event": "step_started",
+    "from": [
+     "planned"
+    ],
+    "to": "active"
+   },
+   {
+    "event": "step_proven",
+    "from": [
+     "planned",
+     "active"
+    ],
+    "to": "done"
+   },
+   {
+    "event": "step_reopened",
+    "from": [
+     "done"
+    ],
+    "to": "active"
+   },
+   {
+    "event": "step_dropped",
+    "from": [
+     "planned",
+     "active"
+    ],
+    "to": "dropped"
+   }
+  ],
+  "allowed": {
+   "step_planned": [
+    "agent",
+    "person"
+   ],
+   "step_started": [
+    "agent"
+   ],
+   "step_proven": [
+    "pipeline"
+   ],
+   "step_reopened": [
+    "pipeline"
+   ],
+   "step_dropped": [
+    "person"
+   ]
+  }
+ },
+ "lane": {
+  "states": [
+   "open",
+   "landed"
+  ],
+  "start": {
+   "event": "lane_opened",
+   "state": "open"
+  },
+  "moves": [
+   {
+    "event": "lane_led",
+    "from": [
+     "open"
+    ],
+    "to": "open"
+   },
+   {
+    "event": "lane_landed",
+    "from": [
+     "open"
+    ],
+    "to": "landed"
+   }
+  ],
+  "allowed": {
+   "lane_opened": [
+    "agent"
+   ],
+   "lane_led": [
+    "agent"
+   ],
+   "lane_landed": [
+    "pipeline",
+    "agent"
+   ]
+  }
+ },
+ "thread": {
+  "states": [
+   "active",
+   "waiting",
+   "archived"
+  ],
+  "start": {
+   "event": "thread_started",
+   "state": "active"
+  },
+  "moves": [
+   {
+    "event": "thread_waiting",
+    "from": [
+     "active"
+    ],
+    "to": "waiting"
+   },
+   {
+    "event": "thread_resumed",
+    "from": [
+     "waiting"
+    ],
+    "to": "active"
+   },
+   {
+    "event": "thread_archived",
+    "from": [
+     "active",
+     "waiting"
+    ],
+    "to": "archived"
+   }
+  ],
+  "allowed": {
+   "thread_started": [
+    "agent"
+   ],
+   "thread_waiting": [
+    "agent"
+   ],
+   "thread_resumed": [
+    "agent",
+    "person"
+   ],
+   "thread_archived": [
+    "agent",
+    "person"
+   ]
+  }
+ },
+ "ask": {
+  "states": [
+   "open",
+   "answered",
+   "withdrawn"
+  ],
+  "start": {
+   "event": "ask_opened",
+   "state": "open"
+  },
+  "moves": [
+   {
+    "event": "ask_answered",
+    "from": [
+     "open"
+    ],
+    "to": "answered"
+   },
+   {
+    "event": "ask_reopened",
+    "from": [
+     "answered"
+    ],
+    "to": "open"
+   },
+   {
+    "event": "ask_withdrawn",
+    "from": [
+     "open"
+    ],
+    "to": "withdrawn"
+   }
+  ],
+  "allowed": {
+   "ask_opened": [
+    "agent"
+   ],
+   "ask_answered": [
+    "person"
+   ],
+   "ask_reopened": [
+    "person"
+   ],
+   "ask_withdrawn": [
+    "agent"
+   ]
+  }
+ },
+ "sitrep": {
+  "states": [
+   "said",
+   "heard"
+  ],
+  "start": {
+   "event": "sitrep_said",
+   "state": "said"
+  },
+  "moves": [
+   {
+    "event": "sitrep_heard",
+    "from": [
+     "said"
+    ],
+    "to": "heard"
+   }
+  ],
+  "allowed": {
+   "sitrep_said": [
+    "agent"
+   ],
+   "sitrep_heard": [
+    "person"
+   ]
+  }
+ }
+}
