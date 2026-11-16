@@ -1,15 +1,18 @@
 // Parity between the two records of one call's spans while both exist (roadmap 4.4, side by side): `app.spans`, which
 // Core writes today (world/database.ts), and the tap, the same spans as OTLP (tap.ts, flat.ts). They agree when the
-// tap holds exactly the kept spans, each with the same name, parent, outcome and declared attributes. Library
-// attributes, which only the tap carries, are not compared. An empty tap never agrees: a call always has its span.
+// tap holds exactly the kept spans, each with the same name, parent, outcome and declared attributes. The outcome is
+// compared twice: as the envelope's `capxul.outcome`, which Core stamps on every kept span and which alone tells a
+// refusal from a defect, and as the OTLP status Core exports for it (a refusal leaves it unset). Library attributes,
+// which only the tap carries, are not compared. An empty tap never agrees: a call always has its span.
 import * as Arr from "effect/Array";
 import * as Rec from "effect/Record";
-import { SPAN_ATTRIBUTES } from "@capxul/core";
+import { Envelope } from "@capxul/blueprint";
+import { OUTCOME, SPAN_ATTRIBUTES } from "@capxul/core";
 import type { SpanRow } from "../world/database.ts";
 import type { FlatSpan, FlatStatus } from "./flat.ts";
 
 /** What a difference is about. */
-export type Disagreement = "empty-tap" | "missing" | "extra" | "name" | "parent" | "outcome" | "attribute";
+export type Disagreement = "empty-tap" | "missing" | "extra" | "name" | "parent" | "outcome" | "status" | "attribute";
 
 export interface Difference {
   readonly about: Disagreement;
@@ -28,13 +31,22 @@ export interface Parity {
   readonly differences: ReadonlyArray<Difference>;
 }
 
-/** The OTLP status Effect writes for each outcome Core keeps (core/src/telemetry/spans.ts). */
+/**
+ * The OTLP status Core exports for each outcome it keeps (core/src/telemetry/export.ts): a refusal is not an error,
+ * so its status is left unset; only a defect is ERROR.
+ */
 const STATUS_OF: Readonly<Record<string, FlatStatus>> = {
   success: "ok",
-  failure: "error",
+  failure: "unset",
   defect: "error",
   interrupted: "unset",
 };
+
+/** The envelope's `capxul.outcome` for each outcome Core keeps (core/src/telemetry/spans.ts, `OUTCOME`). */
+const OUTCOME_OF: Readonly<Record<string, string>> = OUTCOME;
+
+/** The attribute Core stamps every kept span's outcome under. */
+const OUTCOME_KEY = Envelope.attributes.outcome.name;
 
 const DECLARED: ReadonlyArray<string> = Rec.values(SPAN_ATTRIBUTES);
 
@@ -65,7 +77,8 @@ const spanDifferences = (row: SpanRow, span: FlatSpan): ReadonlyArray<Difference
   return [
     ...differ("name", row.name, span.name),
     ...differ("parent", row.parent_span_id, span.parentSpanId),
-    ...differ("outcome", STATUS_OF[row.outcome] ?? row.outcome, span.status),
+    ...differ("outcome", OUTCOME_OF[row.outcome] ?? row.outcome, span.attributes[OUTCOME_KEY]),
+    ...differ("status", STATUS_OF[row.outcome] ?? row.outcome, span.status),
     ...attributeDifferences(row, span),
   ];
 };

@@ -6,7 +6,7 @@
 // to it by packages/world. The running Worker reads every fact per request from its environment (src/env.ts).
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import * as SQL from "@alchemy.run/sql/Postgres";
-import { CHAIN_PATH } from "@capxul/blueprint";
+import { CHAIN_PATH, Datasets } from "@capxul/blueprint";
 import * as Alchemy from "alchemy";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
@@ -68,8 +68,8 @@ export const workerProps = () => ({
  */
 const observability = {
   enabled: true,
-  logs: { enabled: true, invocationLogs: true, destinations: ["axiom-capxul-logs"] },
-  traces: { enabled: true, destinations: ["axiom-capxul-traces"] },
+  logs: { enabled: true, invocationLogs: true, destinations: [Datasets.cloudflareDestinations.logs] },
+  traces: { enabled: true, destinations: [Datasets.cloudflareDestinations.traces] },
 };
 
 export default class Core extends Cloudflare.Worker<Core>()(

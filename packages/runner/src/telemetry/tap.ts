@@ -20,7 +20,7 @@ import { flatLogs, type FlatLog } from "./logs.ts";
 import { decodeLogsBody, decodeTapRows, decodeTraceBody, type TapRow } from "./otlp.ts";
 
 /** OpenTelemetry's span kind for a server span: Core's operation span is one (core/src/telemetry/spans.ts). */
-const SERVER = 2;
+export const SERVER = 2;
 
 /** One trace as the tap holds it: whole, once its server span is there, or `incomplete`. */
 export type Tapped =
