@@ -27,6 +27,7 @@ const FIXED: { readonly [folder: string]: ReadonlyArray<string> } = {
   "telemetry/": [
     "conventions.ts",
     "envelope.ts",
+    "values.ts",
     "producers.ts",
     "step-kinds.ts",
     "metrics.ts",

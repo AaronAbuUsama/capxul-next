@@ -19,6 +19,8 @@ export const journeyRun = work({
     // One call of an operation through the endpoint, the operation an attribute; its own spans are the operation's.
     call: span("journey.run.call", StepKind.compute),
     wait: span("journey.run.wait", StepKind.wait),
+    // One JSON-RPC request of a chain read a step or its checks make, its method and its block range attributes.
+    chain: span("journey.run.chain", StepKind.chain),
     // A check's observation read sent again after a transport error: the backoff, then the send again, once per resend.
     resend: span("journey.run.resend", StepKind.wait),
     // Waiting for a world's place, under the runner's worlds at once and the hub's free places (4.8 b).
