@@ -5,6 +5,7 @@ One note per question, each saying near its top whether it is open, agreed or su
 checks it).
 
 - [Agreements, invoices and escrow: one document, one hash, one payment](agreements-design.md). Status: agreed with Aaron, 14 and 15 November 2026, as the study the roadmap's decision "Every payment settles one sealed document" cites, except its §3.2, §3.4 and §5, which `invoice-ledger.md` replaces, and its streaming (§3.3), which the decision "No streaming pay" settles.
+- [The blueprint's open work: a handover](blueprint-open-work.md). Status: open.
 - [The blueprint: the plan](blueprint.md). No status yet.
 - [One set of docs: the plan](docs.md). Status: agreed, 15 November 2026.
 - [Handoff: the rebuild's conductor moves to Amp (15 November 2026)](handoff.md). Status: agreed, current from the evening of 15 November 2026.
