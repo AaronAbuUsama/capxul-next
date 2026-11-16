@@ -83,17 +83,17 @@ Costs the conductor missed:
 | Thing | Its states (machine) | Written by | Kept |
 |---|---|---|---|
 | `run` | started, preparing, running, judging, judged, torn down; failed from any | the runner (CI or a container) | its row forever; live progress while it runs |
-| `verdict` | recorded, counted, not counted (`NotCounted`, already declared in `run/values.ts`) | CI only (section 4) | forever, a few kilobytes each |
+| `verdict` | recorded, counted, not counted (its reason one of `NotCounted`, already declared in `run/values.ts`) | CI only (section 4) | forever, a few kilobytes each |
 | run detail | none: a blob | the runner, uploaded to R2 by digest | 180 days (decision 5 of proof and telemetry) |
 | telemetry | none | every producer, through the door | Axiom's retention (as agreed) |
 | `task` | open, claimed, in review, done, dropped | leads and builders; done only by a merge or a verdict | forever |
-| goal, milestone, step: their **state** | not started, in progress, done, claimed | derived from verdicts and merges, never typed | forever |
-| goal, milestone, step: their **declaration** | none | the blueprint, by pull request (the plan; section 8) | git |
+| goal, milestone, item: their **state** | not started, in progress, done, claimed | derived from verdicts and merges, never typed | forever |
+| goal, milestone, item: their **declaration** | none | the blueprint, by pull request (the plan; section 8) | git |
 | `thread`, `ask`, `sitrep` (the sitrep note's things) | as in `docs/design/sitrep.md`, section 1 | agents through the CLI; Aaron's answers through the app | forever |
 | legacy file | none: imported, frozen | the migration, once | forever, marked legacy |
 
 The line between git and the logbook is one rule: **a declaration is reviewed, so it lives in git; a fact about what
-happened is recorded, so it lives in the logbook.** A step's name, needs and proof name are declarations. Its state, its
+happened is recorded, so it lives in the logbook.** An item's name, needs and proof name are declarations. Its state, its
 evidence and its done time are facts.
 
 ## 3. Options
@@ -174,7 +174,7 @@ The logbook is a door like Core's `/platform` and `/world`: its things and verbs
 budget), and served by an Effect Rpc server. Then everything else is generated, as for any operation:
 
 - **The CLI**: `capxul run show`, `capxul verdict list --proof journeys/thin-line`, `capxul task claim`,
-  `capxul ask open`, `capxul sitrep say`, `capxul step show 4.5`. Agents use these from their containers.
+  `capxul ask open`, `capxul sitrep say`, `capxul item show 4.5`. Agents use these from their containers.
 - **The SDK**: the same verbs, typed, for the runner, the proving workflows and Aaron's app.
 - **The pages** in `packages/blueprint/generated/`, each verb's refusals and machine diagram included.
 
@@ -189,11 +189,11 @@ Aaron agreed that the plan is declared in the blueprint (goals, milestones, task
 from it; a local thread on his machine is designing that, and the visual app on HeroUI Pro. This note fits it with one
 constraint:
 
-**A generated file holds declarations only, never state.** If the roadmap's generated table carried each step's state,
+**A generated file holds declarations only, never state.** If the roadmap's generated table carried each item's state,
 every verdict would make `pnpm generate:check` fail until someone committed the new table, and state would be back in
 git by the side door. So:
 
-- The blueprint declares each goal, milestone and step: what, needs, lane, the proof name that makes it done. The
+- The blueprint declares each goal, milestone and item: what, needs, lane, the proof name that makes it done. The
   generated roadmap shows those.
 - The logbook holds each one's state, done time and evidence, derived from verdicts and merges, plus tasks, which are
   made and closed at run time and are not declared.
@@ -211,7 +211,7 @@ declared with the logbook as their store from the start, and the app should read
 
 In order, each a pull request that changes no behaviour of the product:
 
-0. **Now, before the logbook exists: stop adding.** No new record is committed from today. A step's proof names its CI
+0. **Now, before the logbook exists: stop adding.** No new record is committed from today. An item's proof names its CI
    run (`world` run 43796480962, as step 3.6 already does) or a `check:`; a container's run is cited in its pull
    request's text only. CI already uploads its records as artifacts; they last 90 days, longer than the logbook takes to
    build. This needs one line of AGENTS.md and Aaron's yes.
@@ -268,7 +268,7 @@ AGENTS.md lines:
   standing in for verdicts gains "and no new one is committed".
 - "Who owns each fact": the row "What is proven" becomes "Verdicts in the logbook; legacy records imported to it"; a new
   row, "What happened (runs, tasks, asks, threads, sitreps, the plan's state)", owner the logbook.
-- The ladder: rung 1 adds "a `records/` folder anywhere".
+- The ladder: rung 1 adds "a `records/` folder anywhere", in migration step 4, when the folders are deleted (not before).
 - Standing rules: the logbook's exception to "nothing is left running", and the agents' token.
 
 The roadmap: step 4.5 is rewritten as the logbook's lane (section 7, step 1), and step 4.3 reads its trends from the

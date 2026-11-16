@@ -57,9 +57,9 @@ Found on 15 November 2026 by reading the blueprint and every package that reads 
 | 5. Cleanup | The whole codebase brought in line with the blueprint, guided by its audit; the logbook built and the records moved out of git and deleted from the tree (decision "State is not in git"); the early optimisations removed | Items K.1, K.2 and K.3 are Done | Not started |
 | 6. Measurement, the rest | Proof as verdicts in the logbook, cost, the explainability eval, then the build evals, the coverage gate (3.7) and the pipeline's commands (4.9): what milestone 4 held before it was cut short | Items 3.7, 4.2, 4.3, 4.5, 4.6 and 4.9 are Done | Not started |
 | C. The climb | Every existing thing brought up to spec in parallel lanes, one thing per unit, measured as a rehearsal of breadth (decision "Build the system, then climb, then breadth") | Steps C.1 to C.3 are Done | Not started |
-| 7. The accounts pilot | The first feature through the loop: account identity, and who may call. It needs 4.1's format and lint rule; 4.2 and 4.3 land alongside, measured on its runs | Steps 5.1 to 5.4 are Done | Not started |
+| 7. The accounts pilot | The first feature through the loop: account identity, and who may call. It needs 4.1's format and lint rule; 4.2 and 4.3 (milestone 6) come before it | Items 5.1 to 5.4 are Done | Not started |
 | 8. The invoice ledger | Versions, and the ledger built side by side, flipped and retired, once the accounts pilot is finished | Items 6.1 and 6.2 are Done | Not started |
-| 9. Breadth | Journeys ported in waves; typed starting worlds; every lifecycle a machine and every ratchet empty. Its waves start once 3.1 to 3.6 are Done | Steps 7.1 and 7.2 are Done | Not started |
+| 9. Breadth | Journeys ported in waves; typed starting worlds; every lifecycle a machine and every ratchet empty. Its waves start once 3.1 to 3.6 are Done | Items 7.1 and 7.2 are Done | Not started |
 | 10. Real world | Production platform, real sign-in and signing, Bridge, public chain | Capxul's company runs a month on it | Not started |
 
 Phase 1 is narrow and done by few agents. Parallel agents start at the breadth phase, one journey each.

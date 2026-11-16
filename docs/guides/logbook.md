@@ -77,7 +77,8 @@ asks, threads and sitreps, never a verdict. Aaron's app signs in through Cloudfl
 
 - **Its things and verbs**: in the blueprint, `packages/blueprint/src/things/<thing>/`, one file per verb, each with
   its payload, answer, refusals, who may call it (`allowed`), steps, logs and budget, and the machine of each thing:
-  `run` and `verdict` (both already begun as pipeline things), `task`, `ask`, `thread`, `sitrep`.
+  `run` (already begun as a pipeline thing, with its verb `verdict`), `verdict` as a thing of its own, `task`, `ask`,
+  `thread`, `sitrep`.
 - **The plan** (goals, milestones, items): declared in the blueprint, changed by pull request; the roadmap's tables
   generated from it.
 - **The word**: "logbook" is in the glossary (`packages/blueprint/src/glossary.ts`).
