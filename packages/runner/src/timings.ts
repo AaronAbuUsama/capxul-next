@@ -72,6 +72,7 @@ export const PART_SPANS: ReadonlyArray<readonly [string, Declared]> = [
   ["move kept facts", Pipeline.runPrepare.spans.moveFacts],
   ["renew", workSpan(Pipeline.worldRenew)],
   // A run in one shared world (worlds/places.ts): the waits for a world's place and for a company site's slot.
+  ["prepare", workSpan(Pipeline.runPrepare)],
   ["world place", Pipeline.journeyRun.spans.place],
   ["site slot", Pipeline.journeyRun.spans.sites],
 ];

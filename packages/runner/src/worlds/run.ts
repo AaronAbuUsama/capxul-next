@@ -18,7 +18,7 @@ import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
 import * as Ref from "effect/Ref";
 import { checkCall, failuresOf } from "../checks/checks.ts";
-import type { Call } from "../client.ts";
+import { MadeWorlds, type Call } from "../client.ts";
 import { describe, endedOf } from "../failure.ts";
 import { passedOr, slugOf, writeJson, RunRecord } from "../record.ts";
 import { freshName, journeyPlan, keptFor, stepsFor, use, viaOf } from "../run.ts";
@@ -29,7 +29,7 @@ import { answersSteadily } from "../world/warmup.ts";
 import type { Stage } from "../world/stage.ts";
 import { noteNotMade, summaryOf } from "./ending.ts";
 import { onHub, type HubUse } from "./hub.ts";
-import { madeWorldsOf, placesForRun, sideBySideOf, sweepOf, type SideBySide } from "./side-by-side.ts";
+import { placesForRun, sideBySideOf, sweepOf, type SideBySide } from "./side-by-side.ts";
 import { JourneyMaking, type MakingCall } from "./making.ts";
 import { coreLabel, Platform } from "./platform.ts";
 import { sharedStartingWorldsOf, type SharedStartingWorlds } from "../shared/starting.ts";
@@ -71,25 +71,21 @@ const work = (scenario: Journey, settings: Settings, starting: Starting, timings
     const makingCalls = Arr.map(yield* Ref.get(mine), (each) => each.call);
     const madeChecked = yield* Effect.orElseSucceed(checked(makingCalls), () => []);
     if (Exit.isFailure(making))
-      return {
-        makeMs: millis(makeTook),
-        making,
-        madeChecked,
-        made: madeWorldsOf(makingCalls),
-        readiness: null,
-        stage: name,
-        used: undefined,
-      };
+      return { makeMs: millis(makeTook), making, madeChecked, readiness: null, stage: name, used: undefined };
     const own = making.value.own;
     const world = own === null ? null : yield* World.open(own.world).pipe(Effect.orDie);
+    // Side by side, the shared world was waited for once, in the run's preparation; any other world, now.
+    const known = world !== null && "readyOf" in starting ? yield* starting.readyOf(world.stage) : Option.none();
     const readiness =
       world === null
         ? null
-        : yield* answersSteadily(world.coreUrl, {
-            answers: settings.readyAnswers,
-            every: settings.probeEvery,
-            warmUp: settings.warmUp,
-          });
+        : Option.isSome(known)
+          ? known.value
+          : yield* answersSteadily(world.coreUrl, {
+              answers: settings.readyAnswers,
+              every: settings.probeEvery,
+              warmUp: settings.warmUp,
+            });
     const stage: Stage = {
       name: world?.stage ?? name,
       url: world?.coreUrl ?? NOWHERE,
@@ -114,15 +110,7 @@ const work = (scenario: Journey, settings: Settings, starting: Starting, timings
       });
     if (Exit.isSuccess(used))
       yield* timings.record("checks", used.value.ms.checks, { journey: scenario.name, of: stage.name });
-    return {
-      makeMs: millis(makeTook),
-      making,
-      madeChecked,
-      made: madeWorldsOf(makingCalls),
-      readiness,
-      stage: stage.name,
-      used,
-    };
+    return { makeMs: millis(makeTook), making, madeChecked, readiness, stage: stage.name, used };
   });
 
 /**
@@ -144,14 +132,13 @@ const runOne = (
       const startedAt = yield* now;
       const before = yield* platform.made;
       const triedBefore = (yield* platform.tried).length;
+      const heard = yield* Ref.make<ReadonlyArray<string>>([]);
       const journey = work(scenario, settings, starting, timings, `${run}-${index + 1}`);
-      const done = yield* Effect.exit(restore("around" in starting ? starting.around(scenario)(journey) : journey));
+      const done = yield* Effect.exit(restore(Effect.provideService(journey, MadeWorlds, heard)));
       const templates = yield* starting.templateWorlds;
       // Side by side, a journey's worlds are those its own calls made; one after another, those made while it ran.
       const mine = Arr.filter(
-        settings.shape === "shared" && Exit.isSuccess(done)
-          ? done.value.made
-          : Arr.drop(yield* platform.made, before.length),
+        settings.shape === "shared" ? yield* Ref.get(heard) : Arr.drop(yield* platform.made, before.length),
         (stage) => !Arr.contains(templates, stage),
       );
       // The one world lives on until the run ends; everything else the platform made or tried is this journey's.
@@ -266,11 +253,17 @@ export const runInWorlds = (
             // `run.prepare`: the one world and its template starting worlds, made and saved before any journey.
             yield* starting
               .prepare(Arr.map(scenarios, (scenario) => scenario.given))
-              .pipe(Effect.withSpan(Pipeline.runPrepare.name), Effect.catchCause(noteNotMade(timings, notMade)));
+              .pipe((made) => timings.timed("prepare", {}, made), Effect.catchCause(noteNotMade(timings, notMade)));
             yield* Ref.set(oneWorld, Option.getOrNull(yield* Effect.option(starting.oneWorld)));
             return yield* Effect.forEach(
               scenarios,
-              (scenario, index) => runOne(scenario, settings, starting, timings, run, index),
+              // A journey holds its places until its worlds are destroyed; its whole time is a part of the record.
+              (scenario, index) =>
+                Effect.timed(runOne(scenario, settings, starting, timings, run, index)).pipe(
+                  "around" in starting ? starting.around(scenario) : (each) => each,
+                  Effect.tap(([took]) => timings.record("journey whole", millis(took), { journey: scenario.name })),
+                  Effect.map(([, record]) => record),
+                ),
               { concurrency: settings.shape === "shared" ? "unbounded" : 1 },
             );
             // Side by side, the worlds journeys made by their own steps are swept once all have ended.
@@ -280,7 +273,11 @@ export const runInWorlds = (
     );
     const summary = yield* summaryOf({
       run,
-      mode: Option.isSome(shared) ? "shared world" : "one world",
+      mode: Option.isSome(shared)
+        ? "shared world"
+        : settings.shape === "shared"
+          ? "shared world, side by side"
+          : "one world",
       startedAt,
       owner: settings.owner,
       records: settings.records,

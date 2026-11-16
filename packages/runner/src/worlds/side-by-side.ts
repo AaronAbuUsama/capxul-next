@@ -10,16 +10,14 @@
 // Each journey is played by its own cast (4.11): the people every world makes for its key, and its own company handle,
 // so journeys side by side never found the same company or share a person's Safe. RUNNER_SHAPE stays `serial` by
 // default until a world run proves `shared`.
-import { startingWorlds, type OperationName, type StartingWorld } from "@capxul/blueprint";
+import { startingWorlds, type StartingWorld } from "@capxul/blueprint";
 import { Casting, declaredCast, type Journey, type JourneyKey } from "@capxul/scenarios";
 import * as World from "@capxul/world";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
-import * as Predicate from "effect/Predicate";
 import * as Rec from "effect/Record";
 import * as Ref from "effect/Ref";
-import type { Call } from "../client.ts";
 import { describe, RunnerFailure } from "../failure.ts";
 import type { Settings } from "../settings.ts";
 import type { Timings } from "../timings.ts";
@@ -30,10 +28,7 @@ import { placesOf, type Places } from "./places.ts";
 import { Platform } from "./platform.ts";
 import { destroyStrays } from "./teardown.ts";
 import { stepsOf } from "./starting.ts";
-
-/** The worlds a journey holds at its peak beside the shared one, as it declares them (0 until it does). */
-export const worldsOf = (journey: Journey): number =>
-  Predicate.hasProperty(journey, "worlds") && Predicate.isNumber(journey.worlds) ? journey.worlds : 0;
+import { answersSteadily, type Readiness } from "../world/warmup.ts";
 
 /** The chain of starting worlds `world` is made from, `nothing` and `fresh` left out, the first first. */
 const chainOf = (world: StartingWorld): ReadonlyArray<StartingWorld> =>
@@ -45,12 +40,12 @@ const chainOf = (world: StartingWorld): ReadonlyArray<StartingWorld> =>
 const foundsCompany = (world: StartingWorld): boolean =>
   Arr.some(chainOf(world), (each) => Rec.has(companyMakers, each.name));
 
-/** The places a journey holds for as long as it runs: its own world, when it has one, and the worlds it declares. */
+/** The places a journey holds from its start until its worlds are destroyed: the worlds it declares (`worlds`). */
 export const aroundJourney =
   (places: Places, journey: Journey) =>
   <A, E, R>(effect: Effect.Effect<A, E, R>) =>
     effect.pipe(
-      places.worlds.held(journey.name, (journey.world === "own" ? 1 : 0) + worldsOf(journey)),
+      places.worlds.held(journey.name, journey.worlds),
       // Each journey is played by its own cast, as the blueprint declares it and the world makes it (4.11): its
       // starting world's makers (company.ts) and its steps (scenarios' cast.ts) read it.
       Effect.provideService(Casting, CAST_AS_DECLARED),
@@ -62,74 +57,81 @@ const CAST_AS_DECLARED = { castOf: (key: JourneyKey) => Effect.succeed(declaredC
 /** The starting worlds of a run in one shared world; `places` bound the worlds and sites it holds at once. */
 export const sideBySideOf = (settings: Settings, platformUrl: string, places: Places) =>
   Effect.flatMap(Ref.make<ReadonlyArray<MakingCall>>([]), (made) =>
-    Effect.flatMap(Ref.make<Option.Option<string>>(Option.none()), (one) => {
-      const run = recorder(targetOf(settings, platformUrl), made);
-      const nothing = nothingOf(settings);
-      /** `world` made by its steps on `base`, the chain from `fresh` on, its company's site slot held. */
-      const build = (world: StartingWorld, base: Making, journey: string) =>
-        Effect.reduce(
-          chainOf(world),
-          () => base,
-          (from, each) => Effect.flatMap(stepsOf(each), (steps) => run(each, steps, from)),
-        ).pipe(foundsCompany(world) ? places.sites.held(journey, 1) : (effect) => effect);
-      const freshWorld = Effect.flatMap(stepsOf(startingWorlds.fresh), (steps) =>
-        run(startingWorlds.fresh, steps, nothing),
-      );
-      return Effect.map(
-        Effect.cached(Effect.tap(freshWorld, (making) => Ref.set(one, Option.fromNullishOr(making.own?.world)))),
-        (sharedWorld) => {
-          /** A journey's starting world: in the shared world, or in a fresh world of its own for one about worlds. */
-          const forScenario = (world: StartingWorld): Effect.Effect<Making, RunnerFailure, Needs> =>
-            world === startingWorlds.nothing
-              ? Effect.succeed(nothing)
-              : Effect.flatMap(Effect.serviceOption(JourneyMaking), (making) => {
-                  const journey = Option.flatMap(making, (each) => Option.fromNullishOr(each.journey));
-                  const own = Option.exists(journey, (each) => each.world === "own");
-                  const name = Option.match(journey, { onNone: () => world.name, onSome: (each) => each.name });
-                  return Effect.flatMap(own ? freshWorld : sharedWorld, (base) => build(world, base, name));
-                });
+    Effect.flatMap(Ref.make<Option.Option<string>>(Option.none()), (one) =>
+      Effect.flatMap(Ref.make<Option.Option<Readiness>>(Option.none()), (ready) => {
+        const run = recorder(targetOf(settings, platformUrl), made);
+        const nothing = nothingOf(settings);
+        /** `world` made by its steps on `base`, the chain from `fresh` on, its company's site slot held. */
+        const build = (world: StartingWorld, base: Making, journey: string) =>
+          Effect.reduce(
+            chainOf(world),
+            () => base,
+            (from, each) => Effect.flatMap(stepsOf(each), (steps) => run(each, steps, from)),
+          ).pipe(foundsCompany(world) ? places.sites.held(journey, 1) : (effect) => effect);
+        const freshWorld = Effect.flatMap(stepsOf(startingWorlds.fresh), (steps) =>
+          run(startingWorlds.fresh, steps, nothing),
+        );
+        return Effect.map(
+          Effect.cached(Effect.tap(freshWorld, (making) => Ref.set(one, Option.fromNullishOr(making.own?.world)))),
+          (sharedWorld) => {
+            /** A journey's starting world: in the shared world, or in a fresh world of its own for one about worlds. */
+            const forScenario = (world: StartingWorld): Effect.Effect<Making, RunnerFailure, Needs> =>
+              world === startingWorlds.nothing
+                ? Effect.succeed(nothing)
+                : Effect.flatMap(Effect.serviceOption(JourneyMaking), (making) => {
+                    const journey = Option.flatMap(making, (each) => Option.fromNullishOr(each.journey));
+                    const own = Option.exists(journey, (each) => each.world === "own");
+                    const name = Option.match(journey, { onNone: () => world.name, onSome: (each) => each.name });
+                    return Effect.flatMap(own ? freshWorld : sharedWorld, (base) => build(world, base, name));
+                  });
 
-          return {
-            around: (journey: Journey) => aroundJourney(places, journey),
-            /** The shared world, made once before any journey. */
-            prepare: (_worlds: ReadonlyArray<StartingWorld>) => Effect.asVoid(sharedWorld),
-            /** Nothing is reset: each journey builds its own starting world. */
-            resetFor: (_world: StartingWorld, _journey: string) => Effect.void,
-            forScenario,
-            oneWorld: Effect.flatMap(Ref.get(one), Effect.fromOption).pipe(
-              Effect.mapError(() =>
-                RunnerFailure.make({ step: "starting world", message: "the shared world was not made" }),
+            return {
+              around: (journey: Journey) => aroundJourney(places, journey),
+              /** The shared world, made once before any journey, and waited for until it answers steadily, once. */
+              prepare: (_worlds: ReadonlyArray<StartingWorld>) =>
+                Effect.flatMap(sharedWorld, (making) =>
+                  Option.match(Option.fromNullishOr(making.own), {
+                    onNone: () => Effect.void,
+                    onSome: (own) =>
+                      World.open(own.world).pipe(
+                        Effect.orDie,
+                        Effect.flatMap((world) =>
+                          answersSteadily(world.coreUrl, {
+                            answers: settings.readyAnswers,
+                            every: settings.probeEvery,
+                            warmUp: settings.warmUp,
+                          }),
+                        ),
+                        Effect.flatMap((readiness) => Ref.set(ready, Option.some(readiness))),
+                      ),
+                  }),
+                ),
+              /** The shared world's readiness, measured once in the run's preparation; none for any other world. */
+              readyOf: (stage: string) =>
+                Effect.map(Effect.all([Ref.get(one), Ref.get(ready)]), ([name, readiness]) =>
+                  Option.isSome(name) && World.stageOf(name.value) === stage ? readiness : Option.none<Readiness>(),
+                ),
+              /** Nothing is reset: each journey builds its own starting world. */
+              resetFor: (_world: StartingWorld, _journey: string) => Effect.void,
+              forScenario,
+              oneWorld: Effect.flatMap(Ref.get(one), Effect.fromOption).pipe(
+                Effect.mapError(() =>
+                  RunnerFailure.make({ step: "starting world", message: "the shared world was not made" }),
+                ),
               ),
-            ),
-            templateWorlds: Effect.map(Ref.get(one), (name) =>
-              Option.isSome(name) ? [World.stageOf(name.value)] : [],
-            ),
-            kept: Effect.succeed<ReadonlyArray<string>>([]),
-            made: Ref.get(made),
-          };
-        },
-      );
-    }),
+              templateWorlds: Effect.map(Ref.get(one), (name) =>
+                Option.isSome(name) ? [World.stageOf(name.value)] : [],
+              ),
+              kept: Effect.succeed<ReadonlyArray<string>>([]),
+              made: Ref.get(made),
+            };
+          },
+        );
+      }),
+    ),
   );
 
 export type SideBySide = Effect.Success<ReturnType<typeof sideBySideOf>>;
-
-/** The operations that make a world: their answers name it. */
-const MAKES_A_WORLD: Partial<Record<OperationName, true>> = { "world.create": true, "world.snapshot.restore": true };
-
-/** The worlds, by stage, that `calls` made: every world.create and world.snapshot.restore that answered one. */
-export const madeWorldsOf = (calls: ReadonlyArray<Call>): ReadonlyArray<string> =>
-  Arr.flatMap(calls, (call) =>
-    MAKES_A_WORLD[call.operation] === true
-      ? Option.match(call.success, {
-          onNone: () => [],
-          onSome: (answer) =>
-            Predicate.hasProperty(answer, "world") && Predicate.isString(answer.world)
-              ? [World.stageOf(answer.world)]
-              : [],
-        })
-      : [],
-  );
 
 /**
  * The places of a run in one shared world: worlds under the smaller of the setting and the cluster's capacity, less

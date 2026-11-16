@@ -22,6 +22,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 - [`scenario-runs.ts`](../src/scenario-runs.ts): A run of the journeys in stages of `CapxulCore` (a run that expects Core's empty handlers), in one of two modes, ending in its summary (summary.ts).
 - [`settings.ts`](../src/settings.ts): The runner's declared settings.
 - [`steps.ts`](../src/steps.ts): What the runner hears of a journey's steps, and how it records them.
+- [`summary-words.ts`](../src/summary-words.ts): What `passed` means for each kind of run, in words (a summary's `what`), and why a journey run against the empty handlers did not end as it must (summary.ts).
 - [`summary.ts`](../src/summary.ts): The summary of a run of the journeys: one record whose `outcome` says whether every journey ended as the run expected, whether the run held every registered journey, and whether every stage it used is gone.
 - [`timings.ts`](../src/timings.ts): Every part of a run in one world, timed in the order it happened (roadmap step 1.18; AGENTS.md, "Measure first"): the hub brought up, the world created, each starting world made, saved and kept on the bench, each reset before a journey, each journey's steps, the worlds a journey made destroyed, the world destroyed and the hub taken down.
 

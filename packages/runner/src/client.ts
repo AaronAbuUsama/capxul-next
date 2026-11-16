@@ -10,7 +10,9 @@ import { CHAIN_PATH, Errors, isRefusal, operations, WORLD_PATH, type OperationNa
 import * as Cli from "@capxul/cli";
 import { CallTraces, Capxul, type CallOptions, type CapxulClient } from "@capxul/scenarios";
 import * as Sdk from "@capxul/sdk";
+import * as World from "@capxul/world";
 import * as Cause from "effect/Cause";
+import * as Context from "effect/Context";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
@@ -114,6 +116,26 @@ type Send = (
 ) => Effect.Effect<Sdk.Success<OperationName>, Sdk.Refusal<OperationName>>;
 
 /** Every call through `send`, appended to `log`, whatever its outcome, and answered unchanged; `chain` as it is. */
+/**
+ * Where a journey hears every world its calls make (world.create and world.snapshot.restore that answered one), by
+ * stage: provided per journey by a run with journeys side by side (worlds/run.ts), which destroys them when the
+ * journey ends; a slice of the platform's list would mix the journeys running at once.
+ */
+export class MadeWorlds extends Context.Service<MadeWorlds, Ref.Ref<ReadonlyArray<string>>>()(
+  "@capxul/runner/client/MadeWorlds",
+) {}
+
+/** The operations that make a world: their answers name it. */
+const MAKES_A_WORLD: Partial<Record<OperationName, true>> = { "world.create": true, "world.snapshot.restore": true };
+
+/** The world, by stage, a call made: what a world.create or a world.snapshot.restore answered; none otherwise. */
+export const madeWorldOf = (call: Pick<Call, "operation" | "success">): ReadonlyArray<string> =>
+  MAKES_A_WORLD[call.operation] === true && Option.isSome(call.success)
+    ? Predicate.hasProperty(call.success.value, "world") && Predicate.isString(call.success.value.world)
+      ? [World.stageOf(call.success.value.world)]
+      : []
+    : [];
+
 const recording = (
   send: Send,
   chain: CapxulClient["chain"],
@@ -151,6 +173,8 @@ const recording = (
         failure: failureOf(exit),
       };
       yield* Ref.update(log, (calls) => [...calls, call]);
+      const made = yield* Effect.serviceOption(MadeWorlds);
+      if (Option.isSome(made)) yield* Ref.update(made.value, (all) => [...all, ...madeWorldOf(call)]);
       // The try that made the call hears its trace, so its checks judge only what this call caused (roadmap 4.11).
       const traces = yield* Effect.serviceOption(CallTraces);
       if (Option.isSome(traces)) yield* traces.value.heard(span.traceId);

@@ -35,8 +35,11 @@ const notMadeWhy = (timings: Timings, cause: Cause.Cause<unknown>) =>
 /** What a run in one world hands its summary, however it ended. */
 export interface Ending {
   readonly run: string;
-  /** "shared world" when the journeys ran in worlds restored from a shared world (src/shared). */
-  readonly mode?: "one world" | "shared world" | undefined;
+  /**
+   * "shared world" when the journeys ran in worlds restored from a shared world (src/shared); "shared world, side by
+   * side" when they ran all at once in one shared world (RUNNER_SHAPE=shared).
+   */
+  readonly mode?: "one world" | "shared world" | "shared world, side by side" | undefined;
   readonly startedAt: string;
   readonly owner: string;
   /** Where records are written. */
