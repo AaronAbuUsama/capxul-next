@@ -1,0 +1,114 @@
+[
+ {
+  "id": "20261115-1850-lanes",
+  "at": "2026-11-15T18:50:00Z",
+  "title": "Four slices are heading for master",
+  "lanes": [
+   "blueprint",
+   "run-time",
+   "telemetry",
+   "placement"
+  ],
+  "paras": [
+   "Master is green. Four slices have pull requests into master: the blueprint's stage 2b, the speed lane's first landing, telemetry, and the api moved to Europe.",
+   "Each merges once its full run passes. The docs slice is waiting on its full run too.",
+   "Nothing needs you."
+  ],
+  "links": [
+   {
+    "label": "Blueprint 2b into master",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/319"
+   },
+   {
+    "label": "Speed, landing 1",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/341"
+   },
+   {
+    "label": "Telemetry into master",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/317"
+   },
+   {
+    "label": "Placement into master",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/320"
+   }
+  ]
+ },
+ {
+  "id": "20261115-1755-run-time",
+  "at": "2026-11-15T17:55:00Z",
+  "title": "The run-time plan is agreed",
+  "lanes": [
+   "run-time"
+  ],
+  "paras": [
+   "The plan to get a full run under five minutes is merged, with your decisions in it.",
+   "The speed lane builds it now, plumbing first. Today a full run takes twenty-seven minutes; the plan projects four and a half to five and a half."
+  ],
+  "links": [
+   {
+    "label": "The run-time plan",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/316"
+   },
+   {
+    "label": "The speed lane's lead",
+    "href": "https://claude.ai/code/session_01S8RF7A5EFsECELJk2x94CG"
+   }
+  ]
+ },
+ {
+  "id": "20261115-1740-stage-2a",
+  "at": "2026-11-15T17:40:00Z",
+  "title": "Blueprint stage 2a landed",
+  "lanes": [
+   "blueprint"
+  ],
+  "paras": [
+   "The whole blueprint moved into its new layout, and every journey still passes.",
+   "It went through the checks, a full run and an independent review before merging. Stage 2b is next."
+  ],
+  "links": [
+   {
+    "label": "Stage 2a",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/295"
+   }
+  ]
+ },
+ {
+  "id": "20261115-1450-plan-grew",
+  "at": "2026-11-15T14:50:00Z",
+  "title": "The plan grew",
+  "lanes": [
+   "blueprint"
+  ],
+  "paras": [
+   "After the blueprint restack, the foundations milestone grew to eleven steps.",
+   "Forty-six units of work were added to the plan today. That is why the burn-down jumps back up."
+  ],
+  "links": [
+   {
+    "label": "The restack",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/275"
+   }
+  ]
+ },
+ {
+  "id": "20261115-1400-foundations",
+  "at": "2026-11-15T14:00:00Z",
+  "title": "Five foundation steps proven",
+  "lanes": [],
+  "paras": [
+   "Generated files, the seeded chain, the lint ratchet, machines and the delta check are all proven on master.",
+   "Five of the foundations milestone's eleven steps are done."
+  ],
+  "links": [
+   {
+    "label": "The seeded chain",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/276"
+   },
+   {
+    "label": "Lint, machines and the delta check",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/pull/262"
+   }
+  ]
+ }
+]
