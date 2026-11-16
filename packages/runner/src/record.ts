@@ -63,6 +63,11 @@ export const TapReport = Schema.Struct({
   /** Why the tap could not be read. */
   reason: Schema.optional(Schema.String),
   ms: Schema.Finite,
+  /**
+   * The endpoints calls were made at that no known world answers at: their calls are not compared. Absent on records
+   * made before it was kept.
+   */
+  unknownEndpoints: Schema.String.pipe(Schema.Array, Schema.optional),
   calls: Schema.Array(
     Schema.Struct({
       traceId: Schema.String,
