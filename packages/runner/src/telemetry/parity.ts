@@ -70,7 +70,10 @@ export const sameValue = (a: unknown, b: unknown): boolean => {
   return a === b;
 };
 
-/** The declared attributes (each a string or a number) of a kept span and of its tapped twin that differ, one difference per key. */
+/**
+ * The declared attributes of a kept span and of its tapped twin that differ, one difference per key: each a string, a
+ * number, or an array of them (a clock warp's), compared by `sameValue`.
+ */
 const attributeDifferences = (row: SpanRow, span: FlatSpan): ReadonlyArray<Difference> => {
   const kept: Readonly<Record<string, unknown>> = row.attributes ?? {};
   const keys = Arr.dedupe([...Rec.keys(kept), ...Arr.filter(DECLARED, (key) => key in span.attributes)]);
