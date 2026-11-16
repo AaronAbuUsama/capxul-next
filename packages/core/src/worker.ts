@@ -62,6 +62,16 @@ export const workerProps = () => ({
   placement: API_PLACEMENT,
 });
 
+/**
+ * Cloudflare's own logs and traces of Core's Worker, exported to the account's Axiom destinations: a second view of the
+ * platform, read by people, never by a check (packages/platform's collector carries Core's own telemetry).
+ */
+const observability = {
+  enabled: true,
+  logs: { enabled: true, invocationLogs: true, destinations: ["axiom-capxul-logs"] },
+  traces: { enabled: true, destinations: ["axiom-capxul-traces"] },
+};
+
 export default class Core extends Cloudflare.Worker<Core>()(
   "Core",
   Effect.gen(function* () {
@@ -77,6 +87,7 @@ export default class Core extends Cloudflare.Worker<Core>()(
     return {
       ...workerProps(),
       ...prebuilt,
+      observability,
       env: { ...(yield* revision), ...deployment.env, [ENV.database]: deployment.database },
     };
   }),
