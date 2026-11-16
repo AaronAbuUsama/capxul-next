@@ -11,8 +11,8 @@ import pool
 
 class ProfileTest(unittest.TestCase):
     def test_the_profile_is_the_deploys(self):
-        env = {"BENCH_HOST_TYPE": "t3.large", "BENCH_SITES_AT_ONCE": "2", "DOOR_COMPANY_POOL_SIZE": "8"}
-        with mock.patch.dict(os.environ, env):
+        env = {"BENCH_HOST_TYPE": "t3.large", "BENCH_SITES_AT_ONCE": "2"}
+        with mock.patch.dict(os.environ, env), mock.patch.object(pool, "COMPANY_POOL_SIZE", 8):
             self.assertEqual(pool.profile(), {"host_type": "t3.large", "sites_at_once": 2,
                                               "blank_pool": pool.BLANK_POOL_SIZE, "company_pool": 8})
             self.assertEqual(pool.list_templates()["profile"]["sites_at_once"], 2)

@@ -12,6 +12,7 @@ from unittest import mock
 
 import door_env  # noqa: F401 -- sets the door's environment before its modules load
 import blank
+import company
 import db
 import pool
 import sites
@@ -71,7 +72,9 @@ class Bench:
                 mock.patch.object(db, "drop", self.dropped.append), mock.patch.object(db, "drop_user", lambda *_: None),
                 mock.patch.object(db, "run", lambda *_a, **_k: ((0,),)),
                 mock.patch.object(sites, "make_core_user", lambda *_a: 1),
-                mock.patch.object(blank, "drop_database", lambda _site: None)]
+                mock.patch.object(blank, "drop_database", lambda _site: None),
+                mock.patch.object(company, "make_site_template_soon", lambda _inputs: None),
+                mock.patch.object(pool, "_busy", {"at": None})]  # the bench quiet: refills wait for nothing  # test_company.py has the company's
 
 
 class BlankTest(unittest.TestCase):
@@ -104,22 +107,24 @@ class BlankTest(unittest.TestCase):
         name = kept_blank("0a1b2c3d4e5f6a7b", copies=1)
         entry = self.make("w1")
         self.assertEqual(entry["state"], "ready")
-        self.assertEqual(entry["made_from"], {"template": name, "how": "pool"})
+        self.assertEqual(entry["made_from"], {"template": name, "how": "blank pool", "fell_back": "no company template"})
         self.assertEqual([s["step"] for s in entry["steps"]],
-                         ["blank copy taken from the pool", "own encryption key", "setup wizard", "core user"])
+                         ["site.make.fell_back", "blank copy taken from the pool", "own encryption key", "setup wizard",
+                          "core user"])
+        self.assertEqual(entry["steps"][0]["reason"], "no company template")
         self.assertEqual(self.bench.configured, [("northwind-w1.pool.test", "w1", "Northwind")])
         self.assertEqual(self.bench.commands, [], "no bench command: nothing is built")
         self.assertEqual(pool.ready_copies(name, "blank"), [], "the copy left the pool")
         conf = db.site_config(f"{sites.BENCH}/sites/northwind-w1.pool.test")
         self.assertNotEqual(conf["encryption_key"], "blank-key", "a key of its own: the blank's database held none")
         self.assertIn(name, self.refills, "the pool is refilled after")
-        self.assertEqual(sites.public(entry)["made_from"]["how"], "pool")
+        self.assertEqual(sites.public(entry)["made_from"]["how"], "blank pool")
 
     def test_with_the_pool_empty_it_is_copied_from_the_blank(self):
         name = kept_blank("0a1b2c3d4e5f6a7b")
         entry = self.make("w1")
         self.assertEqual(entry["state"], "ready")
-        self.assertEqual(entry["made_from"]["how"], "copy")
+        self.assertEqual(entry["made_from"]["how"], "blank copy")
         self.assertEqual(self.bench.copied, ["_00000000000000aa"])
         self.assertIn(name, self.refills)
 
@@ -127,7 +132,7 @@ class BlankTest(unittest.TestCase):
         blank._state["failed_at"] = time.time()  # a blank that failed just now is not tried again yet
         entry = self.make("w1")
         self.assertEqual(entry["state"], "ready")
-        self.assertIsNone(entry.get("made_from"))
+        self.assertEqual(entry["made_from"], {"template": None, "how": "from nothing", "fell_back": "no blank"})
         self.assertEqual([c[0] if c[0] == "new-site" else c[2] for c in self.bench.commands],
                          ["new-site", "install-app", "install-app", "install-app", "execute", "migrate",
                           "enable-scheduler", "execute"])
@@ -137,7 +142,7 @@ class BlankTest(unittest.TestCase):
         old = kept_blank("ffffffffffffffff", copies=2)
         blank._state["failed_at"] = time.time()
         entry = self.make("w1")
-        self.assertIsNone(entry.get("made_from"), "built from nothing: the only blank holds other apps")
+        self.assertEqual(entry["made_from"]["how"], "from nothing", "built from nothing: the only blank holds other apps")
         self.assertEqual(len(pool.ready_copies(old, "blank")), 2, "none of its copies taken")
         blank.tidy()
         self.assertEqual(templates.names(), [], "removed with its pool")
@@ -155,7 +160,7 @@ class BlankTest(unittest.TestCase):
             each.join(5)
         entries = [sites.read_entry(s) for s in sites_]
         self.assertEqual([e["state"] for e in entries], ["ready", "ready"])
-        self.assertEqual(sorted(e["made_from"]["how"] for e in entries), ["copy", "pool"])
+        self.assertEqual(sorted(e["made_from"]["how"] for e in entries), ["blank copy", "blank pool"])
         self.assertEqual(self.bench.copied, ["_00000000000000aa"], "one copied from the blank, one from the pool")
         names = {db.site_config(f"{sites.BENCH}/sites/{s}")["db_name"] for s in sites_}
         self.assertEqual(len(names), 2, "each its own database")
@@ -181,7 +186,7 @@ class BlankTest(unittest.TestCase):
         self.assertEqual(templates.template_sites(name)[0]["db"], "_00000000000000bb")
         self.assertFalse(os.path.exists(f"{sites.BENCH}/sites/{name}.invalid"), "moved off the top of sites/")
         entry = sites.read_entry("northwind-w1.pool.test")
-        self.assertEqual((entry["state"], entry["made_from"]["how"]), ("ready", "copy"))
+        self.assertEqual((entry["state"], entry["made_from"]["how"]), ("ready", "blank copy"))
         self.assertIn(name, self.refills, "its pool filled once made")
 
     def test_a_blank_refills_to_its_own_pool_size(self):
@@ -204,7 +209,7 @@ class BlankTest(unittest.TestCase):
 
         with mock.patch.object(blank, "bench", failing):
             entry = self.make("w1")
-        self.assertIsNone(entry.get("made_from"))
+        self.assertEqual(entry["made_from"], {"template": None, "how": "from nothing", "fell_back": "no blank"})
         self.assertEqual(entry["state"], "ready")
         self.assertIn("no space left", blank.state()["error"])
         blank.keep_warm()
