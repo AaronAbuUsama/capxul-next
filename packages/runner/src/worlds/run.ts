@@ -17,11 +17,11 @@ import * as Exit from "effect/Exit";
 import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
 import * as Ref from "effect/Ref";
-import { checkCall, failuresOf } from "../checks/checks.ts";
-import { MadeWorlds, type Call } from "../client.ts";
+import { failuresOf } from "../checks/checks.ts";
+import { MadeWorlds } from "../client.ts";
 import { describe, endedOf, RunnerFailure } from "../failure.ts";
 import { passedOr, slugOf, writeJson, RunRecord } from "../record.ts";
-import { freshName, journeyPlan, keptFor, stepsFor, use, viaOf } from "../run.ts";
+import { freshName, journeyPlan, stepsFor, use, viaOf } from "../run.ts";
 import { stepsOf } from "../steps.ts";
 import type { Settings } from "../settings.ts";
 import { makeTimings, type Timings } from "../timings.ts";
@@ -30,7 +30,8 @@ import type { Stage } from "../world/stage.ts";
 import { noteNotMade, summaryOf } from "./ending.ts";
 import { onHub, type HubUse } from "./hub.ts";
 import { placesForRun, sideBySideOf, sweepOf, type SideBySide } from "./side-by-side.ts";
-import { JourneyMaking, type MakingCall } from "./making.ts";
+import { runIsolation } from "./run-isolation.ts";
+import { checked, JourneyMaking, type MakingCall } from "./making.ts";
 import { coreLabel, Platform } from "./platform.ts";
 import { sharedStartingWorldsOf, type SharedStartingWorlds } from "../shared/starting.ts";
 import { startingWorldsOf, type StartingWorlds } from "./starting.ts";
@@ -47,13 +48,6 @@ const now = Effect.map(DateTime.now, DateTime.formatIso);
 
 const millis = (took: Duration.Duration) => Math.round(Duration.toMillis(took));
 const NOWHERE = "http://127.0.0.1:9";
-
-/** The checked calls of `calls`, read from where each was kept. */
-const checked = (calls: ReadonlyArray<Call>) =>
-  Effect.gen(function* () {
-    const kept = yield* keptFor(Option.none(), calls);
-    return Arr.map(calls, (call) => checkCall(call, kept));
-  });
 
 /** The one world reset to the journey's starting world, what it makes by its steps made, and the journey run. */
 const work = (scenario: Journey, settings: Settings, starting: Starting, timings: Timings, name: string) =>
@@ -238,6 +232,7 @@ export const runInWorlds = (
     const handedOver = yield* Ref.make<ReadonlyArray<string>>([]);
     const oneWorld = yield* Ref.make<string | null>(null);
     const hubUsed = yield* Ref.make<HubUse | null>(null);
+    const isolation = yield* Ref.make<ReadonlyArray<string>>([]);
     const ran = yield* Effect.exit(
       onHub(settings, timings, (used) =>
         Effect.gen(function* () {
@@ -259,7 +254,7 @@ export const runInWorlds = (
               .prepare(Arr.map(scenarios, (scenario) => scenario.given))
               .pipe((made) => timings.timed("prepare", {}, made), Effect.catchCause(noteNotMade(timings, notMade)));
             yield* Ref.set(oneWorld, Option.getOrNull(yield* Effect.option(starting.oneWorld)));
-            return yield* Effect.forEach(
+            const records = yield* Effect.forEach(
               scenarios,
               // A journey holds its places until its worlds are destroyed; its whole time is a part of the record.
               (scenario, index) =>
@@ -270,6 +265,10 @@ export const runInWorlds = (
                 ),
               { concurrency: settings.shape === "shared" ? "unbounded" : 1 },
             );
+            const world = yield* Ref.get(oneWorld);
+            if ("around" in starting && world !== null)
+              yield* Ref.set(isolation, yield* runIsolation(world, scenarios, records, yield* starting.made));
+            return records;
             // Side by side, the worlds journeys made by their own steps are swept once all have ended.
           }).pipe(Effect.ensuring(Effect.andThen(sweepOf(settings, starting.templateWorlds), takenDown)));
         }),
@@ -289,6 +288,7 @@ export const runInWorlds = (
       ran,
       notMade: yield* Ref.get(notMade),
       notTakenDown: yield* Ref.get(notTakenDown),
+      isolation: yield* Ref.get(isolation),
       handedOver: yield* Ref.get(handedOver),
       world: yield* Ref.get(oneWorld),
       used: yield* Ref.get(hubUsed),

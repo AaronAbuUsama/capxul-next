@@ -8,22 +8,11 @@
 import { operations, Organizations } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Predicate from "effect/Predicate";
+import type { Entry, Producer } from "../telemetry/whole-run.ts";
 import type { Check } from "./checks.ts";
 
-/** One entry of the shared world's history, as the whole-run read answers it. */
-export interface RunEntry {
-  readonly seq: number;
-  readonly trace: string;
-  readonly operation: string;
-  readonly event: string;
-  readonly carried: unknown;
-}
-
-/** What wrote a trace, from the tap, where Core kept it. */
-export interface Producer {
-  readonly producer: string;
-  readonly span: string;
-}
+/** One entry of the shared world's history, as the whole-run read answers it (telemetry/whole-run.ts). */
+export type RunEntry = Entry;
 
 /** What the check reads: every call of the run with its journey's key, and the whole history. */
 export interface RunSeen {
@@ -64,7 +53,7 @@ export const checkRunIsolation = (seen: RunSeen): ReadonlyArray<Check> => {
     if (journeyOf.has(entry.trace) || entry.operation === BIRTH) return [];
     const by = seen.producers.get(entry.trace);
     return [
-      `entry ${entry.seq} (${entry.event}, ${entry.operation}) no call of the run wrote${by === undefined ? "" : `; ${by.producer} wrote it in ${by.span}`}`,
+      `entry ${entry.seq} (${entry.event}, ${entry.operation}) no call of the run wrote${by === undefined ? "" : `; ${by.producer ?? "a process naming no service"} wrote it in ${by.span}`}`,
     ];
   });
   return [

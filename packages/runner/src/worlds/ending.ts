@@ -50,6 +50,8 @@ export interface Ending {
   readonly notMade: string | null;
   /** What the run's take-down could not do, one line each with why (teardown.ts); any of it fails the run. */
   readonly notTakenDown: ReadonlyArray<string>;
+  /** Side by side, what the whole run's isolation check found, one line each (run-isolation.ts); any of it fails. */
+  readonly isolation?: ReadonlyArray<string>;
   /** The worlds, by stage, left up on purpose for CI's teardown job (RUNNER_TEARDOWN=job); none otherwise. */
   readonly handedOver: ReadonlyArray<string>;
   readonly world: string | null;
@@ -71,7 +73,7 @@ export const summaryOf = (ending: Ending) =>
   Effect.gen(function* () {
     const { ran, run } = ending;
     const died = Exit.isFailure(ran) ? `the run did not finish: ${describe(ran.cause)}` : null;
-    const failures = Arr.filter([ending.notMade, died], (each) => each !== null);
+    const failures = [...Arr.filter([ending.notMade, died], (each) => each !== null), ...(ending.isolation ?? [])];
     const hub: HubUse = ending.used ?? {
       stage: yield* Effect.orElseSucceed(World.HubStage, () => "unknown"),
       broughtUp: false,
