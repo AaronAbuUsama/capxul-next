@@ -23,9 +23,17 @@ const Refusal = Schema.Struct({ message: Schema.String });
 export const hostOf = (uri: string): string =>
   pipe(Str.split(uri, "@"), Arr.lastNonEmpty, Str.split("/"), Arr.headNonEmpty, Str.split(":"), Arr.headNonEmpty);
 
-/** POSTs one body to the database's `/sql` endpoint. */
+/**
+ * POSTs one body to the database's `/sql` endpoint. A database with no host (an empty connection string: a stage with
+ * no world of its own) is the runner's plumbing failure, said so, and nothing is sent.
+ */
 const post = Effect.fnUntraced(function* (database: Redacted.Redacted, body: object) {
   const uri = Redacted.value(database);
+  if (Str.isEmpty(hostOf(uri)))
+    return yield* RunnerFailure.make({
+      step: "database",
+      message: "plumbing: a database with no host was read (an empty connection string), so nothing was sent",
+    });
   const response = yield* HttpClient.execute(
     HttpClientRequest.post(`https://${hostOf(uri)}/sql`).pipe(
       HttpClientRequest.setHeader("Neon-Connection-String", uri),

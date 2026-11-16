@@ -66,3 +66,4 @@ and gated only by that command.
 | R17 Operations without who may call | Operations on the `allowed` format's unmigrated list: no roles allowed declared, nor the refusal anyone else gets. | 21 | 5.1 |
 | R18 Operations without declared steps and logs | Operations on the `spans` or `logs` format's unmigrated list: no declared spans, logs, or log where each refusal is decided. | 21 | 4.1 |
 | R19 Promises that do not name every refusal they decide | Operations on the `promises` format's unmigrated list: some refusal they decide is named in none of their promises. | 8 | C.1 |
+| R20 Glossary words not yet landed | Each glossary word whose landing place (a package, a `pnpm` command) is not there yet, and each tracked file still named by an old word written as a file name (`door.ts`, `door.py`). A CLI flag's landing is the CLI's (3.9). | 15 | the renames' lane (3.8's landings) |
