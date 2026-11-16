@@ -6,11 +6,22 @@
 // command line instead: the `capxul` command that makes the call, run in this process at the same doors, with the
 // same credentials and the same HTTP client (packages/cli, `callVia`). The chain reads, which are not operations and
 // have no command, still go through the SDK.
-import { CHAIN_PATH, Errors, isRefusal, operations, WORLD_PATH, type OperationName } from "@capxul/blueprint";
+import {
+  CHAIN_PATH,
+  Errors,
+  isRefusal,
+  operations,
+  WORLD_PATH,
+  type OperationName,
+  Envelope,
+  Pipeline,
+} from "@capxul/blueprint";
 import * as Cli from "@capxul/cli";
-import { Capxul, type CallOptions, type CapxulClient } from "@capxul/scenarios";
+import { CallTraces, Capxul, Observing, type CallOptions, type CapxulClient } from "@capxul/scenarios";
 import * as Sdk from "@capxul/sdk";
+import * as World from "@capxul/world";
 import * as Cause from "effect/Cause";
+import * as Context from "effect/Context";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
@@ -25,7 +36,10 @@ import * as Schema from "effect/Schema";
 import * as HttpClient from "effect/http/HttpClient";
 import { RpcClientError } from "effect/rpc/RpcClientError";
 import { describe } from "./failure.ts";
+import { ObservationRetry } from "./settings.ts";
+import { OpenStep } from "./steps.ts";
 import { resendingWhileWarm } from "./world/warmup.ts";
+import { RUN_SPANS, stepOptions } from "./telemetry/step.ts";
 
 /**
  * How a call ended, as the caller saw it: `success`; `refusal`, a typed refusal the operation or sign-in declares;
@@ -56,6 +70,8 @@ export interface Call {
   readonly callerMs: number;
   /** Sends repeated during the call because the stage's address was not routed yet. */
   readonly resent: number;
+  /** For a look (`Observing`): times it was sent again after its transport failed; left out for every other call. */
+  readonly retried?: number;
   readonly failure: string | null;
 }
 
@@ -110,17 +126,80 @@ type Send = (
 ) => Effect.Effect<Sdk.Success<OperationName>, Sdk.Refusal<OperationName>>;
 
 /** Every call through `send`, appended to `log`, whatever its outcome, and answered unchanged; `chain` as it is. */
+/**
+ * Where a journey hears every world its calls make (world.create and world.snapshot.restore that answered one), by
+ * stage: provided per journey by a run with journeys side by side (worlds/run.ts), which destroys them when the
+ * journey ends; a slice of the platform's list would mix the journeys running at once.
+ */
+export class MadeWorlds extends Context.Service<MadeWorlds, Ref.Ref<ReadonlyArray<string>>>()(
+  "@capxul/runner/client/MadeWorlds",
+) {}
+
+/** The operations that make a world: their answers name it. */
+const MAKES_A_WORLD: Partial<Record<OperationName, true>> = { "world.create": true, "world.snapshot.restore": true };
+
+/** The world, by stage, a call made: what a world.create or a world.snapshot.restore answered; none otherwise. */
+export const madeWorldOf = (call: Pick<Call, "operation" | "success">): ReadonlyArray<string> =>
+  MAKES_A_WORLD[call.operation] === true && Option.isSome(call.success)
+    ? Predicate.hasProperty(call.success.value, "world") && Predicate.isString(call.success.value.world)
+      ? [World.stageOf(call.success.value.world)]
+      : []
+    : [];
+
 const recording = (
   send: Send,
   chain: CapxulClient["chain"],
   log: Ref.Ref<ReadonlyArray<Call>>,
   resent: Ref.Ref<number>,
+  observation: ObservationRetry,
 ): CapxulClient => {
+  /**
+   * A read a check makes around the step's call (`Observing` present, `CallTraces` absent: never the step's own call),
+   * sent again while no answer comes back, at most `tries` times in all, the waits doubling from `backoff`; each resend
+   * logged. A decoded answer or refusal is never sent again. Answers the last exit and how many times it was resent.
+   */
+  const sendObserving = (name: OperationName, payload: unknown, options: CallOptions | undefined) =>
+    Effect.gen(function* () {
+      const observing =
+        Option.isSome(yield* Effect.serviceOption(Observing)) && Option.isNone(yield* Effect.serviceOption(CallTraces));
+      const tries = observing ? Math.max(1, observation.tries) : 1;
+      type Sent = Exit.Exit<Sdk.Success<OperationName>, Sdk.Refusal<OperationName>>;
+      const next = (retried: number, exit: Sent): Effect.Effect<readonly [Sent, number]> =>
+        retried + 1 < tries && classify(name, exit).outcome === "unanswered"
+          ? Effect.logWarning(
+              `observation ${name}: no answer (try ${retried + 1} of ${tries}), sent again: ${failureOf(exit) ?? ""}`,
+            ).pipe(
+              // One declared span per resend: the backoff, then the send again (journey.run.resend).
+              Effect.andThen(
+                Effect.sleep(Duration.times(observation.backoff, 2 ** retried)).pipe(
+                  Effect.andThen(send(name, payload, options).pipe(Effect.exit)),
+                  Effect.withSpan(Pipeline.journeyRun.spans.resend.name, {
+                    attributes: { operation: name, try: retried + 2 },
+                  }),
+                ),
+              ),
+              Effect.flatMap((again) => next(retried + 1, again)),
+            )
+          : Effect.succeed([exit, retried] as const);
+      return yield* next(0, yield* Effect.exit(send(name, payload, options)));
+    });
   const each = (name: OperationName) => (payload: unknown, options?: CallOptions) =>
+    Effect.gen(function* () {
+      // The call is a trace of its own, so Core's spans join it by `traceparent`; it is linked to the journey's step.
+      const open = yield* Effect.serviceOption(OpenStep);
+      const step = Option.isSome(open) ? yield* Ref.get(open.value) : Option.none();
+      return yield* Effect.withSpan(sent(name, payload, options), RUN_SPANS.call.name, {
+        ...stepOptions(RUN_SPANS.call, { [Envelope.attributes.operation.name]: name }),
+        root: true,
+        links: Option.isSome(step) ? [{ span: step.value, attributes: {} }] : [],
+      });
+    });
+  const sent = (name: OperationName, payload: unknown, options?: CallOptions) =>
     Effect.gen(function* () {
       const span = yield* Effect.orDie(Effect.currentSpan);
       const before = yield* Ref.get(resent);
-      const [took, exit] = yield* send(name, payload, options).pipe(Effect.exit, Effect.timed);
+      const [took, [exit, retried]] = yield* sendObserving(name, payload, options).pipe(Effect.timed);
+      if (retried > 0) yield* Effect.annotateCurrentSpan("runner.call.retried", retried);
       const call: Call = {
         operation: name,
         traceId: span.traceId,
@@ -133,11 +212,17 @@ const recording = (
         error: Exit.isSuccess(exit) ? Option.none() : Cause.findErrorOption(exit.cause),
         callerMs: Duration.toMillis(took),
         resent: (yield* Ref.get(resent)) - before,
+        ...(retried > 0 ? { retried } : {}),
         failure: failureOf(exit),
       };
       yield* Ref.update(log, (calls) => [...calls, call]);
+      const made = yield* Effect.serviceOption(MadeWorlds);
+      if (Option.isSome(made)) yield* Ref.update(made.value, (all) => [...all, ...madeWorldOf(call)]);
+      // The try that made the call hears its trace, so its checks judge only what this call caused (roadmap 4.11).
+      const traces = yield* Effect.serviceOption(CallTraces);
+      if (Option.isSome(traces)) yield* traces.value.heard(span.traceId);
       return yield* exit;
-    }).pipe(Effect.withSpan(`runner.call ${name}`, { root: true }));
+    });
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- one function per operation, built by name from the blueprint's own list, each the recorded call of the operation it is keyed by; the compiler cannot follow the mapping
   const calls = Rec.map(operations, (_operation, name) => each(name)) as unknown as Omit<CapxulClient, "chain">;
   // Chain reads are not operations: no span of Core's, no event, nothing for the generic checks. They pass through.
@@ -178,6 +263,7 @@ export const capxulFor = (
   Layer.unwrap(
     Effect.gen(function* () {
       const resent = yield* Ref.make(0);
+      const observation = yield* Effect.orDie(ObservationRetry);
       const http = resendingWhileWarm(target.warmUntil, target.every, resent)(yield* HttpClient.HttpClient);
       const viaCli = Cli.callVia(cliDoors(target));
       const sendOf = (client: CapxulClient): Send =>
@@ -187,7 +273,9 @@ export const capxulFor = (
           : (name, payload, options) => Sdk.callByName(client, name, payload, options);
       return Layer.effect(
         Capxul,
-        Effect.map(Effect.service(Capxul), (client) => recording(sendOf(client), client.chain, log, resent)),
+        Effect.map(Effect.service(Capxul), (client) =>
+          recording(sendOf(client), client.chain, log, resent, observation),
+        ),
       ).pipe(Layer.provide(Sdk.layer(Capxul)), Layer.provide(doors(target, http)));
     }),
   );

@@ -38,6 +38,8 @@ export interface Organization {
   readonly deployment: Deployment;
   readonly budget: string | null;
   readonly site: string | null;
+  /** How often the company's site was made again after the site door restarted while making it (site.ts). */
+  readonly siteRestarts: number;
 }
 
 interface Row {
@@ -54,6 +56,8 @@ interface Row {
   readonly deployment: unknown;
   readonly budget: string | null;
   readonly site: string | null;
+  /** Absent before migration 0011_organizations_site_restarts. */
+  readonly site_restarts?: number;
 }
 
 const decode = (row: Row) =>
@@ -72,6 +76,7 @@ const decode = (row: Row) =>
       deployment: yield* Schema.decodeUnknownEffect(Deployment)(row.deployment),
       budget: row.budget,
       site: row.site,
+      siteRestarts: row.site_restarts ?? 0,
     } satisfies Organization;
   }).pipe(Effect.orDie);
 
@@ -101,7 +106,7 @@ export const unfinishedOf = Effect.fn("organizations.unfinished")(function* (fou
 
 /** Adds a founded company: its own row and its line in the world's companies. */
 export const insert = Effect.fn("organizations.insert")(function* (
-  organization: Organization & { readonly name: string; readonly foundedMs: number },
+  organization: Omit<Organization, "siteRestarts"> & { readonly name: string; readonly foundedMs: number },
 ) {
   const sql = yield* PgClient.PgClient;
   // Each JSON value is its own parameter of the statement, never inside another fragment: a client the deploy hands

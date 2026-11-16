@@ -26,6 +26,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 export CI=true
+# The code's revision, on every span this process exports (packages/platform, src/telemetry.ts).
+export CODE_REVISION="${CODE_REVISION:-$(git rev-parse HEAD 2>/dev/null || echo unknown)}"
 export CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN:-proxy-injected}" NEON_API_KEY="${NEON_API_KEY:-proxy-injected}"
 # The shared world (src/shared/) has an owner of its own, `staging`, and a hub of its own, `shared`.
 shared=false
@@ -39,8 +41,12 @@ export WORLD_OWNER="${WORLD_OWNER:-runner}"
 # test credentials of short-lived stages, never printed.
 token() { python3 -c "import secrets; print(secrets.token_hex(24))"; }
 export CAPXUL_DOOR_TOKEN="${CAPXUL_DOOR_TOKEN:-$(token)}" CAPXUL_PLATFORM_TOKEN="${CAPXUL_PLATFORM_TOKEN:-$(token)}"
-# The second operator's token (decisions.md, 37): the starting world `nothing` promises a second operator.
+# The second operator's token (packages/blueprint, src/common/values.ts): the starting world `nothing` promises a
+# second operator.
 export CAPXUL_SECOND_PLATFORM_TOKEN="${CAPXUL_SECOND_PLATFORM_TOKEN:-$(token)}"
+# The tap (roadmap 4.4): a stage's Core writes what it exports into its own database too, as a test world's does. The
+# generic checks read every call's spans from it since the flip (src/telemetry/kept.ts).
+export CAPXUL_TAP="${CAPXUL_TAP:-on}"
 # The second operator's name: Core reads it at deploy beside the token, so the platform accepts the second operator.
 export WORLD_SECOND_OWNER="${WORLD_SECOND_OWNER:-runner-2}"
 account() { curl -sS --max-time 20 "$1" | python3 -c "$2"; }
@@ -51,6 +57,11 @@ export CAPXUL_WORKERD="${CAPXUL_WORKERD:-$(bun -e 'import w from "workerd"; cons
 # A run in private worlds lives on its own fleet hub (src/worlds/hub.ts): a fresh one per run unless WORLD_HUB names
 # one; a hub the run brings up it also takes down.
 export WORLD_HUB="${WORLD_HUB:-rh-$(python3 -c "import secrets; print(secrets.token_hex(3))")}"
+# WORLD_BENCH=<platform stage>: its site door is read from the shared state, `http://<stage>-door.<domain>`, plain HTTP
+# through the tunnel (Cloudflare's free certificate covers one level only). In an agent's container the network proxy
+# takes only CONNECT tunnels, and Bun sends plain HTTP through a proxy in absolute form, which it refuses: such runs set
+# HTTP_PROXY to a small loopback forwarder (not in the repository) that carries each request through a CONNECT tunnel
+# to port 80. CI needs nothing of this kind.
 # WORLD_BENCH=local: packages/platform's bin/pool-bench.sh bench on this machine, not a platform stage. Its door's
 # address and key (from its secrets file, never printed) are handed to packages/world (src/site/Bench.ts).
 if [ "${WORLD_BENCH:-}" = local ]; then

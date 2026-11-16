@@ -51,6 +51,7 @@ import {
 } from "../../things/cluster/registration.ts";
 import Indexer from "../indexer/Indexer.ts";
 import { describeFailure } from "../../common/describe.ts";
+import { Datasets } from "@capxul/blueprint";
 
 const DEFAULT_IDLE_SECONDS = 600;
 const MineAt = Schema.Struct({ worldMs: Schema.Finite, atHostMs: Schema.NullOr(Schema.Finite) });
@@ -82,7 +83,14 @@ export default class Door extends Cloudflare.Worker<Door>()(
   Effect.gen(function* () {
     // Minted once when the hub is deployed and kept in the hub's state; bound to the Worker as a secret.
     const admin = yield* Alchemy.Random(ADMIN_TOKEN_ID, { bytes: 24 });
-    return { main: import.meta.url, observability: { enabled: true }, env: { ADMIN_TOKEN: admin.text } };
+    // Cloudflare's own logs and traces of the door go to the account's Axiom destinations: a second view, never
+    // read by a check.
+    const observability = {
+      enabled: true,
+      logs: { enabled: true, invocationLogs: true, destinations: [Datasets.cloudflareDestinations.logs] },
+      traces: { enabled: true, destinations: [Datasets.cloudflareDestinations.traces] },
+    };
+    return { main: import.meta.url, observability, env: { ADMIN_TOKEN: admin.text } };
   }),
   Effect.gen(function* () {
     const chains = yield* Chain;

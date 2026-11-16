@@ -1,6 +1,6 @@
 # The sitrep: the conductor's state, declared by the blueprint
 
-Status: **direction agreed with Aaron, 15 November 2026** (the state lives in the repository; five tabs; Preact).
+Status: open. The direction is agreed with Aaron (15 November 2026) (the state lives in the repository; five tabs; Preact).
 Shapes and build order below are proposed; the items under "Needs Aaron's yes" are not yet agreed.
 
 The page today (https://claude.ai/artifact/CjRhEey4CEwXciharu1bPF, the `sitrep` skill) is a stopgap: its data's shape
@@ -116,3 +116,22 @@ Each piece is written first as journeys or checks by another agent, as AGENTS.md
 5. `packages/sitrep`, replacing the stopgap page at the same URL.
 6. Retire the stopgap skill's hand-written schema, `numbers.py` and the status dashboard; the `sitrep` skill becomes
    the four commands.
+
+## What owns what in the spike
+
+| Fact | Declared in | Generated or derived from it | What fails if they drift |
+|---|---|---|---|
+| A plan's required sections: why, what, where it ends, what it leaves out | `spikes/sitrep/src/things/plan.ts`, `PlanText` | `spikes/sitrep/generated/events.schema.json`; the plan's page `spikes/sitrep/generated/plan.md` | Writing a plan without a section: the event is refused (`Prose` has a minimum) |
+| A milestone's goal, why now, done-when, steps | `spikes/sitrep/src/things/milestone.ts` | the schemas; each milestone's section of `plan.md` | A milestone without its goal: refused (shown by `prove`) |
+| A step's what, why, done-when, needs, units | `spikes/sitrep/src/things/step.ts` | the schemas; the burn-down (`snapshot.burn`), derived from step events | A step needing one nobody planned: refused |
+| Each thing's states and moves | `Machine.make` in each thing's file | `spikes/sitrep/generated/things.md`: states, Mermaid diagram | A move from a state it cannot start from: the history is invalid (an ask answered twice, shown) |
+| Who may make each move | `…Allowed` beside each machine | the "Who may" column of `things.md` | An agent agreeing the plan or proving its own step: refused (both shown) |
+| An ask's problem, context, rubric, two to four options with trade-offs, recommendation and reason; an answer as an option or own words | `spikes/sitrep/src/things/ask.ts` | the schemas; the Now tab | An ask with one option or no rubric: refused |
+| A sitrep's parts (one to five, each speakable), links, lanes | `spikes/sitrep/src/things/sitrep.ts` | the schemas; the Sitreps tab | A sitrep naming a lane never opened: refused |
+| Every event the state can hold | `Event` in `spikes/sitrep/src/view.ts`, the union of the things' events | `spikes/sitrep/generated/events.schema.json`, which any agent's CLI validates against | An event no thing declares: refused |
+| What the page reads | `Snapshot` in `spikes/sitrep/src/view.ts` | `spikes/sitrep/generated/snapshot.schema.json`; the page's types are `typeof Snapshot.Type` | `project` decodes its own output with `Snapshot`, so a page shape the projection does not meet fails here, not on screen |
+| References between things | `project` in `spikes/sitrep/src/view.ts` | none | A plan, milestone, lane, ask or sitrep naming a thing that does not exist, or a step and its milestone disagreeing |
+
+In the blueprint these files sit in `spikes/sitrep/src/things/<thing>/` (values, events, lifecycle, one file per verb), and
+`pnpm generate` writes `spikes/sitrep/generated/`; `generate:check` then fails when a declaration changes and its generated files do
+not.

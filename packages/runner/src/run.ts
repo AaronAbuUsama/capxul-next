@@ -17,19 +17,23 @@ import * as Ref from "effect/Ref";
 import * as Result from "effect/Result";
 import * as Str from "effect/String";
 import type * as HttpClient from "effect/http/HttpClient";
-import { checkCall, failuresOf, type CheckedCall } from "./checks/checks.ts";
-import { withPaths } from "./checks/paths.ts";
+import { failuresOf, type CheckedCall } from "./checks/checks.ts";
+import { checkAll, scopeOf, type Scope } from "./checks/isolation.ts";
 import { capxulFor, type Call, type Target, type Via } from "./client.ts";
 import { describe, endedOf, RunnerFailure } from "./failure.ts";
 import { givenFor, type Handing } from "./given.ts";
-import { writeRecord, type Coverage, type RunRecord } from "./record.ts";
-import { failedStepOf, hearing, stepsOf, type Heard, type StepRecord } from "./steps.ts";
+import { stepsFor, viaOf, writeRecord, type Coverage, type RunRecord, type TapReport } from "./record.ts";
+// The record's parts that worlds/run.ts builds its own record with.
+export { stepsFor, viaOf } from "./record.ts";
+import { hearing, stepsOf, type Heard, type StepResult } from "./steps.ts";
 import type { Settings } from "./settings.ts";
-import { telemetryOf } from "./world/database.ts";
+import { sideBySide, tapFailures } from "./telemetry/side-by-side.ts";
+import { appKeptOf, tapTelemetryOf } from "./telemetry/kept.ts";
 import { isEmpty } from "./world/leftovers.ts";
 import { OtherWorlds } from "./world/existing.ts";
 import { PlatformKept } from "./worlds/kept.ts";
 import { runInStage, type Lifecycle, type Stage, type StageSpec } from "./world/stage.ts";
+import { RUN_SPANS, stepOptions } from "./telemetry/step.ts";
 
 /** What a run is: its kind and name, its steps, and the calls it makes through a stage's Core. */
 export interface Plan {
@@ -41,6 +45,8 @@ export interface Plan {
   readonly via?: Via;
   /** A journey's steps, in order; none for the door. */
   readonly outline: ReadonlyArray<StepOutline>;
+  /** Whose people and company a journey's calls may name (checks/isolation.ts); none for a run that is no journey. */
+  readonly isolation?: Scope;
   /**
    * Makes the run's calls; every one goes through `log`, and a journey tells `heard` of each step. Fails when the
    * run's own expectations do not hold.
@@ -61,7 +67,8 @@ export interface Used {
   readonly calls: ReadonlyArray<CheckedCall>;
   /** What its calls reached of each machine (checks/paths.ts), whose `path` check each call above carries. */
   readonly coverage: Coverage;
-  readonly steps: ReadonlyArray<StepRecord>;
+  readonly steps: ReadonlyArray<StepResult>;
+  readonly tap: TapReport;
   readonly ms: { readonly run: number; readonly checks: number };
 }
 
@@ -84,16 +91,14 @@ export const use = (plan: Plan, settings: Settings) => (stage: Stage) =>
     const [runTook, run] = yield* plan.calls(target, log, heard).pipe(Effect.exit, Effect.timed);
     const calls = yield* Ref.get(log);
     const [checksTook, kept] = yield* Effect.timed(keptFor(Option.some(stage.database), calls));
-    const paths = withPaths(
-      calls,
-      kept,
-      Arr.map(calls, (call) => checkCall(call, kept)),
-    );
+    const { calls: checked, coverage } = checkAll(plan.isolation, calls, kept);
     return {
       run,
-      calls: paths.calls,
-      coverage: paths.coverage,
-      steps: stepsOf(plan.outline, yield* Ref.get(heard), paths.calls),
+      calls: checked,
+      coverage,
+      steps: stepsOf(plan.outline, yield* Ref.get(heard), checked),
+      // Parity still compares the tap with what Core keeps in `app.spans`, until the retire.
+      tap: yield* sideBySide(stage.database, calls, yield* appKeptOf(stage.database, calls)),
       ms: { run: millis(runTook), checks: millis(checksTook) },
     } satisfies Used;
   }).pipe(
@@ -112,11 +117,9 @@ export const keptFor = (database: Option.Option<Redacted.Redacted>, calls: Reado
     // Where the platform group is served by this process (worlds/platform.ts), its calls are kept by it.
     const platform = yield* Effect.serviceOption(PlatformKept);
     const byPlatform = (call: Call) => Option.isSome(platform) && servedBy(call.operation) === "platform";
-    const ownCalls = Arr.map(
-      Arr.filter(calls, (call) => call.at === null && !byPlatform(call)),
-      (call) => call.traceId,
-    );
-    const own = Option.isSome(database) ? yield* telemetryOf(database.value, ownCalls) : { spans: [], events: [] };
+    const ownCalls = Arr.filter(calls, (call) => call.at === null && !byPlatform(call));
+    // Since the flip (4.4) the spans come from the tap (telemetry/kept.ts); the events still from `app.events`.
+    const own = Option.isSome(database) ? yield* tapTelemetryOf(database.value, ownCalls) : { spans: [], events: [] };
     const served = Option.isNone(platform)
       ? { spans: [], events: [] }
       : yield* platform.value.kept(Arr.map(Arr.filter(calls, byPlatform), (call) => call.traceId));
@@ -131,12 +134,9 @@ export const keptFor = (database: Option.Option<Redacted.Redacted>, calls: Reado
         Option.match(found, {
           onNone: () => Effect.succeed({ spans: [], events: [] }),
           onSome: (theirs) =>
-            telemetryOf(
+            tapTelemetryOf(
               theirs,
-              Arr.map(
-                Arr.filter(calls, (call) => call.at === door),
-                (call) => call.traceId,
-              ),
+              Arr.filter(calls, (call) => call.at === door),
             ),
         }),
       ),
@@ -166,16 +166,10 @@ const failuresIn = (lifecycle: Lifecycle<Used, RunnerFailure>): ReadonlyArray<st
   return [
     ...(Exit.isFailure(used.run) ? [`the run failed: ${describe(used.run.cause)}`] : []),
     ...failuresOf(used.calls),
+    ...tapFailures(used.tap),
     ...left,
   ];
 };
-
-/** A journey's steps and the first that failed, for its run record; nothing for the door. */
-export const stepsFor = (plan: Pick<Plan, "kind">, steps: ReadonlyArray<StepRecord>) =>
-  plan.kind === "journey" ? { steps, failedStep: failedStepOf(steps) } : {};
-
-/** A run record's `via`: only a run through the command line names it. */
-export const viaOf = (via: Via | undefined) => (via === "cli" ? { via: "cli" as const } : {});
 
 /** The run record of `plan` from what became of its stage. */
 export const recordOf = (plan: Plan, startedAt: string, lifecycle: Lifecycle<Used, RunnerFailure>): RunRecord => {
@@ -195,7 +189,7 @@ export const recordOf = (plan: Plan, startedAt: string, lifecycle: Lifecycle<Use
     ended: used === undefined ? null : endedOf(used.run),
     readiness: lifecycle.readiness,
     calls: used?.calls ?? [],
-    ...(used === undefined ? {} : { coverage: used.coverage }),
+    ...(used === undefined ? {} : { coverage: used.coverage, tap: used.tap }),
     ...stepsFor(plan, used?.steps ?? stepsOf(plan.outline, [], [])),
     afterwards: { stage: lifecycle.afterwards, before: lifecycle.found.before, after: lifecycle.found.after },
     ms: {
@@ -232,7 +226,7 @@ export const runPlan = (plan: Plan, settings: Settings) =>
         writeRecord(settings.records, recordOf(plan, startedAt, progress)).pipe(Effect.orDie, Effect.asVoid),
     );
     return recordOf(plan, startedAt, lifecycle);
-  }).pipe(Effect.withSpan("runner.run", { attributes: { run: plan.name } }));
+  }).pipe(Effect.withSpan(RUN_SPANS.run.name, stepOptions(RUN_SPANS.run, { mode: "stage", run: plan.name })));
 
 /**
  * The door: every blueprint operation called once, as the world's owner, with its first declared example. It passes
@@ -287,6 +281,8 @@ export const journeyPlan =
     given: journey.given.name,
     via: settings.via,
     outline: journey.outline,
+    // Side by side (RUNNER_SHAPE=shared) each journey is played by its own cast (`Casting`, worlds/side-by-side.ts).
+    isolation: scopeOf(journey, settings.shape === "shared"),
     calls: (target, log, heard) =>
       // oxlint-disable-next-line effecttsgo/strict-effect-provide -- each journey is its own program, handed its own stage's client, facts and ear
       Effect.provide(

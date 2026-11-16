@@ -4,6 +4,9 @@
 // group's middlewares in the order they were added, each around the last, so sign-in is outermost: a call refused
 // at sign-in never reaches `Telemetry`. So whichever middleware runs first opens the call's span (`measured`), and
 // any middleware inside it joins that span. Either order gives each call exactly one span named after its operation.
+//
+// Inside a Worker the clock moves only on I/O, so a span with none, such as an empty handler's, measures 0 ms
+// (docs/latency.md).
 import * as Arr from "effect/Array";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
@@ -14,7 +17,7 @@ import * as Tracer from "effect/Tracer";
 import * as HttpTraceContext from "effect/http/HttpTraceContext";
 import type * as Headers from "effect/http/Headers";
 import type * as Rpc from "effect/rpc/Rpc";
-import { CurrentCall } from "@capxul/blueprint";
+import { CurrentCall, Envelope } from "@capxul/blueprint";
 import { callAttributes, declaredOf, isPostgresRoundTrip, type SpanAttributes, type Where } from "./attributes.ts";
 import type { SpanSink } from "./sink.ts";
 
@@ -35,29 +38,94 @@ export interface KeptSpan {
   readonly roundTrip: boolean;
 }
 
+/**
+ * Each outcome Core keeps (an Exit's kind, as `app.spans` stores it), as the envelope's `capxul.outcome` says it: a
+ * typed failure is a refusal, a defect is an error. Each word is taken by name and checked by the compiler against the
+ * blueprint's `Envelope.Outcome`: a word it renames or drops fails here, and its order does not matter.
+ */
+export const OUTCOME = {
+  success: "ok",
+  failure: "refused",
+  defect: "error",
+  interrupted: "interrupted",
+} as const satisfies Readonly<Record<SpanOutcome, typeof Envelope.Outcome.Type>>;
+
+/** Every word of `Envelope.Outcome` is one Core stamps: a word the blueprint adds fails here until it is mapped. */
+type Unmapped = Exclude<typeof Envelope.Outcome.Type, (typeof OUTCOME)[SpanOutcome]>;
+export const EVERY_OUTCOME_MAPPED: [Unmapped] extends [never] ? true : never = true;
+
 export const outcomeOf = (exit: Exit.Exit<unknown, unknown>): SpanOutcome => {
   if (Exit.isSuccess(exit)) return "success";
   if (Cause.hasDies(exit.cause)) return "defect";
   return Cause.hasFails(exit.cause) ? "failure" : "interrupted";
 };
 
-/** Effect's own span, which also hands itself to `keep` the moment it ends. */
-class KeepingSpan extends Tracer.NativeSpan {
+/**
+ * A span of the inner tracer, which also hands itself to `keep` the moment it ends. Every read and write goes to the
+ * inner span, so what is kept and what the inner tracer exports (the OTLP tracer, when Core exports: export.ts) are
+ * one span: the same ids, name, parent and attributes.
+ */
+class KeepingSpan implements Tracer.Span {
+  readonly _tag = "Span";
+  readonly inner: Tracer.Span;
   readonly keep: (span: KeptSpan) => void;
-  constructor(options: ConstructorParameters<typeof Tracer.NativeSpan>[0], keep: (span: KeptSpan) => void) {
-    super(options);
+  constructor(inner: Tracer.Span, keep: (span: KeptSpan) => void) {
+    this.inner = inner;
     this.keep = keep;
   }
-  override end(endTime: bigint, exit: Exit.Exit<unknown, unknown>): void {
-    if (this.status._tag === "Ended") return;
-    super.end(endTime, exit);
+  get name() {
+    return this.inner.name;
+  }
+  get spanId() {
+    return this.inner.spanId;
+  }
+  get traceId() {
+    return this.inner.traceId;
+  }
+  get parent() {
+    return this.inner.parent;
+  }
+  get annotations() {
+    return this.inner.annotations;
+  }
+  get status() {
+    return this.inner.status;
+  }
+  get attributes() {
+    return this.inner.attributes;
+  }
+  get links() {
+    return this.inner.links;
+  }
+  get sampled() {
+    return this.inner.sampled;
+  }
+  get kind() {
+    return this.inner.kind;
+  }
+  attribute(key: string, value: unknown): void {
+    this.inner.attribute(key, value);
+  }
+  event(name: string, startTime: bigint, attributes?: Record<string, unknown>): void {
+    this.inner.event(name, startTime, attributes);
+  }
+  addLinks(links: ReadonlyArray<Tracer.SpanLink>): void {
+    this.inner.addLinks(links);
+  }
+  end(endTime: bigint, exit: Exit.Exit<unknown, unknown>): void {
+    const status = this.inner.status;
+    if (status._tag === "Ended") return;
+    // How the span's work ended, on the span itself before it ends, so the export carries it: OTLP's status cannot tell
+    // a refusal from a defect (the blueprint's envelope, `capxul.outcome`). `app.spans` keeps it as its `outcome`.
+    this.inner.attribute(Envelope.attributes.outcome.name, OUTCOME[outcomeOf(exit)]);
+    this.inner.end(endTime, exit);
     this.keep({
       traceId: this.traceId,
       spanId: this.spanId,
       parentSpanId: Option.getOrNull(Option.map(this.parent, (parent) => parent.spanId)),
       name: this.name,
       outcome: outcomeOf(exit),
-      durationMs: Number(endTime - this.startTime) / 1_000_000,
+      durationMs: Number(endTime - status.startTime) / 1_000_000,
       endedMs: Number(endTime / 1_000_000n),
       attributes: declaredOf(this.attributes),
       roundTrip: isPostgresRoundTrip(this.kind, this.attributes),
@@ -65,9 +133,24 @@ class KeepingSpan extends Tracer.NativeSpan {
   }
 }
 
-/** A tracer that keeps every span it ends. One per call, so one call's spans never mix with another's. */
-export const keepingTracer = (keep: (span: KeptSpan) => void): Tracer.Tracer =>
-  Tracer.make({ span: (options) => new KeepingSpan(options, keep) });
+/** Effect's own tracer, which makes spans and sends them nowhere. */
+const nativeTracer: Tracer.Tracer = Tracer.make({ span: (options) => new Tracer.NativeSpan(options) });
+
+/**
+ * A tracer that keeps every span it ends. One per call, so one call's spans never mix with another's. Its spans are
+ * made by `inner`: Effect's own tracer, or the OTLP tracer that exports them too.
+ */
+export const keepingTracer = (keep: (span: KeptSpan) => void, inner: Tracer.Tracer = nativeTracer): Tracer.Tracer =>
+  Tracer.make({ span: (options) => new KeepingSpan(inner.span(options), keep) });
+
+/**
+ * The tracer that makes each call's spans: the OTLP tracer when this Core exports (export.ts), so every span the
+ * sink keeps is exported too, and only those. With none, the tracer of the process around the call: a process that
+ * serves calls itself and exports through its own tracer (the runner's platform) exports them too.
+ */
+export const CallTracer = Context.Reference<Option.Option<Tracer.Tracer>>("capxul/api/CallTracer", {
+  defaultValue: () => Option.none(),
+});
 
 /** True inside a call whose span is already open. */
 const Measuring = Context.Reference<boolean>("capxul/core/Measuring", { defaultValue: () => false });
@@ -101,6 +184,8 @@ export const measured = Effect.fnUntraced(function* <A, E, R>(
 ) {
   if (yield* Measuring) return yield* withCurrentCall(options, effect);
   const kept: Array<KeptSpan> = [];
+  const around = yield* Effect.tracer;
+  const inner = Option.getOrElse(yield* CallTracer, () => around);
   const caller = HttpTraceContext.w3c(options.headers);
   const annotate = (span: Tracer.Span) =>
     Effect.sync(() => {
@@ -119,7 +204,7 @@ export const measured = Effect.fnUntraced(function* <A, E, R>(
         Effect.provideService(Measuring, true),
         Effect.ensuring(annotate(span)),
       ),
-  ).pipe(Effect.withTracer(keepingTracer((span) => kept.push(span))), Effect.exit);
+  ).pipe(Effect.withTracer(keepingTracer((span) => kept.push(span), inner)), Effect.exit);
   yield* Arr.match(kept, { onEmpty: () => Effect.void, onNonEmpty: sink.keep });
   return yield* exit;
 });

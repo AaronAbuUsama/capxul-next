@@ -9,64 +9,72 @@ import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import { Capxul } from "../client.ts";
 import { expect, given } from "../expectation.ts";
+import { Cast } from "../cast.ts";
 import { journey, outline } from "../journey.ts";
 import { same } from "../support/expect.ts";
-import { invitationsOf, type Member } from "../support/people.ts";
+import { emailOf as emailIn, invitationsOf, type Member } from "../support/people.ts";
 
 const steps = outline({
   people: [
-    "org.member.list",
+    "member.list",
     "Northwind's people as founded: dana and eli its Directors, sam and pat its members; olga, who is none of them, may not see them",
   ],
   invite: [
-    "org.member.invite",
+    "invitation.send",
     "who may not invite, and who already belongs, are refused; dana invites olga as a member, pending at once with nothing to sign, and cannot invite her twice while it waits; an email nobody has yet is invited all the same",
   ],
-  find: ["invite.list", "olga finds dana's invitation to Northwind, pending; sam has none, and nobody has rex's"],
-  decline: ["invite.decline", "sam may not decline olga's invitation; olga declines it, and cannot decline it twice"],
+  find: ["invitation.list", "olga finds dana's invitation to Northwind, pending; sam has none, and nobody has rex's"],
+  decline: [
+    "invitation.decline",
+    "sam may not decline olga's invitation; olga declines it, and cannot decline it twice",
+  ],
   again: [
-    "org.member.invite",
+    "invitation.send",
     "eli, a Director but not the founder, may not invite olga again; dana does: her declined invitation no longer stands in the way",
   ],
   accept: [
-    "invite.accept",
+    "invitation.accept",
     "olga cannot accept what she declined, nor what nobody sent, and sam may not accept hers; olga accepts dana's second and is a member at once, and accepting again answers the same",
   ],
-  mine: ["invite.list", "olga's invitations, both from dana: the first declined, then the second accepted"],
-  joined: ["org.member.list", "olga sees Northwind's people, herself last as a member, as dana does"],
-  member: ["org.member.invite", "olga belongs to Northwind now: inviting her again is refused"],
+  mine: ["invitation.list", "olga's invitations, both from dana: the first declined, then the second accepted"],
+  joined: ["member.list", "olga sees Northwind's people, herself last as a member, as dana does"],
+  member: ["invitation.send", "olga belongs to Northwind now: inviting her again is refused"],
   grant: ["org.member.grant", "dana proposes that olga issue invoices: she is a member now, so it is proposed"],
 });
 
-const dana = { as: "dana" } as const;
-const eli = { as: "eli" } as const;
-const sam = { as: "sam" } as const;
-const olga = { as: "olga" } as const;
-
-const OLGA_EMAIL = "olga@cast.test";
 /** Someone not yet in the world: nobody of the cast signs in with it. */
 const REX_EMAIL = "rex@elsewhere.test";
 /** A company and an invitation nobody made. */
 const NO_ORG = "org_nowhere1";
 const NO_INVITATION = "inv_nobody01";
 
-const AS_FOUNDED: ReadonlyArray<Member> = [
-  { person: "dana", email: "dana@cast.test", role: "director" },
-  { person: "eli", email: "eli@cast.test", role: "director" },
-  { person: "sam", email: "sam@cast.test", role: "member" },
-  { person: "pat", email: "pat@cast.test", role: "member" },
-];
-const OLGA: Member = { person: "olga", email: OLGA_EMAIL, role: "member" };
-
 export const inviteOlga = journey(
   {
     name: "invite olga to Northwind",
+    world: "shared",
+    worlds: 0,
+    key: "invite",
     story:
       "dana, Northwind's founder, invites olga as a member, olga declines, eli may not invite her again but dana does and she accepts, and is a member at once with nothing signed, so dana can propose a permission for her; everyone who may not is refused.",
     given: startingWorlds.founded,
     steps,
   },
   Effect.gen(function* () {
+    const cast = yield* Cast;
+    const starting = (yield* given(startingWorlds.founded)).world;
+    const emailOf = (person: string) => emailIn(starting, person);
+    const OLGA_EMAIL = emailOf(cast.olga);
+    const AS_FOUNDED: ReadonlyArray<Member> = [
+      { person: cast.dana, email: emailOf(cast.dana), role: "director" },
+      { person: cast.eli, email: emailOf(cast.eli), role: "director" },
+      { person: cast.sam, email: emailOf(cast.sam), role: "member" },
+      { person: cast.pat, email: emailOf(cast.pat), role: "member" },
+    ];
+    const OLGA: Member = { person: cast.olga, email: OLGA_EMAIL, role: "member" };
+    const dana = { as: cast.dana } as const;
+    const eli = { as: cast.eli } as const;
+    const sam = { as: cast.sam } as const;
+    const olga = { as: cast.olga } as const;
     const { founded } = yield* given(startingWorlds.founded);
     const capxul = yield* Capxul;
     const org = founded.org;
@@ -87,13 +95,13 @@ export const inviteOlga = journey(
       Effect.gen(function* () {
         yield* op.refused("CannotManagePeople", invite(OLGA_EMAIL), sam);
         yield* op.refused("CannotManagePeople", invite(REX_EMAIL), olga);
-        const member = yield* op.refused("AlreadyAMember", invite("sam@cast.test"), dana);
-        const director = yield* op.refused("AlreadyAMember", invite("eli@cast.test"), dana);
-        yield* same("the people who already belong", [member.person, director.person], ["sam", "eli"]);
+        const member = yield* op.refused("AlreadyAMember", invite(emailOf(cast.sam)), dana);
+        const director = yield* op.refused("AlreadyAMember", invite(emailOf(cast.eli)), dana);
+        yield* same("the people who already belong", [member.person, director.person], [cast.sam, cast.eli]);
         yield* op.refused("OrgNotFound", { ...invite(OLGA_EMAIL), org: NO_ORG }, dana);
         yield* op.refused("PayloadRejected", invite("olga at cast.test"), dana);
         const invited = yield* op.succeeds(invite(OLGA_EMAIL), dana);
-        yield* same("dana's invitation", [invited.invitedBy, invited.state], ["dana", "pending"]);
+        yield* same("dana's invitation", [invited.invitedBy, invited.state], [cast.dana, "pending"]);
         const twice = yield* op.refused("AlreadyInvited", invite(OLGA_EMAIL), dana);
         yield* same("the invitation still pending", twice.invitation, invited.id);
         const rex = yield* op.succeeds(invite(REX_EMAIL), dana);
@@ -114,13 +122,13 @@ export const inviteOlga = journey(
     yield* steps.decline.run((op) =>
       Effect.gen(function* () {
         const notHis = yield* op.refused("NotYourInvitation", { invitation: first.id }, sam);
-        yield* same("the invitation sam may not decline", [notHis.invitation, notHis.person], [first.id, "sam"]);
+        yield* same("the invitation sam may not decline", [notHis.invitation, notHis.person], [first.id, cast.sam]);
         const declined = yield* op.succeeds({ invitation: first.id }, olga);
         yield* same("the declined invitation", declined, { ...first, state: "declined" });
         const closed = yield* op.refused("InvitationClosed", { invitation: first.id }, olga);
         yield* same("the closed invitation's state", closed.state, "declined");
         yield* op.refused("InvitationNotFound", { invitation: NO_INVITATION }, olga);
-        const people = (yield* capxul["org.member.list"]({ org }, dana)).members;
+        const people = (yield* capxul["member.list"]({ org }, dana)).members;
         yield* same("Northwind's people once olga declined", people, AS_FOUNDED);
       }),
     );
@@ -128,10 +136,10 @@ export const inviteOlga = journey(
     const second = yield* steps.again.run((op) =>
       Effect.gen(function* () {
         const notFounder = yield* op.refused("CannotManagePeople", invite(OLGA_EMAIL), eli);
-        yield* same("who may not invite", [notFounder.org, notFounder.person], [org, "eli"]);
+        yield* same("who may not invite", [notFounder.org, notFounder.person], [org, cast.eli]);
         const invited = yield* op.succeeds(invite(OLGA_EMAIL), dana);
         yield* expect(invited.id !== first.id, `dana's second invitation has the declined one's id, ${first.id}`);
-        yield* same("dana's second invitation", [invited.invitedBy, invited.state], ["dana", "pending"]);
+        yield* same("dana's second invitation", [invited.invitedBy, invited.state], [cast.dana, "pending"]);
         return invited;
       }),
     );
@@ -157,7 +165,7 @@ export const inviteOlga = journey(
           { ...first, state: "declined" },
           { ...second, state: "accepted" },
         ]);
-        for (const person of ["dana", "eli", "sam", "pat"])
+        for (const person of [cast.dana, cast.eli, cast.sam, cast.pat])
           yield* expect(
             !Arr.some(yield* invitationsOf(person), (each) => each.email === REX_EMAIL),
             `${person} lists rex's invitation`,
@@ -177,17 +185,17 @@ export const inviteOlga = journey(
     yield* steps.member.run((op) =>
       Effect.gen(function* () {
         const refused = yield* op.refused("AlreadyAMember", invite(OLGA_EMAIL), dana);
-        yield* same("who already belongs", refused.person, "olga");
+        yield* same("who already belongs", refused.person, cast.olga);
       }),
     );
 
     yield* steps.grant.run((op) =>
       Effect.gen(function* () {
         const proposed = yield* op.succeeds(
-          { org, member: "olga", permission: "issue-invoices", note: "Olga sends our invoices" },
+          { org, member: cast.olga, permission: "issue-invoices", note: "Olga sends our invoices" },
           dana,
         );
-        yield* same("the proposed change", [proposed.change.member, proposed.change.state], ["olga", "proposed"]);
+        yield* same("the proposed change", [proposed.change.member, proposed.change.state], [cast.olga, "proposed"]);
       }),
     );
   }),

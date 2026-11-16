@@ -1,7 +1,6 @@
 // The thing "sitrep": one short spoken update. Aaron hearing it is an event too, stamped like any other.
 import * as Schema from "effect/Schema";
-import { Machine } from "@capxul/blueprint-tools";
-import { Title, Url, stamp, type Allowed } from "../language.ts";
+import { Title, Url, stamp, type Allowed, machine } from "../language.ts";
 import { StepId } from "./milestone.ts";
 import { LaneId } from "./step.ts";
 
@@ -21,12 +20,12 @@ export const SitrepText = {
 export class SitrepSaid extends Schema.TaggedClass<SitrepSaid>()("sitrep_said", { sitrep: SitrepId, ...stamp, ...SitrepText }) {}
 export class SitrepHeard extends Schema.TaggedClass<SitrepHeard>()("sitrep_heard", { sitrep: SitrepId, ...stamp }) {}
 
-export const Sitrep = Machine.make({
+export const Sitrep = machine({
   name: "sitrep",
   key: "sitrep",
   states: ["said", "heard"],
-  start: { state: "said", by: "sitrep.say", event: "sitrep_said" },
-  moves: { hear: { from: ["said"], to: "heard", by: "sitrep.hear", event: "sitrep_heard", otherwise: { heard: "unchanged" } } },
+  start: { state: "said", by: "sitrep.say", event: SitrepSaid },
+  moves: { hear: { from: ["said"], to: "heard", by: "sitrep.hear", event: SitrepHeard, otherwise: { heard: "unchanged" } } },
 });
 
 export const sitrepAllowed: Allowed = { sitrep_said: ["agent"], sitrep_heard: ["person"] };

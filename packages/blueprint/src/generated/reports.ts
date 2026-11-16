@@ -5,18 +5,18 @@
 // glossary's renames (roadmap item 3.8).
 import * as RpcGroup from "effect/rpc/RpcGroup";
 import type { ClaimsOf } from "../starting-points/points.ts";
-import * as ReportRun from "../things/report/run.ts";
+import * as ReportVerbsRun from "../things/report/verbs/run.ts";
 
-export { run } from "../things/report/run.ts";
+export { run } from "../things/report/verbs/run.ts";
 
 /** Its operations, by name. */
 export const operations = {
-  "report.run": ReportRun.run,
+  "report.run": ReportVerbsRun.run,
 } as const;
 
 /** Its operations that move no thing with a lifecycle, each with why: each such verb's `stateless`. */
 export const stateless: { readonly [Name in keyof typeof operations]?: string } = {
-  "report.run": ReportRun.stateless,
+  "report.run": ReportVerbsRun.stateless,
 };
 
 /** Its machines, by name: its things' lifecycles. */
@@ -26,9 +26,9 @@ export const machines = {} as const;
 export const platformRpcs = RpcGroup.make();
 
 /** What a world's Core serves of it, through the world's door (`WorldRpcs`). */
-export const worldRpcs = RpcGroup.make(ReportRun.run.rpc);
+export const worldRpcs = RpcGroup.make(ReportVerbsRun.run.rpc);
 
 /** The promises of each of its operations: each verb's `promises`. */
 export const claims: { readonly [Name in keyof typeof operations]: ClaimsOf } = {
-  "report.run": ReportRun.promises,
+  "report.run": ReportVerbsRun.promises,
 };

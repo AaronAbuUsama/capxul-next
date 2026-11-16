@@ -2,11 +2,15 @@
 
 `CLAUDE.md` is a link to this file. Every agent (Amp, Claude, Codex) reads the same rules.
 
+This file holds the rules only, each once. Why each rule is the way it is, and the detail behind it, is in two guides:
+[How work flows](docs/guides/how-work-flows.md) and [How a feature is built](docs/guides/how-a-feature-is-built.md).
+The decisions the roadmap recorded are in [docs/decisions.md](docs/decisions.md); a row without a date was agreed on
+13 November 2026.
+
 ## This branch is `master`: the rebuild line (read this first)
 
-`master` is a separate line of work from `main` and `integration/build`. It was cut from `main` at `f12a831` on
-13 November 2026, at Aaron's request, to rethink the blueprint and the build pipeline without
-disturbing the product work in flight on those two branches.
+`master` is a separate line of work from `main` and `integration/build`
+([why](docs/guides/how-work-flows.md#the-rebuild-line)).
 
 - Rebuild work goes by pull request into `master`.
 - Never merge `master` into `main` or `integration/build`, and never open a pull request from this line into them,
@@ -28,8 +32,8 @@ The plan this line follows is [docs/roadmap.md](docs/roadmap.md).
   scenario runs stand in for verdicts; nobody writes one by hand, and a run from an agent's container is never proof.
 
 Every fact has one owner in code. Everything else that needs it imports it, generates it from it, or is checked
-against it, so two places cannot disagree (`docs/roadmap.md`, "One source for every fact"). Which owner holds which
-fact, and how it will be checked, is in "How a feature is built" below; the design behind it is
+against it, so two places cannot disagree ([docs/decisions.md](docs/decisions.md), "One source for every fact"). Which owner holds which
+fact, and how it will be checked, is in "Who owns each fact" below; the design behind it is
 [docs/design/blueprint.md](docs/design/blueprint.md). Nothing checks this as a whole yet: roadmap
 steps 3.1 and 3.3 add the checks.
 
@@ -45,17 +49,17 @@ A world is created, used and destroyed as one unit, with an owner and an expiry.
   into that slice branch, merged by the lead when `check` (rungs 1 to 5, a few minutes) is green. A slice reaches
   `master` by one pull request from `slice/<name>`, merged only when `check` and `world` (the thin line's journeys in a
   fresh private world on staging, rung 6) are both green: every journey must still pass, and the slice's own journeys
-  pass or improve. Only pull requests from `slice/<name>` into `master` that change more than documents or records run `world`,
+  pass or improve. Until the run is fast, only the speed lane's slice runs `world` and other slices land without it ([docs/decisions.md](docs/decisions.md), "Full runs paused until the run is fast", Aaron, 15 November 2026). Otherwise, only pull requests from `slice/<name>` into `master` that are not drafts and change more than documents or records run `world` (a lead keeps its slice's pull request a draft until it is ready to land, 15 November 2026),
   and `master` runs it once a day (Aaron, 14 and 15 November 2026: Actions minutes are spent on the journeys only at a
-  slice's merge, and a run is not repeated under load). Nothing in the repository checks this beyond the workflows' triggers.
+  slice's merge, and a run is not repeated under load; [why](docs/guides/how-work-flows.md#when-world-runs)). Nothing in the repository checks this beyond the workflows' triggers.
 - Never push to, merge into or open a pull request against `main` or `integration/build`. Never force-push. Nothing
   checks this; it is on you.
-- A builder must not change the scenarios or the runner's generic checks: those judge its work. It may change
+- A builder must not change the scenarios or the runner's generic checks ([why](docs/guides/how-work-flows.md#slices)). It may change
   everything else it needs, the world and the runner's plumbing included (readiness, caching, connections), and every
   such change shows in its diff. Nothing checks this yet; the reviewer reads the diff.
 - Measure first. Every run record holds every operation's timings, caller and server, with the spans of each step. A
   budget is a target: nothing ever fails on speed, and a measured p95 over 1.5 times its budget raises an architecture
-  review as a task (roadmap, "Budgets are targets"). Nothing checks this yet.
+  review as a task ([docs/decisions.md](docs/decisions.md), "Budgets are targets"). Nothing checks this yet.
 - CI (`.github/workflows/check.yml`, job `gate`) runs rungs 1 to 5 of the ladder on every pull request and every
   push to `master`. `.github/workflows/world.yml`, job `thin-line`, runs rung 6 on slice pull requests into `master`
   and once a day on `master`.
@@ -67,7 +71,7 @@ A **lane** is a chain of roadmap steps, each step needing the one before (the `N
 slice branch `slice/<lane>`. One more session, the **conductor**, starts leads and does not write feature code.
 
 - **The conductor** starts a lane's lead only when every step the lane's first step needs is Done on `master`, and
-  starts lanes whose needs are met at once, so independent lanes run in parallel. It watches the spend and the bench's
+  starts lanes whose needs are met at once ([why](docs/guides/how-work-flows.md#lanes-leads-and-the-conductor)). It watches the spend and the bench's
   load, keeps the status dashboard, and archives a lead's session when its lane's last step is Done. Its state is the
   roadmap and the leads' sessions, so a fresh conductor can take over from them alone.
 - **A lead** is started with one line naming its lane, its steps and its slice branch. It cuts the slice from
@@ -85,12 +89,15 @@ slice branch `slice/<lane>`. One more session, the **conductor**, starts leads a
   edit the kit only in `.agents/skills/`.
 - **A Claude Code cloud session never connects to Aaron's computer.** A session that does is limited to his trusted
   devices for good, and then no cloud thread or scheduled task can reach it. A conductor on his machine (Amp, Codex, a
-  terminal) does that work itself.
+  terminal) does that work itself ([why](docs/guides/how-work-flows.md#aarons-computer)).
+
+### Standing rules
 
 Standing rules from Aaron, for the conductor and every lead (14 and 15 November 2026):
 
 - Merge your own pull requests when CI is green. Push on until actually blocked.
 - Change a roadmap decision only with Aaron's written yes. A blueprint delta inside the decisions is the lead's call.
+  The decisions are in [docs/decisions.md](docs/decisions.md).
 - Ask Aaron only about money beyond the cap, credentials, production, or a decision nothing covers; batch the
   questions.
 - Spend at most $10 a day across Cloudflare and Neon, all lanes together.
@@ -104,7 +111,8 @@ Standing rules from Aaron, for the conductor and every lead (14 and 15 November 
 
 ## How a feature is built
 
-Agreed with Aaron on 15 November 2026 (`docs/roadmap.md`, "How a feature is built" and the decisions after it).
+Agreed with Aaron on 15 November 2026 ([docs/decisions.md](docs/decisions.md), "How a feature is built" and the
+decisions after it). Why each part is the way it is: [How a feature is built](docs/guides/how-a-feature-is-built.md).
 Everything is about being measurable: a feature is done when run records prove it and its measures are watched, not
 when its code is written. Steps marked with a roadmap step, such as (3.4), are not built yet; until their roadmap step is Done, the reviewer checks
 them by reading the diff.
@@ -112,7 +120,7 @@ them by reading the diff.
 ### The loop
 
 1. **Idea, then decision.** An idea that changes what Capxul promises is a roadmap decision: Aaron agrees it, and it is
-   written in `docs/roadmap.md` with its date. That covers a new kind of thing with a lifecycle, a new kind of
+   written in `docs/decisions.md` with its date. That covers a new kind of thing with a lifecycle, a new kind of
    refusal, a change to the contracts, a change to existing behaviour and a new outside dependency. Anything else is
    the slice lead's call.
 2. **The blueprint delta**, written before any code and signed off by the slice lead. It declares, in
@@ -146,7 +154,7 @@ them by reading the diff.
 | Fact | Its one owner | Generated from it or checked against it |
 |---|---|---|
 | Operations, payloads, answers, refusals and exit codes, events, claims, starting worlds | The blueprint, in the verb's file under `src/things/<thing>/` | Core's server, the SDK, the CLI, the pages in `packages/blueprint/generated/`, the types of the scenarios' checks |
-| A thing's lifecycle (3.4) | The blueprint, the thing's `lifecycle.ts` | The state schema, the closing refusal's `state` field, the `step` function Core moves state with, the SQL CHECK constraint (in a new migration whenever the states change: an applied migration is never edited), the diagram in the thing's page, the runner's path check, coverage |
+| A thing's lifecycle (3.4) | The blueprint: its states in the thing's `values.ts`, its moves in its `lifecycle.ts`, checked against the states when it compiles | The closing refusal's `state` field, the `step` function Core moves state with, the SQL CHECK constraint (in a new migration whenever the states change: an applied migration is never edited), the diagram in the thing's page, the runner's path check, coverage |
 | Who may call an operation (5.1) | The blueprint: roles declared once, `allowed` on each operation | Core's one standing check, the generated refusal steps |
 | An operation's steps and logs (4.1) | The blueprint, the operation's own file (3.6) | The generic checks, the waits a budget leaves out |
 | The pipeline's own work: worlds, resets, sites, starting worlds, journeys, the checks, proofs (3.6) | The blueprint, the domain `pipeline` | The runner's and the world's spans (4.7), the proof names in the roadmap |
@@ -164,7 +172,7 @@ them by reading the diff.
 These rules make "typed once" and "measured" checks rather than hopes (3.3, 4.1), each with its ratchet:
 
 - In the blueprint, a raw schema (`Schema.String`, `Schema.Literals`, `Schema.Number`, ...) appears only in a values
-  file or a machine; every field of an operation, event or refusal is a named value. Outside the blueprint, raw schemas
+  file, a machine or the telemetry vocabulary (`src/telemetry/`); every field of an operation, event or refusal is a named value. Outside the blueprint, raw schemas
   appear only in edge files listed in `.oxlintrc.json`, each with its reason, and stored rows are decoded with the
   blueprint's schemas.
 - A declared name (an operation, event, refusal, state or span) is imported, never written as a string.
@@ -178,7 +186,7 @@ CI's `pnpm generate:check` fails when generating again would change any file (3.
 ### Changing what works: side by side, then flip, then retire
 
 Until a real caller exists (phase 8), this does not apply: existing operations are reshaped and renamed directly,
-and the journey author updates the journeys in the same lane (roadmap, "No callers, no compatibility"). From the
+and the journey author updates the journeys in the same lane ([docs/decisions.md](docs/decisions.md), "No callers, no compatibility"). From the
 first real caller:
 
 1. **Side by side.** The new behaviour is declared beside the old, as a new version of the operation, or a new move of
@@ -226,9 +234,11 @@ fails a run.
 ### A new format reaches old work by a ratchet
 
 A new or changed operation uses a new format from the day it lands. Existing declarations are moved to it in the same
-slice where that is cheap; the rest are listed in the format's `unmigrated` list, which a test allows only to shrink,
-and the format's roadmap step closes when the list is empty. New work is born compliant; old work catches up in
-parallel and blocks nothing. Every ratchet is declared once in the blueprint's registry, and `pnpm ratchets` fails a pull
+slice where that is cheap; the rest are listed in the format's `unmigrated` list, which a test allows only to shrink.
+The format's roadmap step closes when the format exists, is proven in full on its named domain, and its ratchet is
+registered and counting today's count; it does not wait for the list to be empty. The ratchet's own lane closes when
+its list is empty (Aaron, 15 November 2026). New work is born compliant; old work catches up in parallel and blocks
+nothing. Every ratchet is declared once in the blueprint's registry, and `pnpm ratchets` fails a pull
 request whose list grew (3.6; `docs/design/blueprint.md`, part 4). A migration changes no behaviour: every journey stays
 green. Generic checks added by such a slice are written by a different agent from the one that migrates Core.
 
@@ -237,36 +247,52 @@ green. Generic checks added by such a slice are written by a different agent fro
 Run `pnpm check` before you open a pull request. It runs rungs 1 to 5 in order and stops at the first that fails.
 `pnpm format` rewrites the code into shape; run it before `pnpm check`.
 
+Rung 1, `pnpm shape`, also checks the docs' shape (`packages/lint/src/docs.ts`): what may live under `docs/`, where
+else Markdown may live, that a README fits in 60 lines, that every relative link resolves, and that a design note
+states its status. It also checks that every package has its generated map, `packages/<name>/generated/index.md`
+(`packages/lint/src/maps.ts`), with the exceptions listed there (`LONG_READMES`, `UNSTATED_NOTES`, `UNMAPPED`), which
+may only shrink.
+
+<!-- generated:gate start -->
+<!-- Written by `pnpm generate` from `GATE` in packages/lint/src/gate.ts; never edit it. -->
 | Rung | Command | What fails it |
 |---|---|---|
 | 1. Shape | `pnpm shape` | An entry at the top level, a package or a file under `docs/` that `packages/lint/src/shape.ts` does not list; a package or spike with no `README.md`; a source file under `packages/` over 300 lines; the two lists of entry files in `.oxlintrc.json` naming different paths |
 | 2. Format | `pnpm format:check`, `pnpm generate:check`, `pnpm seed:check` | TypeScript or JavaScript under `packages/` that oxfmt would change (config: `packages/lint/oxfmt.json`); a generated file that `pnpm generate` would write differently (it builds the contracts with Foundry first, `packages/generate`); a seeded chain state (`packages/contracts/state/core.json`, `deployments/devnet.json`) that `pnpm seed` would rebuild differently |
 | 3. Lint | `pnpm lint` | Any finding of `.oxlintrc.json`, every rule an error: oxlint's correctness and suspicious rules and a few more, all of Effect's rules from `@effect/tsgo` but two (each off with its reason), and ours from `packages/lint` (below) |
 | 4. Types | `pnpm types` | A type error in any TypeScript package, or an Effect language service error or warning (`effect-tsgo tsc`) |
-| 5. Tests | `pnpm test`, then `pnpm delta:check` (and `pnpm ratchets` from 3.6) | A failing unit test in any package (`pnpm frappe:test` and `pnpm status:test` included). Foundry's tests in `packages/contracts` are not in it: CI builds only the contracts, not their tests. Then the delta check: an operation that lacks a format that exists and is not on that format's `unmigrated` list (`packages/blueprint-tools/src/checks/formats.ts`). From 3.6, a ratchet whose list grew |
+| 5. Tests | `pnpm test`, then `pnpm delta:check` and `pnpm words` (and `pnpm ratchets` from 3.6) | A failing unit test in any package (`pnpm frappe:test` and `pnpm status:test` included). Foundry's tests in `packages/contracts` are not in it: CI builds only the contracts, not their tests. Then the delta check: an operation that lacks a format that exists and is not on that format's `unmigrated` list (`packages/blueprint-tools/src/checks/formats.ts`). Then the old words: an old word of the glossary written more often than `packages/blueprint/generated/old-words.json` counts (3.8). From 3.6, a ratchet whose list grew |
 | 6. Proof | `packages/runner/run.sh scenarios` (and `prove.yml` from 4.5) | A scenario that fails in a fresh world; from 3.7, a newly declared move, refusal or outcome no journey reaches. CI runs it in `.github/workflows/world.yml` once the bootstrap has given CI its Cloudflare and Neon keys (roadmap step 1.8) |
+<!-- generated:gate end -->
 
 Our lint rules, each tested in `packages/lint/test/rules.test.ts`:
 
-- `capxul/blueprint-owns-names`: an operation, a refusal (a tagged error), an event or a starting world is declared
-  only in `packages/blueprint`.
-- `capxul/effect-only`: no `async`, `await`, `new Promise`, `try`, `throw`, `process.env`, `Date.now`, `new Date()`
-  or `console` in TypeScript outside entry files. Entry files are listed in `.oxlintrc.json` under
+<!-- generated:lint-rules start -->
+<!-- Written by `pnpm generate` from each rule's `description` in packages/lint/src/rules/; never edit it. -->
+- `capxul/blueprint-owns-names`: an operation, a refusal (a tagged error), an event or a starting world is declared only
+  in `packages/blueprint`.
+- `capxul/effect-only`: no `async`, `await`, `new Promise`, `try`, `throw`, `process.env`, `Date.now`, `new Date()` or
+  `console` in TypeScript outside entry files. Entry files are listed in `.oxlintrc.json` under
   `settings.capxul.entries`, each with its reason.
 - `capxul/import-door`: another package is imported only through its door, `src/door.ts` (`src/index.ts` in the
   blueprint and its toolkit), or by its bare name.
 - `capxul/no-json-text`: no `JSON.parse`, `JSON.stringify`, `Schema.parseJson` or string schema documented as JSON
   outside entry files and the edges listed under `settings.capxul.jsonEdges`.
-- `capxul/owned-values`: a raw schema (`Schema.String`, `Schema.Literals`, ...) only in the blueprint's values files
-  and machines, and there only as a named value, never as a field; elsewhere only in entry files and the edges listed
-  under `settings.capxul.schemaEdges`, each with its reason.
+- `capxul/owned-values`: a raw schema (`Schema.String`, `Schema.Literals`, ...) only in the blueprint's values files,
+  machines and telemetry vocabulary, and there only as a named value, never as a field; elsewhere only in entry files
+  and the edges listed under `settings.capxul.schemaEdges`, each with its reason.
 - `capxul/declared-names`: a name the blueprint declares (an operation, a refusal, an event, an outcome, a starting
-  world) is imported, never written as a string outside the blueprint, except where the compiler checks it (an
-  object's key, a computed member, the tag given to `catchTag`, `Match.tag` or `isTagged`).
+  world) is imported, never written as a string outside the blueprint, except where the compiler checks it (an object's
+  key, a computed member, the tag given to `catchTag`, `Match.tag` or `isTagged`).
 - `capxul/decoded-rows`: no `sql<Row>` cast outside the blueprint; rows are decoded with the blueprint's schemas.
+- `capxul/declared-steps`: every effectful function of Core, the world, the platform and the runner (outside its checks)
+  is `Effect.fn` named by a declared step, imported from the blueprint: no string name, and no top-level function
+  returning `Effect.gen(...)` without a span.
+<!-- generated:lint-rules end -->
 
-These three are ratcheted: what each found when it was turned on is on its list in `packages/lint/src/unmigrated.ts`,
-a file with a count that may only fall (`packages/lint/README.md` says how to lower it). New files are never added.
+These four are ratcheted: what each found when it was turned on is on its list in `packages/lint/src/unmigrated.ts`
+(`declared-steps`' in `packages/lint/src/unmigrated-steps.ts`), a file with a count that may only fall
+(`packages/lint/README.md` says how to lower it). New files are never added.
 Each skips generated files: a file whose first line is a comment starting `// Generated`, written by `pnpm generate`
 and never edited.
 

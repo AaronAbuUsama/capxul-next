@@ -125,16 +125,22 @@ behaviour: every journey stays green.
 | R2 | Names typed as strings | Declared names retyped as strings | #262's list | 3.3 |
 | R3 | Rows not decoded | Stored rows cast to hand-written types instead of decoded with the blueprint's schemas | #262's list | 3.3 |
 | R4 | Lifecycles not machines | Things with a lifecycle not yet declared as machines (site, approval, world, budget; the invitation is done by #262 and moves into the new format) | Roadmap "Other lifecycles" | 7.3 |
-| R5 | Operations not in the full format | Operations missing a part: machine moves, `allowed`, steps, logs, deciding logs, budget | Every operation | 3.5, 4.1, 5.1 |
-| R6 | Undeclared spans | Effectful functions of our own code without a declared step: Core, the world, the platform client, the runner's plumbing (176 span names) | Not counted yet | 4.1 |
-| R7 | Operations not in one file | Operations still split across `operations.ts`, `refusals.ts`, `claims.ts`, `subjects.ts`, `order.md` | Every operation | Decision 3 |
-| R8 | Long or hand-mapped docs | READMEs over one screen (60 lines); hand-written file maps; `decisions.md`, `gaps.md`, `order.md` not folded | Core, runner, platform, world READMEs (222 to 607 lines) | Decision 3 |
+| R5 | Operations not in the full format | Operations on the machine format's `unmigrated` list: no machine started or moved, or a state's refusal left undeclared (who may call, steps and logs, and promises are R17 to R19, from item 3.10) | 13 operations | 3.5 |
+| R6 | Undeclared spans | Effectful functions of our own code without a declared step: Core, the world, the platform client, the runner's plumbing; `capxul/declared-steps`' unmigrated list, counted by `pnpm ratchets` | 315 findings | 4.1 |
+| R7 | Operations not in one file | Verbs whose declaration still reads its examples from the thing's `examples.ts` (refusals and events keep their own files by design, part 13); counted by `pnpm ratchets` (`src/ratchets.ts` holds the definition) | 23 verbs | Decision 3 |
+| R8 | Long or hand-mapped docs | READMEs over one screen (60 lines); hand-written file maps; docs not yet folded (`build-order.md`; `decisions.md` and `gaps.md` were folded by #375) | Core, runner, platform, world READMEs (222 to 607 lines) | Decision 3 |
 | R9 | Unreached declarations | Declared moves, refusals and outcomes no journey reaches | Coverage report | If option B |
-| R10 | Non-Effect code | Non-Effect constructs outside entry files; non-Effect runtime dependencies (the two counts agreed on 13 November 2026) | Counted by lint | Phase 7 |
+| R10 | Non-Effect code | Non-Effect constructs outside entry files; non-Effect runtime dependencies (the two counts agreed on 13 November 2026): `capxul/effect-only`'s findings in the TypeScript the lint does not reach, and each package's runtime dependencies that are not Effect nor Capxul's own; counted by `pnpm ratchets` | 63 (38 constructs, 25 dependencies) | Phase 7 |
 | R11 | Untyped starting worlds | Starting-world steps in prose, payloads retyped in the runner | 7 starting worlds | 7.2 |
 | R12 | Proofs by file path | Proof column entries naming files, steps not yet Done | Every open step | 4.5 |
 | R13 | Provisional budgets | Budgets not yet set from a measured verdict | Every budget | 4.1 and the measured runs |
 | R14 | Own telemetry tables | `app.spans` readers and the runner's JSON records beside OTLP | Core, runner | 4.4 |
+| R15 | Old words | The distinct names in code that still hold one of the glossary's old words, counted per word by `pnpm words` (`generated/old-words.json`): reusing an existing name adds nothing, only a new one grows the count; package names, import paths, applied migrations and listed exceptions (deployed names, foreign protocol keys) are not counted | Every package | 3.8 |
+| R16 | Names not from their path | Verbs whose operation is not named `<thing>.<verb>` from its path (part 13, amended, point 3), counted by its own `unmigrated` list | 17 names (item 3.10) | C.1, with item 3.8's renames |
+| R17 | Operations without who may call | Operations on the `allowed` format's list: no roles allowed, nor the refusal anyone else gets | 22 operations (item 3.10) | 5.1 |
+| R18 | Operations without declared steps and logs | Operations on the `spans` or `logs` format's list: no declared spans or logs, or no log where a refusal is decided | 22 operations (item 3.10) | 4.1 |
+| R19 | Promises that do not name every refusal they decide | Operations on the `promises` format's list | 8 operations (item 3.10) | C.1 |
+| R20 | Glossary words not yet landed | Each glossary word whose landing place (a package, a `pnpm` command) is not there yet, and each tracked file still named by an old word written as a file name (`door.ts`, `door.py`); a CLI flag's landing is the CLI's (3.9) | 15 (item 3.8, 16 November 2026) | The renames' lane (3.8's landings) |
 
 **Measures, climbed by trend, never a gate until the data sets a threshold:**
 
@@ -354,6 +360,7 @@ does becomes a declared operation with no Rpc: its steps, logs, budget and the r
 | `starting-world.make` | The one generic maker of a starting world from its typed steps (7.2, R11) | the steps' own operations, wait | `packages/runner/src/worlds/*`, by hand |
 | `journey` | One journey: its reset, its steps, its checks | reset, the operations it calls, check | Runner spans |
 | `check.gate`, `check.call`, `check.confirm`, `check.watch` | The layers of part 3 | one step per rung or check | Not spanned |
+| `check.isolation` | Read a shared world's whole run once, so each journey's records can be checked as its own (4.8 b, 4.11) | database | Declared 16 November 2026, for the telemetry export builder |
 | `run.verdict` | Write the verdict, set the check, archive the telemetry (4.5) | chain of writes, upload | Not built |
 | `run.teardown`, `world.sweep` | Destroy what the run made; sweep what expired | deploy, branch, site | Spanned in part |
 | `ratchets.count` | Count every ratchet (part 4) | one step per ratchet | Not built |
@@ -563,7 +570,7 @@ left open.
 | `conventions.ts` | The OpenTelemetry semantic conventions' version, pinned (T8) | The schema URL on every producer's resource |
 | `envelope.ts` | Every attribute stamped on every record: its name, convention or `capxul.*`, schema, who sets it | The constants producers import; the door's stamping; Axiom field descriptions |
 | `producers.ts` | Each `service.name`: core, runner, world, platform client, sdk, cli, door, cost job, gate, agents' sessions | Each process's resource |
-| `step-kinds.ts` | database, site, chain, bundler, wait, deploy, branch, container, restore, poll | `capxul.step.kind`; the waits a budget leaves out |
+| `step-kinds.ts` | database, site, chain, bundler, wait, deploy, branch, container, compute (work done in-process, touching nothing outside), restore, poll | `capxul.step.kind`; the waits a budget leaves out |
 | `metrics.ts` | Each metric: name, type, unit, the tags it may carry | Effect `Metric` definitions; the metrics a check expects |
 | `datasets.ts` | The 12 logical datasets (T2), by grade group and signal, and their correlation groups | The datasets `packages/platform` creates; the door's routing table |
 | `watch.ts` | Monitors and dashboards over declared names: the 1.5× architecture review, a run over 15 minutes, refusal and error rates per operation, a ratchet that stopped falling, a missing daily cost heartbeat | Axiom monitor and dashboard JSON, applied by the platform's deploy |
@@ -771,6 +778,47 @@ claims); the glossary's renames run on their own ratchet (item 3.8). No behaviou
 **What keeps it.** A test fails a file under `src/` that does not fit: under `things/<thing>/` only `values.ts`,
 `events.ts`, `refusals.ts`, `lifecycle.ts`, `examples.ts` (until 2b folds it) and verb files; only the folders above at
 `src/`; markdown only in `generated/` and `docs/`.
+
+### Amended: what is a command, a refusal or an event is known by its place and its shape (15 November 2026)
+
+**Agreed with Aaron, 15 November 2026** (option 1 of three offered, all three parts together). Aaron's question: which
+of a thing's files turn into a command or an SDK call, and which declare refusals and events, was not obvious from the
+tree, and nothing marked a command, a refusal or an event as special. What was found on `master` at `b55dff4`:
+
+- Every file in a thing's folder that is not a reserved name was a verb, so the tree did not show which files were
+  verbs.
+- The CLI's command and the SDK's call took their name from the string written in `Rpc.make`, not from the file's
+  path: `things/clock/warp.ts` was `capxul world clock warp`, not `capxul clock warp`. In 21 of the 26 verbs the two
+  differed (`invitation/accept.ts` was `invite.accept`, `company/create.ts` was `org.create`), and nothing checked them.
+- A refusal was a plain `Schema.TaggedError` with its exit code in a separate map beside it; an event a plain
+  `Schema.TaggedClass`. Nothing but the file name said what either was.
+
+What changes, all three parts together:
+
+1. **Verbs in their own folder.** A thing is `things/<thing>/` holding `values.ts`, `events.ts`, `refusals.ts`,
+   `lifecycle.ts` where it has one (and `examples.ts` until 2b folds it), and `verbs/<verb>.ts`, one file per verb. The
+   tree reads `clock/verbs/warp.ts`. Nothing else lives in a thing's folder.
+2. **One constructor per kind, each recognised by the toolkit.** `verb(...)` (replacing `declare` and
+   `declareOutcomes`, outcomes an option of it), `refusal(...)` (a tagged error carrying its exit code on its own
+   declaration, so the separate `exitCode` map goes) and `event(...)` (a tagged class). Each marks what it makes, so the
+   layout test and lint know a command, a refusal and an event by their shape. A verb's file declares exactly one
+   `verb` and no refusal or event; a thing's `refusals.ts` only `refusal`s, its `events.ts` only `event`s; shared
+   refusals stay in `src/common/refusals.ts`. Each thing declares its own refusals and events: a refusal belongs to the
+   thing whose verb says no, an event is a move in the thing's life.
+3. **The name comes from the path, and is checked.** A verb's operation is named `<thing>.<verb>` from its path, so the
+   command is `capxul <thing> <verb>`, the SDK call `<thing>.<verb>` and the span `<thing>.<verb>` (part 12, decision
+   8). The name is not typed by hand; a check fails any verb whose name differs from its path. The 21 that differ today
+   are a ratchet list that may only shrink, renamed directly under "no callers, no compatibility" as each thing is
+   climbed (item 3.8's renames, C.1), the journey author updating the journeys in the same lane.
+
+And the reader's view: each thing's generated page opens with four short lists, its commands, its SDK calls, its
+refusals with their exit codes, and its events.
+
+**Where it lands.** In stage 2b's format work on `slice/blueprint` (items 3.6 and 3.10): the constructors are the
+format, the folder move is mechanical and changes no behaviour, the path-name check and its ratchet are registered with
+the others, and 3.9's grammar then reads the path. The layout of part 13 above is amended accordingly; "What keeps it"
+now also fails a verb outside `verbs/`, a file of the wrong kind of declaration, and a name that differs from its path
+and is not on the ratchet's list.
 
 ## 14. Build the system, then climb, then breadth (15 November 2026)
 

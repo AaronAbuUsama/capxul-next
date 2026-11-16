@@ -1,5 +1,5 @@
 // The bench's MariaDB settings (src/mariadb.ts): the table caches hold every table of the sites a bench serves
-// together, against MariaDB's 400 definitions and 421 open tables for a site of 926 (spikes/site-speed).
+// together, against MariaDB's 400 definitions and 421 open tables for a site of 926 (records/site-speed).
 import * as assert from "node:assert/strict";
 import { test } from "node:test";
 import * as Str from "effect/String";

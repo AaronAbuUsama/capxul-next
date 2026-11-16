@@ -1,7 +1,8 @@
-// Reading a company's budgets on the world's chain through its door (decisions.md, 34): looks that the budgets
-// operations' checks and the journey "give sam a budget at Northwind" share. The chain is the only gate on spending,
-// so a budget an operation answers is held against the world's Budgets contract (`contracts.budgets`), never against
-// anything Core keeps. Every read goes to the door, and as the operator, a look at that world goes (`whereOf`).
+// Reading a company's budgets on the world's chain through its door (packages/blueprint, src/common/chain/reads.ts):
+// looks that the budgets operations' checks and the journey "give sam a budget at Northwind" share. The chain is the
+// only gate on spending, so a budget an operation answers is held against the world's Budgets contract
+// (`contracts.budgets`), never against anything Core keeps. Every read goes to the door, and as the operator, a look at
+// that world goes (`whereOf`).
 import type { Budgets, Chain } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
@@ -11,7 +12,7 @@ import { expect } from "../expectation.ts";
 import { isAddress, logsOf } from "./chain.ts";
 import { present, same, sameAddress, sameAmount } from "./expect.ts";
 import { peopleOf } from "./people.ts";
-import { recordOf, textOf, whereOf, type View, type Who } from "./world.ts";
+import { ownCast, recordOf, textOf, whereOf, type View, type Who } from "./world.ts";
 
 export type Budget = typeof Budgets.Budget.Type;
 export type OnChain = NonNullable<Chain.ReadAnswer<"budget">>;
@@ -56,7 +57,7 @@ export const holdersOf = (world: View, hat: string, who: Who = {}) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
     const holders: Array<string> = [];
-    for (const each of world.cast)
+    for (const each of yield* ownCast(world))
       if (
         each.safe !== null &&
         (yield* capxul.chain.wears({ hats: world.contracts.hats, hat, wearer: each.safe, block: null }, whereOf(who)))
@@ -113,6 +114,6 @@ export const asChainHolds = (world: View, budget: Budget, who: Who = {}) =>
     }
   });
 
-/** Whether `person` is a Director or a member of `org`, as `org.member.list` answers the world's owner. */
+/** Whether `person` is a Director or a member of `org`, as `member.list` answers the world's owner. */
 export const belongsTo = (org: string, person: string, who: Who = {}) =>
   Effect.map(peopleOf(org, who), (people) => Arr.some(people, (each) => each.person === person));

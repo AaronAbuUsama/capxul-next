@@ -13,6 +13,7 @@ import { setUpBundler, startBundler } from "../../parts/bundler/setup.ts";
 import { SEED_HEAD } from "../../parts/chain/contracts.ts";
 import { ensureToken, mintAll } from "../../parts/chain/faucet.ts";
 import { CORE_MIGRATIONS, SITE_KEY_ID, SITE_SECRET_ID } from "../../parts/api/Api.ts";
+import { warmApi } from "../../parts/api/bundle.ts";
 import { CoreHost } from "../../parts/api/host.ts";
 import { migrate } from "../../parts/database/sql.ts";
 import { HubMissing, WorldNotReady } from "../../common/failures.ts";
@@ -89,7 +90,10 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
       "claim",
       Effect.gen(function* () {
         // The site token, minted once the name is held, and the world's first record.
-        const granted = yield* grant(plan.stage, plan.expiresAt, maxSites);
+        const granted = yield* grant(plan.stage, plan.expiresAt, maxSites, {
+          owner: plan.owner,
+          grade: spec.grade ?? "private",
+        });
         const named = Option.match(granted, { onNone: () => "none", onSome: (one) => one.stage });
         yield* recordOutput(plan.stage, recordOf(plan, "creating", named, hub.stage));
         return granted;
@@ -140,7 +144,10 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
       );
       return funded;
     });
+    const deployDone = yield* Deferred.make<void>();
     const databaseLane = Effect.gen(function* () {
+      // Core's bundle is built (once per process) while the branch is made; the deploy waits for it (bundle.ts).
+      yield* warmApi();
       // The branch is made through Neon's API first (src/parts/database/neon.ts); the deploy adopts it by name.
       const made = yield* watch.step(
         "branch",
@@ -161,6 +168,7 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
           Effect.gen(function* () {
             const settings = {
               owner: plan.owner,
+              grade: spec.grade ?? "private",
               expiresAt: plan.expiresAt,
               forkedFrom: plan.forkedFrom,
               bench,
@@ -174,7 +182,10 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
             );
           }),
         )
-        .pipe(Effect.flatMap((output) => handle(output, { token: doorToken, database: made.connectionUri })));
+        .pipe(
+          Effect.tap(() => Deferred.succeed(deployDone, undefined)),
+          Effect.flatMap((output) => handle(output, { token: doorToken, database: made.connectionUri })),
+        );
       const database = { door: reach.door, database: made.connectionUri };
       // The migrations and the index (once the chain answers) need only the branch; Core waits for the deploy.
       const [world] = yield* Effect.all(
@@ -188,8 +199,12 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
           ),
           watch.step("migrate", migrate(made.connectionUri, spec.migrations ?? CORE_MIGRATIONS)),
           Effect.andThen(Deferred.await(chainUp), explained(database, watch.step("index", indexReady(database)))),
+          // The caller's own work that needs only the deploy (a restore's sites), beside Core's start and the index.
+          spec.onDeployed === undefined
+            ? Effect.void
+            : Effect.andThen(Deferred.await(deployDone), watch.step("site", spec.onDeployed(plan.stage))),
         ],
-        { concurrency: 3 },
+        { concurrency: 4 },
       );
       yield* Effect.logInfo(`world ${plan.stage}: deployed, migrated, the index is ready and Core answers`);
       return world;

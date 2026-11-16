@@ -5,10 +5,12 @@ import { startingWorlds, World, type CallOptions, type Record as RecordOps, type
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
+import * as Order from "effect/Order";
 import * as Random from "effect/Random";
 import type * as Schema from "effect/Schema";
 import * as Str from "effect/String";
-import { Capxul } from "../client.ts";
+import { castPeopleOf, JourneyCast } from "../cast.ts";
+import { Capxul, ThisCall } from "../client.ts";
 import { expect, failWith, given } from "../expectation.ts";
 import { present, refusal, same, show } from "./expect.ts";
 
@@ -48,28 +50,73 @@ export const ownerOf = (view: View) =>
     return yield* failWith(`${view.world} is owned by ${view.owner}, neither of the run's operators`);
   });
 
+/** The entries of a world's history from position `from` (null: the first), read as its owner, at `who`'s door. */
+const exported = (from: number | null, who: Who) =>
+  Effect.flatMap(Capxul, (capxul) => capxul["record.export"]({ from, to: null }, whereOf(who)));
+
 /** The whole record of a world, read as its owner: the client's own, or `at` another door. */
-export const recordOf = (who: Who = {}) =>
-  Effect.gen(function* () {
-    const capxul = yield* Capxul;
-    return yield* capxul["record.export"]({ from: null, to: null }, whereOf(who));
-  });
+export const recordOf = (who: Who = {}) => exported(null, who);
 
 /** The record's entries after position `after`, read as the owner. */
 export const entriesAfter = (after: number, who: Who = {}) =>
+  Effect.map(exported(after + 1, who), (answer) => answer.entries);
+
+/**
+ * The name of the world `who` reaches and its record's head now, read as its owner with one entry: what a check reads
+ * before a call, without reading the whole record back.
+ */
+export const headAt = (who: Who = {}) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
-    const answer = yield* capxul["record.export"]({ from: after + 1, to: null }, whereOf(who));
-    return answer.entries;
+    const answer = yield* capxul["record.export"]({ from: 1, to: 1 }, whereOf(who));
+    return { world: answer.world, head: answer.head };
   });
 
 /** A record's head now. */
-export const headOf = (who: Who = {}) => Effect.map(recordOf(who), (answer) => answer.head);
+export const headOf = (who: Who = {}) => Effect.map(headAt(who), (answer) => answer.head);
 
-/** The record gained no entry since `before`: what every refusal and every read must leave behind. */
+/** An entry of the record a call wrote, as a check judges it. */
+export interface CallEntry {
+  readonly seq: number;
+  readonly event: string;
+  readonly carried: Json;
+}
+
+/**
+ * The entries the call a check judges wrote: those carrying the call's trace. Other journeys' calls, made at the same
+ * time in the same world, write under traces of their own and are not the call's. Read from what the run observed
+ * under the trace when it offers that (`ThisCall.observed`), else from the record after position `after`; when the
+ * client did not tell the call's trace either, every entry after `after` is taken as the call's, as when one journey
+ * ran alone in its world.
+ */
+export const entriesOfCall = (after: number, who: Who = {}) =>
+  Effect.gen(function* () {
+    const call = yield* ThisCall;
+    if (call.observed !== null) {
+      const partial = Arr.filter(call.observed, (each) => !each.complete);
+      if (partial.length > 0)
+        return yield* failWith(
+          `the call's traces ${show(Arr.map(partial, (each) => each.trace))} were not observed whole`,
+        );
+      const events = Arr.flatMap(call.observed, (each) => each.events);
+      return Arr.sort(
+        events,
+        Order.mapInput(Order.Number, (each: CallEntry) => each.seq),
+      );
+    }
+    const added = yield* entriesAfter(after, who);
+    const ofCall =
+      call.traces.length === 0 ? added : Arr.filter(added, (each) => Arr.contains(call.traces, each.trace));
+    return ofCall satisfies ReadonlyArray<CallEntry>;
+  });
+
+/** The call wrote no entry: what every refusal and every read must leave behind. `before` is the head before it. */
 export const unchangedRecord = (what: string, before: number, who: Who = {}) =>
-  Effect.flatMap(headOf(who), (now) =>
-    expect(now === before, `after ${what} the record's head is ${now}; it was ${before}`),
+  Effect.flatMap(entriesOfCall(before, who), (added) =>
+    expect(
+      added.length === 0,
+      `after ${what} the record gained ${show(Arr.map(added, (each) => each.event))} under the call's trace`,
+    ),
   );
 
 /** world.show of a world. */
@@ -80,7 +127,7 @@ export const view = (world: string) =>
   });
 
 /** world.show of the world a call at `who` acts on: named by its own record. */
-export const viewAt = (who: Who = {}) => Effect.flatMap(recordOf(who), (record) => view(record.world));
+export const viewAt = (who: Who = {}) => Effect.flatMap(headAt(who), (record) => view(record.world));
 
 /** A person of the world's cast, by name. */
 export const castMember = (world: View, person: string) =>
@@ -88,9 +135,6 @@ export const castMember = (world: View, person: string) =>
     `${person} in ${world.world}'s cast`,
     Arr.findFirst(world.cast, (each) => each.person === person).pipe(Option.getOrNull),
   );
-
-/** The company of the starting worlds from `founded` on. */
-export const NORTHWIND = "northwind";
 
 /** A company the world shows, by handle. */
 export const company = (world: View, handle: string) =>
@@ -102,6 +146,40 @@ export const company = (world: View, handle: string) =>
 /** The companies a world shows, as what identifies each. */
 export const companiesOf = (world: View) =>
   Arr.map(world.companies, (each) => ({ org: each.org, handle: each.handle, name: each.name }));
+
+/**
+ * The world's cast as the journey running sees it: its own people (`Cast`) when a journey casts, so a read made once
+ * per person reads only the journey's, never every journey's; the whole cast otherwise.
+ */
+export const ownCast = (world: View) =>
+  Effect.map(Effect.serviceOption(JourneyCast), (journey) =>
+    Option.isNone(journey)
+      ? world.cast
+      : Arr.filter(world.cast, (each) => Arr.contains(castPeopleOf(journey.value), each.person)),
+  );
+
+/**
+ * The companies world.show lists, as the journey running sees them: those under its own company's handle or a handle
+ * it names (`handles`) when a journey casts, so a shared world's other journeys founding beside it never show; every
+ * company otherwise.
+ */
+export const ownCompanies = (world: View, handles: ReadonlyArray<string> = []) =>
+  Effect.map(Effect.serviceOption(JourneyCast), (journey) =>
+    companiesOf(
+      Option.isNone(journey)
+        ? world
+        : {
+            ...world,
+            companies: Arr.filter(
+              world.companies,
+              (each) => each.handle === journey.value.company || Arr.contains(handles, each.handle),
+            ),
+          },
+    ),
+  );
+
+/** The world as the journey running sees it: its cast is the journey's own people (`ownCast`). */
+export const ownView = (world: View) => Effect.map(ownCast(world), (cast): View => ({ ...world, cast }));
 
 /** Every personal Safe of the world's cast. */
 export const personalSafes = (world: View): ReadonlyArray<string> =>

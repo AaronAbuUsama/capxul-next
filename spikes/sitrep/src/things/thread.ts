@@ -1,7 +1,6 @@
 // The thing "thread": one agent conversation, in any agent. The types are the threads skill's.
 import * as Schema from "effect/Schema";
-import { Machine } from "@capxul/blueprint-tools";
-import { ThreadId, Title, Url, stamp, type Allowed } from "../language.ts";
+import { ThreadId, Title, Url, stamp, type Allowed, machine } from "../language.ts";
 import { LaneId } from "./step.ts";
 
 export const ThreadType = Schema.Literals(["conductor", "lead", "author", "builder", "reviewer", "designer", "triage", "keeper", "local"]);
@@ -23,15 +22,15 @@ export class ThreadArchived extends Schema.TaggedClass<ThreadArchived>()("thread
 
 const gone = { refusal: "ThreadArchived" } as const;
 
-export const Thread = Machine.make({
+export const Thread = machine({
   name: "thread",
   key: "thread",
   states: ["active", "waiting", "archived"],
-  start: { state: "active", by: "thread.start", event: "thread_started" },
+  start: { state: "active", by: "thread.start", event: ThreadStarted },
   moves: {
-    wait: { from: ["active"], to: "waiting", by: "thread.wait", event: "thread_waiting", otherwise: { waiting: "unchanged", archived: gone } },
-    resume: { from: ["waiting"], to: "active", by: "thread.resume", event: "thread_resumed", otherwise: { active: "unchanged", archived: gone } },
-    archive: { from: ["active", "waiting"], to: "archived", by: "thread.archive", event: "thread_archived", otherwise: { archived: "unchanged" } },
+    wait: { from: ["active"], to: "waiting", by: "thread.wait", event: ThreadWaiting, otherwise: { waiting: "unchanged", archived: gone } },
+    resume: { from: ["waiting"], to: "active", by: "thread.resume", event: ThreadResumed, otherwise: { active: "unchanged", archived: gone } },
+    archive: { from: ["active", "waiting"], to: "archived", by: "thread.archive", event: ThreadArchived, otherwise: { archived: "unchanged" } },
   },
 });
 

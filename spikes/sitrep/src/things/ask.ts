@@ -2,8 +2,7 @@
 // question: the problem, its context, the rubric it should be judged by, two to four options each with its trade-offs,
 // and the recommendation with its reason. Aaron answers with an option or in his own words, and can undo.
 import * as Schema from "effect/Schema";
-import { Machine } from "@capxul/blueprint-tools";
-import { Instant, Prose, ThreadId, Title, stamp, type Allowed } from "../language.ts";
+import { Instant, Prose, ThreadId, Title, stamp, type Allowed, machine } from "../language.ts";
 import { StepId } from "./milestone.ts";
 import { LaneId } from "./step.ts";
 
@@ -46,15 +45,15 @@ export class AskWithdrawn extends Schema.TaggedClass<AskWithdrawn>()("ask_withdr
 
 const withdrawn = { refusal: "AskWithdrawn" } as const;
 
-export const Ask = Machine.make({
+export const Ask = machine({
   name: "ask",
   key: "ask",
   states: ["open", "answered", "withdrawn"],
-  start: { state: "open", by: "ask.open", event: "ask_opened" },
+  start: { state: "open", by: "ask.open", event: AskOpened },
   moves: {
-    answer: { from: ["open"], to: "answered", by: "ask.answer", event: "ask_answered", otherwise: { answered: { refusal: "AskAnswered" }, withdrawn } },
-    reopen: { from: ["answered"], to: "open", by: "ask.reopen", event: "ask_reopened", otherwise: { open: "unchanged", withdrawn } },
-    withdraw: { from: ["open"], to: "withdrawn", by: "ask.withdraw", event: "ask_withdrawn", otherwise: { answered: { refusal: "AskAnswered" }, withdrawn: "unchanged" } },
+    answer: { from: ["open"], to: "answered", by: "ask.answer", event: AskAnswered, otherwise: { answered: { refusal: "AskAnswered" }, withdrawn } },
+    reopen: { from: ["answered"], to: "open", by: "ask.reopen", event: AskReopened, otherwise: { open: "unchanged", withdrawn } },
+    withdraw: { from: ["open"], to: "withdrawn", by: "ask.withdraw", event: AskWithdrawn, otherwise: { answered: { refusal: "AskAnswered" }, withdrawn: "unchanged" } },
   },
 });
 

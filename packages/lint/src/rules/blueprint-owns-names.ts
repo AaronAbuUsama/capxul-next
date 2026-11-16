@@ -6,6 +6,10 @@ import * as Arr from "effect/Array";
 import { memberName, rootCallee } from "./names.ts";
 import { matches, pathOf } from "./where.ts";
 
+/** What the rule finds, as AGENTS.md and packages/lint/README.md list it (written there by `pnpm generate`). */
+export const description =
+  "an operation, a refusal (a tagged error), an event or a starting world is declared only in `packages/blueprint`.";
+
 /** The blueprint, and its toolkit (packages/blueprint-tools), which writes and checks it. */
 const OWNERS = ["packages/blueprint/**", "packages/blueprint-tools/**"];
 
@@ -47,7 +51,7 @@ const create = (context: Context) => {
 export const blueprintOwnsNames: Rule = {
   meta: {
     type: "problem",
-    docs: { description: "Operations, refusals, events and starting worlds are declared only in packages/blueprint" },
+    docs: { description },
   },
   create,
 };

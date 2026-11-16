@@ -5,6 +5,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as Schema from "effect/Schema";
+import { Machine } from "@capxul/blueprint-tools";
 import { InvalidHistory } from "./language.ts";
 import { Event, Snapshot, THINGS, project } from "./view.ts";
 
@@ -23,13 +24,13 @@ const generate = () => {
   out("snapshot.schema.json", JSON.stringify({ $comment: note, ...Schema.toJsonSchemaDocument(Snapshot) }, null, 1));
   const snap = project(log, NOW);
   out("snapshot.json", JSON.stringify(snap, null, 1));
-  const pages = Object.entries(THINGS).map(([name, { machine, allowed }]) => [
+  const pages = Object.entries(THINGS).map(([name, { machine: declared, allowed }]) => { const machine = Machine.named(declared); return [
     `## ${name}`, "", `States: ${machine.states.join(", ")}. Starts ${machine.start.state}, by \`${machine.start.by}\`.`, "",
     "| Event | Made by | Who may |", "|---|---|---|",
     `| ${machine.start.event} | \`${machine.start.by}\` | ${allowed[machine.start.event]!.join(", ")} |`,
     ...Object.values(machine.moves).map((m) => `| ${m.event} | \`${m.by}\` | ${allowed[m.event]!.join(", ")} |`),
     "", "```mermaid", machine.diagram, "```", "",
-  ].join("\n"));
+  ].join("\n"); });
   out("things.md", [`<!-- ${note} -->`, "# The conductor's things", "", ...pages].join("\n"));
   const p = snap.plan.fields as Record<string, string | string[]>;
   out("plan.md", [`<!-- ${note} From the event log, never edited. -->`, `# ${p.title}`, "",
@@ -65,10 +66,10 @@ const prove = () => {
 
 /** Each machine's moves as data, so a page that appends a person's event applies the declared move, not its own copy. */
 const machines = () =>
-  Object.fromEntries(Object.entries(THINGS).map(([name, { machine, allowed }]) => [name, {
+  Object.fromEntries(Object.entries(THINGS).map(([name, { machine: declared, allowed }]) => { const machine = Machine.named(declared); return [name, {
     states: machine.states, start: { event: machine.start.event, state: machine.start.state },
     moves: Object.values(machine.moves).map((m) => ({ event: m.event, from: m.from, to: m.to })), allowed,
-  }]));
+  }]; }));
 
 const projectTo = () => {
   const out = arg("out");

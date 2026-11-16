@@ -1,8 +1,7 @@
 // The thing "step": one piece of the plan that a proof shows done. Only the pipeline proves a step (a verdict of a CI
 // run); only Aaron drops one. An agent starts it.
 import * as Schema from "effect/Schema";
-import { Machine } from "@capxul/blueprint-tools";
-import { Prose, Title, Url, stamp, type Allowed } from "../language.ts";
+import { Prose, Title, Url, stamp, type Allowed, machine } from "../language.ts";
 import { StepId } from "./milestone.ts";
 import { MilestoneId } from "./plan.ts";
 
@@ -34,16 +33,16 @@ export class StepDropped extends Schema.TaggedClass<StepDropped>()("step_dropped
 const done = { refusal: "StepDone" } as const;
 const dropped = { refusal: "StepDropped" } as const;
 
-export const Step = Machine.make({
+export const Step = machine({
   name: "step",
   key: "step",
   states: ["planned", "active", "done", "dropped"],
-  start: { state: "planned", by: "step.plan", event: "step_planned" },
+  start: { state: "planned", by: "step.plan", event: StepPlanned },
   moves: {
-    start: { from: ["planned"], to: "active", by: "step.start", event: "step_started", otherwise: { active: "unchanged", done, dropped } },
-    prove: { from: ["planned", "active"], to: "done", by: "step.prove", event: "step_proven", otherwise: { done: "unchanged", dropped } },
-    reopen: { from: ["done"], to: "active", by: "step.reopen", event: "step_reopened", otherwise: { planned: "unchanged", active: "unchanged", dropped } },
-    drop: { from: ["planned", "active"], to: "dropped", by: "step.drop", event: "step_dropped", otherwise: { done, dropped: "unchanged" } },
+    start: { from: ["planned"], to: "active", by: "step.start", event: StepStarted, otherwise: { active: "unchanged", done, dropped } },
+    prove: { from: ["planned", "active"], to: "done", by: "step.prove", event: StepProven, otherwise: { done: "unchanged", dropped } },
+    reopen: { from: ["done"], to: "active", by: "step.reopen", event: StepReopened, otherwise: { planned: "unchanged", active: "unchanged", dropped } },
+    drop: { from: ["planned", "active"], to: "dropped", by: "step.drop", event: StepDropped, otherwise: { done, dropped: "unchanged" } },
   },
 });
 

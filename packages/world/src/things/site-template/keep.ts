@@ -4,6 +4,7 @@
 // its sites claims them ready instead of building them. The template is named by the starting world, the code that
 // made it and the world whose company facts it holds, so it is that world's alone. It is the bench's, never changed
 // and never dropped by a run: the sweep removes it by age (`sweepTemplates`), long after the world is gone.
+import { Pipeline } from "@capxul/blueprint";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
@@ -28,7 +29,7 @@ const benchOf = (name: string) =>
  * by the code `code` fingerprints (src/things/site-template/sweep.ts, `templateCode`). Answers the template's name, how long the
  * door took and whether it made it (false: this world had kept it already); nothing for a world with no bench.
  */
-export const keepSitesAsTemplate = Effect.fn("world.template.keep")(function* (
+export const keepSitesAsTemplate = Effect.fn(Pipeline.siteSave.spans.template.name)(function* (
   name: string,
   snapshot: string,
   code: string,

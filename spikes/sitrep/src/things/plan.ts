@@ -1,8 +1,7 @@
 // The thing "plan": the written plan the whole rebuild follows. In the blueprint's layout this file is
 // src/things/plan/{values,events,lifecycle}.ts; one file here to keep the spike readable.
 import * as Schema from "effect/Schema";
-import { Machine } from "@capxul/blueprint-tools";
-import { Prose, Title, stamp, type Allowed } from "../language.ts";
+import { Prose, Title, stamp, type Allowed, machine } from "../language.ts";
 
 export const PlanId = Schema.String.check(Schema.isPattern(/^[a-z][a-z0-9-]{1,40}$/));
 export const MilestoneId = Schema.String.check(Schema.isPattern(/^(\d{1,2}|[A-Z])$/));
@@ -27,14 +26,14 @@ export class PlanAgreed extends Schema.TaggedClass<PlanAgreed>()("plan_agreed", 
 export class PlanRevised extends Schema.TaggedClass<PlanRevised>()("plan_revised", { plan: PlanId, ...stamp, ...PlanText }) {}
 
 /** A plan is a draft until Aaron agrees it; any revision makes it a draft again until he agrees the new one. */
-export const Plan = Machine.make({
+export const Plan = machine({
   name: "plan",
   key: "plan",
   states: ["draft", "agreed"],
-  start: { state: "draft", by: "plan.write", event: "plan_written" },
+  start: { state: "draft", by: "plan.write", event: PlanWritten },
   moves: {
-    agree: { from: ["draft"], to: "agreed", by: "plan.agree", event: "plan_agreed", otherwise: { agreed: "unchanged" } },
-    revise: { from: ["draft", "agreed"], to: "draft", by: "plan.revise", event: "plan_revised", otherwise: {} },
+    agree: { from: ["draft"], to: "agreed", by: "plan.agree", event: PlanAgreed, otherwise: { agreed: "unchanged" } },
+    revise: { from: ["draft", "agreed"], to: "draft", by: "plan.revise", event: PlanRevised, otherwise: {} },
   },
 });
 

@@ -1,6 +1,6 @@
-// The platform, served by this process for a run in private worlds (packages/blueprint decisions.md, 51): the
-// blueprint's platform group from packages/world, over HTTP on this machine's loopback, where the Cloudflare and Neon
-// keys are. The scenarios' client calls it as it would call any platform; what it kept of each call is read back
+// The platform, served by this process for a run in private worlds (packages/blueprint, src/things/world/values.ts):
+// the blueprint's platform group from packages/world, over HTTP on this machine's loopback, where the Cloudflare and
+// Neon keys are. The scenarios' client calls it as it would call any platform; what it kept of each call is read back
 // through `PlatformKept`. It lives as long as the run, and every world it made is the run's to destroy.
 import * as World from "@capxul/world";
 import * as BunHttpServer from "@effect/platform-bun/BunHttpServer";
@@ -34,15 +34,15 @@ const Kept = Schema.Struct({ spans: Schema.Array(SpanRow), events: Schema.Array(
 /** The label of where Core ran, when a host runs it off Cloudflare (src/local/host.ts); undefined on Cloudflare. */
 export const coreLabel = Effect.map(World.CoreHost, (host) => Option.getOrUndefined(Option.map(host, (h) => h.label)));
 
-/** The run's two operators, as the platform signs them in: the names and tokens the runner's settings hold. */
-const operators = (settings: Settings) =>
+/** Two operators, as the platform signs them in: these names, with the tokens the runner's settings hold. */
+const operators = (settings: Settings, names: { readonly first: string; readonly second: string }) =>
   Layer.succeed(World.Operators, {
-    first: { name: settings.owner, token: settings.platformToken },
-    second: Option.map(settings.secondPlatformToken, (token) => ({ name: settings.secondOwner, token })),
+    first: { name: names.first, token: settings.platformToken },
+    second: Option.map(settings.secondPlatformToken, (token) => ({ name: names.second, token })),
   });
 
-/** The platform, served on a free port of the loopback for as long as the layer lives. */
-export const platformFor = (settings: Settings) =>
+/** A platform served on a free port of the loopback, signing in `named`, keeping what it makes in `lists`. */
+const served = <E, R>(named: Layer.Layer<World.Operators>, lists: Layer.Layer<World.Made | World.Tried, E, R>) =>
   Layer.effectContext(
     Effect.gen(function* () {
       const url = yield* World.platformUrl;
@@ -68,6 +68,42 @@ export const platformFor = (settings: Settings) =>
   ).pipe(
     Layer.provideMerge(World.servePlatform),
     Layer.provideMerge(BunHttpServer.layer({ port: 0, hostname: "127.0.0.1" })),
-    Layer.provideMerge(Layer.merge(World.Made.layer, World.Tried.layer)),
-    Layer.provide(operators(settings)),
+    Layer.provideMerge(lists),
+    Layer.provide(named),
   );
+
+/** The platform, served for as long as the layer lives: the run's two operators, `WORLD_OWNER`'s and the second's. */
+export const platformFor = (settings: Settings) =>
+  served(
+    operators(settings, { first: settings.owner, second: settings.secondOwner }),
+    Layer.merge(World.Made.layer, World.Tried.layer),
+  );
+
+/**
+ * A platform of its own for one journey with worlds of its own (side by side, RUNNER_SHAPE=shared): two operators
+ * named for it (`operatorsOf`), so its worlds count against quotas no other journey shares, while what it makes and
+ * tries is kept in the run's own lists, where the run's sweep, summary and teardown read them. Built fresh, so no
+ * part of it is shared with the run's platform or another journey's.
+ */
+export const journeyAccount = (settings: Settings) =>
+  Effect.map(Effect.all([World.Made, World.Tried]), ([made, tried]) =>
+    served(
+      operators(settings, { first: settings.owner, second: settings.secondOwner }),
+      Layer.merge(Layer.succeed(World.Made, made), Layer.succeed(World.Tried, tried)),
+    ),
+  ).pipe(Layer.unwrap, Layer.fresh);
+
+/** The run's own platform, passed on as it is: what a journey of the shared world calls. */
+const theRun = () => Layer.effectContext(Effect.context<Platform | PlatformKept>());
+
+type Own = ReturnType<typeof journeyAccount>;
+
+/**
+ * The platform a journey calls side by side: one of its own when it has worlds of its own (`journeyAccount`, with
+ * `settings` naming its operators), else the run's.
+ */
+export const accountOfJourney = (
+  own: boolean,
+  settings: Settings,
+): Layer.Layer<Platform | PlatformKept, Layer.Error<Own>, Layer.Services<Own> | Platform | PlatformKept> =>
+  own ? journeyAccount(settings) : theRun();

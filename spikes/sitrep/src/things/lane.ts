@@ -1,7 +1,6 @@
 // The thing "lane": a chain of steps climbed on one slice branch by one lead.
 import * as Schema from "effect/Schema";
-import { Machine } from "@capxul/blueprint-tools";
-import { Title, ThreadId, stamp, type Allowed } from "../language.ts";
+import { Title, ThreadId, stamp, type Allowed, machine } from "../language.ts";
 import { StepId } from "./milestone.ts";
 import { LaneId } from "./step.ts";
 
@@ -16,14 +15,14 @@ export class LaneOpened extends Schema.TaggedClass<LaneOpened>()("lane_opened", 
 export class LaneLed extends Schema.TaggedClass<LaneLed>()("lane_led", { lane: LaneId, ...stamp, lead: ThreadId }) {}
 export class LaneLanded extends Schema.TaggedClass<LaneLanded>()("lane_landed", { lane: LaneId, ...stamp }) {}
 
-export const Lane = Machine.make({
+export const Lane = machine({
   name: "lane",
   key: "lane",
   states: ["open", "landed"],
-  start: { state: "open", by: "lane.open", event: "lane_opened" },
+  start: { state: "open", by: "lane.open", event: LaneOpened },
   moves: {
-    lead: { from: ["open"], to: "open", by: "lane.lead", event: "lane_led", otherwise: { landed: { refusal: "LaneLanded" } } },
-    land: { from: ["open"], to: "landed", by: "lane.land", event: "lane_landed", otherwise: { landed: "unchanged" } },
+    lead: { from: ["open"], to: "open", by: "lane.lead", event: LaneLed, otherwise: { landed: { refusal: "LaneLanded" } } },
+    land: { from: ["open"], to: "landed", by: "lane.land", event: LaneLanded, otherwise: { landed: "unchanged" } },
   },
 });
 

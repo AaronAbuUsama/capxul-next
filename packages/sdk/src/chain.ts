@@ -2,6 +2,9 @@
 // only as a codec of the contracts' ABI, from the compiled contracts' ABIs as the blueprint declares them: it encodes calls and decodes answers
 // and logs, and never reaches the network. Every answer is decoded with the read's own schema, so a read answers
 // exactly its declared type or dies. Every address and hash it answers is in lower case.
+//
+// A client holds them as `client.chain` (src/client.ts), each `(payload, { at?, operator? })`: over its own world's
+// endpoint, or `at` another world's as an operator. A read that gets no answer dies.
 import { Chain } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as DateTime from "effect/DateTime";

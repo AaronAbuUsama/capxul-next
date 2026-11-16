@@ -1,5 +1,5 @@
 {
-  "record": "empty-handlers",
+  "kind": "empty-handlers",
   "step": "1.14",
   "what": "A registered journey run against a Capxul whose every operation fails with NotImplemented, as Core's empty handlers do. It must fail at its first step, on the NotImplemented it is answered, never pass and never die.",
   "outcome": "passed",
@@ -10,16 +10,16 @@
     "began": [
       {
         "step": 1,
-        "operation": "org.member.list",
-        "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"org.member.list\"}"
+        "operation": "member.list",
+        "failure": "{\"_tag\":\"NotImplemented\",\"operation\":\"member.list\"}"
       }
     ],
     "calls": [
       "record.export",
-      "org.member.list"
+      "member.list"
     ],
     "outcome": "failed",
     "failedWith": "NotImplemented",
-    "detail": "org.member.list answered NotImplemented"
+    "detail": "member.list answered NotImplemented"
   }
 }

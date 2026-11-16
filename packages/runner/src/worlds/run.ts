@@ -5,6 +5,7 @@
 // run through the door with its operations' checks and the generic checks on every call, and every other world it
 // made destroyed after it, whatever happened, with the accounts read before and after for anything of them. The one
 // world and the hub go when the run ends, however it ends. Every part is timed into the summary (`timings`).
+import { Pipeline } from "@capxul/blueprint";
 import type { Journey } from "@capxul/scenarios";
 import * as World from "@capxul/world";
 import * as Arr from "effect/Array";
@@ -16,11 +17,11 @@ import * as Exit from "effect/Exit";
 import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
 import * as Ref from "effect/Ref";
-import { checkCall, failuresOf } from "../checks/checks.ts";
-import type { Call } from "../client.ts";
-import { describe, endedOf } from "../failure.ts";
+import { failuresOf } from "../checks/checks.ts";
+import { MadeWorlds } from "../client.ts";
+import { describe, endedOf, RunnerFailure } from "../failure.ts";
 import { passedOr, slugOf, writeJson, RunRecord } from "../record.ts";
-import { freshName, journeyPlan, keptFor, stepsFor, use, viaOf } from "../run.ts";
+import { freshName, journeyPlan, stepsFor, use, viaOf } from "../run.ts";
 import { stepsOf } from "../steps.ts";
 import type { Settings } from "../settings.ts";
 import { makeTimings, type Timings } from "../timings.ts";
@@ -28,31 +29,32 @@ import { answersSteadily } from "../world/warmup.ts";
 import type { Stage } from "../world/stage.ts";
 import { noteNotMade, summaryOf } from "./ending.ts";
 import { onHub, type HubUse } from "./hub.ts";
+import { placesForRun, sideBySideOf, sweepOf, type SideBySide } from "./side-by-side.ts";
+import { runIsolation } from "./run-isolation.ts";
+import { checked, JourneyMaking, type MakingCall } from "./making.ts";
 import { coreLabel, Platform } from "./platform.ts";
 import { sharedStartingWorldsOf, type SharedStartingWorlds } from "../shared/starting.ts";
 import { startingWorldsOf, type StartingWorlds } from "./starting.ts";
-import { destroyAll, destroyStrays, leftOf, takeDownWorlds } from "./teardown.ts";
+import { ofTheRun } from "./operators.ts";
+import { destroyAll, destroyStrays, leftOf, takeDown } from "./teardown.ts";
+import { tapFailures } from "../telemetry/side-by-side.ts";
 
-/** The starting worlds of a run: made in its one world, or restored from a shared world (shared/starting.ts). */
-type Starting = StartingWorlds | SharedStartingWorlds;
+/**
+ * The starting worlds of a run: made in its one world, restored from a shared world (shared/starting.ts), or built
+ * by each journey in one shared world, every journey at once (RUNNER_SHAPE=shared, side-by-side.ts).
+ */
+type Starting = StartingWorlds | SharedStartingWorlds | SideBySide;
 
 const now = Effect.map(DateTime.now, DateTime.formatIso);
 
 const millis = (took: Duration.Duration) => Math.round(Duration.toMillis(took));
 const NOWHERE = "http://127.0.0.1:9";
 
-/** The checked calls of `calls`, read from where each was kept. */
-const checked = (calls: ReadonlyArray<Call>) =>
-  Effect.gen(function* () {
-    const kept = yield* keptFor(Option.none(), calls);
-    return Arr.map(calls, (call) => checkCall(call, kept));
-  });
-
 /** The one world reset to the journey's starting world, what it makes by its steps made, and the journey run. */
 const work = (scenario: Journey, settings: Settings, starting: Starting, timings: Timings, name: string) =>
   Effect.gen(function* () {
     const platform = yield* Platform;
-    const callsBefore = (yield* starting.made).length;
+    const mine = yield* Ref.make<ReadonlyArray<MakingCall>>([]);
     const [makeTook, making] = yield* Effect.andThen(
       starting.resetFor(scenario.given, scenario.name),
       timings.timed(
@@ -60,21 +62,25 @@ const work = (scenario: Journey, settings: Settings, starting: Starting, timings
         { journey: scenario.name, of: scenario.given.name },
         starting.forScenario(scenario.given),
       ),
-    ).pipe(Effect.exit, Effect.timed);
-    const makingCalls = Arr.map(Arr.drop(yield* starting.made, callsBefore), (each) => each.call);
-    const madeChecked = yield* Effect.orElseSucceed(checked(makingCalls), () => []);
+    ).pipe(Effect.provideService(JourneyMaking, { calls: mine, journey: scenario }), Effect.exit, Effect.timed);
+    const makingCalls = Arr.map(yield* Ref.get(mine), (each) => each.call);
+    const { checked: madeChecked, plumbing } = yield* checked(makingCalls);
     if (Exit.isFailure(making))
-      return { makeMs: millis(makeTook), making, madeChecked, readiness: null, stage: name, used: undefined };
+      return { makeMs: millis(makeTook), making, madeChecked, plumbing, readiness: null, stage: name, used: undefined };
     const own = making.value.own;
     const world = own === null ? null : yield* World.open(own.world).pipe(Effect.orDie);
+    // Side by side, the shared world was waited for once, in the run's preparation; any other world, now.
+    const known = world !== null && "readyOf" in starting ? yield* starting.readyOf(world.stage) : Option.none();
     const readiness =
       world === null
         ? null
-        : yield* answersSteadily(world.coreUrl, {
-            answers: settings.readyAnswers,
-            every: settings.probeEvery,
-            warmUp: settings.warmUp,
-          });
+        : Option.isSome(known)
+          ? known.value
+          : yield* answersSteadily(world.coreUrl, {
+              answers: settings.readyAnswers,
+              every: settings.probeEvery,
+              warmUp: settings.warmUp,
+            });
     const stage: Stage = {
       name: world?.stage ?? name,
       url: world?.coreUrl ?? NOWHERE,
@@ -99,7 +105,7 @@ const work = (scenario: Journey, settings: Settings, starting: Starting, timings
       });
     if (Exit.isSuccess(used))
       yield* timings.record("checks", used.value.ms.checks, { journey: scenario.name, of: stage.name });
-    return { makeMs: millis(makeTook), making, madeChecked, readiness, stage: stage.name, used };
+    return { makeMs: millis(makeTook), making, madeChecked, plumbing, readiness, stage: stage.name, used };
   });
 
 /**
@@ -108,7 +114,7 @@ const work = (scenario: Journey, settings: Settings, starting: Starting, timings
  */
 const runOne = (
   scenario: Journey,
-  settings: Settings,
+  runSettings: Settings,
   starting: Starting,
   timings: Timings,
   run: string,
@@ -116,30 +122,35 @@ const runOne = (
 ) =>
   Effect.uninterruptibleMask((restore) =>
     Effect.gen(function* () {
+      // Side by side, a journey with worlds of its own has operators of its own (operators.ts).
+      const settings = "settingsFor" in starting ? starting.settingsFor(scenario) : runSettings;
       const platform = yield* Platform;
       const core = yield* coreLabel;
       const startedAt = yield* now;
       const before = yield* platform.made;
       const triedBefore = (yield* platform.tried).length;
-      const done = yield* Effect.exit(restore(work(scenario, settings, starting, timings, `${run}-${index + 1}`)));
+      const heard = yield* Ref.make<ReadonlyArray<string>>([]);
+      const tooMany = "tooMany" in starting ? starting.tooMany(scenario) : null; // fails alone, into its record
+      const journey =
+        tooMany === null
+          ? work(scenario, settings, starting, timings, `${run}-${index + 1}`)
+          : Effect.fail(RunnerFailure.make({ step: "places", message: tooMany }));
+      const done = yield* Effect.exit(restore(Effect.provideService(journey, MadeWorlds, heard)));
       const templates = yield* starting.templateWorlds;
+      // Side by side, a journey's worlds are those its own calls made; one after another, those made while it ran.
       const mine = Arr.filter(
-        Arr.drop(yield* platform.made, before.length),
+        settings.shape === "shared" ? yield* Ref.get(heard) : Arr.drop(yield* platform.made, before.length),
         (stage) => !Arr.contains(templates, stage),
       );
       // The one world lives on until the run ends; everything else the platform made or tried is this journey's.
       const looked = Arr.filter(
-        Arr.dedupe([...mine, ...Arr.drop(yield* platform.tried, triedBefore)]),
+        Arr.dedupe([...mine, ...(settings.shape === "shared" ? [] : Arr.drop(yield* platform.tried, triedBefore))]),
         (stage) => !Arr.contains(templates, stage),
       );
       const leftBefore = yield* leftOf(looked);
       const strays = Arr.filter(looked, (stage) => !Arr.contains(mine, stage));
       const [destroyTook, destroyed] = yield* Effect.timed(
-        Effect.zipWith(
-          destroyAll(mine),
-          destroyStrays(strays, [settings.owner, settings.secondOwner]),
-          (a, b) => a && b,
-        ),
+        Effect.zipWith(destroyAll(mine), destroyStrays(strays, ofTheRun(settings)), (a, b) => a && b),
       );
       yield* timings.record("destroy the journey's own worlds", millis(destroyTook), {
         journey: scenario.name,
@@ -155,9 +166,11 @@ const runOne = (
           ? [`the starting world was not made: ${describe(got.making.cause)}`]
           : []),
         ...failuresOf(got?.madeChecked ?? []),
+        ...(got?.plumbing ?? []),
         ...(used !== undefined && Exit.isFailure(used) ? [`the run did not finish: ${describe(used.cause)}`] : []),
         ...(value !== undefined && Exit.isFailure(value.run) ? [`the run failed: ${describe(value.run.cause)}`] : []),
         ...(value === undefined ? [] : failuresOf(value.calls)),
+        ...tapFailures(value?.tap),
         ...(destroyed ? [] : ["a world's destroy failed"]),
         ...(leftAfter === null || (leftAfter.worlds ?? []).length > 0
           ? ["the accounts still hold some of its worlds"]
@@ -178,7 +191,7 @@ const runOne = (
         ended: value === undefined ? null : endedOf(value.run),
         readiness: got?.readiness ?? null,
         calls: value?.calls ?? [],
-        ...(value === undefined ? {} : { coverage: value.coverage }),
+        ...(value === undefined ? {} : { coverage: value.coverage, tap: value.tap }),
         ...stepsFor({ kind: "journey" }, value?.steps ?? stepsOf(scenario.outline, [], [])),
         making: got?.madeChecked ?? [],
         afterwards: { stage: destroyed ? "destroyed" : "destroy failed", before: leftBefore, after: leftAfter },
@@ -194,24 +207,15 @@ const runOne = (
       if (Exit.isFailure(done) && Exit.hasInterrupts(done)) return yield* Effect.interrupt;
       return record;
     }),
-  ).pipe(Effect.withSpan("runner.world.scenario", { attributes: { scenario: scenario.name } }));
+  ).pipe(Effect.withSpan(Pipeline.journeyRun.name, { attributes: { scenario: scenario.name } }));
 
 /**
- * Destroys the run's one world, timed; what could not be done, one line each. Whatever ends the run, this runs. The
- * bench templates the run kept stay: they are the bench's, never dropped by a run, and the sweep removes them by age
- * (docs/roadmap.md, "Bench templates never change").
- */
-const takeDown = (starting: Starting, timings: Timings) =>
-  Effect.gen(function* () {
-    const done = yield* takeDownWorlds(yield* starting.templateWorlds, timings);
-    return done.failed;
-  });
-
-/**
- * Every journey in the run's one world, or, given a shared world, each in a world restored from its templates, one at
- * a time; and the run's summary at `<run>/summary.json`. The summary is written however the run ends but by
- * interruption: a starting world that was not made, a run that died, or a take-down that failed, is named in it with
- * why, and its outcome is `failed`.
+ * Every journey in the run's one world one at a time, or each in a world restored from a shared world's templates
+ * (`--shared`), or all at once in one shared world (RUNNER_SHAPE=shared, side-by-side.ts); and the run's summary at
+ * `<run>/summary.json`, written however the run ends but by interruption: a starting world not made, a run that died,
+ * or a take-down that failed is named in it with why, and its outcome is `failed`. Runs may share a bench and a
+ * cluster, each in its own world. TODO: how many runs at once the staging bench holds; the snapshots a journey saves
+ * in the one world (`m3`, `draft`) stay for the run, so a later save of the same name would be refused.
  */
 export const runInWorlds = (
   scenarios: ReadonlyArray<Journey>,
@@ -225,37 +229,58 @@ export const runInWorlds = (
     const timings = yield* makeTimings;
     const notMade = yield* Ref.make<string | null>(null);
     const notTakenDown = yield* Ref.make<ReadonlyArray<string>>([]);
+    const handedOver = yield* Ref.make<ReadonlyArray<string>>([]);
     const oneWorld = yield* Ref.make<string | null>(null);
     const hubUsed = yield* Ref.make<HubUse | null>(null);
+    const isolation = yield* Ref.make<ReadonlyArray<string>>([]);
     const ran = yield* Effect.exit(
       onHub(settings, timings, (used) =>
         Effect.gen(function* () {
           yield* Ref.set(hubUsed, used);
           const starting: Starting = Option.isSome(shared)
             ? yield* sharedStartingWorldsOf(settings, platform.url, timings, shared.value)
-            : yield* startingWorldsOf(settings, platform.url, timings);
+            : settings.shape === "shared"
+              ? yield* sideBySideOf(settings, platform.url, yield* placesForRun(settings, used.stage, timings))
+              : yield* startingWorldsOf(settings, platform.url, timings);
           // What the take-down could not do fails the run; a take-down that itself died is named as one.
-          const takenDown = takeDown(starting, timings).pipe(
+          const takenDown = takeDown(settings, starting.templateWorlds, timings, handedOver).pipe(
             Effect.flatMap((failed) => Ref.set(notTakenDown, failed)),
             Effect.catchCause((cause) => Ref.set(notTakenDown, [`the take-down did not finish: ${describe(cause)}`])),
           );
           return yield* Effect.gen(function* () {
-            // A starting world that could not be made fails the journeys of it, each with why; the rest still run.
-            // The summary names it too, a defect included (a door that answered an error page, say).
+            // A starting world not made fails its journeys, each with why, and the summary names it; the rest run.
+            // `run.prepare`: the one world and its template starting worlds, made and saved before any journey.
             yield* starting
               .prepare(Arr.map(scenarios, (scenario) => scenario.given))
-              .pipe(Effect.catchCause(noteNotMade(timings, notMade)));
+              .pipe((made) => timings.timed("prepare", {}, made), Effect.catchCause(noteNotMade(timings, notMade)));
             yield* Ref.set(oneWorld, Option.getOrNull(yield* Effect.option(starting.oneWorld)));
-            return yield* Effect.forEach(scenarios, (scenario, index) =>
-              runOne(scenario, settings, starting, timings, run, index),
+            const records = yield* Effect.forEach(
+              scenarios,
+              // A journey holds its places until its worlds are destroyed; its whole time is a part of the record.
+              (scenario, index) =>
+                Effect.timed(runOne(scenario, settings, starting, timings, run, index)).pipe(
+                  "around" in starting ? starting.around(scenario) : (each) => each,
+                  Effect.tap(([took]) => timings.record("journey whole", millis(took), { journey: scenario.name })),
+                  Effect.map(([, record]) => record),
+                ),
+              { concurrency: settings.shape === "shared" ? "unbounded" : 1 },
             );
-          }).pipe(Effect.ensuring(takenDown));
+            const world = yield* Ref.get(oneWorld);
+            if ("around" in starting && world !== null)
+              yield* Ref.set(isolation, yield* runIsolation(world, scenarios, records, yield* starting.made));
+            return records;
+            // Side by side, the worlds journeys made by their own steps are swept once all have ended.
+          }).pipe(Effect.ensuring(Effect.andThen(sweepOf(settings, starting.templateWorlds), takenDown)));
         }),
       ),
     );
     const summary = yield* summaryOf({
       run,
-      mode: Option.isSome(shared) ? "shared world" : "one world",
+      mode: Option.isSome(shared)
+        ? "shared world"
+        : settings.shape === "shared"
+          ? "shared world, side by side"
+          : "one world",
       startedAt,
       owner: settings.owner,
       records: settings.records,
@@ -263,6 +288,8 @@ export const runInWorlds = (
       ran,
       notMade: yield* Ref.get(notMade),
       notTakenDown: yield* Ref.get(notTakenDown),
+      isolation: yield* Ref.get(isolation),
+      handedOver: yield* Ref.get(handedOver),
       world: yield* Ref.get(oneWorld),
       used: yield* Ref.get(hubUsed),
       left: yield* leftOf(Arr.dedupe([...(yield* platform.made), ...(yield* platform.tried)])),

@@ -10,7 +10,7 @@
 //    actor allowed, so "only Aaron agrees a plan" and "only the pipeline proves a step" are declarations, not habits.
 // 4. Prose as a value: a required section of words, with a minimum, so "a milestone has a goal" is enforced.
 import * as Schema from "effect/Schema";
-import type { Machine } from "@capxul/blueprint-tools";
+import { Machine } from "@capxul/blueprint-tools";
 
 /** A UTC instant, to the second. */
 export const Instant = Schema.String.check(Schema.isPattern(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/));
@@ -59,14 +59,40 @@ export interface Entry {
 
 export class InvalidHistory extends Error {}
 
-type AnyMachine = Machine.Machine<string, string, ReadonlyArray<string>, string, { readonly [m: string]: Machine.Move }>;
+/**
+ * Declares a conductor thing's machine in the toolkit's format (since #319 it takes its states as a schema and each
+ * operation, event and refusal as its declaration). The conductor's verbs are not yet declared as work with an Rpc tag
+ * and its refusals are not yet declared classes, so `by` and `refusal` are named here, and `refused` is worked out
+ * from the moves; its events are passed as their classes. A fifth gap for the toolkit: machines of work no door serves.
+ */
+type Otherwise = { readonly refusal: string } | "unchanged";
+interface Declared {
+  readonly name: string;
+  readonly key: string;
+  readonly states: ReadonlyArray<string>;
+  readonly start: { readonly state: string; readonly by: string; readonly event: { readonly identifier: string } };
+  readonly moves: { readonly [move: string]: { readonly from: ReadonlyArray<string>; readonly to: string; readonly by: string; readonly event: { readonly identifier: string }; readonly otherwise: { readonly [state: string]: Otherwise } } };
+}
+const verb = (tag: string) => ({ rpc: { _tag: tag } });
+export const machine = (d: Declared) => {
+  const moves = Object.values(d.moves);
+  const refused = d.states.filter((s) => moves.some((m) => m.otherwise[s] !== undefined && m.otherwise[s] !== "unchanged"));
+  return Machine.make({
+    name: d.name, key: d.key, states: Schema.Literals(d.states), refused: Schema.Literals(refused),
+    start: { ...d.start, by: verb(d.start.by) },
+    moves: Object.fromEntries(Object.entries(d.moves).map(([k, m]) => [k, { ...m, by: verb(m.by),
+      otherwise: Object.fromEntries(Object.entries(m.otherwise).map(([s, o]) => [s, o === "unchanged" ? o : { refusal: { identifier: o.refusal } }])) }])),
+  } as never) as unknown as Machine.Declared & { step: (state: string, move: string) => Machine.AnyStepped; State: Schema.Top };
+};
+type AnyMachine = ReturnType<typeof machine>;
 
 /**
  * A thing's state, derived from its events in order. The first must be its machine's start; every later one must be a
  * move its machine makes from the state reached, by an actor that move allows. Anything else is an invalid history.
  */
 export const replay = (machine: AnyMachine, allowed: Allowed, key: string, events: ReadonlyArray<Stamped>) => {
-  const byEvent = new Map(Object.entries(machine.moves).map(([name, move]) => [move.event, name]));
+  const named = Machine.named(machine);
+  const byEvent = new Map(Object.entries(named.moves).map(([name, move]) => [move.event, name]));
   let state: string | undefined;
   const history: Array<Entry> = [];
   for (const e of events) {
@@ -74,14 +100,14 @@ export const replay = (machine: AnyMachine, allowed: Allowed, key: string, event
     if (who === undefined || !who.includes(e.by.kind))
       throw new InvalidHistory(`${machine.name} ${key}: ${e._tag} at ${e.at} by the ${e.by.kind}, which may not make that move`);
     if (state === undefined) {
-      if (e._tag !== machine.start.event) throw new InvalidHistory(`${machine.name} ${key}: starts with ${e._tag}`);
+      if (e._tag !== named.start.event) throw new InvalidHistory(`${machine.name} ${key}: starts with ${e._tag}`);
       state = machine.start.state;
     } else {
       const move = byEvent.get(e._tag);
       if (move === undefined) throw new InvalidHistory(`${machine.name} ${key}: ${e._tag} is no move of it`);
       const stepped = machine.step(state, move);
       if (stepped._tag === "Refused")
-        throw new InvalidHistory(`${machine.name} ${key}: ${move} from ${state} at ${e.at} is refused (${stepped.refusal})`);
+        throw new InvalidHistory(`${machine.name} ${key}: ${move} from ${state} at ${e.at} is refused (${stepped.refusal.identifier})`);
       if (stepped._tag === "Moved") state = stepped.to;
     }
     history.push({ event: e._tag, by: e.by, at: e.at, state });

@@ -27,10 +27,11 @@ import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
 import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
-import { checkCall, CheckedCall, failuresOf } from "../checks/checks.ts";
+import { CheckedCall, failuresOf } from "../checks/checks.ts";
 import { describe, RunnerFailure } from "../failure.ts";
 import { Outcome, writeJson } from "../record.ts";
 import { freshName, keptFor } from "../run.ts";
+import { checkedOrPlumbing } from "../telemetry/kept.ts";
 import type { Settings } from "../settings.ts";
 import { makeTimings, Timing } from "../timings.ts";
 import { encodeAnswer } from "../worlds/encode.ts";
@@ -227,8 +228,7 @@ export const makeOrRenew = (settings: Settings, journeys: ReadonlyArray<Journey>
     );
     const sites = Exit.isSuccess(listed) ? listed.value : [];
     const calls = Arr.map(yield* Ref.get(made), (each) => each.call);
-    const kept = yield* Effect.orElseSucceed(keptFor(Option.none(), calls), () => ({ spans: [], events: [] }));
-    const checked = Arr.map(calls, (call) => checkCall(call, kept));
+    const { checked, plumbing } = yield* checkedOrPlumbing(calls, keptFor(Option.none(), calls));
     const templates = yield* World.open(name).pipe(
       Effect.flatMap(keptNames),
       Effect.orElseSucceed(() => []),
@@ -248,6 +248,7 @@ export const makeOrRenew = (settings: Settings, journeys: ReadonlyArray<Journey>
       ...(Exit.isFailure(listed) ? [`its sites were not read from the bench: ${describe(listed.cause)}`] : []),
       ...Arr.flatMap(sites, (site) => (site.state === "ready" ? [] : [`${site.site} is ${site.state}`])),
       ...failuresOf(checked),
+      ...plumbing,
     ];
     const done: SharedRecord = {
       kind: "shared world",

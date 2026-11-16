@@ -3,11 +3,14 @@
 # made, every time, even when a journey fails or the job is cancelled (world lifecycle rule 1). Runs of different
 # branches run at once.
 #
-# The run is the runner's own (packages/runner/README.md, "A run in one world"; step 1.18): `run.sh scenarios` makes
-# one world on the fleet hub, makes and saves the starting worlds, resets the world in place before each journey,
-# records everything, and takes down at its end what it made. The steps after it are the guarantee for when it could
-# not: they destroy every world this run's operators own, take down a hub of the run's own, and sweep the expired
-# (worlds, hubs and the bench's long-unused templates).
+# The run is the runner's own (packages/runner/src/worlds/run.ts; step 1.18): `run.sh scenarios` makes
+# one world on the standing cluster `fleet`, makes and saves the starting worlds, resets the world in place before each journey,
+# records everything, and destroys each journey's own worlds after it. Here it runs with RUNNER_TEARDOWN=job: it leaves
+# its one world and its own cluster up, so the check `thin-line` reports its verdict as soon as the journeys and their
+# checks are done and the records are kept (docs/design/run-time.md, option 7). The job `teardown` then always runs,
+# on success, failure or cancellation: it destroys every world this run's operators own, takes down a cluster of
+# the run's own, sweeps the expired (worlds, clusters and the bench's long-unused templates), and fails, naming the world, when
+# a destroy fails. Each world's expiry (150 minutes) and the cluster's lifetime (3 hours) back it up (lifecycle rules 1, 2).
 #
 # The bench is reached through its Cloudflare Tunnel: Core on Cloudflare calls the sites and this job calls the site
 # door at their public names under PLATFORM_DOMAIN, and the door's address and key are read from the shared state with
@@ -27,6 +30,9 @@ on:
   workflow_dispatch:
   pull_request:
     branches: [master]
+    # A draft slice pull request runs nothing; marking it ready runs the journeys (15 November 2026: leads' early draft
+    # pull requests ran a 30-minute world on every builder merge, and four at once overloaded the staging bench).
+    types: [opened, synchronize, reopened, ready_for_review]
     paths-ignore: ["docs/**", "**/*.md", "packages/*/records/**"]
   schedule:
     - cron: "41 3 * * *"
@@ -51,10 +57,22 @@ env:
   WORLD_OWNER: ci-${{ github.run_id }}-${{ github.run_attempt }}
   WORLD_SECOND_OWNER: ci-${{ github.run_id }}-${{ github.run_attempt }}-2
 jobs:
+  # Paused for every slice but the speed lane's (Aaron, 15 November 2026: "let's pause running the full tests until we
+  # sort out the speed"): other slices land on a fresh gate and a 🔍 pass; slice/run-time's runs, master's daily run and a
+  # run started by hand still run the journeys, and each covers everything already on master. Restore
+  # startsWith(github.head_ref, 'slice/') when the roadmap's decision "Full runs paused until the run is fast" ends.
   thin-line:
-    if: github.event_name == 'workflow_dispatch' || (vars.CAPXUL_CLOUD_READY == 'true' && (github.event_name != 'pull_request' || startsWith(github.head_ref, 'slice/')))
+    if: github.event_name == 'workflow_dispatch' || (vars.CAPXUL_CLOUD_READY == 'true' && (github.event_name != 'pull_request' || (github.head_ref == 'slice/run-time' && !github.event.pull_request.draft)))
     runs-on: ubuntu-latest
+    # One user of the staging bench at a time: platform.yml's deploy and shared jobs take the same group, so a deploy
+    # never lands in the middle of a run (15 November 2026).
+    concurrency:
+      group: staging-bench
+      cancel-in-progress: false
     timeout-minutes: 90
+    outputs:
+      # The cluster the run used, for the teardown job: `fleet`, which stays up, or the run's own, which it takes down.
+      cluster: ${{ steps.cluster.outputs.stage }}
     steps:
       - uses: actions/checkout@v4
       - name: Require the cloud secrets and variables
@@ -69,24 +87,34 @@ jobs:
             echo "::error title=No staging bench::The site door of platform stage $WORLD_BENCH does not answer at $WORLD_BENCH-door.$PLATFORM_DOMAIN; deploy it with platform.yml (roadmap step 2.2)."
             exit 1
           }
-      - name: Choose the hub
-        id: hub
-        # The standing hub `fleet` while it lives at least 3 hours more (the run's world lives 150 minutes and may not
-        # outlive its hub): the runner uses a hub that exists and leaves it up, and a hub is never taken down while a
-        # world is on it. Otherwise a hub of the run's own, which the runner brings up for 3 hours and takes down.
+      - name: Choose the cluster
+        id: cluster
+        # The standing cluster `fleet` while it lives at least 3 hours more (the run's world lives 150 minutes and may not
+        # outlive its cluster): the runner uses a cluster that exists and leaves it up, and a cluster is never taken down
+        # while a world is on it. Otherwise a cluster of the run's own, which the runner brings up for 3 hours and the job
+        # `teardown` takes down.
         run: |
-          hub="ch-$(printf '%s' '${{ github.run_id }}' | tail -c 7)${{ github.run_attempt }}"
+          cluster="ch-$(printf '%s' '${{ github.run_id }}' | tail -c 7)${{ github.run_attempt }}"
           if packages/world/run.sh hub show --hub fleet >"$RUNNER_TEMP/fleet.json" &&
             python3 -c 'import json, sys, datetime as d; e = d.datetime.fromisoformat(json.load(open(sys.argv[1]))["expiresAt"].replace("Z", "+00:00")); sys.exit(0 if e - d.datetime.now(d.timezone.utc) > d.timedelta(hours=3) else 1)' "$RUNNER_TEMP/fleet.json"
           then
-            hub=fleet
+            cluster=fleet
           fi
-          echo "Hub: $hub"
-          echo "WORLD_HUB=$hub" >>"$GITHUB_ENV"
-          echo "stage=$hub" >>"$GITHUB_OUTPUT"
+          echo "Cluster: $cluster"
+          echo "WORLD_HUB=$cluster" >>"$GITHUB_ENV"
+          echo "stage=$cluster" >>"$GITHUB_OUTPUT"
       - name: Run the thin line's journeys in one world
         env:
           RUNNER_HUB_LIFETIME: 3 hours
+          # The run leaves its one world and its own cluster to the job `teardown` below.
+          RUNNER_TEARDOWN: job
+          # The journeys run one after another (RUNNER_SHAPE's default, `serial`) until the staging bench's door can make
+          # company sites side by side. Runs 43789356026 and 43793700222 ran them at once in one shared world (roadmap
+          # 4.8): every journey whose site came up passed, but the deployed door (a pool of 4 ready blank copies, without
+          # #376's remake of an interrupted site) left some sites "creating" past ten minutes, even at four at once. The door
+          # with #337's pool of 8 and #376 reaches staging from master after this landing (the conductor, 16 November
+          # 2026); the next landing sets RUNNER_SHAPE: shared and RUNNER_SITES_AT_ONCE: 8, with the runner capping itself
+          # to the door's reported pool, and that run measures 4.8.
         run: RUNNER_RECORDS="$RUNNER_TEMP/records" packages/runner/run.sh scenarios
       - uses: actions/upload-artifact@v4
         if: always()
@@ -94,20 +122,87 @@ jobs:
           name: world-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/records/
           if-no-files-found: warn
+  # The teardown, after the verdict. `always()` runs it whatever `thin-line` ended as, a cancelled run included (a newer
+  # push to the pull request cancels the older run, and GitHub still runs a job whose `if` holds `always()`). It runs
+  # whenever `thin-line` was not skipped, so even when that job was cancelled before it chose a cluster.
+  teardown:
+    needs: thin-line
+    if: always() && needs.thin-line.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require the cloud secrets and variables
+        run: >-
+          packages/platform/bin/require.sh CLOUDFLARE_API_TOKEN NEON_API_KEY CLOUDFLARE_ACCOUNT_ID NEON_ORG_ID
+          PLATFORM_DOMAIN
+      - uses: ./.github/actions/platform-setup
       - name: Destroy every world the run's operators own
         if: always()
         run: |
+          mkdir -p "$RUNNER_TEMP/teardown"
           packages/world/run.sh list >"$RUNNER_TEMP/worlds.json"
-          left=$(python3 -c 'import json, os, sys; owners = {os.environ["WORLD_OWNER"], os.environ["WORLD_SECOND_OWNER"]}; print(" ".join(w["world"] for w in json.load(open(sys.argv[1])) if w["owner"] in owners))' "$RUNNER_TEMP/worlds.json")
+          # The run's operators: its two, and each journey's own with worlds of its own, `$WORLD_OWNER-<key>` and
+          # `$WORLD_OWNER-<key>-2` (packages/runner/src/worlds/operators.ts): every owner that is the run's or starts with it
+          # and a dash. Another run's owner never does: run ids and attempts end at the dash.
+          left=$(python3 -c 'import json, os, sys; first, second = os.environ["WORLD_OWNER"], os.environ["WORLD_SECOND_OWNER"]; ours = lambda o: o in (first, second) or o.startswith(first + "-"); print(" ".join(w["world"] for w in json.load(open(sys.argv[1])) if ours(w["owner"])))' "$RUNNER_TEMP/worlds.json")
+          echo "Worlds of the run's operators: ${left:-none}"
+          printf '%s\n' $left >"$RUNNER_TEMP/teardown/worlds.txt"
           status=0
-          for world in $left; do packages/world/run.sh destroy "$world" || status=1; done
+          for world in $left; do
+            packages/world/run.sh destroy "$world" || {
+              echo "::error title=World not destroyed::$world: its destroy failed; its expiry and the sweep back it up."
+              status=1
+            }
+          done
           exit "$status"
-      - name: Take down the run's own hub
-        if: always() && steps.hub.outputs.stage != '' && steps.hub.outputs.stage != 'fleet'
+      - name: Take down the run's own cluster
+        if: always()
+        # The cluster `thin-line` chose; when it ended before saying, the name it would have chosen. `fleet` stays up.
+        env:
+          CLUSTER: ${{ needs.thin-line.outputs.cluster }}
         run: |
-          if packages/world/run.sh hub show --hub "${{ steps.hub.outputs.stage }}" >/dev/null 2>&1; then
-            packages/world/run.sh hub down --hub "${{ steps.hub.outputs.stage }}"
+          cluster="${CLUSTER:-ch-$(printf '%s' '${{ github.run_id }}' | tail -c 7)${{ github.run_attempt }}}"
+          [ "$cluster" = fleet ] && { echo "The run used the standing cluster fleet, which stays up."; exit 0; }
+          mkdir -p "$RUNNER_TEMP/teardown" && echo "$cluster" >"$RUNNER_TEMP/teardown/cluster.txt"
+          if packages/world/run.sh hub show --hub "$cluster" >/dev/null 2>&1; then
+            packages/world/run.sh hub down --hub "$cluster" || {
+              echo "::error title=Cluster not taken down::$cluster: its take-down failed; its lifetime and the sweep back it up."
+              exit 1
+            }
+          else
+            echo "No cluster $cluster: nothing to take down."
           fi
+      - name: Read the accounts for anything of the run's worlds and cluster
+        if: always()
+        # World lifecycle rule 4, as the runner's record proved it before the take-down moved here: after the destroys
+        # and the cluster's take-down, the two accounts (packages/world's `inventory`, every name of the stack in them) hold
+        # nothing of a world this job destroyed or of the run's own cluster. Kept as an artifact beside the run's records.
+        run: |
+          mkdir -p "$RUNNER_TEMP/teardown"
+          packages/world/run.sh inventory >"$RUNNER_TEMP/teardown/inventory.json"
+          python3 - "$RUNNER_TEMP/teardown" <<'PY'
+          import json, os, sys
+          folder = sys.argv[1]
+          def lines(name):
+              path = os.path.join(folder, name)
+              return [l.strip() for l in open(path)] if os.path.exists(path) else []
+          stages = [w if w.startswith("w-") else "w-" + w for w in lines("worlds.txt") if w] + [c for c in lines("cluster.txt") if c]
+          held = json.load(open(os.path.join(folder, "inventory.json")))
+          names = [n for kind in held.values() if isinstance(kind, dict) for n in kind.get("ofThisStack", kind.get("names", []))]
+          left = sorted({n for n in names for s in stages if f"-{s}-" in n.lower() or n.lower().endswith(f"-{s}") or n.endswith(f"/{s}")})
+          json.dump({"stages": stages, "left": left}, open(os.path.join(folder, "left.json"), "w"), indent=2)
+          print(f"Looked for: {', '.join(stages) or 'nothing'}; left: {', '.join(left) or 'nothing'}")
+          for name in left:
+              print(f"::error title=Left in the accounts::{name}: the teardown destroyed its world or cluster, but this remains.")
+          sys.exit(1 if left else 0)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: world-${{ github.run_id }}-${{ github.run_attempt }}-teardown
+          path: ${{ runner.temp }}/teardown/
+          if-no-files-found: warn
       - name: Sweep worlds that outlived their expiry, and bench templates unused for 6 hours
         if: always()
         run: packages/world/run.sh sweep

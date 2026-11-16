@@ -5,35 +5,43 @@
 // glossary's renames (roadmap item 3.8).
 import * as RpcGroup from "effect/rpc/RpcGroup";
 import type { ClaimsOf } from "../starting-points/points.ts";
-import * as InvitationSend from "../things/invitation/send.ts";
-import * as InvitationList from "../things/invitation/list.ts";
-import * as InvitationAccept from "../things/invitation/accept.ts";
-import * as InvitationDecline from "../things/invitation/decline.ts";
-import * as MemberList from "../things/member/list.ts";
+import * as InvitationVerbsSend from "../things/invitation/verbs/send.ts";
+import * as InvitationVerbsList from "../things/invitation/verbs/list.ts";
+import * as InvitationVerbsAccept from "../things/invitation/verbs/accept.ts";
+import * as InvitationVerbsDecline from "../things/invitation/verbs/decline.ts";
+import * as MemberVerbsList from "../things/member/verbs/list.ts";
 import { Invitation as InvitationLifecycle } from "../things/invitation/lifecycle.ts";
 
-export { Email, InvitationId, InvitedRole, InvitationState, Invitation } from "../things/invitation/values.ts";
+export {
+  Email,
+  InvitationId,
+  InvitedRole,
+  RefusalRule,
+  InvitationState,
+  ClosedState,
+  Invitation,
+} from "../things/invitation/values.ts";
 export { MemberInvited, InvitationAccepted, InvitationDeclined } from "../things/invitation/events.ts";
-export { MemberRole, Member } from "../things/member/values.ts";
-export { memberInvite } from "../things/invitation/send.ts";
-export { inviteList } from "../things/invitation/list.ts";
-export { Accepted, AlreadyAccepted, inviteAccept } from "../things/invitation/accept.ts";
-export { inviteDecline } from "../things/invitation/decline.ts";
-export { memberList } from "../things/member/list.ts";
+export { MemberRole, MemberRefusalRule, Member } from "../things/member/values.ts";
+export { invitationSend } from "../things/invitation/verbs/send.ts";
+export { invitationList } from "../things/invitation/verbs/list.ts";
+export { Accepted, AlreadyAccepted, invitationAccept } from "../things/invitation/verbs/accept.ts";
+export { invitationDecline } from "../things/invitation/verbs/decline.ts";
+export { memberList } from "../things/member/verbs/list.ts";
 
 /** Its operations, by name. */
 export const operations = {
-  "org.member.invite": InvitationSend.memberInvite,
-  "invite.list": InvitationList.inviteList,
-  "invite.accept": InvitationAccept.inviteAccept,
-  "invite.decline": InvitationDecline.inviteDecline,
-  "org.member.list": MemberList.memberList,
+  "invitation.send": InvitationVerbsSend.invitationSend,
+  "invitation.list": InvitationVerbsList.invitationList,
+  "invitation.accept": InvitationVerbsAccept.invitationAccept,
+  "invitation.decline": InvitationVerbsDecline.invitationDecline,
+  "member.list": MemberVerbsList.memberList,
 } as const;
 
 /** Its operations that move no thing with a lifecycle, each with why: each such verb's `stateless`. */
 export const stateless: { readonly [Name in keyof typeof operations]?: string } = {
-  "invite.list": InvitationList.stateless,
-  "org.member.list": MemberList.stateless,
+  "invitation.list": InvitationVerbsList.stateless,
+  "member.list": MemberVerbsList.stateless,
 };
 
 /** Its machines, by name: its things' lifecycles. */
@@ -46,18 +54,18 @@ export const platformRpcs = RpcGroup.make();
 
 /** What a world's Core serves of it, through the world's door (`WorldRpcs`). */
 export const worldRpcs = RpcGroup.make(
-  InvitationSend.memberInvite.rpc,
-  InvitationList.inviteList.rpc,
-  InvitationAccept.inviteAccept.rpc,
-  InvitationDecline.inviteDecline.rpc,
-  MemberList.memberList.rpc,
+  InvitationVerbsSend.invitationSend.rpc,
+  InvitationVerbsList.invitationList.rpc,
+  InvitationVerbsAccept.invitationAccept.rpc,
+  InvitationVerbsDecline.invitationDecline.rpc,
+  MemberVerbsList.memberList.rpc,
 );
 
 /** The promises of each of its operations: each verb's `promises`. */
 export const claims: { readonly [Name in keyof typeof operations]: ClaimsOf } = {
-  "org.member.invite": InvitationSend.promises,
-  "invite.list": InvitationList.promises,
-  "invite.accept": InvitationAccept.promises,
-  "invite.decline": InvitationDecline.promises,
-  "org.member.list": MemberList.promises,
+  "invitation.send": InvitationVerbsSend.promises,
+  "invitation.list": InvitationVerbsList.promises,
+  "invitation.accept": InvitationVerbsAccept.promises,
+  "invitation.decline": InvitationVerbsDecline.promises,
+  "member.list": MemberVerbsList.promises,
 };
