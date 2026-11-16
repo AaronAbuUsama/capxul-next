@@ -569,6 +569,7 @@ left open.
 |---|---|---|
 | `conventions.ts` | The OpenTelemetry semantic conventions' version, pinned (T8) | The schema URL on every producer's resource |
 | `envelope.ts` | Every attribute stamped on every record: its name, convention or `capxul.*`, schema, who sets it | The constants producers import; the door's stamping; Axiom field descriptions |
+| `values.ts` | The values the envelope's attributes carry, each a named schema, and the places an attribute is stamped; `envelope.ts` re-exports them | The schemas the attributes are checked against |
 | `producers.ts` | Each `service.name`: core, runner, world, platform client, sdk, cli, door, cost job, gate, agents' sessions | Each process's resource |
 | `step-kinds.ts` | database, site, chain, bundler, wait, deploy, branch, container, compute (work done in-process, touching nothing outside), restore, poll | `capxul.step.kind`; the waits a budget leaves out |
 | `metrics.ts` | Each metric: name, type, unit, the tags it may carry | Effect `Metric` definitions; the metrics a check expects |
@@ -592,6 +593,7 @@ guard).
 | On an operation's span | `capxul.operation`, `capxul.operation.version`, `capxul.outcome`, `capxul.refusal`, `capxul.caller.role`, `capxul.budget.ms` | The operation's middleware |
 | On a step's span | `capxul.step.kind` | `Step.fn` |
 | On a check's span | `capxul.check`, `capxul.check.layer` | The checks |
+| On a chain read's span (`journey.run.chain`) | `rpc.system`, `rpc.method` (conventions), `capxul.chain.block.from`, `capxul.chain.block.to` | The runner |
 
 **What this settles that was open:**
 

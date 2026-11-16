@@ -5,6 +5,7 @@
 // judge. The SDK sends them (packages/sdk, `ReachDoors`); the client wraps what it reaches with `recordedRpc`.
 import { Envelope, Pipeline } from "@capxul/blueprint";
 import type * as Sdk from "@capxul/sdk";
+import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -23,26 +24,33 @@ export const ChainRead = Schema.Struct({
   from: Schema.NullOr(Envelope.BlockRef),
   to: Schema.NullOr(Envelope.BlockRef),
   ms: Envelope.TookMs,
-  /** `ok` when an answer came back; `error` when the read died. */
+  /** `ok` when an answer came back; `interrupted` when it was interrupted; `error` when the read died. */
   outcome: Envelope.Outcome,
 });
 export type ChainRead = typeof ChainRead.Type;
 
-/** Where a chain read is heard: the step open when it was made. Without it, a read is only its span. */
+/**
+ * Where a chain read is heard: the step open when it was made, or, between steps, the step that ended last (its
+ * `after`). Without it, a read is only its span.
+ */
 export class ChainReads extends Context.Service<
   ChainReads,
   { readonly heard: (read: ChainRead) => Effect.Effect<void> }
 >()("@capxul/runner/telemetry/chain/ChainReads") {}
 
-/** The block range of an `eth_getLogs`, as its filter names it; none for any other method. */
+const isBlockRef = Schema.is(Envelope.BlockRef);
+
+/**
+ * The block range of an `eth_getLogs`, as its filter names it; none for any other method. A block it names in a way
+ * `BlockRef` does not hold (such as a block's hash) is left out, so the read is still recorded.
+ */
 export const rangeOf = (
   method: string,
   params: ReadonlyArray<unknown>,
 ): { readonly from: string | null; readonly to: string | null } => {
   const filter = params[0];
   if (method !== "eth_getLogs" || !Predicate.isObject(filter)) return { from: null, to: null };
-  const block = (key: string) =>
-    Predicate.hasProperty(filter, key) && Predicate.isString(filter[key]) ? filter[key] : null;
+  const block = (key: string) => (Predicate.hasProperty(filter, key) && isBlockRef(filter[key]) ? filter[key] : null);
   return { from: block("fromBlock"), to: block("toBlock") };
 };
 
@@ -65,7 +73,7 @@ const read = Effect.fn(
       method,
       ...range,
       ms: Duration.toMillis(took),
-      outcome: Exit.isSuccess(exit) ? "ok" : "error",
+      outcome: Exit.isSuccess(exit) ? "ok" : Cause.hasInterruptsOnly(exit.cause) ? "interrupted" : "error",
     });
   return yield* exit;
 });
