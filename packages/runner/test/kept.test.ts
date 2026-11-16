@@ -21,9 +21,10 @@ import * as Redacted from "effect/Redacted";
 import { checkCall } from "../src/checks/checks.ts";
 import type { Call } from "../src/client.ts";
 import { flatSpans } from "../src/telemetry/flat.ts";
-import { rowOf, tapTelemetryOf } from "../src/telemetry/kept.ts";
+import { appKeptOf, rowOf, tapTelemetryOf } from "../src/telemetry/kept.ts";
 import { decodeTraces } from "../src/telemetry/otlp.ts";
 import type { SpanRow } from "../src/world/database.ts";
+import { OtherWorlds } from "../src/world/existing.ts";
 import { bodiesTo, exported } from "./support/capture.ts";
 
 const DATABASE = Redacted.make("postgresql://user:password@ep-kept.test/neondb");
@@ -150,4 +151,52 @@ test("a call the api never answered needs nothing of the tap", async () => {
     ).pipe(Effect.provide(standIn([]))),
   );
   assert.deepEqual(kept, { spans: [], events: [] });
+});
+
+/** A row of `app.spans` with nothing but its trace and its name. */
+const row = (trace: string, name: string): SpanRow => ({
+  trace_id: trace,
+  span_id: `${name}-span`,
+  parent_span_id: null,
+  name,
+  outcome: "success",
+  duration_ms: 1,
+  ended_ms: 1_800_000_000_000,
+  attributes: null,
+});
+
+test("parity's app.spans side reads a call at another world's endpoint in that world's database", async () => {
+  const own = Redacted.make("postgresql://user:password@ep-own.test/neondb");
+  const theirs = Redacted.make("postgresql://user:password@ep-theirs.test/neondb");
+  const endpoint = "https://other-world.test";
+  const byHost: Readonly<Record<string, ReadonlyArray<SpanRow>>> = {
+    "ep-own.test": [row(Str.repeat(32)("a"), "own")],
+    "ep-theirs.test": [row(Str.repeat(32)("b"), "theirs")],
+  };
+  const tables = Layer.succeed(
+    HttpClient.HttpClient,
+    HttpClient.make((request, url) => {
+      const sent =
+        request.body._tag === "Uint8Array" ? JSON.parse(new TextDecoder().decode(request.body.body)) : { query: "" };
+      const ids: ReadonlyArray<string> = sent.params?.[0] ?? [];
+      const rows = Str.includes("from app.spans")(sent.query)
+        ? Arr.filter(byHost[url.hostname] ?? [], (each) => Arr.contains(ids, each.trace_id))
+        : [];
+      return Effect.succeed(HttpClientResponse.fromWeb(request, Response.json({ rows }, { status: 200 })));
+    }),
+  );
+  const otherWorlds = Layer.succeed(OtherWorlds, {
+    databaseAt: (at: string) => Effect.succeed(at === endpoint ? Option.some(theirs) : Option.none()),
+  });
+  const kept = await Effect.runPromise(
+    appKeptOf(own, [
+      { traceId: Str.repeat(32)("a"), at: null },
+      { traceId: Str.repeat(32)("b"), at: endpoint },
+      { traceId: Str.repeat(32)("c"), at: "https://unknown.test" },
+    ]).pipe(Effect.provide(Layer.merge(tables, otherWorlds))),
+  );
+  assert.deepEqual(
+    Arr.map(kept.spans, (span) => span.name),
+    ["own", "theirs"],
+  );
 });

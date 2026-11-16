@@ -17,6 +17,7 @@ import type * as Redacted from "effect/Redacted";
 import type { Call } from "../client.ts";
 import { RunnerFailure } from "../failure.ts";
 import { eventsOf, telemetryOf, type Kept, type SpanRow } from "../world/database.ts";
+import { OtherWorlds } from "../world/existing.ts";
 import type { FlatSpan } from "./flat.ts";
 import { stepOptions } from "./step.ts";
 import { tapFor, WAIT, type Wait } from "./tap.ts";
@@ -97,6 +98,32 @@ export const tapTelemetryOf = Effect.fn(
   return { spans: rows, events: yield* eventsOf(database, traceIdsOf(calls)) } satisfies Kept;
 });
 
-/** What Core kept of the calls through its own door in `app.spans` and `app.events`: parity's other record. */
-export const appKeptOf = (database: Redacted.Redacted, calls: ReadonlyArray<Pick<Call, "traceId" | "at">>) =>
-  telemetryOf(database, traceIdsOf(Arr.filter(calls, (call) => call.at === null)));
+/**
+ * What the api kept of `calls` in its own tables (`app.spans`, `app.events`): parity's other record until the retire.
+ * A call through the stage's own endpoint is read in its database; one made at another world's endpoint in that
+ * world's, found as the checks find it (`OtherWorlds`); one at an endpoint no known world answers at, nowhere.
+ */
+export const appKeptOf = Effect.fn(
+  Pipeline.checkCall.spans.read.name,
+  stepOptions(Pipeline.checkCall.spans.read),
+)(function* (database: Redacted.Redacted, calls: ReadonlyArray<Pick<Call, "traceId" | "at">>) {
+  const own = yield* telemetryOf(database, traceIdsOf(Arr.filter(calls, (call) => call.at === null)));
+  const others = yield* Effect.serviceOption(OtherWorlds);
+  const endpoints = Arr.dedupe(
+    Arr.filterMap(calls, (call) => (call.at === null ? Result.failVoid : Result.succeed(call.at))),
+  );
+  const elsewhere = Option.isNone(others)
+    ? []
+    : yield* Effect.forEach(endpoints, (endpoint) =>
+        Effect.flatMap(others.value.databaseAt(endpoint), (theirs) =>
+          Option.match(theirs, {
+            onNone: () => Effect.succeed<Kept>({ spans: [], events: [] }),
+            onSome: (where) => telemetryOf(where, traceIdsOf(Arr.filter(calls, (call) => call.at === endpoint))),
+          }),
+        ),
+      );
+  return {
+    spans: Arr.flatten([own.spans, ...Arr.map(elsewhere, (kept) => kept.spans)]),
+    events: Arr.flatten([own.events, ...Arr.map(elsewhere, (kept) => kept.events)]),
+  } satisfies Kept;
+});
