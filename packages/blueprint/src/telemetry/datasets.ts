@@ -109,3 +109,13 @@ export const datasets = {
 } as const satisfies { readonly [short: string]: Dataset };
 
 export type DatasetKey = keyof typeof datasets;
+
+/**
+ * The names of Cloudflare's observability destinations: where a Worker's own logs and traces are pushed (Workers
+ * Observability's `destinations`). Core's worker, the world's gateway and the platform's collector name them, so they
+ * are declared once here, beside the datasets they lead to.
+ */
+export const cloudflareDestinations = {
+  logs: "axiom-capxul-logs",
+  traces: "axiom-capxul-traces",
+} as const;

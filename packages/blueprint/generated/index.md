@@ -39,6 +39,7 @@ today until the glossary's renames (roadmap item 3.8).
 | [check](check.md) | call | `check.call` | none: work no door serves |
 | [check](check.md) | confirm | `check.confirm` | none: work no door serves |
 | [check](check.md) | gate | `check.gate` | none: work no door serves |
+| [check](check.md) | isolation | `check.isolation` | none: work no door serves |
 | [check](check.md) | watch | `check.watch` | none: work no door serves |
 | [clock](clock.md) | warp | `world.clock.warp` | the world group |
 | [cluster](cluster.md) | down | `cluster.down` | none: work no door serves |
