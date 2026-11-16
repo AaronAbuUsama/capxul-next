@@ -64,9 +64,9 @@ const work = (scenario: Journey, settings: Settings, starting: Starting, timings
       ),
     ).pipe(Effect.provideService(JourneyMaking, { calls: mine, journey: scenario }), Effect.exit, Effect.timed);
     const makingCalls = Arr.map(yield* Ref.get(mine), (each) => each.call);
-    const madeChecked = yield* Effect.orElseSucceed(checked(makingCalls), () => []);
+    const { checked: madeChecked, plumbing } = yield* checked(makingCalls);
     if (Exit.isFailure(making))
-      return { makeMs: millis(makeTook), making, madeChecked, readiness: null, stage: name, used: undefined };
+      return { makeMs: millis(makeTook), making, madeChecked, plumbing, readiness: null, stage: name, used: undefined };
     const own = making.value.own;
     const world = own === null ? null : yield* World.open(own.world).pipe(Effect.orDie);
     // Side by side, the shared world was waited for once, in the run's preparation; any other world, now.
@@ -105,7 +105,7 @@ const work = (scenario: Journey, settings: Settings, starting: Starting, timings
       });
     if (Exit.isSuccess(used))
       yield* timings.record("checks", used.value.ms.checks, { journey: scenario.name, of: stage.name });
-    return { makeMs: millis(makeTook), making, madeChecked, readiness, stage: stage.name, used };
+    return { makeMs: millis(makeTook), making, madeChecked, plumbing, readiness, stage: stage.name, used };
   });
 
 /**
@@ -166,6 +166,7 @@ const runOne = (
           ? [`the starting world was not made: ${describe(got.making.cause)}`]
           : []),
         ...failuresOf(got?.madeChecked ?? []),
+        ...(got?.plumbing ?? []),
         ...(used !== undefined && Exit.isFailure(used) ? [`the run did not finish: ${describe(used.cause)}`] : []),
         ...(value !== undefined && Exit.isFailure(value.run) ? [`the run failed: ${describe(value.run.cause)}`] : []),
         ...(value === undefined ? [] : failuresOf(value.calls)),

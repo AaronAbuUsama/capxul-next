@@ -12,10 +12,10 @@ import * as Redacted from "effect/Redacted";
 import * as Ref from "effect/Ref";
 import type * as HttpClient from "effect/http/HttpClient";
 import type * as World from "@capxul/world";
-import { checkCall } from "../checks/checks.ts";
 import { capxulFor, type Call, type Target } from "../client.ts";
 import type { RunnerFailure } from "../failure.ts";
 import { keptFor } from "../run.ts";
+import { checkedOrPlumbing } from "../telemetry/kept.ts";
 import { stepOptions, workSpan } from "../telemetry/step.ts";
 import type { Settings } from "../settings.ts";
 import { JourneyMaking, type MakingCall } from "./journey-making.ts";
@@ -75,11 +75,13 @@ export const recorder =
       return { own: after.own, facts } satisfies Making;
     });
 
-/** The checked calls of `calls`, read from where each was kept. */
+/**
+ * The checked calls of `calls`, read from where each was kept (the tap, since the flip); or, when that cannot be read
+ * whole, no checks and a plumbing failure line (telemetry/kept.ts, `checkedOrPlumbing`), never an empty list.
+ */
 export const checked = Effect.fn(
   Pipeline.checkCall.name,
   stepOptions(workSpan(Pipeline.checkCall)),
 )(function* (calls: ReadonlyArray<Call>) {
-  const kept = yield* keptFor(Option.none(), calls);
-  return Arr.map(calls, (call) => checkCall(call, kept));
+  return yield* checkedOrPlumbing(calls, keptFor(Option.none(), calls));
 });
