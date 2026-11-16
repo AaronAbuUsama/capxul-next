@@ -1,8 +1,7 @@
 // The order a run takes its worlds down in (worlds/teardown.ts, `destroyInOrder`; roadmap 4.8, the own-world track): a
 // world restored from another goes before its source; worlds unrelated to each other go together, never more than the
 // bound at once; every world is tried, and each one not destroyed is named with why. Against a stand-in destroy that
-// keeps the order and how many run at once. Structural only, never about speed. Written first: the cases marked
-// `todo` fail against today's stand-in until the runner's builder lands the change, and are then made plain tests.
+// keeps the order and how many run at once. Structural only, never about speed.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import * as Arr from "effect/Array";
@@ -11,8 +10,6 @@ import * as Order from "effect/Order";
 import * as Str from "effect/String";
 import { RunnerFailure } from "../src/failure.ts";
 import { destroyInOrder, type Doomed } from "../src/worlds/teardown.ts";
-
-const UNTIL_BUILT = "until the runner's builder lands the own-world track's teardown (worlds/teardown.ts)";
 
 /** A destroy that takes a moment, keeping when each world began and ended going and the most going at once. */
 const watched = (failing: ReadonlyArray<string> = []) => {
@@ -53,7 +50,7 @@ test("a restored world is destroyed before the world it was restored from", () =
     }),
   ));
 
-test("worlds unrelated to each other go together, never more than the bound at once", { todo: UNTIL_BUILT }, () =>
+test("worlds unrelated to each other go together, never more than the bound at once", () =>
   Effect.runPromise(
     Effect.gen(function* () {
       const { destroy, most } = watched();
@@ -61,10 +58,9 @@ test("worlds unrelated to each other go together, never more than the bound at o
       assert.deepEqual(failed, []);
       assert.equal(most(), 2, "two at a time: together, and bounded");
     }),
-  ),
-);
+  ));
 
-test("a chain of restores goes newest first while unrelated worlds go beside it", { todo: UNTIL_BUILT }, () =>
+test("a chain of restores goes newest first while unrelated worlds go beside it", () =>
   Effect.runPromise(
     Effect.gen(function* () {
       const { destroy, events, most } = watched();
@@ -75,8 +71,7 @@ test("a chain of restores goes newest first while unrelated worlds go beside it"
       assert.ok(events.indexOf("start w-other") < events.indexOf("end w-again"), "the unrelated world goes beside");
       assert.ok(most() >= 2);
     }),
-  ),
-);
+  ));
 
 test("every world is tried, and each one not destroyed is named with why", () =>
   Effect.runPromise(
