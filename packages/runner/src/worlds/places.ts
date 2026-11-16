@@ -10,10 +10,10 @@
 // than the bound can ever give fails at once, by name. Each wait is a timed part (`world place`, `site slot`), so the
 // record shows whether it is on the run's critical path.
 //
-// The journeys with worlds of their own share the run's two operators and their quotas of 5 worlds each: two operators
-// and their worlds and the inventory each fill an operator's quota. Today's bound (8 less the shared world, so 7) keeps
-// those two apart, one after the other. Raising RUNNER_WORLDS_AT_ONCE needs an owner of its own per such journey first,
-// or they meet each other's worlds in the quota (WorldQuotaReached early) and the inventory.
+// Each journey with worlds of its own has two operators of its own, named for it (operators.ts), so its worlds fill quotas
+// of 5 no other journey's do (two operators and inventory each fill one): the bound (15, less the shared world) holds
+// every such journey at once. Before, they shared the run's operators, the bound kept them one after another, and the
+// first operator's quota also held the shared world (world run 43782964738: inventory's WorldQuotaReached at 5 of 5).
 import * as Effect from "effect/Effect";
 import * as Semaphore from "effect/Semaphore";
 import { RunnerFailure } from "../failure.ts";

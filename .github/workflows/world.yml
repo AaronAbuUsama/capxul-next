@@ -138,7 +138,10 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/teardown"
           packages/world/run.sh list >"$RUNNER_TEMP/worlds.json"
-          left=$(python3 -c 'import json, os, sys; owners = {os.environ["WORLD_OWNER"], os.environ["WORLD_SECOND_OWNER"]}; print(" ".join(w["world"] for w in json.load(open(sys.argv[1])) if w["owner"] in owners))' "$RUNNER_TEMP/worlds.json")
+          # The run's operators: its two, and each journey's own with worlds of its own, `$WORLD_OWNER-<key>` and
+          # `$WORLD_OWNER-<key>-2` (packages/runner/src/worlds/operators.ts): every owner that is the run's or starts with it
+          # and a dash. Another run's owner never does: run ids and attempts end at the dash.
+          left=$(python3 -c 'import json, os, sys; first, second = os.environ["WORLD_OWNER"], os.environ["WORLD_SECOND_OWNER"]; ours = lambda o: o in (first, second) or o.startswith(first + "-"); print(" ".join(w["world"] for w in json.load(open(sys.argv[1])) if ours(w["owner"])))' "$RUNNER_TEMP/worlds.json")
           echo "Worlds of the run's operators: ${left:-none}"
           printf '%s\n' $left >"$RUNNER_TEMP/teardown/worlds.txt"
           status=0
