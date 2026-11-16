@@ -24,7 +24,8 @@ import { checkEvents } from "./events.ts";
 export const Check = Schema.Struct({
   /** `path`: the call's events and refusal keep each thing on a path through its machine (paths.ts). */
   /** `isolation`: a journey's call acts only as its own people and names no other journey's (isolation.ts). */
-  check: Schema.Literals(["span", "outcome", "events", "path", "isolation"]),
+  /** `sites`: every company site the run founded says where it came from, and why it fell back (sites.ts). */
+  check: Schema.Literals(["span", "outcome", "events", "path", "isolation", "sites"]),
   /** Every check gates: a call that fails one fails its run. */
   passed: Schema.Boolean,
   detail: Schema.String,
