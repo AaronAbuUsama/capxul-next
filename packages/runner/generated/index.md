@@ -49,6 +49,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 
 - [`export.ts`](../src/telemetry/export.ts): The runner's OTLP export (roadmap 4.4): the layer its entry (main.ts) provides once, so every span, log and metric it makes is posted over OTLP/HTTP JSON to the collector, under a resource naming the producer (`service.name`, the blueprint's producer) and the code's revision (`service.version`).
 - [`flat.ts`](../src/telemetry/flat.ts): A decoded OTLP trace (otlp.ts) as flat spans: the shape the runner's checks read, in place of `app.spans`' columns (world/database.ts).
+- [`kept.ts`](../src/telemetry/kept.ts): The flip (roadmap 4.4): what the generic checks read of each call's spans comes from the tap (tap.ts), no longer from `app.spans`.
 - [`logs.ts`](../src/telemetry/logs.ts): A decoded OTLP logs export (otlp.ts) as flat logs: what the tap holds of a call's logs, beside its flat spans (flat.ts).
 - [`observe.ts`](../src/telemetry/observe.ts): What the runner observed of each call, by trace: its spans and logs from the tap (tap.ts) and the events Core recorded under its trace id (`app.events`).
 - [`otlp.ts`](../src/telemetry/otlp.ts): OTLP JSON, as Effect's `OtlpSerialization.layerJson` writes it: the bodies of the trace, log and metric export requests (`/v1/traces`, `/v1/logs`, `/v1/metrics`).
