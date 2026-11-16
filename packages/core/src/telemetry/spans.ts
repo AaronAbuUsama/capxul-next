@@ -17,7 +17,7 @@ import * as Tracer from "effect/Tracer";
 import * as HttpTraceContext from "effect/http/HttpTraceContext";
 import type * as Headers from "effect/http/Headers";
 import type * as Rpc from "effect/rpc/Rpc";
-import { CurrentCall } from "@capxul/blueprint";
+import { CurrentCall, Envelope } from "@capxul/blueprint";
 import { callAttributes, declaredOf, isPostgresRoundTrip, type SpanAttributes, type Where } from "./attributes.ts";
 import type { SpanSink } from "./sink.ts";
 
@@ -37,6 +37,20 @@ export interface KeptSpan {
   /** True for a round trip of Core's Postgres driver, which the call's `db.query_ms` sums. */
   readonly roundTrip: boolean;
 }
+
+/** The envelope's words for how a span's work ended (the blueprint's `Envelope.Outcome`), in its declared order. */
+const [OK, REFUSED, ERROR, INTERRUPTED] = Envelope.Outcome.literals;
+
+/**
+ * Each outcome Core keeps (an Exit's kind, as `app.spans` stores it), as the envelope's `capxul.outcome` says it: a
+ * typed failure is a refusal, a defect is an error.
+ */
+export const OUTCOME: Readonly<Record<SpanOutcome, typeof Envelope.Outcome.Type>> = {
+  success: OK,
+  failure: REFUSED,
+  defect: ERROR,
+  interrupted: INTERRUPTED,
+};
 
 export const outcomeOf = (exit: Exit.Exit<unknown, unknown>): SpanOutcome => {
   if (Exit.isSuccess(exit)) return "success";
@@ -99,6 +113,9 @@ class KeepingSpan implements Tracer.Span {
   end(endTime: bigint, exit: Exit.Exit<unknown, unknown>): void {
     const status = this.inner.status;
     if (status._tag === "Ended") return;
+    // How the span's work ended, on the span itself before it ends, so the export carries it: OTLP's status cannot tell
+    // a refusal from a defect (the blueprint's envelope, `capxul.outcome`). `app.spans` keeps it as its `outcome`.
+    this.inner.attribute(Envelope.attributes.outcome.name, OUTCOME[outcomeOf(exit)]);
     this.inner.end(endTime, exit);
     this.keep({
       traceId: this.traceId,

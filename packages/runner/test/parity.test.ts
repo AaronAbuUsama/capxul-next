@@ -1,16 +1,18 @@
 // Parity (src/telemetry/parity.ts): one call's spans as `app.spans` keeps them against the same spans read from the
-// tap. They agree only when the tap holds every kept span with the same name, parent, outcome and declared attributes.
-import { Producers } from "@capxul/blueprint";
+// tap. They agree only when the tap holds every kept span with the same name, parent, outcome (its `capxul.outcome` and
+// its OTLP status) and declared attributes.
+import { Envelope, Producers } from "@capxul/blueprint";
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import * as Arr from "effect/Array";
 import * as Str from "effect/String";
-import { SPAN_ATTRIBUTES } from "@capxul/core";
+import { OUTCOME, SPAN_ATTRIBUTES } from "@capxul/core";
 import type { SpanRow } from "../src/world/database.ts";
 import type { FlatSpan } from "../src/telemetry/flat.ts";
 import { parity } from "../src/telemetry/parity.ts";
 
 const TRACE = Str.repeat(32)("c");
+const OUTCOME_KEY = Envelope.attributes.outcome.name;
 const OPERATION = "board.decide";
 
 const kept: ReadonlyArray<SpanRow> = [
@@ -42,14 +44,15 @@ const tapped: ReadonlyArray<FlatSpan> = [
     traceId: TRACE,
     spanId: "s-call",
     parentSpanId: "s-caller",
-    status: "error",
-    statusMessage: "refused",
+    status: "unset",
+    statusMessage: null,
     durationMs: 120.2,
     endedMs: 1_800_000_000_120,
     attributes: {
       [SPAN_ATTRIBUTES.colo]: "LHR",
       [SPAN_ATTRIBUTES.queryMs]: 41.5,
       [SPAN_ATTRIBUTES.queryCount]: 2,
+      [OUTCOME_KEY]: OUTCOME.failure,
       "rpc.method": OPERATION,
     },
     events: [{ name: "exception", atMs: 1_800_000_000_119, attributes: {} }],
@@ -64,7 +67,7 @@ const tapped: ReadonlyArray<FlatSpan> = [
     statusMessage: null,
     durationMs: 20,
     endedMs: 1_800_000_000_060,
-    attributes: { "db.system.name": "postgresql" },
+    attributes: { "db.system.name": "postgresql", [OUTCOME_KEY]: OUTCOME.success },
     events: [],
     service: Producers.producers.api.service,
   },
@@ -73,9 +76,15 @@ const tapped: ReadonlyArray<FlatSpan> = [
 const abouts = (rows: ReadonlyArray<SpanRow>, spans: ReadonlyArray<FlatSpan>) =>
   Arr.map(parity(rows, spans).differences, (difference) => difference.about);
 
-/** Whether the second kept span, ended with `outcome`, agrees with its twin exported with `status`. */
-const agreesOn = (outcome: string, status: FlatSpan["status"]) =>
-  parity([{ ...kept[1]!, outcome }], [{ ...tapped[1]!, status }]).agrees;
+/**
+ * Whether the second kept span, ended with `outcome`, agrees with its twin exported with `status` and `capxul.outcome`
+ * as Core stamps it for that outcome (or `stamped`).
+ */
+const agreesOn = (outcome: keyof typeof OUTCOME, status: FlatSpan["status"], stamped: string = OUTCOME[outcome]) =>
+  parity(
+    [{ ...kept[1]!, outcome }],
+    [{ ...tapped[1]!, status, attributes: { ...tapped[1]!.attributes, [OUTCOME_KEY]: stamped } }],
+  ).agrees;
 
 test("the same spans agree, library attributes and timings aside", () => {
   assert.deepEqual(parity(kept, tapped), { agrees: true, differences: [] });
@@ -125,13 +134,26 @@ test("a declared attribute only the tap carries does not agree", () => {
 test("a different name, parent or outcome does not agree", () => {
   assert.deepEqual(abouts(kept, [{ ...tapped[0]!, name: "board.other" }, tapped[1]!]), ["name"]);
   assert.deepEqual(abouts(kept, [{ ...tapped[0]!, parentSpanId: null }, tapped[1]!]), ["parent"]);
-  assert.deepEqual(abouts(kept, [{ ...tapped[0]!, status: "ok" }, tapped[1]!]), ["outcome"]);
+  assert.deepEqual(abouts(kept, [{ ...tapped[0]!, status: "ok" }, tapped[1]!]), ["status"]);
+  const stampedAs = (outcome: string) => [
+    { ...tapped[0]!, attributes: { ...tapped[0]!.attributes, [OUTCOME_KEY]: outcome } },
+    tapped[1]!,
+  ];
+  assert.deepEqual(abouts(kept, stampedAs(OUTCOME.defect)), ["outcome"]);
 });
 
-test("each kept outcome matches the status Effect exports for it", () => {
+test("each kept outcome matches the capxul.outcome and the status Core exports for it", () => {
   assert.ok(agreesOn("success", "ok"));
-  assert.ok(agreesOn("failure", "error"));
+  assert.ok(agreesOn("failure", "unset"));
   assert.ok(agreesOn("defect", "error"));
   assert.ok(agreesOn("interrupted", "unset"));
   assert.ok(!agreesOn("success", "unset"));
+  // A refusal and a defect look alike in the status alone; only the outcome tells them apart.
+  assert.ok(!agreesOn("failure", "error"));
+  assert.ok(!agreesOn("defect", "error", OUTCOME.failure));
+});
+
+test("a tapped span with no outcome does not agree", () => {
+  const { [OUTCOME_KEY]: _dropped, ...rest } = tapped[1]!.attributes;
+  assert.deepEqual(abouts(kept, [tapped[0]!, { ...tapped[1]!, attributes: rest }]), ["outcome"]);
 });
