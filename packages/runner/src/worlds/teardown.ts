@@ -7,6 +7,7 @@ import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
+import * as Ref from "effect/Ref";
 import { describe, RunnerFailure } from "../failure.ts";
 import type { Timings } from "../timings.ts";
 import type { Inventory } from "../world/leftovers.ts";
@@ -90,3 +91,24 @@ export const takeDownWorlds = (stages: ReadonlyArray<string>, timings: Timings) 
         );
     return { failed, destroyMs: (yield* Clock.currentTimeMillis) - began };
   });
+
+/**
+ * Destroys the run's one world, timed; what could not be done, one line each. Whatever ends the run, this runs. The
+ * bench templates the run kept stay: they are the bench's, never dropped by a run, and the sweep removes them by age
+ * (docs/roadmap.md, "Bench templates never change"). With RUNNER_TEARDOWN=job the one world is left, and kept in
+ * `handedOver`, for CI's teardown job to destroy (settings.ts, `teardown`).
+ */
+export const takeDown = (
+  settings: { readonly teardown: "run" | "job" },
+  templateWorlds: Effect.Effect<ReadonlyArray<string>>,
+  timings: Timings,
+  handedOver: Ref.Ref<ReadonlyArray<string>>,
+) =>
+  Effect.flatMap(templateWorlds, (ones) =>
+    settings.teardown === "job"
+      ? Ref.set(handedOver, ones).pipe(
+          Effect.andThen(Effect.log(`left for the teardown job: ${Arr.join(ones, ", ") || "no world"}`)),
+          Effect.as<ReadonlyArray<string>>([]),
+        )
+      : Effect.map(takeDownWorlds(ones, timings), (done) => done.failed),
+  );

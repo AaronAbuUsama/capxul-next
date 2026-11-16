@@ -2,7 +2,7 @@
 // a shared world (shared.ts). Each making is its own program with a client of its own, so its calls are recorded
 // apart from any other's; every call is kept for the checks (`made`) and appended to the world's `calls` fact.
 import type { StartingWorld } from "@capxul/blueprint";
-import type { Capxul } from "@capxul/scenarios";
+import type { Capxul, Journey } from "@capxul/scenarios";
 import * as Arr from "effect/Array";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -60,7 +60,11 @@ export const targetOf = (settings: Settings, platformUrl: string): Target => ({
  */
 export class JourneyMaking extends Context.Service<
   JourneyMaking,
-  { readonly calls: Ref.Ref<ReadonlyArray<MakingCall>> }
+  {
+    readonly calls: Ref.Ref<ReadonlyArray<MakingCall>>;
+    /** The journey whose starting world is being made: a run in one shared world makes it by the journey's kind. */
+    readonly journey?: Journey;
+  }
 >()("@capxul/runner/worlds/making/JourneyMaking") {}
 
 /** Runs `steps` of `world` from `making`, recording each call into `made`, and appends them to the world's `calls`. */
