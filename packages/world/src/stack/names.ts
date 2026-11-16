@@ -31,6 +31,7 @@ export const BUNDLER_IMAGE = `${IMAGE_PREFIX}alto`;
 export const STEPS = [
   "admit",
   "claim",
+  "grant",
   "register",
   "branch",
   "deploy",

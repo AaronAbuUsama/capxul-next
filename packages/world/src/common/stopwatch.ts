@@ -12,8 +12,15 @@ import type { Timeouts } from "../things/world/values.ts";
 export type Durations = Readonly<Partial<Record<StepName, number>>>;
 
 export interface Stopwatch {
-  /** Runs one step under its declared timeout and records how long it took. */
-  readonly step: <A, E, R>(name: StepName, effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E | StepTimedOut, R>;
+  /**
+   * Runs one step under its declared timeout and records how long it took. Its span is `span` when the caller's
+   * operation declares one for it (the blueprint's `spans`), else `world.<name>`.
+   */
+  readonly step: <A, E, R>(
+    name: StepName,
+    effect: Effect.Effect<A, E, R>,
+    span?: string,
+  ) => Effect.Effect<A, E | StepTimedOut, R>;
   /** The durations recorded so far, in milliseconds. */
   readonly durations: Effect.Effect<Durations>;
 }
@@ -21,7 +28,7 @@ export interface Stopwatch {
 export const makeStopwatch = Effect.fn("world.stopwatch")(function* (timeouts: Timeouts) {
   const taken = yield* Ref.make<Durations>({});
   // The duration is written however the step ends: done, failed, timed out or interrupted.
-  const step: Stopwatch["step"] = (name, effect) =>
+  const step: Stopwatch["step"] = (name, effect, span) =>
     Effect.gen(function* () {
       const began = yield* Clock.currentTimeMillis;
       const note = Effect.flatMap(Clock.currentTimeMillis, (now) =>
@@ -42,7 +49,7 @@ export const makeStopwatch = Effect.fn("world.stopwatch")(function* (timeouts: T
         }),
         Effect.ensuring(note),
       );
-    }).pipe(Effect.withSpan(`world.${name}`));
+    }).pipe(Effect.withSpan(span ?? `world.${name}`));
   return { step, durations: Ref.get(taken) } satisfies Stopwatch;
 });
 
