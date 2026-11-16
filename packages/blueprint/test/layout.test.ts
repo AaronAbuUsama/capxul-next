@@ -23,7 +23,7 @@ const FIXED: { readonly [folder: string]: ReadonlyArray<string> } = {
   "": ["index.ts", "glossary.ts", "ratchets.ts"],
   "common/": ["values.ts", "ids.ts", "refusals.ts", "site.ts", "chain/chain.ts", "chain/logs.ts", "chain/reads.ts"],
   "starting-points/": ["points.ts", "facts.ts", "cast.ts"],
-  "protocol/": ["paths.ts", "headers.ts", "sign-in.ts", "trace.ts"],
+  "protocol/": ["paths.ts", "headers.ts", "sign-in.ts", "trace.ts", "cli.ts"],
   "telemetry/": [
     "conventions.ts",
     "envelope.ts",

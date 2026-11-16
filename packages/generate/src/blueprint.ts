@@ -23,6 +23,7 @@ import {
   somes,
   type Written,
 } from "./blueprint-text.ts";
+import { commandsIndex } from "./commands.ts";
 import { pipelineHub } from "./pipeline.ts";
 import { BLUEPRINT, type BlueprintDomain } from "./sources.ts";
 
@@ -282,5 +283,6 @@ export const renderBlueprint = (
     { path: at("values.ts"), text: valuesHub() },
     { path: at("promises.ts"), text: promisesHub() },
     { path: at("pipeline.ts"), text: pipelineHub(layout) },
+    { path: at("commands.ts"), text: commandsIndex(layout) },
   ],
 });

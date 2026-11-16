@@ -757,7 +757,7 @@ moves the package into, and the layout every later piece of work lands in. The t
 | `src/things/<thing>/` | One thing: `values.ts`, `events.ts`, `refusals.ts`, `lifecycle.ts` where it has one, and one file per verb, `<verb>.ts`, holding its request and answer, refusals, outcomes, budget, examples and promises |
 | `src/common/` | What several things use: `values.ts`, `ids.ts`, `refusals.ts`, `site.ts` (Capxul's names on a Frappe site), `chain/` (the logs and reads Capxul uses) |
 | `src/starting-points/` | `points.ts`, the named states journeys begin from, and `facts.ts`, what each hands a journey |
-| `src/protocol/` | How a call travels: `paths.ts`, `headers.ts`, `sign-in.ts`, `trace.ts` |
+| `src/protocol/` | How a call travels: `paths.ts`, `headers.ts`, `sign-in.ts`, `trace.ts`, `cli.ts` (the command line's own commands, flags and outputs, item 3.9) |
 | `src/generated/` | Indexes written by `pnpm generate` (the things, the refusals, the subjects, the promises, each thing's hub). Never edited |
 | `generated/` | `index.md` (every thing and its verbs) and one page per thing. Never edited |
 | `docs/build-order.md` | One page, until each verb declares what it needs and the page is generated |

@@ -23,6 +23,7 @@ const TOP = named(`
   declaredNames domains eventNamesOf glossary holdsFactsOf isRefusal machines operations outcome
   ratchets refusalsOf roles servedBy startingWorlds undecided unmigrated verb
   Conventions Datasets Envelope Metrics Pipeline Producers StepKinds Watch
+  CLI_COMMANDS CLI_FLAGS CLI_OUTPUTS commands
 `);
 
 /** Every name each namespace the door exports holds. */

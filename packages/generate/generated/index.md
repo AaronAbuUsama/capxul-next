@@ -7,6 +7,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 
 - [`blueprint-text.ts`](../src/blueprint-text.ts): The text helpers of the blueprint's generated indexes (./blueprint.ts): where each goes, how it names the modules it imports, and how a list too long for one line is broken, as oxfmt breaks it, so no generated file is formatted after.
 - [`blueprint.ts`](../src/blueprint.ts): The text of the blueprint's generated indexes (packages/blueprint/src/generated/), from its things' folders as the toolkit reads them (`layoutOf`) and today's domains (sources.ts, `BLUEPRINT.domains`).
+- [`commands.ts`](../src/commands.ts): The blueprint's generated commands index (packages/blueprint/src/generated/commands.ts): every operation's command, `capxul <thing> <verb>`, from its thing's folder and its verb's file as the layout reads them (roadmap item 3.9).
 - [`delta.entry.ts`](../src/delta.entry.ts): `pnpm delta:check`: prints each finding of the delta check (the toolkit's, run over the blueprint, which passes itself in), one a line, and fails when there is one.
 - [`docs-render.ts`](../src/docs-render.ts): The text of the docs' generated blocks and of the design notes' list, from their owners' facts.
 - [`main.ts`](../src/main.ts): `pnpm generate`'s writer: reads each owner (Foundry's out/, the deployment record, the seed, the blueprint) and writes every derived file whose text changed, printing each one it wrote; with --check (`pnpm generate:check`) it writes nothing and fails when any would change.
