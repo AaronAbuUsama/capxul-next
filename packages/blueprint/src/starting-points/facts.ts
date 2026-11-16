@@ -20,7 +20,6 @@ import { restoredWorld, saved } from "../things/snapshot/examples.ts";
 import { Snapshot } from "../things/snapshot/values.ts";
 import { exampleWorld } from "../things/world/examples.ts";
 
-/** One call through a door made in making a starting world, as its maker made and saw it. */
 /** sam's Manage books, as `org.member.grant`'s first example proposes it, and as the starting points record it. */
 export const samBooksGrant: typeof GrantProposed.Type = {
   change: { id: "chg_books1", member: "sam", permission: "manage-books", state: "proposed" },
@@ -28,6 +27,7 @@ export const samBooksGrant: typeof GrantProposed.Type = {
   approvals: [approval("apr_books1", "dana", 1), approval("apr_books2", "eli", 2)],
 };
 
+/** One call through a door made in making a starting world, as its maker made and saw it. */
 export const MadeCall = Schema.Struct({
   operation: Schema.String,
   /** The world whose door it went through, or for a platform operation the world it named. */
