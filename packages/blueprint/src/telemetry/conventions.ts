@@ -7,7 +7,7 @@
 // its default is 1.33.0). OpenTelemetry has released up to 1.45.0, which Axiom does not yet support: data sent as a
 // version Axiom does not support changes shape when it adds that version. Every convention the envelope uses
 // (`session.id`, `deployment.environment.name`, `vcs.ref.head.revision`, `vcs.ref.head.name`,
-// `cicd.pipeline.run.id`, `service.name`) is in 1.37.0.
+// `cicd.pipeline.run.id`, `service.name`, and `rpc.system` and `rpc.method` on a chain read's span) is in 1.37.0.
 
 /** The pinned version. */
 export const VERSION = "1.37.0";

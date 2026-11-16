@@ -1,5 +1,6 @@
-// The values the envelope's own attributes carry (./envelope.ts), each a named schema. The values a thing owns are in
-// that thing's `values.ts`; these are telemetry's alone. `Envelope` re-exports them.
+// The values the envelope's own attributes carry (./envelope.ts), each a named schema, and the places an attribute is
+// stamped. The values a thing owns are in that thing's `values.ts`; these are telemetry's alone. `Envelope`
+// re-exports them.
 import * as Schema from "effect/Schema";
 
 const pattern = (regex: RegExp) => Schema.String.check(Schema.isPattern(regex));
@@ -40,3 +41,14 @@ export const RpcSystem = Schema.Literals(["jsonrpc"]);
 export const RpcMethod = pattern(/^[a-z][A-Za-z0-9_]{0,63}$/);
 /** A block, as a JSON-RPC request names it: a hex quantity, or a tag such as `latest`. */
 export const BlockRef = pattern(/^(0x[0-9a-fA-F]{1,16}|earliest|latest|pending|safe|finalized)$/);
+
+/** Where an attribute is stamped. */
+export type Where =
+  | "every record"
+  | "a run's records"
+  | "an operation's span"
+  | "a step's span"
+  | "an operation's or a step's span"
+  | "a check's span"
+  | "the chain read's span"
+  | "a metric";

@@ -10,6 +10,7 @@ import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Rec from "effect/Record";
 import * as Ref from "effect/Ref";
+import * as Str from "effect/String";
 import type { Call } from "../src/client.ts";
 import { hearing, stepsOf, type Heard } from "../src/steps.ts";
 import { ChainReads, rangeOf, recordedRpc, type ChainRead } from "../src/telemetry/chain.ts";
@@ -24,6 +25,9 @@ const outline = [
 ];
 const LOGS = { fromBlock: "0x10", toBlock: "latest", address: "0x0000000000000000000000000000000000000001" };
 
+/** The methods of some chain reads, in order. */
+const methods = (reads: ReadonlyArray<ChainRead> | undefined) => Arr.map(reads ?? [], (read) => read.method);
+
 /** A chain that answers every request with an empty list. */
 const answering = recordedRpc(() => Effect.succeed([]));
 
@@ -33,6 +37,12 @@ test("a read of logs has its block range; any other method has none", () => {
   assert.deepEqual(rangeOf("eth_call", [{ to: "0x01" }, "latest"]), { from: null, to: null });
 });
 
+test("a block the range names in a way BlockRef does not hold, such as a hash, is left out, and the read still kept", () => {
+  const hash = `0x${Str.repeat(32)("ab")}`;
+  assert.deepEqual(rangeOf("eth_getLogs", [{ fromBlock: hash, toBlock: "latest" }]), { from: null, to: "latest" });
+  assert.deepEqual(rangeOf("eth_getLogs", [{ fromBlock: 16, toBlock: "soon" }]), { from: null, to: null });
+});
+
 test("each read is heard with its method, its range, its time and how it ended; a read that dies still dies", async () => {
   const heard: Array<ChainRead> = [];
   const keep = <A, E>(effect: Effect.Effect<A, E, ChainReads>) =>
@@ -40,11 +50,14 @@ test("each read is heard with its method, its range, its time and how it ended; 
   await answering("eth_getLogs", [LOGS]).pipe(keep, Effect.runPromise);
   const died = await recordedRpc(() => Effect.die("no chain"))("eth_blockNumber", []).pipe(keep, Effect.runPromiseExit);
   assert.ok(Exit.isFailure(died));
+  const stopped = await recordedRpc(() => Effect.interrupt)("eth_chainId", []).pipe(keep, Effect.runPromiseExit);
+  assert.ok(Exit.isFailure(stopped));
   assert.deepEqual(
     Arr.map(heard, ({ ms: _ms, ...read }) => read),
     [
       { method: "eth_getLogs", from: "0x10", to: "latest", outcome: "ok" },
       { method: "eth_blockNumber", from: null, to: null, outcome: "error" },
+      { method: "eth_chainId", from: null, to: null, outcome: "interrupted" },
     ],
   );
   assert.ok(Arr.every(heard, (read) => read.ms >= 0));
@@ -63,7 +76,7 @@ test("each read is a declared chain span, with its method and its block range", 
   assert.equal(span.value.attributes[attributes.chainBlockTo.name], "latest");
 });
 
-test("a step's record keeps the reads made while it was open, and none made between steps", async () => {
+test("a step keeps the reads made while it was open, and after it, those made before the next step began", async () => {
   const steps = await Effect.runPromise(
     Effect.gen(function* () {
       const log = yield* Ref.make<ReadonlyArray<Call>>([]);
@@ -77,12 +90,16 @@ test("a step's record keeps the reads made while it was open, and none made betw
         yield* answering("eth_blockNumber", []);
         yield* journey.begin(2, outline[1]!);
         yield* journey.end(2, null);
+        yield* answering("eth_gasPrice", []);
       }).pipe(Effect.provide(hearing(heard, log)));
       return stepsOf(outline, yield* Ref.get(heard), []);
     }),
   );
   assert.deepEqual(
-    Arr.map(steps, (step) => Arr.map(step.chain ?? [], (read) => read.method)),
-    [["eth_getLogs", "eth_call"], []],
+    Arr.map(steps, (step) => ({ chain: methods(step.chain), after: methods(step.after) })),
+    [
+      { chain: ["eth_getLogs", "eth_call"], after: ["eth_blockNumber"] },
+      { chain: [], after: ["eth_gasPrice"] },
+    ],
   );
 });
