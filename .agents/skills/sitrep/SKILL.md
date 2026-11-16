@@ -79,17 +79,19 @@ the live ones. `sitreps/<id>`: `{ "at", "title", "paras": [], "links": [{ "label
 
 ## What the page does
 
-- **Now:** four tiles (needs you, `master`, the run time, the plan's share done), the needs-you list, the next
-  milestone with its steps and critical path, a burn-down of the work left (hover or touch for each point: when,
-  how much was left, what happened), every milestone's progress, the lanes (each opens in place), what landed, the
-  threads.
-- **Sitreps:** a fold-out list, unheard first in bold with a blue dot, heard below in grey by day. Each opens to its
-  text, a play button and its links. Tapping a paragraph plays from there.
-- **The player,** while reading: pause and resume, back (restarts the part, or the part before within three
-  seconds), forward, a speed of 0.8, 1, 1.25 or 1.5 times, and a bar of parts to jump to. Alt with the arrow keys skips,
-  the space bar pauses. The platform's voice has no seek, so a jump is always to the start of a part. Heard state and
-  speed follow the viewer across devices.
-- **A phone** gets a native layout: a large title, a tab bar at the bottom, grouped lists, the player above the tab bar.
+Five tabs, at the bottom on a phone and down the side on a laptop (published 16 November 2026, the v3 design).
+
+- **Now:** what needs Aaron first (or "Nothing needs you"), then health (`master`, the run time against its target),
+  then the newest unheard sitrep, open, with play, "Mark heard" and its links.
+- **Plan:** the plan's progress and its burn-down (hover or touch for each point: when, how much was left, what
+  happened), then the milestones. A milestone opens as its own page with a back button.
+- **Lanes:** one row per lane. A lane opens as its own page: where it stands, its measure, its steps, its pull requests
+  and its sitreps.
+- **Measures:** the measured figures the data carries.
+- **Sitreps:** unheard first, then heard. Each opens to its text, a play button and its links.
+- **The player,** while reading, sits above the tabs: pause and resume, back, forward, a speed of 0.8, 1, 1.25 or
+  1.5 times, and a bar of parts to jump to. The platform's voice has no seek, so a jump is always to the start of a
+  part. Heard state and speed follow the viewer across devices.
 - Reading aloud works in Chrome and the desktop app. Safari, Firefox and the mobile apps show the text without a
   play button.
 
