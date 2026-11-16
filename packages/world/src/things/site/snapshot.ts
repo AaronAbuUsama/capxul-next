@@ -8,6 +8,7 @@
 //            the backup: on the new world's token, with the source's shown too (the door lets a world restore only
 //            what that world saved), the new world's site credential and its clock; then waited for until ready
 //   drop     what a deleted snapshot saved: its backup, and the point an in-place reset puts the sites back to
+import { Pipeline } from "@capxul/blueprint";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Redacted from "effect/Redacted";
@@ -42,7 +43,7 @@ const Restoring = Schema.Struct({
 export type BenchClock = { readonly frozen_at_ms: number } | { readonly offset_ms: number };
 
 /** Saves every site of world `stage` on `bench` under `snapshot`; answers what was saved. */
-export const saveSites = Effect.fn("world.site.save")(function* (stage: string, bench: string, snapshot: string) {
+export const saveSites = Effect.fn(Pipeline.siteSave.name)(function* (stage: string, bench: string, snapshot: string) {
   const { door, token } = yield* tokenFor(bench, nameOf(stage), 0, yield* soon);
   const answer = yield* doorCall(
     door,

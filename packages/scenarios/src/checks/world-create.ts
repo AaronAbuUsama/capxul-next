@@ -1,6 +1,7 @@
 // The checks of every world.create (claims.md, world.create 1 to 6): a new world runs with its clock and a record that
 // begins with its birth, the caller owns it and it expires when asked, it is born with its cast, and a refusal says
 // why and makes nothing.
+import { Cast } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -16,9 +17,26 @@ import { check, checks } from "./format.ts";
 
 const MINUTE = 60_000;
 const SECOND = 1000;
-/** Every world's cast (claims.md, `fresh`): pat has not finished signing up and has no Safe. */
-const CAST = ["dana", "eli", "olga", "pat", "sam"];
-const UNSAFE = "pat";
+/**
+ * Every world's cast (claims.md, `fresh`; the blueprint's `Cast`): each role played by the person of its name, and every
+ * journey's own people besides, so journeys can run side by side in one world. Whoever plays pat has not finished
+ * signing up and has no Safe.
+ */
+const CAST = Arr.sort(
+  [
+    ...Arr.map(Cast.CAST_ROLES, (each) => each.role),
+    ...Arr.flatMap(Cast.JOURNEY_KEYS, (key) =>
+      Arr.map(Cast.journeyCast(key, Cast.CAST_COMPANY).people, (each) => each.person),
+    ),
+  ],
+  Order.String,
+);
+const UNSAFE: ReadonlyArray<string> = [
+  ...Arr.flatMap(Cast.CAST_ROLES, (each) => (each.claimed ? [] : [each.role])),
+  ...Arr.flatMap(Cast.JOURNEY_KEYS, (key) =>
+    Arr.flatMap(Cast.journeyCast(key, Cast.CAST_COMPANY).people, (each) => (each.claimed ? [] : [each.person])),
+  ),
+];
 const OPENING_USDC = 10_000;
 
 /** `expiresAt` is `minutes` after a call made between `before` and now, within a minute. */
@@ -50,7 +68,7 @@ const bornWithCast = (made: View, operator: "first" | "second") =>
     yield* same("the cast's distinct signer addresses", signers.length, CAST.length);
     for (const member of made.cast) {
       yield* expect(yield* isTestAddress(member.signer), `${member.person}'s signer is no well-known test key`);
-      if (member.person === UNSAFE) yield* same(`${UNSAFE}'s Safe`, member.safe, null);
+      if (Arr.contains(UNSAFE, member.person)) yield* same(`${member.person}'s Safe`, member.safe, null);
       else if (member.safe === null) yield* expect(false, `${member.person} has no personal Safe`);
       else
         yield* sameAmount(

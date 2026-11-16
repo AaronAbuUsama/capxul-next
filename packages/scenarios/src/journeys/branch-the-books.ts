@@ -6,13 +6,14 @@ import { Site, startingWorlds as begins } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import { expect, given } from "../expectation.ts";
+import { Cast } from "../cast.ts";
 import { journey, outline } from "../journey.ts";
 import { paymentsSent, usdc } from "../support/chain.ts";
 import { addSeconds, hostNow, millis, same, sameAmount, sameInstant } from "../support/expect.ts";
 import { mintedToPerson, wears } from "../support/hats.ts";
 import { report } from "../support/site.ts";
 import { eventually } from "../support/wait.ts";
-import { freshName, headOf, NORTHWIND, operators, recordOf, view } from "../support/world.ts";
+import { freshName, headOf, operators, recordOf, view } from "../support/world.ts";
 import { stateOf } from "./books.ts";
 import { named } from "../support/names.ts";
 import { sign } from "./signatures.ts";
@@ -43,19 +44,23 @@ const steps = outline({
   ],
 });
 
-const sam = { as: "sam" } as const;
 const WEEK = 7 * 24 * 3600;
 const MINUTE = 60_000;
 
 export const branchTheBooks = journey(
   {
     name: "branch the books of a held payment",
+    world: "own",
+    worlds: 2,
+    key: "branch",
     story:
       "sam's payment to Brightside is held, the month is saved and branched into a second operator's world, sam pays in the first world while the branch never sees it, and in the branch a week passes and the held approval expires.",
     given: begins.paymentDrafted,
     steps,
   },
   Effect.gen(function* () {
+    const cast = yield* Cast;
+    const sam = { as: cast.sam } as const;
     const facts = yield* given(begins.paymentDrafted);
     const { world, payment } = facts;
     const org = facts.founded.org;
@@ -99,15 +104,16 @@ export const branchTheBooks = journey(
         );
         const there = { at: made.door, operator: "second" } as const;
         yield* eventually(`northwind's site in ${made.world} to be ready`, view(made.world), (shown) =>
-          Arr.some(shown.companies, (each) => each.handle === NORTHWIND && each.site.state === "ready"),
+          Arr.some(shown.companies, (each) => each.handle === cast.company && each.site.state === "ready"),
         );
         yield* same("the branch's books and Safes", yield* stateOf(made, org, companySafe, there), {
           ...(yield* stateOf(world, org, companySafe, {})),
           head: m3.recordSeq + 1,
         });
-        const trial = (who: typeof there | object) => report(org, Site.REPORTS.trialBalance, {}, { ...who, as: "sam" });
+        const trial = (who: typeof there | object) =>
+          report(org, Site.REPORTS.trialBalance, {}, { ...who, as: cast.sam });
         yield* same("the branch's Trial Balance", yield* trial(there), yield* trial({}));
-        const minted = yield* mintedToPerson(world, facts.grantSent.transaction, "sam");
+        const minted = yield* mintedToPerson(world, facts.grantSent.transaction, cast.sam);
         yield* expect(
           yield* wears(made, minted.hat, minted.safe, null, there),
           "sam's Safe does not wear the Books hat in the branch",
@@ -137,7 +143,7 @@ export const branchTheBooks = journey(
         const firstHead = yield* headOf();
         yield* op.succeeds(
           { org, doctype: Site.DOCTYPES.supplier, fields: Site.supplierFields("Isolation Ltd") },
-          { ...there, as: "sam" },
+          { ...there, as: cast.sam },
         );
         yield* same("the first world's history head after the branch's document", yield* headOf(), firstHead);
       }),
@@ -149,7 +155,7 @@ export const branchTheBooks = journey(
           org,
           Site.REPORTS.scheduledJobLog,
           { [Site.FILTERS.scheduledJobLog.job]: Site.DAILY_JOB.jobType },
-          { ...there, as: "dana" },
+          { ...there, as: cast.dana },
         );
         const ran = (yield* runs).length;
         const was = (yield* view(branch.world)).clock.now;
@@ -166,7 +172,7 @@ export const branchTheBooks = journey(
       Effect.gen(function* () {
         const expired = yield* op.refused(named["ApprovalExpired"], yield* sign(held.approval), {
           ...there,
-          as: "sam",
+          as: cast.sam,
         });
         yield* sameInstant("when it expired", expired.expiredAt, held.approval.expiresAt);
         yield* same(
