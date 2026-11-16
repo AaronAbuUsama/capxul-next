@@ -3,8 +3,6 @@
 // once the hub has been asked to save the chain; Ponder is stopped before the branch and started again after the
 // chain's save, whatever fails; the save's `sites` and `chain` steps overlap; Neon's 423 waits are each a span of
 // their own; and no more than 2 of Neon's branch requests are in flight at once. Structural only, never about speed.
-// Written first: the cases marked `todo` fail against today's save until the world's builder lands the change, and
-// are then made plain tests.
 import * as assert from "node:assert/strict";
 import { test } from "node:test";
 import { World as Declared } from "@capxul/blueprint";
@@ -18,7 +16,6 @@ import * as Tracer from "effect/Tracer";
 import { save } from "../src/account/snapshots.ts";
 import { type Needs, type Outside, recordOf, runAs } from "./platform-stand-in.ts";
 
-const UNTIL_BUILT = "until the world's builder lands the world track's B-2 (src/account/snapshots.ts, Neon's permits)";
 const saveSpans = Declared.snapshotSave.spans;
 const createSpans = Declared.create.spans;
 
@@ -102,19 +99,15 @@ const saveOf = (world: string, snapshot = "m3") => save({ world, snapshot, repla
 const stepsOf = (outside: Outside) => outside.saving ?? [];
 const at = (outside: Outside, step: string) => stepsOf(outside).indexOf(step);
 
-test(
-  "a world with a company is saved when the bench holds its backup until the hub saves the chain",
-  { todo: UNTIL_BUILT },
-  async () => {
-    const outside = outsideOf(["alpha"], { holdSitesSave: true });
-    const { exit } = await saving(outside, saveOf("alpha"));
-    assert.ok(Exit.isSuccess(exit), `the save finished: ${String(exit)}`);
-    assert.ok(
-      at(outside, "chain save m3") < at(outside, "sites saved m3"),
-      "the chain was asked for while the sites saved",
-    );
-  },
-);
+test("a world with a company is saved when the bench holds its backup until the hub saves the chain", async () => {
+  const outside = outsideOf(["alpha"], { holdSitesSave: true });
+  const { exit } = await saving(outside, saveOf("alpha"));
+  assert.ok(Exit.isSuccess(exit), `the save finished: ${String(exit)}`);
+  assert.ok(
+    at(outside, "chain save m3") < at(outside, "sites saved m3"),
+    "the chain was asked for while the sites saved",
+  );
+});
 
 test("Ponder is stopped before the branch and started again after the chain's save", async () => {
   const outside = outsideOf(["alpha"], {}, false);
@@ -146,7 +139,7 @@ test("Ponder is started again when the branch cannot be made", async () => {
   );
 });
 
-test("a save's sites step and its chain step overlap", { todo: UNTIL_BUILT }, async () => {
+test("a save's sites step and its chain step overlap", async () => {
   const outside = outsideOf(["alpha"], { holdSitesSave: true });
   const { exit, ended } = await saving(outside, saveOf("alpha"));
   assert.ok(Exit.isSuccess(exit), String(exit));
