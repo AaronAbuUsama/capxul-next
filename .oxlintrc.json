@@ -24,6 +24,10 @@
     // The Frappe app is Python plus two browser form scripts that Frappe loads with its own globals; like the
     // Python, it is outside Effect (docs/roadmap.md, "Effect everywhere it can be"). Oxfmt still formats them.
     "packages/frappe-app/**",
+    // The sitrep skill's browser test: plain JavaScript that drives Playwright against the page template, outside
+    // Effect like the form scripts above. .claude/skills/sitrep is a link to the same folder.
+    ".agents/skills/sitrep/test.cjs",
+    ".claude/skills/sitrep/test.cjs",
     "**/node_modules/**"
   ],
   "settings": {

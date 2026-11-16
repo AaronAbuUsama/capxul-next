@@ -1,0 +1,651 @@
+<title>Rebuild Sitrep</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/preact@10.19.3/dist/preact.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/preact@10.19.3/hooks/dist/hooks.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.umd.js"></script>
+<!--
+  Rebuild Sitrep, v3 design. It holds no data. Everything it shows comes from the artifact's database
+  (schema in the sitrep skill's SKILL.md on design/sitrep):
+    sitrep/numbers  milestones, the next milestone's steps, burn-down, plan totals   written by numbers.py
+    sitrep/now      needs you, master, run, lanes, landed, threads                   written by the conductor
+    sitreps/<id>    one spoken update each                                           written by the conductor
+    data/users/<viewer>/sitrep-prefs   what this viewer has heard, and their reading speed
+-->
+<style>
+/* Layout: phone = one column, large titles, five-tab bar, pushed detail pages, mini player above the tabs.
+   Laptop (>= 980px) = sidebar of the five tabs, the tab's list in the middle, the detail in a right panel. */
+:root {
+  --bg: #f2f2f7; --surface: #ffffff; --sunk: #f2f3f6; --fg: #111827; --muted: #6b7280; --line: #e5e7eb;
+  --accent: #3b4fd8; --accent-soft: #e8ebfc; --on-accent: #ffffff;
+  --ok: #18804f; --ok-soft: #e2f4ea; --warn: #b0640a; --warn-soft: #fcf0de; --bad: #c23434; --bad-soft: #fbe6e6;
+  --idle: #8b93a3; --idle-soft: #eef0f3; --bar: rgba(249,249,251,.9); --shadow: rgba(10,14,20,.28); --on-bad: #ffffff;
+  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Geist", system-ui, sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #000000; --surface: #1c1c1e; --sunk: #2c2c2e; --fg: #f2f2f7; --muted: #9a9aa1; --line: #38383a;
+  --accent: #8796ff; --accent-soft: #23295a; --on-accent: #0b0e13;
+  --ok: #55cf8f; --ok-soft: #13291e; --warn: #f0a854; --warn-soft: #33250f; --bad: #f07a7a; --bad-soft: #3a1a1b;
+  --idle: #7c8596; --idle-soft: #26262a; --bar: rgba(22,22,24,.9); --shadow: rgba(0,0,0,.6); --on-bad: #ffffff; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #000000; --surface: #1c1c1e; --sunk: #2c2c2e; --fg: #f2f2f7; --muted: #9a9aa1; --line: #38383a;
+  --accent: #8796ff; --accent-soft: #23295a; --on-accent: #0b0e13;
+  --ok: #55cf8f; --ok-soft: #13291e; --warn: #f0a854; --warn-soft: #33250f; --bad: #f07a7a; --bad-soft: #3a1a1b;
+  --idle: #7c8596; --idle-soft: #26262a; --bar: rgba(22,22,24,.9); --shadow: rgba(0,0,0,.6); --on-bad: #ffffff; color-scheme: dark; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 16px; line-height: 1.45; margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 8px calc(100px + env(safe-area-inset-bottom, 0px)); }
+body.playing { padding-bottom: calc(250px + env(safe-area-inset-bottom, 0px)); }
+button { font: inherit; color: inherit; }
+a { color: var(--accent); text-decoration: none; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3 { margin: 0; letter-spacing: -0.02em; text-wrap: balance; }
+p { margin: 0; }
+.page { display: flex; flex-direction: column; gap: 20px; max-width: 560px; margin: 0 auto; min-width: 0; }
+.big { font-size: 34px; font-weight: 700; line-height: 1.15; }
+.eyebrow { font: 500 12px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.ttl { display: flex; flex-direction: column; gap: 2px; }
+.asof { font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.asof.stale { color: var(--warn); }
+.sub { color: var(--muted); font-size: 14px; }
+.notice { font-size: 14px; color: var(--warn); background: var(--warn-soft); padding: 9px 12px; border-radius: 10px; }
+.sec { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.sec > .h { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .02em; padding: 0 4px; display: flex; justify-content: space-between; gap: 10px; }
+.sec > .h .hr { text-transform: none; }
+.group { background: var(--surface); border-radius: 12px; overflow: hidden; }
+.row { display: flex; align-items: center; gap: 10px; padding: 11px 14px; min-height: 48px; width: 100%; background: none; border: 0; text-align: left; cursor: pointer; color: var(--fg); }
+div.row { cursor: default; }
+.group > * + * { border-top: 0.5px solid var(--line); }
+button.row:hover, a.row:hover { background: var(--sunk); }
+.row .t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.row .t b { font-weight: 600; overflow-wrap: anywhere; } .row .t span { color: var(--muted); font-size: 13.5px; overflow-wrap: anywhere; }
+.row .r { color: var(--muted); font-size: 14px; white-space: nowrap; display: flex; gap: 8px; align-items: center; font-variant-numeric: tabular-nums; }
+.chev::after { content: "›"; font-size: 22px; color: var(--idle); line-height: 1; }
+.ext::after { content: "↗"; font-size: 15px; color: var(--idle); line-height: 1; }
+.id { font: 400 12.5px var(--mono); color: var(--muted); min-width: 34px; flex: none; }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; background: var(--idle); }
+.d-ok { background: var(--ok); } .d-warn { background: var(--warn); } .d-bad { background: var(--bad); } .d-acc { background: var(--accent); }
+.d-none { background: transparent; box-shadow: inset 0 0 0 1.5px var(--idle); }
+.chip { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; background: var(--idle-soft); color: var(--idle); }
+.c-ok { background: var(--ok-soft); color: var(--ok); } .c-warn { background: var(--warn-soft); color: var(--warn); }
+.c-bad { background: var(--bad-soft); color: var(--bad); } .c-acc { background: var(--accent-soft); color: var(--accent); }
+.card { background: var(--surface); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+button.card { border: 0; text-align: left; cursor: pointer; color: var(--fg); width: 100%; }
+button.card:hover { background: var(--sunk); }
+.bar { height: 6px; background: var(--sunk); border-radius: 999px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--ok); border-radius: 999px; }
+.cells { display: flex; gap: 3px; } .cells i { flex: 1; height: 9px; border-radius: 3px; background: var(--line); } .cells i.on { background: var(--ok); } .cells i.mid { background: var(--warn); }
+.back { background: none; border: 0; color: var(--accent); font-size: 17px; padding: 8px 0; cursor: pointer; display: inline-flex; gap: 4px; align-items: center; align-self: flex-start; min-height: 40px; }
+.back::before { content: "‹"; font-size: 26px; line-height: 1; }
+.verdict { font-size: 17px; font-weight: 600; }
+.verdict b { font-variant-numeric: tabular-nums; }
+.fold { width: 100%; background: none; border: 0; display: flex; justify-content: space-between; align-items: center; padding: 10px 4px; color: var(--muted); font-size: 13px; text-transform: uppercase; cursor: pointer; min-height: 40px; }
+.fold::after { content: "▸"; transition: transform .15s; } .fold[aria-expanded="true"]::after { transform: rotate(90deg); }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.btn { background: var(--accent); color: var(--on-accent); border: 0; border-radius: 999px; padding: 9px 16px; font-weight: 600; cursor: pointer; min-height: 40px; display: inline-flex; gap: 8px; align-items: center; }
+.btn.ghost { background: var(--sunk); color: var(--fg); }
+.page > .btns .btn.ghost { background: var(--surface); }
+.btn svg { width: 14px; height: 14px; fill: currentColor; }
+.card.calm { flex-direction: row; gap: 12px; align-items: center; }
+.calm .tick { width: 30px; height: 30px; border-radius: 50%; background: var(--ok-soft); color: var(--ok); display: grid; place-items: center; flex: none; font-weight: 700; }
+.empty { color: var(--muted); font-size: 14.5px; }
+.pending { display: flex; flex-direction: column; gap: 4px; }
+.pending b { font-weight: 600; }
+
+/* chart */
+.chartbox { position: relative; touch-action: pan-y; min-width: 0; }
+.chart { width: 100%; height: 180px; display: block; cursor: crosshair; } .chart text { font: 400 10.5px var(--mono); fill: var(--muted); }
+.tip { position: absolute; top: 2px; pointer-events: none; background: var(--fg); color: var(--surface); border-radius: 9px; padding: 7px 9px; font-size: 12.5px; max-width: 220px; line-height: 1.4; z-index: 2; }
+.tip b { display: block; font-family: var(--mono); font-size: 11.5px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--muted); }
+.legend span { display: inline-flex; gap: 6px; align-items: center; }
+.sw { width: 14px; height: 3px; border-radius: 2px; display: inline-block; background: var(--warn); }
+.takeaway { font-size: 14.5px; } .takeaway b { font-variant-numeric: tabular-nums; }
+
+/* measures */
+.budget { display: flex; flex-direction: column; gap: 8px; }
+.budget .top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.budget .n { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.budget .n small { font-size: 15px; font-weight: 500; color: var(--muted); margin-left: 4px; }
+.budget .track { position: relative; height: 12px; background: var(--sunk); border-radius: 999px; margin-top: 4px; }
+.budget .fill { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: var(--warn); }
+.budget .fill.ok { background: var(--ok); }
+.budget .mark { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--fg); }
+.budget .lbl { display: flex; justify-content: space-between; font: 400 12px var(--mono); color: var(--muted); gap: 10px; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.stats div { display: flex; flex-direction: column; min-width: 0; }
+.stats b { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stats span { font-size: 12.5px; color: var(--muted); }
+
+/* sitreps */
+.rep .rhead { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 6px 14px; min-height: 56px; }
+.rep .rtog { display: flex; flex-direction: column; gap: 2px; background: none; border: 0; text-align: left; cursor: pointer; padding: 6px 0; min-width: 0; color: var(--fg); }
+.rep .tt { font-size: 15.5px; } .rep.new .tt { font-weight: 650; } .rep.heard .tt { color: var(--muted); }
+.rep .meta { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rep.playing { background: var(--accent-soft); }
+.rep .pl { width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; cursor: pointer; flex: none; }
+.rep.heard .pl { background: var(--sunk); color: var(--muted); }
+.rep .pl svg { width: 12px; height: 12px; fill: currentColor; }
+.rep .body { padding: 0 14px 14px 35px; display: flex; flex-direction: column; gap: 10px; }
+.part { padding: 4px 8px; margin: 0 -8px; border-radius: 8px; max-width: 62ch; } .part.speak { cursor: pointer; } .part.speak:hover { background: var(--sunk); } .part.on { background: var(--accent-soft); }
+.links { display: flex; flex-direction: column; } .links a { padding: 9px 0; border-top: 0.5px solid var(--line); display: flex; justify-content: space-between; gap: 10px; font-size: 15px; min-height: 42px; align-items: center; } .links a::after { content: "→"; color: var(--muted); }
+.note { color: var(--muted); font-size: 13.5px; }
+
+/* chrome: brand, tab bar, mini player, laptop layout */
+.brand { display: none; }
+.tabbar { position: fixed; z-index: 15; bottom: 0; left: 0; right: 0; background: var(--bar); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-top: 0.5px solid var(--line);
+  display: flex; justify-content: space-around; padding: 6px max(8px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
+.tab { flex: 1; min-width: 0; background: none; border: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10.5px; font-weight: 500; color: var(--idle); cursor: pointer; position: relative; min-height: 48px; padding-top: 2px; }
+.tab[aria-current="page"] { color: var(--accent); }
+.tab svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tab .badge { position: absolute; top: 0; left: calc(50% + 6px); background: var(--bad); color: var(--on-bad); font-size: 11px; font-weight: 700; border-radius: 999px; padding: 0 6px; }
+.mini { position: fixed; z-index: 14; left: max(10px, env(safe-area-inset-left, 0px)); right: max(10px, env(safe-area-inset-right, 0px)); bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface); border-radius: 14px; box-shadow: 0 10px 30px -10px var(--shadow); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.mini .top { display: flex; align-items: center; gap: 10px; } .mini .top .t { flex: 1; min-width: 0; } .mini b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14.5px; } .mini small { color: var(--muted); font-size: 12px; }
+.mini .segs { display: flex; gap: 3px; } .mini .segs button { flex: 1; height: 14px; border: 0; background: none; padding: 5px 0; cursor: pointer; position: relative; } .mini .segs button i { display: block; height: 4px; border-radius: 2px; background: var(--line); } .mini .segs button.past i { background: var(--accent); opacity: .45; } .mini .segs button.cur i { background: var(--accent); }
+.mini .segs button.rep::after { content: ""; position: absolute; left: -2px; top: 2px; bottom: 2px; width: 1px; background: var(--muted); }
+.mini .ctl { display: flex; justify-content: space-between; align-items: center; }
+.bars { display: inline-flex; gap: 2px; align-items: flex-end; height: 16px; flex: none; }
+.bars i { width: 3px; height: 10px; background: var(--accent); border-radius: 2px; }
+.mini.speaking .bars i { animation: eq 0.9s ease-in-out infinite; }
+.bars i:nth-child(2) { animation-delay: 0.2s; } .bars i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes eq { 0%, 100% { height: 4px; } 50% { height: 16px; } }
+.ic { width: 40px; height: 40px; border-radius: 50%; border: 0; background: none; display: grid; place-items: center; cursor: pointer; color: var(--fg); } .ic:hover { background: var(--sunk); } .ic svg { width: 20px; height: 20px; fill: currentColor; } .ic.main { background: var(--accent); color: var(--on-accent); width: 44px; height: 44px; }
+.speed { font: 600 13px var(--mono); min-width: 52px; height: 32px; border-radius: 999px; border: 0; background: var(--sunk); cursor: pointer; color: var(--fg); }
+.loading { color: var(--muted); padding: 40px 0; text-align: center; }
+@media (min-width: 980px) {
+  body { padding-block: 16px 40px; }
+  body.playing { padding-bottom: 220px; }
+  .app { display: grid; grid-template-columns: 200px minmax(0, 1fr) minmax(0, 1fr); gap: 24px; max-width: 1360px; margin: 0 auto; align-items: start; }
+  .app.single { grid-template-columns: 200px minmax(0, 1fr); }
+  .side { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .brand { display: flex; flex-direction: column; gap: 2px; padding: 4px 12px; }
+  .brand b { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+  .brand span { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tabbar { position: static; flex-direction: column; justify-content: flex-start; gap: 2px; background: none; backdrop-filter: none; -webkit-backdrop-filter: none; border: 0; padding: 0; }
+  .tab { flex-direction: row; justify-content: flex-start; gap: 10px; font-size: 15px; padding: 8px 12px; border-radius: 10px; min-height: 40px; flex: none; }
+  .tab[aria-current="page"] { background: var(--accent-soft); }
+  .tab svg { width: 20px; height: 20px; } .tab .badge { position: static; margin-left: auto; }
+  .panel { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; padding-bottom: 24px; }
+  .page { max-width: none; }
+  .app.single .page { max-width: 720px; margin: 0; }
+  .mini { left: auto; right: 24px; width: 420px; bottom: 24px; }
+}
+@media (prefers-reduced-motion: reduce) { .fold::after { transition: none; } .mini.speaking .bars i { animation: none; } }
+</style>
+
+<div id="root"><p class="loading">Loading the sitrep…</p></div>
+
+<script>
+(function () {
+  "use strict";
+  if (!window.preact || !window.preactHooks || !window.htm) { document.getElementById("root").innerHTML = '<p class="loading">The page could not load its scripts. Reload to try again.</p>'; return; }
+  var h = preact.h, render = preact.render, H = preactHooks, html = htm.bind(h);
+  var useState = H.useState, useEffect = H.useEffect, useRef = H.useRef;
+
+  // ---------- state ----------
+  var S = { numbers: null, now: null, reps: [], heard: {}, rate: 1, open: {}, loaded: false, notice: "", voiceNote: "" };
+  var P = { queue: [], cur: -1, state: "idle", posMs: 0 };
+  var tts = null, prefsRef = null, prefsTimer = null, bump = function () {};
+  var SPEEDS = [0.8, 1, 1.25, 1.5];
+  function arr(x) { return Array.isArray(x) ? x : []; }
+  function safeHref(h2) { return typeof h2 === "string" && /^https:\/\//.test(h2) ? h2 : null; }
+  var DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function pad(n) { return String(n).padStart(2, "0"); }
+  function hm(t) { var d = new Date(t); return isNaN(d) ? "" : pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes()); }
+  function dayKey(t) { var d = new Date(t); return isNaN(d) ? "" : d.toISOString().slice(0, 10); }
+  function dayName(t) {
+    var k = dayKey(t), today = new Date().toISOString().slice(0, 10), y = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+    if (k === today) return "Today"; if (k === y) return "Yesterday";
+    var d = new Date(t); return DAYS[d.getUTCDay()] + " " + d.getUTCDate() + " " + MONTHS[d.getUTCMonth()];
+  }
+  function short(t) { return dayKey(t) === new Date().toISOString().slice(0, 10) ? hm(t) : dayName(t) + " " + hm(t); }
+  function stamp(t) { var d = new Date(t); return isNaN(d) ? "" : DAYS[d.getUTCDay()] + " " + d.getUTCDate() + " " + MONTHS[d.getUTCMonth()] + ", " + hm(t) + " UTC"; }
+  function ago(t) { var m = Math.round((Date.now() - Date.parse(t)) / 6e4); if (isNaN(m)) return ""; return m < 1 ? "just now" : m < 60 ? m + " min ago" : m < 1440 ? Math.round(m / 60) + " h ago" : Math.round(m / 1440) + " d ago"; }
+  function plural(n, one, many) { return n + " " + (n === 1 ? one : many || one + "s"); }
+  function stateDot(s) {
+    s = String(s || "").toLowerCase();
+    return s === "done" || s === "merged" || s === "green" ? "d-ok" : s === "in progress" || s === "building" || s === "claimed" ? "d-warn" : s === "proving" || s === "checks running" || s === "running" ? "d-acc" : s === "broken" || s === "checks failed" || s === "red" ? "d-bad" : "";
+  }
+  function stateChip(s) { return { "d-ok": "c-ok", "d-warn": "c-warn", "d-acc": "c-acc", "d-bad": "c-bad" }[stateDot(s)] || ""; }
+  function isDone(s) { return String(s || "").toLowerCase() === "done"; }
+
+  // ---------- derived data ----------
+  function latestAt() { return [S.now && S.now.at, S.numbers && S.numbers.builtAt].filter(Boolean).sort().pop(); }
+  function lanes() { return arr(S.now && S.now.lanes); }
+  function laneById(id) { return lanes().filter(function (l) { return l.id === id; })[0]; }
+  function milestones() { return arr(S.numbers && S.numbers.milestones); }
+  function curMilestone() { return S.numbers && S.numbers.milestone; }
+  function milestoneById(id) { return milestones().filter(function (m) { return m.id === id; })[0]; }
+  function stepIndex() {
+    // The roadmap's steps for the next milestone (numbers.py), plus every step a lane carries (the conductor).
+    var out = {}, ms = curMilestone();
+    if (ms) arr(ms.steps).forEach(function (s) { out[s.id] = { id: s.id, name: s.name, state: s.state, m: ms.id, roadmap: true }; });
+    lanes().forEach(function (l) { arr(l.steps).forEach(function (s) {
+      var x = out[s.id]; if (!x) x = out[s.id] = { id: s.id, name: s.name, state: s.state, m: String(s.id).split(".")[0] };
+      x.lane = l.id; x.laneState = s.state; if (!x.roadmap) x.state = s.state;
+    }); });
+    return out;
+  }
+  function unheard() { return S.reps.filter(function (r) { return !S.heard[r.id]; }); }
+  function runGauge() {
+    var r = S.now && S.now.run; if (!r || r.minutes == null) return null;
+    var g = lanes().map(function (l) { return l.gauge; }).filter(function (x) { return x && x.unit === "min" && x.max; })[0];
+    return { minutes: r.minutes, target: r.target, state: r.state, href: r.href, max: g ? Math.max(g.max, r.minutes) : Math.max(r.minutes, r.target || 0) * 1.25, note: g && g.note, lane: g ? lanes().filter(function (l) { return l.gauge === g; })[0] : null };
+  }
+
+  // ---------- small pieces ----------
+  function Row(p) {
+    var inner = html`${p.dot !== undefined ? html`<i class=${"dot " + p.dot}></i>` : null}${p.id ? html`<span class="id">${p.id}</span>` : null}
+      <span class="t"><b>${p.title}</b>${p.sub ? html`<span>${p.sub}</span>` : null}</span>
+      <span class="r">${p.right}${p.onClick ? html`<span class="chev"></span>` : safeHref(p.href) ? html`<span class="ext"></span>` : null}</span>`;
+    if (safeHref(p.href)) return html`<a class="row" href=${p.href} target="_blank" rel="noopener">${inner}</a>`;
+    return p.onClick ? html`<button class="row" type="button" onClick=${p.onClick}>${inner}</button>` : html`<div class="row">${inner}</div>`;
+  }
+  function Sec(p) { return html`<section class="sec">${p.h ? html`<div class="h"><span>${p.h}</span>${p.hr ? html`<span class="hr">${p.hr}</span>` : null}</div>` : null}${p.children}</section>`; }
+  function Fold(p) {
+    var s = useState(!!p.open), open = s[0];
+    return html`<section class="sec"><button class="fold" type="button" aria-expanded=${open ? "true" : "false"} onClick=${function () { s[1](!open); }}>${p.label}</button>${open ? p.children : null}</section>`;
+  }
+  function Title(p) {
+    var at = latestAt(), stale = at && Date.now() - Date.parse(at) > 6 * 36e5;
+    return html`<div class="ttl">${p.eyebrow ? html`<div class="eyebrow">${p.eyebrow}</div>` : null}<h1 class="big">${p.title}</h1>
+      ${p.asof ? html`<span class=${"asof" + (stale ? " stale" : "")}>${at ? "Updated " + stamp(at) + " · " + ago(at) : S.loaded ? "No updates yet" : "Loading…"}</span>` : null}</div>`;
+  }
+  function Notice() { return S.notice ? html`<p class="notice" role="status">${S.notice}</p>` : null; }
+  function Waiting(p) { return html`<div class="card"><p class="empty">${p.text || (S.loaded ? "Nothing here yet." : "Loading…")}</p></div>`; }
+
+  // ---------- the burn-down ----------
+  function Burn(p) {
+    var ref = useRef(null), s = useState(null), tip = s[0], w = useState(0), W = w[0];
+    useEffect(function () {
+      function m() { if (ref.current) w[1](ref.current.clientWidth || 0); }
+      m(); var ro = window.ResizeObserver ? new ResizeObserver(m) : null; if (ro && ref.current) ro.observe(ref.current); else window.addEventListener("resize", m);
+      return function () { if (ro) ro.disconnect(); else window.removeEventListener("resize", m); };
+    }, []);
+    var pts = arr(p.points);
+    if (!pts.length) return html`<div class="chartbox" ref=${ref}><p class="empty">Waiting for the roadmap's numbers.</p></div>`;
+    if (!W) return html`<div class="chartbox" ref=${ref}><svg class="chart" aria-hidden="true"></svg></div>`;
+    var H2 = 180, L = 28, R = 10, T = 8, B = 22, pw = W - L - R, ph = H2 - T - B;
+    var t0 = Date.parse(pts[0].t) - 3 * 36e5, t1 = Math.max(Date.parse(p.end || pts[pts.length - 1].t) || 0, Date.parse(pts[pts.length - 1].t) + 36e5);
+    var top = Math.max.apply(null, pts.map(function (q) { return q.left; })), gstep = top > 100 ? 50 : top > 40 ? 20 : top > 20 ? 10 : 5, ymax = Math.max(gstep, Math.ceil(top / gstep) * gstep);
+    var X = function (t) { return L + ((typeof t === "number" ? t : Date.parse(t)) - t0) / (t1 - t0) * pw; }, Y = function (v) { return T + ph - v / ymax * ph; };
+    var d = "M" + X(pts[0].t) + "," + Y(pts[0].left); pts.forEach(function (q, i) { if (i) d += " H" + X(q.t) + " V" + Y(q.left); }); d += " H" + (W - R);
+    var grid = []; for (var v = 0; v <= ymax; v += gstep) grid.push(v);
+    var days = []; var d0 = new Date(t0); d0.setUTCHours(0, 0, 0, 0); for (var dt = d0.getTime() + 864e5; dt < t1; dt += 864e5) days.push(dt);
+    var last = pts[pts.length - 1];
+    function at(ev) { var r = ref.current.getBoundingClientRect(), px = ev.clientX - r.left, best = pts[0]; pts.forEach(function (q) { if (Math.abs(X(q.t) - px) < Math.abs(X(best.t) - px)) best = q; }); s[1](best); }
+    return html`<div class="chartbox" ref=${ref} onPointerMove=${at} onPointerDown=${at} onPointerLeave=${function () { s[1](null); }}>
+      <svg class="chart" viewBox=${"0 0 " + W + " " + H2} role="img" aria-label=${p.label + ": " + last.left + " units left, " + last.done + " of " + last.total + " done"}>
+        ${grid.map(function (v) { return html`<line x1=${L} x2=${W - R} y1=${Y(v)} y2=${Y(v)} stroke="var(--line)"/><text x=${L - 5} y=${Y(v) + 4} text-anchor="end">${v}</text>`; })}
+        ${days.map(function (t) { return html`<line x1=${X(t)} x2=${X(t)} y1=${T} y2=${T + ph} stroke="var(--line)" stroke-dasharray="2 3"/>${X(t) + 30 < W - R ? html`<text x=${X(t) + 4} y=${H2 - 6}>${DAYS[new Date(t).getUTCDay()]}</text>` : null}`; })}
+        <path d=${d + " V" + Y(0) + " H" + X(pts[0].t) + " Z"} fill="var(--warn-soft)" stroke="none"/>
+        <path d=${d} fill="none" stroke="var(--warn)" stroke-width="2.25" stroke-linejoin="round"/>
+        ${pts.map(function (q) { return html`<circle cx=${X(q.t)} cy=${Y(q.left)} r="3" fill=${q.kind === "plan" ? "var(--idle)" : "var(--ok)"} stroke="var(--surface)" stroke-width="1"/>`; })}
+        ${tip ? html`<line x1=${X(tip.t)} x2=${X(tip.t)} y1=${T} y2=${T + ph} stroke="var(--muted)"/><circle cx=${X(tip.t)} cy=${Y(tip.left)} r="5.5" fill="none" stroke="var(--fg)" stroke-width="2"/>` : null}
+      </svg>
+      ${tip ? html`<div class="tip" style=${"left:" + Math.max(0, Math.min(W - 220, X(tip.t) + 10)) + "px"}><b>${stamp(tip.t)}</b>${tip.left} left${tip.total ? " · " + tip.done + " of " + tip.total + " done" : ""}${tip.note ? html`<br/>${tip.note}` : null}</div>` : null}
+    </div>`;
+  }
+  function BurnCard(p) {
+    var num = S.numbers || {}, burn = arr(num.burn), td = num.today || {}, pl = num.plan;
+    if (!burn.length) return html`<${Waiting} text="The burn-down appears once the roadmap's numbers are written."/>`;
+    var last = burn[burn.length - 1], low = burn.reduce(function (a, q) { return q.left < a.left ? q : a; }, burn[0]);
+    return html`<div class="card">
+      ${p.head !== false && pl && pl.total ? html`<div class="verdict"><b>${pl.done}</b> of <b>${pl.total}</b> units done</div><div class="bar"><i style=${"width:" + Math.round(100 * pl.done / pl.total) + "%"}></i></div>` : null}
+      <${Burn} points=${burn} end=${num.builtAt} label="Burn-down of the whole plan"/>
+      <div class="legend"><span><i class="sw"></i>units left</span><span><i class="dot d-ok"></i>steps done</span><span><i class="dot"></i>plan changed</span><span>Touch for detail</span></div>
+      <p class="takeaway"><b>${last.left}</b> units left.${td.done != null ? html` Today <b>${td.done}</b> got done and <b>${td.added}</b> were added to the plan.` : null}${low !== last && low.left < last.left ? " The lowest was " + low.left + ", " + short(low.t) + " UTC." : ""}</p>
+    </div>`;
+  }
+
+  // ---------- Now ----------
+  function NowView(p) {
+    var n = S.now, needs = arr(n && n.needsYou), m = (n && n.master) || null, g = runGauge(), fresh = unheard(), first = fresh[0];
+    var mTitle = !m ? null : m.state === "green" ? "Master is green" : m.state === "red" ? "Master is red" : m.state === "running" ? "Master's check is running" : "Master: " + (m.state || "unknown");
+    return html`<div class="page">
+      <${Title} title="Now" asof=${true}/>
+      <${Notice}/>
+      ${!n ? html`<${Waiting} text=${S.loaded ? "The conductor hasn't written an update yet." : "Loading…"}/>`
+        : needs.length ? html`<${Sec} h=${"Needs you · " + needs.length}><div class="group">${needs.map(function (x, i) { return html`<${Row} key=${i} dot="d-warn" title=${x.title} sub=${x.detail} href=${x.href}/>`; })}</div><//>`
+        : html`<div class="card calm"><span class="tick" aria-hidden="true">✓</span><div><div class="verdict">Nothing needs you</div><div class="sub">When an agent needs a decision from you, it shows here first.</div></div></div>`}
+      ${n ? html`<${Sec} h="Health" hr=${n.at ? ago(n.at) : ""}><div class="group">
+        ${m ? html`<${Row} dot=${stateDot(m.state) || "d-acc"} title=${mTitle} sub=${m.label ? "check on " + m.label : null} href=${m.href}/>` : html`<${Row} dot="" title="Master" sub="No check recorded yet"/>`}
+        ${g ? html`<${Row} dot=${g.target && g.minutes > g.target ? "d-warn" : "d-ok"} title=${"A full run takes " + plural(g.minutes, "minute")} sub=${(g.target ? "Target " + g.target + " minutes" : "No target set") + (g.state ? " · last run " + (g.state === "green" ? "passed" : g.state === "red" ? "failed" : g.state) : "")} onClick=${function () { p.go("measures", []); }}/>`
+          : html`<${Row} dot="" title="Full run" sub="No run measured yet"/>`}
+      </div><//>` : null}
+      ${first ? html`<${Sec} h="Newest sitrep" hr=${fresh.length > 1 ? (fresh.length - 1) + " more not heard" : "not heard yet"}><div class="group">
+          <${RepItem} r=${first} scope="now-" defaultOpen=${true} ctx=${p}/>
+          ${fresh.length > 1 ? html`<${Row} title=${"See all " + fresh.length + " new"} onClick=${function () { p.go("reps", []); }}/>` : null}</div><//>`
+        : S.reps.length ? html`<${Sec} h="Sitreps"><div class="group"><${Row} dot="d-ok" title="You're up to date" sub=${"Latest: " + S.reps[0].title} onClick=${function () { p.go("reps", []); }}/></div><//>` : null}
+    </div>`;
+  }
+
+  // ---------- Plan ----------
+  function PlanView(p) {
+    var num = S.numbers, cur = curMilestone(), ms = milestones();
+    var open = ms.filter(function (m) { return !isDone(m.state); }), done = ms.filter(function (m) { return isDone(m.state); });
+    function mrow(m) {
+      var isCur = cur && m.id === cur.id;
+      return html`<${Row} key=${m.id} id=${m.id} dot=${isDone(m.state) ? "d-ok" : isCur ? "d-warn" : stateDot(m.state) || "d-none"} title=${m.name} sub=${(isCur ? "Next milestone · " : "") + m.done + " of " + m.of + " steps"}
+        right=${isDone(m.state) ? html`<span class="chip c-ok">done</span>` : isCur ? html`<span class="chip c-warn">next</span>` : null} onClick=${function () { p.push({ t: "milestone", id: m.id }); }}/>`;
+    }
+    return html`<div class="page"><${Title} title="Plan" asof=${true}/><${Notice}/>
+      ${!num ? html`<${Waiting} text=${S.loaded ? "The roadmap's numbers haven't been written yet." : "Loading…"}/>` : html`
+        <${BurnCard}/>
+        ${cur ? html`<${Sec} h="Next milestone"><button class="card" type="button" onClick=${function () { p.push({ t: "milestone", id: cur.id }); }}>
+          <div class="eyebrow">Milestone ${cur.id}</div><div class="verdict">${cur.name}</div>
+          <div class="cells" aria-hidden="true">${arr(cur.steps).map(function (s) { return html`<i class=${isDone(s.state) ? "on" : String(s.state).toLowerCase() === "not started" ? "" : "mid"}></i>`; })}</div>
+          <div class="sub">${cur.done} of ${cur.of} steps done${cur.next ? " · next is " + cur.next : ""}</div></button><//>` : null}
+        ${open.length ? html`<${Sec} h=${"Milestones · " + open.length + " open"}><div class="group">${open.map(mrow)}</div><//>` : null}
+        ${done.length ? html`<${Fold} label=${"Done (" + done.length + ")"}><div class="group">${done.map(mrow)}</div><//>` : null}`}
+    </div>`;
+  }
+  function StepRows(p) {
+    return html`<div class="group">${p.steps.map(function (s) {
+      var l = s.lane && laneById(s.lane);
+      var sub = isDone(s.state) ? "done" : l ? "in the " + l.name + " lane · " + s.laneState : String(s.state || "").toLowerCase();
+      return html`<${Row} key=${s.id} dot=${stateDot(isDone(s.state) ? "done" : s.laneState || s.state) || "d-none"} id=${s.id} title=${s.name} sub=${sub} onClick=${function () { p.push({ t: "step", id: s.id }); }}/>`; })}</div>`;
+  }
+  function byId(a, b) { var x = String(a.id).split("."), y = String(b.id).split("."); return (Number(x[1]) || 0) - (Number(y[1]) || 0); }
+  function MilestoneView(p) {
+    var m = milestoneById(p.id); if (!m) return html`<div class="page"><p class="empty">This milestone is no longer in the plan.</p></div>`;
+    var cur = curMilestone(), isCur = cur && cur.id === m.id, idx = stepIndex();
+    var steps = Object.keys(idx).map(function (k) { return idx[k]; }).filter(function (s) { return s.m === m.id; }).sort(byId);
+    var open = steps.filter(function (s) { return !isDone(s.state); }), done = steps.filter(function (s) { return isDone(s.state); });
+    var moving = open.filter(function (s) { var st = String(s.state).toLowerCase(); return s.lane || st === "in progress" || st === "building" || st === "proving"; }), rest = open.filter(function (s) { return moving.indexOf(s) < 0; });
+    var left = m.of - m.done;
+    var verdict = left <= 0 ? "Done. All " + plural(m.of, "step") + "." : m.done + " of " + plural(m.of, "step") + " done; " + left + " to go.";
+    return html`<div class="page">
+      <${Title} eyebrow=${"Milestone " + m.id} title=${m.name}/>
+      <div class="card"><div class="verdict">${verdict}</div>
+        ${isCur ? html`<div class="cells" aria-hidden="true">${arr(cur.steps).map(function (s) { return html`<i class=${isDone(s.state) ? "on" : String(s.state).toLowerCase() === "not started" ? "" : "mid"}></i>`; })}</div>`
+          : html`<div class="bar"><i style=${"width:" + (m.of ? Math.round(100 * m.done / m.of) : 0) + "%"}></i></div>`}
+        ${!isCur && left > 0 ? html`<p class="sub">The sitrep's numbers list every step of the next milestone only. ${steps.length ? "Below are the steps of this one that a lane is working on." : "No lane is working on this one yet."}</p>` : null}
+      </div>
+      ${moving.length ? html`<${Sec} h=${"Moving · " + moving.length}><${StepRows} steps=${moving} push=${p.push}/><//>` : null}
+      ${rest.length ? html`<${Sec} h=${"Not started · " + rest.length}><${StepRows} steps=${rest} push=${p.push}/><//>` : null}
+      ${isCur && arr(cur.path).length ? html`<${Sec} h="Critical path from here"><div class="group">${cur.path.map(function (n, i) { return html`<${Row} key=${i} id=${String(i + 1)} title=${n}/>`; })}</div><//>` : null}
+      ${done.length ? html`<${Fold} label=${"Done (" + done.length + ")"}><${StepRows} steps=${done} push=${p.push}/><//>` : null}
+    </div>`;
+  }
+  function StepView(p) {
+    var idx = stepIndex(), s = idx[p.id]; if (!s) return html`<div class="page"><p class="empty">This step is no longer in the sitrep's data.</p></div>`;
+    var m = milestoneById(s.m), lane = s.lane && laneById(s.lane), cur = curMilestone(), repo = S.now && S.now.repo;
+    var onPath = cur && cur.id === s.m && arr(cur.path).indexOf(s.name) >= 0;
+    return html`<div class="page">
+      <${Title} eyebrow=${"Step " + s.id + (m ? " · " + m.name : "")} title=${s.name}/>
+      <div class="btns"><span class=${"chip " + stateChip(s.state)}>${s.roadmap ? "roadmap: " : ""}${String(s.state).toLowerCase()}</span>
+        ${lane ? html`<span class=${"chip " + stateChip(s.laneState)}>lane: ${s.laneState}</span>` : null}
+        ${onPath ? html`<span class="chip c-acc">on the critical path</span>` : null}</div>
+      ${lane ? html`<${Sec} h="Lane"><div class="group"><${Row} dot=${stateDot(lane.state)} title=${lane.name} sub=${lane.line} onClick=${function () { p.go("lanes", [{ t: "lane", id: lane.id }]); }}/></div><//>` : html`<div class="card"><p class="sub">${isDone(s.state) ? "Done on master." : "No lane is working on this step yet."}</p></div>`}
+      ${lane && lane.next ? html`<${Sec} h="Lane's next move"><div class="card"><p>${lane.next}</p></div><//>` : null}
+      ${lane && arr(lane.prs).length ? html`<${Sec} h="The lane's pull requests"><div class="group">${lane.prs.map(function (r) { return html`<${Row} key=${r.number} title=${r.title} sub=${"#" + r.number} right=${html`<span class=${"chip " + stateChip(r.state)}>${r.state}</span>`} href=${repo ? "https://github.com/" + repo + "/pull/" + r.number : null}/>`; })}</div><//>` : null}
+    </div>`;
+  }
+
+  // ---------- Lanes ----------
+  function LanesView(p) {
+    var n = S.now, ls = lanes(), landed = arr(n && n.landed), threads = arr(n && n.threads), live = threads.filter(function (t) { return t.state !== "archived"; });
+    return html`<div class="page"><${Title} title="Lanes" asof=${true}/><${Notice}/>
+      ${!n ? html`<${Waiting} text=${S.loaded ? "The conductor hasn't written an update yet." : "Loading…"}/>` : html`
+        ${ls.length ? html`<${Sec} h=${ls.length + " lanes"} hr=${n.at ? ago(n.at) : ""}><div class="group">${ls.map(function (l) {
+          var pr = arr(l.prs).filter(function (r) { return r.state !== "merged" && r.state !== "closed"; })[0];
+          return html`<${Row} key=${l.id} dot=${stateDot(l.state)} title=${l.name} sub=${(pr ? "#" + pr.number + " " + pr.state + " · " : "") + (l.line || "")} right=${html`<span class=${"chip " + stateChip(l.state)}>${l.state}</span>`} onClick=${function () { p.push({ t: "lane", id: l.id }); }}/>`; })}</div><//>`
+          : html`<${Waiting} text="No lanes are running."/>`}
+        ${landed.length ? html`<${Sec} h="Landed on master"><div class="group">${landed.map(function (x, i) { return html`<${Row} key=${i} dot="d-ok" title=${x.title} right=${short(x.at)} href=${x.href}/>`; })}</div><//>` : null}
+        ${threads.length ? html`<${Fold} label=${"Threads (" + live.length + " active)"}><div class="group">${threads.map(function (t, i) { return html`<${Row} key=${i} title=${t.title} sub=${t.state} href=${t.href}/>`; })}</div><//>` : null}`}
+    </div>`;
+  }
+  function LaneView(p) {
+    var l = laneById(p.id); if (!l) return html`<div class="page"><p class="empty">This lane is no longer running.</p></div>`;
+    var reps = S.reps.filter(function (r) { return arr(r.lanes).indexOf(l.id) >= 0; }).slice(0, 8), idx = stepIndex(), repo = S.now && S.now.repo, g = l.gauge;
+    return html`<div class="page">
+      <${Title} eyebrow=${"Lane · slice/" + l.id} title=${l.name}/>
+      <div class="btns"><span class=${"chip " + stateChip(l.state)}>${l.state}</span>${S.now && S.now.at ? html`<span class="sub">updated ${ago(S.now.at)}</span>` : null}</div>
+      ${l.where || l.next ? html`<div class="card">${l.where ? html`<p>${l.where}</p>` : null}${l.next ? html`<p class="sub"><b>Next:</b> ${l.next}</p>` : null}</div>` : null}
+      ${g && g.max ? html`<div class="card budget"><div class="eyebrow">${g.label || "Measure"}</div>
+        <div class="track"><div class=${"fill" + (g.target != null && g.now <= g.target ? " ok" : "")} style=${"width:" + Math.min(100, g.now / g.max * 100) + "%"}></div>${g.target != null ? html`<div class="mark" style=${"left:" + Math.min(100, g.target / g.max * 100) + "%"}></div>` : null}</div>
+        <div class="lbl"><span>now ${g.now} ${g.unit || ""}</span>${g.target != null ? html`<span>target ${g.target} ${g.unit || ""}</span>` : null}</div>${g.note ? html`<div class="sub">${g.note}</div>` : null}</div>` : null}
+      ${safeHref(l.lead) ? html`<div class="group"><${Row} title="Open the lead's thread" sub="Claude Code" href=${l.lead}/></div>` : null}
+      ${arr(l.steps).length ? html`<${Sec} h="Roadmap steps"><div class="group">${l.steps.map(function (s) { return html`<${Row} key=${s.id} dot=${stateDot(s.state) || "d-none"} id=${s.id} title=${s.name} sub=${s.state} onClick=${idx[s.id] ? function () { p.push({ t: "step", id: s.id }); } : null}/>`; })}</div><//>` : null}
+      ${arr(l.prs).length ? html`<${Sec} h="Pull requests"><div class="group">${l.prs.map(function (r) { return html`<${Row} key=${r.number} title=${r.title} sub=${"#" + r.number} right=${html`<span class=${"chip " + stateChip(r.state)}>${r.state}</span>`} href=${repo ? "https://github.com/" + repo + "/pull/" + r.number : null}/>`; })}</div><//>` : null}
+      ${reps.length ? html`<${Sec} h="Its sitreps"><div class="group">${reps.map(function (r) { return html`<${RepItem} key=${r.id} r=${r} scope=${"lane-" + l.id + "-"} ctx=${p}/>`; })}</div><//>` : null}
+    </div>`;
+  }
+
+  // ---------- Measures ----------
+  function MeasuresView(p) {
+    var g = runGauge(), num = S.numbers, pl = num && num.plan, td = (num && num.today) || {};
+    var times = g && g.target ? Math.round(g.minutes / g.target * 10) / 10 : null;
+    return html`<div class="page"><${Title} title="Measures" asof=${true}/><${Notice}/>
+      <${Sec} h="Full run">${g ? html`<div class="card budget">
+          <div class="top"><span class="n">${g.minutes}<small>min</small></span>${times ? html`<span class=${"chip " + (times > 1 ? "c-warn" : "c-ok")}>${times > 1 ? times + "× the target" : "within target"}</span>` : null}</div>
+          <div class="track"><div class=${"fill" + (times != null && times <= 1 ? " ok" : "")} style=${"width:" + Math.min(100, g.minutes / g.max * 100) + "%"}></div>${g.target ? html`<div class="mark" style=${"left:" + Math.min(100, g.target / g.max * 100) + "%"}></div>` : null}</div>
+          <div class="lbl"><span>measured ${g.minutes} min</span>${g.target ? html`<span>target ${g.target} min</span>` : null}</div>
+          ${g.note ? html`<div class="sub">${g.note}.</div>` : null}
+          <div class="btns">${g.state ? html`<span class=${"chip " + stateChip(g.state)}>last run ${g.state === "green" ? "passed" : g.state === "red" ? "failed" : g.state}</span>` : null}
+            ${safeHref(g.href) ? html`<a class="sub" href=${g.href} target="_blank" rel="noopener">The run's record ↗</a>` : html`<span class="sub">No run record linked yet.</span>`}
+            ${g.lane ? html`<button class="btn ghost" type="button" onClick=${function () { p.go("lanes", [{ t: "lane", id: g.lane.id }]); }}>Open the ${g.lane.name} lane</button>` : null}</div>
+        </div>` : html`<${Waiting} text="No full run has been measured yet."/>`}<//>
+      <${Sec} h="The plan">${pl && pl.total ? html`<div class="card"><div class="stats">
+          <div><b>${Math.round(100 * pl.done / pl.total)}%</b><span>${pl.done} of ${pl.total} units done</span></div>
+          <div><b>${td.done != null ? td.done : "–"}</b><span>units done today</span></div>
+          <div><b>${td.added != null ? td.added : "–"}</b><span>units added today</span></div></div></div>
+        <${BurnCard} head=${false}/>` : html`<${Waiting} text="The plan's totals appear once the roadmap's numbers are written."/>`}<//>
+      <${Sec} h="Ratchets" hr="may only fall"><div class="card pending"><b>No counts in the sitrep yet</b><span class="sub">Each ratchet's list may only shrink. The counts will show here, with their trend, once the sitrep's numbers carry them.</span></div><//>
+      <${Sec} h="Budgets"><div class="card pending"><b>No operation measured against a budget yet</b><span class="sub">Every operation's budget is provisional until a run records it. The full run above is the only measured target so far.</span></div><//>
+      <${Sec} h="Evals"><div class="group">
+        <${Row} dot="d-none" title="Explainability" sub="Scored from run records, roadmap step 4.2" right="not yet"/>
+        <${Row} dot="d-none" title="Tries to green, breakage and recovery" sub="The build trends, roadmap step 4.3" right="not yet"/>
+        <${Row} dot="d-none" title="Coverage of declared moves" sub="The coverage report, roadmap step 3.7" right="not yet"/></div><//>
+    </div>`;
+  }
+
+  // ---------- Sitreps ----------
+  var PLAY = html`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg>`;
+  var PAUSE = html`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>`;
+  var STOP = html`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h12v12H6z"/></svg>`;
+  function curLine() { return P.cur >= 0 ? P.queue[P.cur] : null; }
+  function playingRep() { var c = curLine(); return P.state !== "idle" && c ? c.rid : null; }
+  function RepItem(p) {
+    var r = p.r, key = (p.scope || "") + r.id, open = key in S.open ? S.open[key] : !!p.defaultOpen, heard = !!S.heard[r.id], playing = playingRep() === r.id, c = curLine();
+    var paras = arr(r.paras);
+    function toggleOpen() { S.open[key] = !open; bump(); }
+    return html`<div class=${"rep " + (heard ? "heard" : "new") + (playing ? " playing" : "")}>
+      <div class="rhead">
+        <i class=${"dot " + (playing || !heard ? "d-acc" : "")}></i>
+        <button class="rtog" type="button" aria-expanded=${open ? "true" : "false"} onClick=${toggleOpen}><span class="tt">${r.title}</span>
+          <span class="meta">${short(r.at)} · ${plural(paras.length, "part")}${playing ? " · playing" : heard ? " · heard" : ""}</span></button>
+        ${tts ? html`<button class="pl" type="button" aria-label=${(playing ? "Stop " : "Play ") + r.title} onClick=${function () { if (playing) stopReading(); else startReading([r], 0); }}>${playing ? STOP : PLAY}</button>` : html`<span class="chev" aria-hidden="true"></span>`}
+      </div>
+      ${open ? html`<div class="body">${paras.map(function (t, i) { return html`<p class=${"part" + (tts ? " speak" : "") + (playing && c && c.p === i ? " on" : "")} title=${tts ? "Play from here" : null} onClick=${tts ? function () { startReading([r], i); } : null}>${t}</p>`; })}
+        <div class="btns">${tts ? html`<button class="btn" type="button" onClick=${function () { if (playing) toggle(); else startReading([r], 0); }}>${playing && P.state === "speaking" ? PAUSE : PLAY} ${playing ? (P.state === "paused" ? "Resume" : "Pause") : heard ? "Play again" : "Play"}</button>` : null}
+          <button class="btn ghost" type="button" onClick=${function () { setHeard(r.id, !heard); }}>${heard ? "Mark new" : "Mark heard"}</button></div>
+        ${arr(r.links).filter(function (l) { return safeHref(l && l.href); }).length ? html`<div class="links">${r.links.filter(function (l) { return safeHref(l && l.href); }).map(function (l, i) { return html`<a key=${i} href=${l.href} target="_blank" rel="noopener">${l.label}</a>`; })}</div>` : null}</div>` : null}
+    </div>`;
+  }
+  function RepsView(p) {
+    var fresh = unheard(), old = S.reps.filter(function (r) { return S.heard[r.id]; }), groups = [];
+    old.forEach(function (r) { var dn = dayName(r.at), g = groups[groups.length - 1]; if (!g || g.day !== dn) groups.push(g = { day: dn, reps: [] }); g.reps.push(r); });
+    var reading = P.state !== "idle";
+    return html`<div class="page"><${Title} title="Sitreps" asof=${true}/><${Notice}/>
+      ${S.reps.length ? html`<div class="btns">
+        ${tts ? html`<button class="btn" type="button" onClick=${function () { if (reading) { toggle(); return; } startReading((fresh.length ? fresh : S.reps.slice(0, 1)).slice().reverse(), 0); }}>${reading && P.state === "speaking" ? PAUSE : PLAY} ${reading ? (P.state === "paused" ? "Resume" : "Pause") : fresh.length ? "Play " + fresh.length + " new" : "Play the latest"}</button>` : null}
+        ${fresh.length ? html`<button class="btn ghost" type="button" onClick=${function () { S.reps.forEach(function (r) { S.heard[r.id] = true; }); savePrefs(); bump(); }}>Mark all heard</button>` : null}</div>` : null}
+      <p class="note">${S.voiceNote || (tts ? "Short spoken updates from the conductor, newest first. Tap one to read it; tap a paragraph to play from there." : "Short updates from the conductor, newest first.")}</p>
+      ${!S.reps.length ? html`<${Waiting} text=${S.loaded ? "No sitreps yet. The conductor adds one after each merge, decision or new thread." : "Loading…"}/>`
+        : fresh.length ? html`<${Sec} h=${"Not heard · " + fresh.length}><div class="group">${fresh.map(function (r) { return html`<${RepItem} key=${r.id} r=${r} scope="feed-" ctx=${p}/>`; })}</div><//>` : html`<p class="sub">You're up to date.</p>`}
+      ${groups.map(function (g) { return html`<${Sec} key=${g.day} h=${"Heard · " + g.day}><div class="group">${g.reps.map(function (r) { return html`<${RepItem} key=${r.id} r=${r} scope="feed-" ctx=${p}/>`; })}</div><//>`; })}
+    </div>`;
+  }
+
+  // ---------- heard and speed, per viewer ----------
+  function savePrefs() {
+    try { localStorage.setItem("sitrep-prefs", JSON.stringify({ heard: S.heard, rate: S.rate })); } catch (e) {}
+    if (!prefsRef) return;
+    clearTimeout(prefsTimer);
+    prefsTimer = setTimeout(function () { prefsRef.set({ heard: S.heard, rate: S.rate }).catch(function () {}); }, 600);
+  }
+  function setHeard(id, on) { if (on) S.heard[id] = true; else delete S.heard[id]; savePrefs(); bump(); }
+  try { var lp = JSON.parse(localStorage.getItem("sitrep-prefs") || "null"); if (lp) { S.heard = lp.heard || {}; S.rate = SPEEDS.indexOf(lp.rate) >= 0 ? lp.rate : 1; } } catch (e) {}
+
+  // ---------- the player ----------
+  // A reading is a queue of paragraphs, one tts line each. Back, forward and the segment bar start a new reading
+  // from another paragraph (the platform's voice has no seek inside a paragraph).
+  function startReading(reps, fromPara) {
+    if (!tts) return;
+    var q = [];
+    reps.forEach(function (r) { arr(r.paras).forEach(function (t, i) { q.push({ rid: r.id, p: i, n: r.paras.length, title: r.title, text: (i === 0 ? r.title + ". " : "") + t }); }); });
+    if (!q.length) return;
+    P.queue = q; speakFrom(fromPara || 0);
+  }
+  function speakFrom(i) {
+    if (!tts || i < 0 || i >= P.queue.length) return;
+    P.cur = i; P.state = "starting"; P.posMs = 0; bump();
+    var lines = P.queue.slice(i).map(function (l, k) { return { text: l.text, id: String(i + k) }; });
+    tts.speak(lines, { rate: S.rate }).catch(function (err) {
+      if (err && err.code === "stopped") return;
+      if (err && (err.code === "not_granted" || err.code === "unavailable")) { tts = null; S.voiceNote = "Reading aloud is off for this page. Turn it on in the page's Permissions menu."; }
+      else if (err && err.code === "rate_limited") S.voiceNote = "Reading aloud is busy for now. Try again in a minute.";
+      P.state = "idle"; P.cur = -1; bump();
+    });
+  }
+  function toggle() {
+    if (!tts) return;
+    if (P.state === "paused") { tts.resume().catch(function () {}); }
+    else if (P.state !== "idle") { tts.pause().catch(function () {}); }
+  }
+  function stopReading() { if (tts) tts.stop().catch(function () {}); }
+  function back() { if (P.cur < 0) return; speakFrom(P.posMs > 3000 || P.cur === 0 ? P.cur : P.cur - 1); }
+  function forward() { if (P.cur < 0) return; if (P.cur + 1 < P.queue.length) speakFrom(P.cur + 1); else stopReading(); }
+  function setSpeed() {
+    var i = SPEEDS.indexOf(S.rate); S.rate = SPEEDS[(i + 1) % SPEEDS.length];
+    if (tts && tts.setRate) Promise.resolve(tts.setRate(S.rate)).catch(function () {});
+    savePrefs(); bump();
+  }
+  function onLine(ev) {
+    var i = Number(ev.id); if (isNaN(i) || !P.queue[i]) return;
+    var prev = curLine(); P.cur = i; P.posMs = 0;
+    if (prev && prev.rid !== P.queue[i].rid) S.heard[prev.rid] = true;
+    if (P.queue[i].p === P.queue[i].n - 1) S.heard[P.queue[i].rid] = true;
+    savePrefs(); bump();
+  }
+  function onState(ev) {
+    if (ev.state === "idle") { if (ev.reason === "replaced") return; P.state = "idle"; P.cur = -1; bump(); return; }
+    P.state = ev.state === "starting" ? "speaking" : ev.state; bump();
+  }
+  function Mini() {
+    var c = curLine(), on = P.state !== "idle" && !!c;
+    if (!on) return null;
+    var rids = []; P.queue.forEach(function (l) { if (rids.indexOf(l.rid) < 0) rids.push(l.rid); });
+    var paused = P.state === "paused";
+    return html`<div class=${"mini" + (P.state === "speaking" ? " speaking" : "")} role="region" aria-label="Now playing">
+      <div class="top"><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="t"><b>${c.title}</b><small>part ${c.p + 1} of ${c.n}${rids.length > 1 ? " · sitrep " + (rids.indexOf(c.rid) + 1) + " of " + rids.length : ""}${paused ? " · paused" : ""}</small></span>
+        <button class="ic" type="button" aria-label="Stop" onClick=${stopReading}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6l5.6-5.6L5 6.4z"/></svg></button></div>
+      <div class="segs" aria-label="Jump to a part">${P.queue.map(function (l, i) { return html`<button type="button" aria-label=${"Play " + l.title + ", part " + (l.p + 1)} class=${(i < P.cur ? "past" : i === P.cur ? "cur" : "") + (l.p === 0 && i > 0 ? " rep" : "")} onClick=${function () { speakFrom(i); }}><i></i></button>`; })}</div>
+      <div class="ctl"><button class="speed" type="button" aria-label="Reading speed" onClick=${setSpeed}>${S.rate}×</button>
+        <span style="display:flex;gap:6px">
+          <button class="ic" type="button" aria-label="Back" onClick=${back}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+          <button class="ic main" type="button" aria-label=${paused ? "Resume" : "Pause"} onClick=${toggle}>${paused ? PLAY : PAUSE}</button>
+          <button class="ic" type="button" aria-label="Forward" onClick=${forward}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button></span>
+        <span style="width:52px" aria-hidden="true"></span></div></div>`;
+  }
+  document.addEventListener("keydown", function (e) {
+    if (P.state === "idle" || (e.target.closest && e.target.closest("input, textarea"))) return;
+    if (e.key === " " && !(e.target.closest && e.target.closest("button, a"))) { e.preventDefault(); toggle(); }
+    else if (e.key === "ArrowLeft" && e.altKey) back(); else if (e.key === "ArrowRight" && e.altKey) forward();
+  });
+
+  // ---------- the app ----------
+  var TABS = [
+    ["now", "Now", "M12 3v3M12 18v3M3 12h3M18 12h3M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8"],
+    ["plan", "Plan", "M4 6h16M4 12h10M4 18h6"],
+    ["lanes", "Lanes", "M6 3v18M12 3v18M18 3v18"],
+    ["measures", "Measures", "M4 20V10M10 20V4M16 20v-7M22 20H2"],
+    ["reps", "Sitreps", "M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"]
+  ];
+  var ROOT = { now: NowView, plan: PlanView, lanes: LanesView, measures: MeasuresView, reps: RepsView };
+  var DETAIL = { milestone: MilestoneView, step: StepView, lane: LaneView };
+  var savedTab = "now"; try { var st = localStorage.getItem("sitrep-tab3"); if (ROOT[st]) savedTab = st; } catch (e) {}
+  function App() {
+    var tick = useState(0); bump = function () { tick[1](function (n) { return n + 1; }); };
+    var tab = useState(savedTab), stacks = useState({ now: [], plan: [], lanes: [], measures: [], reps: [] });
+    var wide = useState(window.matchMedia("(min-width: 980px)").matches);
+    useEffect(function () { var mq = window.matchMedia("(min-width: 980px)"), f = function () { wide[1](mq.matches); }; if (mq.addEventListener) mq.addEventListener("change", f); return function () { if (mq.removeEventListener) mq.removeEventListener("change", f); }; }, []);
+    useEffect(function () { try { localStorage.setItem("sitrep-tab3", tab[0]); } catch (e) {} }, [tab[0]]);
+    var playing = P.state !== "idle" && !!curLine();
+    useEffect(function () { document.body.classList.toggle("playing", playing); }, [playing]);
+    var stack = stacks[0][tab[0]];
+    function push(v) { var s = Object.assign({}, stacks[0]); s[tab[0]] = stack.concat([v]); stacks[1](s); if (!wide[0]) window.scrollTo(0, 0); }
+    function pop() { var s = Object.assign({}, stacks[0]); s[tab[0]] = stack.slice(0, -1); stacks[1](s); }
+    function go(t, st2) { var s = Object.assign({}, stacks[0]); s[t] = st2; stacks[1](s); tab[1](t); window.scrollTo(0, 0); }
+    var ctx = { push: push, go: go };
+    var badges = { now: arr(S.now && S.now.needsYou).length, reps: unheard().length };
+    var Root = ROOT[tab[0]], top = stack[stack.length - 1], Detail = top && DETAIL[top.t];
+    var detail = Detail ? html`<div class="panel"><button class="back" type="button" onClick=${pop}>${stack.length > 1 ? "Back" : wide[0] ? "Close" : TABS.filter(function (t) { return t[0] === tab[0]; })[0][1]}</button><${Detail} key=${top.t + top.id} id=${top.id} ...${ctx}/></div>` : null;
+    var at = latestAt();
+    var bar = html`<${TabBar} tab=${tab} stacks=${stacks} badges=${badges}/>`;
+    return html`
+      <div class=${"app" + (wide[0] && !detail ? " single" : "")}>
+        ${wide[0] ? html`<div class="side"><div class="brand"><b>Rebuild sitrep</b><span>${at ? "Updated " + hm(at) + " UTC" : S.loaded ? "No updates yet" : "Loading…"}</span></div>${bar}</div><${Root} ...${ctx}/>${detail}`
+          : html`<div>${detail || html`<${Root} ...${ctx}/>`}</div>`}
+      </div>
+      ${wide[0] ? null : bar}
+      <${Mini}/>`;
+  }
+  function TabBar(p) {
+    return html`<nav class="tabbar" aria-label="Sections">${TABS.map(function (t) {
+      var on = p.tab[0] === t[0], n = p.badges[t[0]];
+      return html`<button class="tab" type="button" aria-current=${on ? "page" : null} onClick=${function () { if (on) { var s = Object.assign({}, p.stacks[0]); s[t[0]] = []; p.stacks[1](s); } p.tab[1](t[0]); window.scrollTo(0, 0); }}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d=${t[2]}/></svg>${t[1]}${n ? html`<span class="badge" aria-label=${n + " new"}>${n}</span>` : null}</button>`; })}</nav>`;
+  }
+
+  // ---------- data ----------
+  function sortReps(list) { return list.filter(function (r) { return r && r.id && r.title; }).sort(function (a, b) { return String(b.at).localeCompare(String(a.at)); }); }
+  function connect(src) {
+    // src: { db, user } -- the platform's namespaces, or a fixture in tests.
+    var db = src.db, timer = setTimeout(function () { S.notice = "The sitrep's data can't be reached yet. What you see may be out of date."; bump(); }, 10000);
+    function fresh(snap) { if (!snap.fromCache) { clearTimeout(timer); S.notice = ""; } S.loaded = true; }
+    function fail() { clearTimeout(timer); S.notice = "The sitrep's data stopped updating. Reload the page to try again."; bump(); }
+    db.doc("sitrep/numbers").onSnapshot(function (s) { S.numbers = s.exists ? s.data() : null; fresh(s); bump(); }, fail);
+    db.doc("sitrep/now").onSnapshot(function (s) { S.now = s.exists ? s.data() : null; fresh(s); bump(); }, fail);
+    db.collection("sitreps").orderBy("at", "desc").limit(60).onSnapshot(function (q) {
+      S.reps = sortReps(q.docs.map(function (d) { var x = d.data() || {}; x.id = d.id; return x; })); fresh(q); bump();
+    }, fail);
+    if (src.user) src.user.id().then(function (uid) {
+      if (!uid) return;
+      prefsRef = db.doc("data/users/" + uid + "/sitrep-prefs");
+      prefsRef.onSnapshot(function (s) {
+        if (!s.exists) return; var d = s.data() || {};
+        Object.keys(d.heard || {}).forEach(function (k) { S.heard[k] = true; });
+        if (d.rate && SPEEDS.indexOf(d.rate) >= 0) S.rate = d.rate;
+        bump();
+      }, function () { prefsRef = null; });
+    }).catch(function () {});
+  }
+  function useVoice(t) {
+    tts = t;
+    if (!t) { S.voiceNote = "Reading aloud isn't available in this view (Safari, the mobile app, or outside the organization), so each sitrep is written out when you open it."; bump(); return; }
+    S.voiceNote = "";
+    if (t.setRate) Promise.resolve(t.setRate(S.rate)).catch(function () {});
+    t.onLine(onLine); t.onState(onState); if (t.onPosition) t.onPosition(function (e) { P.posMs = e.ms; });
+    bump();
+  }
+  window.SitrepPage = { connect: connect, useVoice: useVoice }; // for a test harness
+  var root = document.getElementById("root"); root.innerHTML = "";
+  render(html`<${App}/>`, root);
+  if (window.claude && window.claude.use) {
+    Promise.all([window.claude.use("db"), window.claude.use("user"), window.claude.use("tts")]).then(function (ns) {
+      if (ns[0]) connect({ db: ns[0], user: ns[1] }); else { S.loaded = true; S.notice = "Sign in to claude.ai to see the sitrep's data."; bump(); }
+      useVoice(ns[2]);
+    });
+  } else { S.loaded = true; bump(); }
+})();
+</script>
+

@@ -18,6 +18,7 @@ import * as Schema from "effect/Schema";
 import type * as Tracer from "effect/Tracer";
 import type { CheckedCall } from "./checks/checks.ts";
 import type { Call } from "./client.ts";
+import { ChainRead, ChainReads } from "./telemetry/chain.ts";
 import { RUN_SPANS, stepOptions } from "./telemetry/step.ts";
 
 /** One step as the runner heard it while the journey ran. */
@@ -32,6 +33,8 @@ export interface Heard {
   readonly tries: ReadonlyArray<Tried>;
   /** Each read sent again in it because its connection dropped, in words. */
   readonly resent: ReadonlyArray<string>;
+  /** The chain reads it made, its checks' included, in the order they ended (telemetry/chain.ts). */
+  readonly chain?: ReadonlyArray<ChainRead>;
   /** Why it failed, in the journey's words; null while it runs and when it did not. */
   readonly failure: string | null;
 }
@@ -53,8 +56,17 @@ export const hearing = (heard: Ref.Ref<ReadonlyArray<Heard>>, log: Ref.Ref<Reado
   Layer.effectContext(
     Effect.gen(function* () {
       const open = yield* Ref.make<Option.Option<Tracer.Span>>(Option.none());
-      return Context.make(OpenStep, open).pipe(Context.add(Steps, heardSteps(heard, log, open)));
+      return Context.make(OpenStep, open).pipe(
+        Context.add(Steps, heardSteps(heard, log, open)),
+        Context.add(ChainReads, { heard: chainHeard(heard) }),
+      );
     }),
+  );
+
+/** A chain read, kept by the step that is open while it is made; none is open between steps. */
+const chainHeard = (heard: Ref.Ref<ReadonlyArray<Heard>>) => (read: ChainRead) =>
+  Ref.update(heard, (all) =>
+    Arr.map(all, (each) => (each.endedMs === null ? { ...each, chain: [...(each.chain ?? []), read] } : each)),
   );
 
 const heardSteps = (
@@ -145,6 +157,11 @@ export const StepResult = Schema.Struct({
   calls: Schema.Array(Schema.Finite),
   /** How long it took, from its beginning to its end. */
   ms: Schema.NullOr(Schema.Finite),
+  /**
+   * Every chain read it and its checks made, each with its method, its block range and its time: the part of `ms`
+   * spent reading the chain. Absent in records made before it was recorded (roadmap 4.7).
+   */
+  chain: Schema.Array(ChainRead).pipe(Schema.optional),
 });
 export type StepResult = typeof StepResult.Type;
 
@@ -204,6 +221,7 @@ export const stepsOf = (
       ...(it.resent.length === 0 ? {} : { resent: it.resent }),
       calls: indexes,
       ms: it.endedMs === null ? null : it.endedMs - it.startedMs,
+      chain: it.chain ?? [],
     };
   });
 
