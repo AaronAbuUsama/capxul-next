@@ -152,6 +152,24 @@ test("a call the api never answered needs nothing of the tap", async () => {
   assert.deepEqual(kept, { spans: [], events: [] });
 });
 
+/** An HTTP client that fails the test on any request: nothing may be sent. */
+const sendsNothing = Layer.succeed(
+  HttpClient.HttpClient,
+  HttpClient.make((request) => Effect.die(new assert.AssertionError({ message: `${request.url} was sent` }))),
+);
+
+test("a database with no host fails as plumbing, saying so, and sends nothing", async () => {
+  // Run 43807337978: a journey given `quota-full` in the shared shape owns no world, so its stage's database is empty;
+  // a read there went to "https:///sql". Now it is the runner's plumbing failure, and nothing is sent.
+  const exit = await Effect.runPromiseExit(
+    tapTelemetryOf(Redacted.make(""), [callOf(Str.repeat(32)("e"), "success")], QUICK).pipe(
+      Effect.provide(sendsNothing),
+    ),
+  );
+  assert.ok(Exit.isFailure(exit));
+  assert.match(String(exit.cause), /plumbing: a database with no host was read/);
+});
+
 test("a starting world's call missing from the tap fails as plumbing, with no checks, never as nothing", async () => {
   const call = callOf("0af7651916cd43dd8448eb211c80319c", "success");
   const got = await Effect.runPromise(
