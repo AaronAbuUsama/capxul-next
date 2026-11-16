@@ -28,6 +28,15 @@ Events:
 The pipeline's own work (docs/design/blueprint.md, part 8): no Rpc group holds it, so nothing serves it at run
 time. Its spans and logs judge it once it is instrumented (roadmap item 4.7). Its budget is a target, never a gate.
 
+### `site.make`
+
+Give a founded company its site: a ready company copy taken from the bench's pool and joined to the world; with none, made from the blank.
+
+- Payload: `world`.
+- Spans: `site.make.list` (site) → `site.make.take` (site) → `site.make.join` (site) → `site.make.ready` (poll).
+- Logs: `site.make.fell_back` (world, origin, reason).
+- Budget: 10,000 ms, a target, provisional. Basis: a ready copy renamed and joined, about 2 to 5 s on an idle bench; a first guess until measured.
+
 ### `site.reset`
 
 Put each of a world's company sites back to its site snapshot.

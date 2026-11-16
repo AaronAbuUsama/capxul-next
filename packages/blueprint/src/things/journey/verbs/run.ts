@@ -27,6 +27,9 @@ export const journeyRun = work({
     place: span("journey.run.place", StepKind.wait),
     // Waiting for a site's slot from the bench's blank pool before the journey founds its company (4.8 b).
     sites: span("journey.run.sites", StepKind.wait),
+    // A journey played in the run's shared world waiting for that world to be made and to answer steadily, while
+    // journeys in worlds of their own start at once (4.8, the own-world track's A-1).
+    shared: span("journey.run.shared", StepKind.wait),
   },
   logs: { stepFailed: log("journey.run.step_failed", { journey: JourneyName, step: JourneyStep }) },
   budget: {

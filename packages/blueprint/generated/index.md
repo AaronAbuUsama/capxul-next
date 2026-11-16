@@ -64,6 +64,7 @@ today until the glossary's renames (roadmap item 3.8).
 | [run](run.md) | start | `run.start` | none: work no door serves |
 | [run](run.md) | teardown | `run.teardown` | none: work no door serves |
 | [run](run.md) | verdict | `run.verdict` | none: work no door serves |
+| [site](site.md) | make | `site.make` | none: work no door serves |
 | [site](site.md) | reset | `site.reset` | none: work no door serves |
 | [site](site.md) | save | `site.save` | none: work no door serves |
 | [site](site.md) | take | `site.take` | none: work no door serves |

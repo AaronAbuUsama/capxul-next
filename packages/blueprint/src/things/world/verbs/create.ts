@@ -1,7 +1,7 @@
 // `capxul world create` (today `world.create`): making a world from nothing.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { verb, claim, kept, rewritten, dropped } from "@capxul/blueprint-tools";
+import { verb, claim, kept, rewritten, dropped, span } from "@capxul/blueprint-tools";
 import { NotImplemented } from "../../../common/refusals.ts";
 import { ClockMode, Grade, Instant, WorldName, WorldView } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
@@ -10,6 +10,7 @@ import { created } from "../values.ts";
 import { exampleWorld } from "../examples.ts";
 import { ClockBeforeSeed, GradeNotOffered, WorldExists, WorldQuotaReached } from "../refusals.ts";
 import { Lifetime } from "../values.ts";
+import { StepKind } from "../../../telemetry/step-kinds.ts";
 
 // It answers once the world runs, not `creating`: a run is one unit (roadmap, "World lifecycle rules", 1), and a
 // caller has nothing to do with a world that does not answer. It answers once the new world's Core has answered its
@@ -32,6 +33,38 @@ export const create = verb({
     error: Schema.Union([WorldExists, GradeNotOffered, WorldQuotaReached, ClockBeforeSeed, NotImplemented]),
   }),
   emits: [{ event: WorldCreated, carries: ({ success }) => created(success) }],
+  // Its steps (4.1), as `packages/world` brings a world up: the claim first, then a chain lane and a database lane side
+  // by side, then the facts. Each is an `Effect.fn` named by its span.
+  spans: {
+    /** The world's place on the hub admitted and claimed, in the registry. */
+    claim: span("world.create.claim", StepKind.database),
+    /** The world's keys to the bench's site door and to the collector, granted. */
+    grant: span("world.create.grant", StepKind.site),
+    /** The world registered with its hub. */
+    register: span("world.create.register", StepKind.container),
+    /** The world's chain started from the seeded state on its hub. */
+    chain: span("world.create.chain", StepKind.container),
+    /** The chain's clock set and the world's funded address paid. */
+    fund: span("world.create.fund", StepKind.chain),
+    /** The bundler's contracts set up on the chain. */
+    bundlerSetUp: span("world.create.bundler.setUp", StepKind.bundler),
+    /** The bundler started and answering. */
+    bundlerStart: span("world.create.bundler.start", StepKind.container),
+    /** The world's database branch made. */
+    branch: span("world.create.branch", StepKind.branch),
+    /** Waiting for Neon's lock on the project (a 423), before a branch operation is tried again. */
+    branchLocked: span("world.create.branch.locked", StepKind.wait),
+    /** The world's Core deployed. */
+    deploy: span("world.create.deploy", StepKind.deploy),
+    /** The world's database migrated. */
+    migrate: span("world.create.migrate", StepKind.database),
+    /** Waiting for the world's index to follow its chain. */
+    index: span("world.create.index", StepKind.poll),
+    /** Waiting for the world's Core to answer steadily. */
+    core: span("world.create.core", StepKind.poll),
+    /** The world's birth written to its record and its cast's facts read. */
+    facts: span("world.create.facts", StepKind.database),
+  },
   budget: {
     ms: 90_000,
     excludes: [],

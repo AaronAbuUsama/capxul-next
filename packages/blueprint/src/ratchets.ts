@@ -7,6 +7,7 @@
 // guessed. A ratchet gated by a command of its own names it in `gate`: `pnpm ratchets` then reports its count, and
 // neither commits nor fails on it, so no list has two gates.
 
+import * as Arr from "effect/Array";
 import type { FormatName, Ratchet } from "@capxul/blueprint-tools";
 import type { OperationName } from "./index.ts";
 
@@ -251,7 +252,9 @@ export const unmigrated: { readonly [format in FormatName]?: ReadonlyArray<Opera
     "world.snapshot.delete",
   ],
   allowed: notClimbed,
-  spans: notClimbed,
+  // world.create and world.snapshot.save declare their steps (4.8's world track, B-1 and B-2); their logs come with
+  // the logs format.
+  spans: Arr.filter(notClimbed, (name) => name !== "world.create" && name !== "world.snapshot.save"),
   logs: notClimbed,
   promises: [
     "org.member.grant",

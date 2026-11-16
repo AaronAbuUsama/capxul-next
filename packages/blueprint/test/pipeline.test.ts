@@ -29,6 +29,7 @@ const DECLARED = [
   "run.start",
   "run.teardown",
   "run.verdict",
+  "site.make",
   "site.reset",
   "site.save",
   "site.take",
