@@ -5,7 +5,7 @@
 // into its database and its `world_created` into its record. It answers once the world runs. Nothing is made for a
 // refused call: the grade and the clock are refused before the name is claimed, and the registry refuses a taken name
 // or a full quota.
-import { CurrentOperator, Errors, type World as Blueprint } from "@capxul/blueprint";
+import { CurrentOperator, Errors, World, type World as Blueprint } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
@@ -153,7 +153,7 @@ export const create = Effect.fn("platform.world.create")(function* (payload: Cre
           emitDeclared("world.create", { payload, success: view }, stage, made.world.database, startMs),
         ],
         { concurrency: 2 },
-      );
+      ).pipe(Effect.withSpan(World.create.spans.facts.name));
       return view;
     }).pipe(Effect.orDie),
   );

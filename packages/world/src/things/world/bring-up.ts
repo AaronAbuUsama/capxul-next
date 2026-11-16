@@ -1,5 +1,6 @@
 // Bringing one world up on its fleet hub, step by step: the claim, its registration on the hub, then the chain's lane
 // and the database's lane side by side. Used by the lifecycle (run.ts) and the command line (operations.ts).
+import { World as Declared } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as DateTime from "effect/DateTime";
 import * as Deferred from "effect/Deferred";
@@ -23,7 +24,7 @@ import { mineStart } from "./cast.ts";
 import { steady } from "../../parts/api/steady.ts";
 import { tokenOf } from "../cluster/registration.ts";
 import { explained } from "../../parts/indexer/starts.ts";
-import { grant, makeSites } from "../site/bench.ts";
+import { BenchStage, grant, makeSites } from "../site/bench.ts";
 import type { BenchGrant } from "../../stack/settings.ts";
 import { deployStage, recordOutput, recordedOutput, secretOf } from "../../stack/engine.ts";
 import { liftBranchExpiry } from "../../stack/cloud.ts";
@@ -33,6 +34,15 @@ import { adoptChain, chainAnswers, indexReady, open, rpc, rpcControl } from "./c
 import { AdmitEvery, Limits, type World, type WorldSpec } from "./values.ts";
 import type { Stopwatch } from "../../common/stopwatch.ts";
 import type { Plan } from "./take-down.ts";
+
+/** The steps `world.create` declares (packages/blueprint, src/things/world/verbs/create.ts), each a span of its own. */
+const steps = Declared.create.spans;
+
+/**
+ * How often the index's readiness is asked while a world comes up: Ponder is ready a few seconds after its start, and
+ * a look every 2 s lost a second on average. The `index` step's declared timeout still bounds the wait.
+ */
+const INDEX_EVERY = "500 millis";
 
 const recordOf = (plan: Plan, status: string, bench: string, hub: string) => ({
   world: plan.stage,
@@ -59,11 +69,11 @@ const makeForkable = Effect.fn("world.makeForkable")(function* (parent: string, 
 /**
  * Brings the world up on its fleet hub. The name is claimed first, with a place on the hub (waiting for one while the
  * hub is full), and `held` is set the moment the claim holds, so whoever runs this knows whether there is anything of
- * theirs to take down. Owner and expiry are written to the shared state before anything exists, so a world whose
- * creation dies half-way is still found, and deleted, by the sweeper. Then the world is registered on its hub, and
- * two lanes run side by side: the chain's (its chain, the faucet, the bundler and whatever the caller does on the
- * chain, `spec.onChain`) and the database's (the deploy of its branch and Core, the migrations, the index once the
- * chain answers, and Core).
+ * theirs to take down. Owner, expiry and bench are written to the shared state before anything exists, so a world
+ * whose creation dies half-way is still found, and deleted, by the sweeper. Then the world is registered on its hub,
+ * and two lanes run side by side: the chain's (its chain, the faucet, the bundler and whatever the caller does on the
+ * chain, `spec.onChain`) and the database's (its keys on the bench beside its branch, the deploy of Core, the
+ * migrations, the index once the chain answers, and Core). Each step is a span `world.create` declares.
  */
 export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref.Ref<Option.Option<string>>) =>
   Effect.gen(function* () {
@@ -80,25 +90,31 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
     const names = yield* registry;
     const { maxPerOwner, maxSites } = yield* Limits;
     const room = { stage: hub.stage, capacity: hub.capacity };
-    yield* watch.step(
-      "admit",
-      admit(names, plan.stage, plan.owner, plan.expiresAt, maxPerOwner, room, yield* AdmitEvery, (holder) =>
-        Ref.set(held, Option.some(holder)),
+    // The world's first record names the bench its sites go on before its keys there are minted (the `grant`, beside
+    // the branch): a create that fails after the claim is taken down by its record, its sites included, and a key
+    // minted from the platform's door key needs no revoking, only its sites removing.
+    const benchStage = yield* BenchStage;
+    const every = yield* AdmitEvery;
+    yield* Effect.andThen(
+      watch.step(
+        "admit",
+        admit(names, plan.stage, plan.owner, plan.expiresAt, maxPerOwner, room, every, (holder) =>
+          Ref.set(held, Option.some(holder)),
+        ),
       ),
-    );
-    const bench = yield* watch.step(
-      "claim",
-      Effect.gen(function* () {
-        // The site token, minted once the name is held, and the world's first record.
-        const granted = yield* grant(plan.stage, plan.expiresAt, maxSites, {
-          owner: plan.owner,
-          grade: spec.grade ?? "private",
-        });
-        const named = Option.match(granted, { onNone: () => "none", onSome: (one) => one.stage });
-        yield* recordOutput(plan.stage, recordOf(plan, "creating", named, hub.stage));
-        return granted;
-      }),
-    );
+      watch.step(
+        "claim",
+        recordOutput(
+          plan.stage,
+          recordOf(
+            plan,
+            "creating",
+            Option.getOrElse(benchStage, () => "none"),
+            hub.stage,
+          ),
+        ),
+      ),
+    ).pipe(Effect.withSpan(steps.claim.name));
     yield* Effect.logInfo(`world ${plan.stage}: claimed for ${plan.owner} until ${plan.expiresAt}`);
     const secret = yield* worldSecret(hub, plan);
     const doorToken = Redacted.make(tokenOf(plan.stage, secret));
@@ -112,6 +128,7 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
       yield* watch.step(
         "register",
         register(hub, { stage: plan.stage, secret, owner: plan.owner, expiresAt: plan.expiresAt }),
+        steps.register.name,
       );
       yield* watch.step(
         "chain",
@@ -119,21 +136,30 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
           if (Option.isSome(parent)) yield* adoptChain(reach, parent.value, spec.snapshot?.name);
           return yield* chainAnswers(reach);
         }),
+        steps.chain.name,
       );
       yield* Deferred.succeed(chainUp, undefined);
       // Everything that makes a world from nothing is sent just after the seed, before the world's own start.
       if (spec.atSeed === true && Option.isNone(parent))
         yield* rpcControl(reach, "evm_setTime", [SEED_HEAD.timestamp + 1]);
-      const funded = yield* watch.step("fund", Effect.andThen(ensureToken(call), mintAll(call, spec.mint ?? [])));
+      const funded = yield* watch.step(
+        "fund",
+        Effect.andThen(ensureToken(call), mintAll(call, spec.mint ?? [])),
+        steps.fund.name,
+      );
       // The bundler's own transactions first, so that everything that makes the world is sent before the caller's
       // (the cast, then the world's start block); then alto starts beside the caller's work.
       const bundler = yield* watch.step(
         "bundler",
         Effect.andThen(
-          setUpBundler(call),
-          Effect.all([startBundler(reach), spec.onChain === undefined ? Effect.void : spec.onChain(reach)], {
-            concurrency: 2,
-          }).pipe(Effect.map(([started]) => started)),
+          setUpBundler(call).pipe(Effect.withSpan(steps.bundlerSetUp.name)),
+          Effect.all(
+            [
+              startBundler(reach).pipe(Effect.withSpan(steps.bundlerStart.name)),
+              spec.onChain === undefined ? Effect.void : spec.onChain(reach),
+            ],
+            { concurrency: 2 },
+          ).pipe(Effect.map(([started]) => started)),
         ),
       );
       // The world's own first block, at its start, mined once everything that makes the world is on its chain.
@@ -149,7 +175,13 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
       // Core's bundle is built (once per process) while the branch is made; the deploy waits for it (bundle.ts).
       yield* warmApi();
       // The branch is made through Neon's API first (src/parts/database/neon.ts); the deploy adopts it by name.
-      const made = yield* watch.step(
+      // The world's keys on its bench, which only the deploy needs, minted beside its branch.
+      const granting = watch.step(
+        "grant",
+        grant(plan.stage, plan.expiresAt, maxSites, { owner: plan.owner, grade: spec.grade ?? "private" }),
+        steps.grant.name,
+      );
+      const branching = watch.step(
         "branch",
         Effect.gen(function* () {
           if (Option.isSome(plan.forkedFrom) && spec.snapshot === undefined)
@@ -161,7 +193,9 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
           const from = spec.snapshot?.branch ?? forkOf;
           return yield* makeBranch(project, plan.stage, from, plan.expiresAt);
         }),
+        steps.branch.name,
       );
+      const [bench, made] = yield* Effect.all([granting, branching], { concurrency: 2 });
       const deploy = watch
         .step(
           "deploy",
@@ -181,6 +215,7 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
               Effect.flatMap(Schema.decodeUnknownEffect(WorldOutput)),
             );
           }),
+          steps.deploy.name,
         )
         .pipe(
           Effect.tap(() => Deferred.succeed(deployDone, undefined)),
@@ -194,11 +229,18 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
             // A world is up once its Core answers steadily: a new workers.dev address can be answered by Cloudflare's
             // edge with a 404 between two of Core's answers for some seconds (src/parts/api/steady.ts).
             Effect.tap((deployed) =>
-              watch.step("core", hostCore(deployed, spec, bench).pipe(Effect.andThen(steady(deployed.coreUrl)))),
+              watch.step(
+                "core",
+                hostCore(deployed, spec, bench).pipe(Effect.andThen(steady(deployed.coreUrl))),
+                steps.core.name,
+              ),
             ),
           ),
-          watch.step("migrate", migrate(made.connectionUri, spec.migrations ?? CORE_MIGRATIONS)),
-          Effect.andThen(Deferred.await(chainUp), explained(database, watch.step("index", indexReady(database)))),
+          watch.step("migrate", migrate(made.connectionUri, spec.migrations ?? CORE_MIGRATIONS), steps.migrate.name),
+          Effect.andThen(
+            Deferred.await(chainUp),
+            explained(database, watch.step("index", indexReady(database, INDEX_EVERY), steps.index.name)),
+          ),
           // The caller's own work that needs only the deploy (a restore's sites), beside Core's start and the index.
           spec.onDeployed === undefined
             ? Effect.void
@@ -207,9 +249,9 @@ export const bringUp = (spec: WorldSpec, plan: Plan, watch: Stopwatch, held: Ref
         { concurrency: 4 },
       );
       yield* Effect.logInfo(`world ${plan.stage}: deployed, migrated, the index is ready and Core answers`);
-      return world;
+      return { world, bench };
     });
-    const [funded, world] = yield* Effect.all([chainLane, databaseLane], { concurrency: 2 });
+    const [funded, { world, bench }] = yield* Effect.all([chainLane, databaseLane], { concurrency: 2 });
     const companies = spec.companies ?? [];
     const sites =
       Option.isNone(bench) || Arr.isReadonlyArrayEmpty(companies)

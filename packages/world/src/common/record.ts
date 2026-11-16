@@ -32,6 +32,8 @@ export const RunRecord = Schema.Struct({
     /** The wait for a place on the hub, with the claim of the name (absent in a record made before admission). */
     admit: Schema.optionalKey(Ms),
     claim: Ms,
+    /** The world's keys to the bench's site door and the collector (absent in a record made before it was its own step). */
+    grant: Schema.optionalKey(Ms),
     register: Ms,
     branch: Ms,
     deploy: Ms,
@@ -56,6 +58,7 @@ export const RunRecord = Schema.Struct({
   timeouts: Schema.Struct({
     admit: Schema.optionalKey(Schema.Finite),
     claim: Schema.Finite,
+    grant: Schema.optionalKey(Schema.Finite),
     register: Schema.Finite,
     branch: Schema.Finite,
     deploy: Schema.Finite,
@@ -78,6 +81,7 @@ export type RunRecord = typeof RunRecord.Type;
 export const noDurations: RunRecord["ms"] = {
   admit: null,
   claim: null,
+  grant: null,
   register: null,
   branch: null,
   deploy: null,
