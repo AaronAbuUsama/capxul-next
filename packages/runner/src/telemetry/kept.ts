@@ -5,7 +5,7 @@
 // Until the retire, Core still writes `app.spans` and the side-by-side parity (side-by-side.ts) still compares the
 // two, so any drift shows. A call that reached Core and whose trace the tap does not hold whole is a plumbing failure
 // of the runner, as parity already makes it, never a check's.
-import { Envelope, Pipeline } from "@capxul/blueprint";
+import { Envelope, Pipeline, servedBy } from "@capxul/blueprint";
 import { OUTCOME, SpanAttributes, type SpanOutcome } from "@capxul/core";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
@@ -20,6 +20,7 @@ import type { Call } from "../client.ts";
 import { describe, RunnerFailure } from "../failure.ts";
 import { eventsOf, telemetryOf, type Kept, type SpanRow } from "../world/database.ts";
 import { OtherWorlds } from "../world/existing.ts";
+import { PlatformKept } from "../worlds/kept.ts";
 import type { FlatSpan } from "./flat.ts";
 import { stepOptions } from "./step.ts";
 import { tapFor, WAIT, type Wait } from "./tap.ts";
@@ -108,8 +109,15 @@ export const tapTelemetryOf = Effect.fn(
 export const appKeptOf = Effect.fn(
   Pipeline.checkCall.spans.read.name,
   stepOptions(Pipeline.checkCall.spans.read),
-)(function* (database: Redacted.Redacted, calls: ReadonlyArray<Pick<Call, "traceId" | "at">>) {
-  const own = yield* telemetryOf(database, traceIdsOf(Arr.filter(calls, (call) => call.at === null)));
+)(function* (database: Redacted.Redacted, calls: ReadonlyArray<Pick<Call, "traceId" | "at" | "operation">>) {
+  // A call served in this process (`PlatformKept`) is kept there, never in `app.spans`: as `keptFor` does (run.ts), it is
+  // not read here, and a stage with no world of its own (an empty database) is never queried for it.
+  const served = yield* Effect.serviceOption(PlatformKept);
+  const ownCalls = Arr.filter(
+    calls,
+    (call) => call.at === null && (Option.isNone(served) || servedBy(call.operation) === "world"),
+  );
+  const own = yield* telemetryOf(database, traceIdsOf(ownCalls));
   const others = yield* Effect.serviceOption(OtherWorlds);
   const endpoints = Arr.dedupe(
     Arr.filterMap(calls, (call) => (call.at === null ? Result.failVoid : Result.succeed(call.at))),
