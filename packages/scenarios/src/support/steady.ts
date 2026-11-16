@@ -26,10 +26,16 @@ export const dropped = (cause: Cause.Cause<unknown>): boolean => DROPPED.test(Ca
 const firstLine = (cause: Cause.Cause<unknown>) =>
   Option.getOrElse(Option.fromNullishOr(Str.split(Cause.pretty(cause), "\n")[0]), () => "");
 
-/** Tells the runner, when it listens, that `what` was sent again because its connection dropped. */
+/**
+ * Logs a warning that `what` was sent again because its connection dropped, and tells the runner, when it listens, so
+ * the run record keeps it on its step.
+ */
 const tellResent = (what: string) =>
-  Effect.flatMap(Effect.serviceOption(Steps), (steps) =>
-    Option.isSome(steps) && steps.value.resent !== undefined ? steps.value.resent(what) : Effect.void,
+  Effect.logWarning(what).pipe(
+    Effect.andThen(Effect.serviceOption(Steps)),
+    Effect.flatMap((steps) =>
+      Option.isSome(steps) && steps.value.resent !== undefined ? steps.value.resent(what) : Effect.void,
+    ),
   );
 
 /** `read` (named `what`), tried again while its connection drops, at most `STEADY.tries` times in all. */
