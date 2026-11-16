@@ -7,7 +7,6 @@ import { OrgId, roles } from "../../../common/values.ts";
 import { startingPoints as w, type PromisesOf } from "../../../starting-points/points.ts";
 import { StepKind } from "../../../telemetry/step-kinds.ts";
 import { NotAMember } from "../../company/refusals.ts";
-import { olga } from "../examples.ts";
 import { Member, MemberRefusalRule } from "../values.ts";
 
 /** Its logs. */
@@ -57,7 +56,7 @@ export const memberList = verb({
           { person: "eli", email: "eli@cast.test", role: "director" },
           { person: "sam", email: "sam@cast.test", role: "member" },
           { person: "pat", email: "pat@cast.test", role: "member" },
-          olga,
+          { person: "olga", email: "olga@cast.test", role: "member" as const },
         ],
       },
     },
