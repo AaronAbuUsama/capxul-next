@@ -157,6 +157,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 - [`bench.ts`](../src/things/site/bench.ts): A world's company sites on a shared bench (roadmap step 1.4; the decision "Site creation on a shared bench").
 - [`client.ts`](../src/things/site/client.ts): One call to a bench's site door (packages/platform, door/door.py), with a world's site token: answered at once (`doorCall`), or run by the door as a job and polled (`doorJob`).
 - [`reset.ts`](../src/things/site/reset.ts): A world's company sites across an in-place reset (roadmap 1.16 to 1.18): saved to a point of the bench with the world's snapshot, and put back in place to it when the world is reset.
+- [`show.ts`](../src/things/site/show.ts): How many company sites the bench makes at once without one made cold: the ready blank copies its door keeps (packages/platform/door, pool.py, DOOR_BLANK_POOL_SIZE), as its `GET /templates` reports them.
 - [`snapshot.ts`](../src/things/site/snapshot.ts): A world's company sites in its snapshots (packages/blueprint, src/things/snapshot/verbs/save.ts): saving them with the snapshot, and making them again in a world restored from it.
 
 ## `src/things/world/`

@@ -49,6 +49,7 @@ const heardFirst = (operation: OperationName): ReadonlyArray<Heard> => [
     startedMs: 0,
     endedMs: 300,
     tries: [],
+    resent: [],
     failure: `{"_tag":"NotImplemented","operation":"${operation}"}`,
   },
 ];

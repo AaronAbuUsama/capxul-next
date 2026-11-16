@@ -2,13 +2,16 @@
 // the newest first. The bench templates it kept are not its to take down: they are the bench's, never dropped by a run,
 // and the sweep removes them by age (docs/roadmap.md, "Bench templates never change"). A take-down that fails is never
 // ignored: it is timed `ok: false` with why, and its failures are handed back for the run's record to fail on.
+import { Pipeline } from "@capxul/blueprint";
 import * as World from "@capxul/world";
 import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
+import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Ref from "effect/Ref";
 import { describe, RunnerFailure } from "../failure.ts";
+import { stepOptions } from "../telemetry/step.ts";
 import type { Timings } from "../timings.ts";
 import type { Inventory } from "../world/leftovers.ts";
 
@@ -22,6 +25,54 @@ export const leftOf = (stages: ReadonlyArray<string>) =>
       worlds: World.namesOfWorlds(World.ofThisStackOnly(listing), stages),
     })),
     Effect.catchCause((cause) => Effect.as(Effect.logWarning(`inventory not read: ${describe(cause)}`), null)),
+  );
+
+/** How often an after-read is made again, and how long apart: Cloudflare's script list lags a delete by seconds. */
+export const SETTLE = { reads: 5, every: Duration.seconds(2) };
+
+/** True when `left` still lists some world, or could not be read. */
+const listsSome = (left: Inventory | null) => left === null || (left.worlds ?? []).length > 0;
+
+/**
+ * What the accounts hold of a journey's worlds once their destroy has settled: `read` now and, while it still lists a
+ * world, again up to `settle.reads` more times, `settle.every` apart (run 43812161831: a world its destroy had taken
+ * down was still in Cloudflare's script list right after, and gone a minute later). The last read, and how many
+ * re-reads it took; what is then still listed fails the journey, by name, as before. A wait, `journey.run.wait`.
+ */
+export const settledLeft = Effect.fn(
+  Pipeline.journeyRun.spans.wait.name,
+  stepOptions(Pipeline.journeyRun.spans.wait),
+)(function* <E, R>(read: Effect.Effect<Inventory | null, E, R>, settle: typeof SETTLE = SETTLE) {
+  let left = yield* read;
+  let rereads = 0;
+  while (listsSome(left) && rereads < settle.reads) {
+    yield* Effect.sleep(settle.every);
+    left = yield* read;
+    rereads += 1;
+  }
+  return { left, rereads };
+});
+
+/** Why a journey fails on what the accounts still hold once settled, naming each world; nothing when they hold none. */
+export const stillHeld = (left: Inventory | null): ReadonlyArray<string> =>
+  left === null
+    ? ["the accounts could not be read after its destroy"]
+    : (left.worlds ?? []).length > 0
+      ? [`the accounts still hold some of its worlds: ${Arr.join(left.worlds ?? [], ", ")}`]
+      : [];
+
+/** What the accounts hold of a journey's `stages` once settled, the wait and its re-reads a part of the record. */
+export const leftAfterDestroy = (stages: ReadonlyArray<string>, timings: Timings, journey: string) =>
+  leftOf(stages).pipe(
+    settledLeft,
+    Effect.timed,
+    Effect.tap(([took, { rereads }]) =>
+      timings.record("settle after destroy", Math.round(Duration.toMillis(took)), {
+        journey,
+        note: `${String(rereads)} re-read${rereads === 1 ? "" : "s"}`,
+      }),
+    ),
+    Effect.map(([, { left }]) => left),
   );
 
 /**
