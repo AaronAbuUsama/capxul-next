@@ -27,7 +27,8 @@ export type Counter =
   | "own-list"
   | "verbs:examples"
   | "docs:long-or-mapped"
-  | "effect:non-effect";
+  | "effect:non-effect"
+  | "glossary:not-landed";
 
 /** One ratchet. */
 export interface Ratchet {
