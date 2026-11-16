@@ -11,10 +11,11 @@
 // Each journey is played by its own cast (4.11): the people every world makes for its key, and its own company handle,
 // so journeys side by side never found the same company or share a person's Safe. RUNNER_SHAPE stays `serial` by
 // default until a world run proves `shared`.
-import { startingWorlds, type StartingWorld } from "@capxul/blueprint";
+import { startingWorlds, type OperationName, type StartingWorld } from "@capxul/blueprint";
 import { Casting, declaredCast, type Journey, type JourneyKey } from "@capxul/scenarios";
 import * as World from "@capxul/world";
 import * as Arr from "effect/Array";
+import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
@@ -42,6 +43,16 @@ const chainOf = (world: StartingWorld): ReadonlyArray<StartingWorld> =>
 const foundsCompany = (world: StartingWorld): boolean =>
   Arr.some(chainOf(world), (each) => Rec.has(companyMakers, each.name));
 
+/** The operations whose call founds a company, and so makes its site from one of the bench's ready blank copies. */
+const FOUNDING: Partial<Record<OperationName, true>> = { "org.create": true };
+
+/**
+ * True when `journey`'s own steps found a company (found Northwind's `org.create`, outside its starting world): it
+ * holds a site slot for as long as it runs, as a starting world that founds one holds it while it is made.
+ */
+export const foundsInSteps = (journey: Journey): boolean =>
+  Arr.some(journey.outline, (step) => FOUNDING[step.operation] === true);
+
 /** The places a journey holds from its start until its worlds are destroyed: the worlds it declares (`worlds`). */
 export const aroundJourney =
   (places: Places, journey: Journey, settings: Settings) =>
@@ -51,6 +62,11 @@ export const aroundJourney =
       // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the journey's own platform is built for its one journey and closed with it
       Effect.provide(accountOfJourney(journey.world === "own", operatorsOf(settings, journey.key))),
       // A journey that needs more than the run can ever hold takes nothing: it fails into its own record (`tooMany`).
+      // A journey whose own steps found a company holds a site slot, inside its worlds' places (worlds first, everywhere);
+      // one too big for the run takes none, as it takes no world place.
+      foundsInSteps(journey) && journey.worlds <= places.worlds.size
+        ? places.sites.held(journey.name, 1)
+        : (each) => each,
       journey.worlds > places.worlds.size ? (each) => each : places.worlds.held(journey.name, journey.worlds),
       // Each journey is played by its own cast, as the blueprint declares it and the world makes it (4.11): its
       // starting world's makers (company.ts) and its steps (scenarios' cast.ts) read it.
@@ -67,13 +83,16 @@ export const sideBySideOf = (settings: Settings, platformUrl: string, places: Pl
       Effect.flatMap(Ref.make<Option.Option<Readiness>>(Option.none()), (ready) => {
         const run = recorder(targetOf(settings, platformUrl), made);
         const nothing = nothingOf(settings);
-        /** `world` made by its steps on `base`, the chain from `fresh` on, its company's site slot held. */
-        const build = (by: typeof run, world: StartingWorld, base: Making, journey: string) =>
+        /**
+         * `world` made by its steps on `base`, the chain from `fresh` on, its company's site slot held unless its journey
+         * holds one already (`foundsInSteps`): a journey holds at most one at a time, so no two wait on each other.
+         */
+        const build = (by: typeof run, world: StartingWorld, base: Making, journey: string, holds: boolean) =>
           Effect.reduce(
             chainOf(world),
             () => base,
             (from, each) => Effect.flatMap(stepsOf(each), (steps) => by(each, steps, from)),
-          ).pipe(foundsCompany(world) ? places.sites.held(journey, 1) : (effect) => effect);
+          ).pipe(foundsCompany(world) && !holds ? places.sites.held(journey, 1) : (effect) => effect);
         const freshWorld = Effect.flatMap(stepsOf(startingWorlds.fresh), (steps) =>
           run(startingWorlds.fresh, steps, nothing),
         );
@@ -87,9 +106,10 @@ export const sideBySideOf = (settings: Settings, platformUrl: string, places: Pl
                 : Effect.flatMap(Effect.serviceOption(JourneyMaking), (making) => {
                     const journey = Option.flatMap(making, (each) => Option.fromNullishOr(each.journey));
                     const name = Option.match(journey, { onNone: () => world.name, onSome: (each) => each.name });
+                    const holds = Option.exists(journey, foundsInSteps);
                     const own = Option.filter(journey, (each) => each.world === "own");
                     return Option.match(own, {
-                      onNone: () => Effect.flatMap(sharedWorld, (base) => build(run, world, base, name)),
+                      onNone: () => Effect.flatMap(sharedWorld, (base) => build(run, world, base, name, holds)),
                       // Through the journey's own platform (`around`), from `nothing` as its own operators see it.
                       onSome: (each) =>
                         Effect.flatMap(Effect.service(Platform), (platform) => {
@@ -97,7 +117,7 @@ export const sideBySideOf = (settings: Settings, platformUrl: string, places: Pl
                           const mine = nothingOf(operatorsOf(settings, each.key));
                           return Effect.flatMap(stepsOf(startingWorlds.fresh), (steps) =>
                             by(startingWorlds.fresh, steps, mine),
-                          ).pipe(Effect.flatMap((base) => build(by, world, base, name)));
+                          ).pipe(Effect.flatMap((base) => build(by, world, base, name, holds)));
                         }),
                     });
                   });
@@ -160,16 +180,39 @@ export type SideBySide = Effect.Success<ReturnType<typeof sideBySideOf>>;
 
 /**
  * The places of a run in one shared world: worlds under the smaller of the setting and the cluster's capacity, less
- * the shared world's own place, held for the whole run; sites under the setting (places.ts).
+ * the shared world's own place, held for the whole run; sites under the smaller of the setting and the ready blank
+ * copies the bench's door reports it keeps (`World.benchPool`), so a run never asks for more sites at once than the
+ * deployed pool holds (places.ts). A door that does not say leaves the setting as the bound.
  */
 export const placesForRun = (settings: Settings, cluster: string, timings: Timings) =>
-  World.openHub(cluster).pipe(
-    Effect.map((hub) => hub.capacity),
-    Effect.orElseSucceed(() => settings.worldsAtOnce),
-    Effect.flatMap((capacity) =>
-      placesOf({ ...settings, worldsAtOnce: settings.worldsAtOnce - 1 }, capacity - 1, timings),
+  Effect.all([
+    World.openHub(cluster).pipe(
+      Effect.map((hub) => hub.capacity),
+      Effect.orElseSucceed(() => settings.worldsAtOnce),
     ),
+    Effect.timed(World.benchPool),
+  ]).pipe(
+    Effect.flatMap(([capacity, [took, pool]]) => {
+      const sites = sitesOf(settings.sitesAtOnce, pool);
+      return Effect.andThen(
+        // Both numbers in the run's record, and how long the door took to say: what was asked, what it keeps, the bound.
+        timings.record("prepare places", Math.round(Duration.toMillis(took)), {
+          note: sitesNote(settings.sitesAtOnce, pool, sites),
+        }),
+        placesOf({ worldsAtOnce: settings.worldsAtOnce - 1, sitesAtOnce: sites }, capacity - 1, timings),
+      );
+    }),
   );
+
+/**
+ * The company sites a run makes at once: `asked` (RUNNER_SITES_AT_ONCE), never more than the door's `pool`, and never
+ * fewer than one: a door with a pool of 0 still makes sites, cold, and a bound of 0 would fail every founding journey.
+ */
+export const sitesOf = (asked: number, pool: Option.Option<number>): number =>
+  Option.match(pool, { onNone: () => asked, onSome: (ready) => Math.max(1, Math.min(asked, ready)) });
+
+const sitesNote = (asked: number, pool: Option.Option<number>, sites: number) =>
+  `sites at once ${String(sites)}: RUNNER_SITES_AT_ONCE ${String(asked)}, the door's pool ${Option.match(pool, { onNone: () => "not reported", onSome: String })}`;
 
 /**
  * Side by side, the worlds the journeys made by their own steps (not their starting worlds, which each journey
