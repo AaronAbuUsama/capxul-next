@@ -3,7 +3,7 @@
 // producer that exported its root server span and that span's name. Read through the same `/sql` endpoint as a call's
 // record (world/database.ts), decoded with the existing row schemas and the blueprint's values; the tap's bodies are
 // decoded by otlp.ts, once.
-import { Values } from "@capxul/blueprint";
+import { Pipeline, Values } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
 import { pipe } from "effect/Function";
@@ -16,6 +16,7 @@ import { RunnerFailure } from "../failure.ts";
 import { EventRow, query } from "../world/database.ts";
 import { attributesOf, SERVICE_NAME } from "./flat.ts";
 import { decodeTapRows, decodeTraceBody, type TraceExport } from "./otlp.ts";
+import { stepOptions } from "./step.ts";
 import { SERVER } from "./tap.ts";
 
 /** One event of the run, at its place in the world's record. */
@@ -71,10 +72,13 @@ const rootOf = (spans: ReadonlyArray<ServerSpan>): Option.Option<Producer> =>
   );
 
 /** The run's events and its traces' producers, read from the world's database. */
-export const wholeRun = (world: {
+export const wholeRun: (world: {
   readonly database: Redacted.Redacted;
-}): Effect.Effect<WholeRun, RunnerFailure, HttpClient.HttpClient> =>
-  Effect.gen(function* () {
+}) => Effect.Effect<WholeRun, RunnerFailure, HttpClient.HttpClient> = Effect.fn(
+  Pipeline.checkIsolation.spans.read.name,
+  stepOptions(Pipeline.checkIsolation.spans.read),
+)(
+  function* (world: { readonly database: Redacted.Redacted }) {
     const events = yield* Schema.decodeUnknownEffect(Schema.Array(EntryRow))(
       yield* query(
         world.database,
@@ -109,8 +113,8 @@ export const wholeRun = (world: {
       })),
       producers,
     } satisfies WholeRun;
-  }).pipe(
-    Effect.mapError((error) =>
-      RunnerFailure.make({ step: "whole-run", message: `the run could not be read: ${error.message}` }),
-    ),
-  );
+  },
+  Effect.mapError((error) =>
+    RunnerFailure.make({ step: "whole-run", message: `the run could not be read: ${error.message}` }),
+  ),
+);
