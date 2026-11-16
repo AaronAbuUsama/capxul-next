@@ -44,6 +44,9 @@ export CAPXUL_DOOR_TOKEN="${CAPXUL_DOOR_TOKEN:-$(token)}" CAPXUL_PLATFORM_TOKEN=
 # The second operator's token (packages/blueprint, src/common/values.ts): the starting world `nothing` promises a
 # second operator.
 export CAPXUL_SECOND_PLATFORM_TOKEN="${CAPXUL_SECOND_PLATFORM_TOKEN:-$(token)}"
+# The tap (roadmap 4.4): a stage's Core writes what it exports into its own database too, as a test world's does. The
+# generic checks read every call's spans from it since the flip (src/telemetry/kept.ts).
+export CAPXUL_TAP="${CAPXUL_TAP:-on}"
 # The second operator's name: Core reads it at deploy beside the token, so the platform accepts the second operator.
 export WORLD_SECOND_OWNER="${WORLD_SECOND_OWNER:-runner-2}"
 account() { curl -sS --max-time 20 "$1" | python3 -c "$2"; }

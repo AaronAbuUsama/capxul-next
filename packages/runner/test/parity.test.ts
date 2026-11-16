@@ -9,7 +9,7 @@ import * as Str from "effect/String";
 import { OUTCOME, SPAN_ATTRIBUTES } from "@capxul/core";
 import type { SpanRow } from "../src/world/database.ts";
 import type { FlatSpan } from "../src/telemetry/flat.ts";
-import { parity } from "../src/telemetry/parity.ts";
+import { parity, sameValue } from "../src/telemetry/parity.ts";
 
 const TRACE = Str.repeat(32)("c");
 const OUTCOME_KEY = Envelope.attributes.outcome.name;
@@ -178,7 +178,7 @@ const warpSite = (shift: number) => {
     outcome: "success",
     duration_ms: 11559,
     ended_ms: 1_800_000_011_559,
-    attributes: JSON.parse(JSON.stringify(attributes)),
+    attributes: structuredClone(attributes),
   };
   const span: FlatSpan = {
     ...tapped[1]!,
@@ -186,7 +186,7 @@ const warpSite = (shift: number) => {
     spanId: "s-warp-site",
     parentSpanId: "s-call",
     attributes: {
-      ...JSON.parse(JSON.stringify(attributes)),
+      ...structuredClone(attributes),
       "warp.stop_ms": [2264.4, 1294.4, 155.4],
       [OUTCOME_KEY]: OUTCOME.success,
     },
@@ -201,5 +201,25 @@ test("array-valued declared attributes agree when their values are equal, and no
   assert.deepEqual(
     Arr.map(parity([moved.row], [moved.span]).differences, (each) => [each.about, each.key]),
     [["attribute", "warp.stop_ms"]],
+  );
+});
+
+test("sameValue: arrays of different lengths, and records with extra keys, are not the same; key order does not matter", () => {
+  assert.ok(sameValue([1, 2, 3], [1, 2, 3]));
+  assert.ok(!sameValue([1, 2, 3], [1, 2]));
+  assert.ok(!sameValue([1, 2], [1, 2, 3]));
+  assert.ok(sameValue({ a: 1, b: [2, 3] }, { b: [2, 3], a: 1 }));
+  assert.ok(!sameValue({ a: 1 }, { a: 1, b: 2 }));
+  assert.ok(!sameValue({ a: 1, b: 2 }, { a: 1 }));
+  assert.ok(!sameValue([1], { 0: 1 }));
+  assert.ok(!sameValue(1, "1"));
+});
+
+test("a declared warp attribute only the tap carries does not agree", () => {
+  const { row, span } = warpSite(0);
+  const { ["warp.job_ms"]: _dropped, ...fewer } = row.attributes ?? {};
+  assert.deepEqual(
+    Arr.map(parity([{ ...row, attributes: fewer }], [span]).differences, (each) => [each.about, each.key]),
+    [["attribute", "warp.job_ms"]],
   );
 });
