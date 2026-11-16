@@ -6,8 +6,6 @@
 // The seam: whether standard output is a terminal is `Stdio.stdoutIsTerminal` (test/harness.ts sets it). The readable
 // view's layout is the builder's; these tests check only that it is not the JSON line and that it names the operation
 // and the success's top-level fields.
-//
-// Written before the build, so each test is `todo` until the builder makes it pass and removes the mark.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { commands, Errors, operations, type OperationName } from "@capxul/blueprint";
@@ -28,8 +26,6 @@ import {
   type Bench,
 } from "./harness.ts";
 
-const TODO = { todo: "3.9: built by the builder" };
-
 /** `world list`: an account call whose path is the same before and after 3.9, so only the output is under test. */
 const LIST = WORLD_LIST;
 
@@ -38,7 +34,7 @@ const runOn = (bench: Bench, name: OperationName, extra: ReadonlyArray<string>, 
     bench.run([...commands[name], ...flags, ...extra], { env: envOf(bench.served), tty }),
   );
 
-test("--json on a terminal prints the one JSON line a pipe gets, exactly as today", TODO, () =>
+test("--json on a terminal prints the one JSON line a pipe gets, exactly as today", () =>
   withBench("examples", async (bench) => {
     const piped = await runOn(bench, LIST, [], false);
     assert.ok(Exit.isSuccess(piped.exit));
@@ -51,10 +47,9 @@ test("--json on a terminal prints the one JSON line a pipe gets, exactly as toda
     assert.equal(json.stdout, piped.stdout, "--json on a terminal printed otherwise than a pipe");
     const pipedJson = await runOn(bench, LIST, ["--json"], false);
     assert.equal(pipedJson.stdout, piped.stdout, "--json in a pipe printed otherwise than a pipe");
-  }),
-);
+  }));
 
-test("a terminal gets a readable view, not JSON, naming the operation and the success's fields", TODO, () =>
+test("a terminal gets a readable view, not JSON, naming the operation and the success's fields", () =>
   withBench("examples", async (bench) => {
     const ran = await runOn(bench, LIST, [], true);
     assert.ok(Exit.isSuccess(ran.exit));
@@ -71,34 +66,29 @@ test("a terminal gets a readable view, not JSON, naming the operation and the su
         Str.includes(String(field))(ran.stdout),
         `the view does not name the success's ${String(field)}: ${ran.stdout}`,
       );
-  }),
-);
+  }));
 
-test(
-  "exit codes: 0 on success, the blueprint's code for a refusal, 1 for anything else, on a terminal or not",
-  TODO,
-  async () => {
-    const name = THRESHOLD_SET;
-    for (const tty of [false, true]) {
-      await withBench("examples", async (bench) => {
-        assert.equal(codeOf(await runOn(bench, name, [], tty)), 0, `success (terminal: ${tty})`);
+test("exit codes: 0 on success, the blueprint's code for a refusal, 1 for anything else, on a terminal or not", async () => {
+  const name = THRESHOLD_SET;
+  for (const tty of [false, true]) {
+    await withBench("examples", async (bench) => {
+      assert.equal(codeOf(await runOn(bench, name, [], tty)), 0, `success (terminal: ${tty})`);
+    });
+    await withBench("not-implemented", async (bench) => {
+      const ran = await runOn(bench, name, [], tty);
+      assert.equal(codeOf(ran), Errors.exitCode.NotImplemented, `refusal (terminal: ${tty})`);
+      assert.ok(
+        Str.includes(NOT_IMPLEMENTED)(ran.stdout),
+        `the refusal is not shown (terminal: ${tty}): ${ran.stdout}`,
+      );
+    });
+    await withBench("examples", async (bench) => {
+      const ran = await bench.run([...commands[name], "--org", "Not An Org", "--threshold", "many"], {
+        env: envOf(bench.served),
+        tty,
       });
-      await withBench("not-implemented", async (bench) => {
-        const ran = await runOn(bench, name, [], tty);
-        assert.equal(codeOf(ran), Errors.exitCode.NotImplemented, `refusal (terminal: ${tty})`);
-        assert.ok(
-          Str.includes(NOT_IMPLEMENTED)(ran.stdout),
-          `the refusal is not shown (terminal: ${tty}): ${ran.stdout}`,
-        );
-      });
-      await withBench("examples", async (bench) => {
-        const ran = await bench.run([...commands[name], "--org", "Not An Org", "--threshold", "many"], {
-          env: envOf(bench.served),
-          tty,
-        });
-        assert.equal(codeOf(ran), 1, `a payload that does not decode (terminal: ${tty})`);
-        assert.deepEqual(await bench.seen(), [], "a payload that does not decode reached the door");
-      });
-    }
-  },
-);
+      assert.equal(codeOf(ran), 1, `a payload that does not decode (terminal: ${tty})`);
+      assert.deepEqual(await bench.seen(), [], "a payload that does not decode reached the door");
+    });
+  }
+});

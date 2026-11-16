@@ -11,8 +11,6 @@
 // - `capxul login --account <url>`: `<url>` is the account's address, what `CAPXUL_PLATFORM_URL` names; the
 //   operator's token is read from standard input (`Stdio.stdin`), one line, so it never sits in a shell's history.
 // - `capxul logout` and `capxul use <world>`: `<world>` is a positional argument, the world's name.
-//
-// Written before the build, so each test is `todo` until the builder makes it pass and removes the mark.
 import { strict as assert } from "node:assert";
 import { mkdtempSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -40,8 +38,6 @@ import {
   type Sent,
 } from "./harness.ts";
 
-const TODO = { todo: "3.9: built by the builder" };
-
 const freshHome = () => mkdtempSync(join(tmpdir(), "capxul-home-"));
 
 /** Every file under `home`, with its text and its mode. */
@@ -65,7 +61,7 @@ const login = (bench: Bench, home: string, account = bench.served.platform, toke
 
 const DOC = commands[DOC_CREATE];
 
-test("login keeps the account and the token in a profile only its owner may read, and prints no token", TODO, () =>
+test("login keeps the account and the token in a profile only its owner may read, and prints no token", () =>
   withBench("examples", async (bench) => {
     const home = freshHome();
     const ran = await login(bench, home);
@@ -82,10 +78,9 @@ test("login keeps the account and the token in a profile only its owner may read
       "no file under CAPXUL_HOME keeps the account's address",
     );
     for (const file of files) assert.equal(file.mode & 0o077, 0, `${file.path} may be read by others`);
-  }),
-);
+  }));
 
-test("after login, an account call signs with the profile's token, with no variable set", TODO, () =>
+test("after login, an account call signs with the profile's token, with no variable set", () =>
   withBench("examples", async (bench) => {
     const home = freshHome();
     assert.ok(Exit.isSuccess((await login(bench, home)).exit), "login failed");
@@ -101,10 +96,9 @@ test("after login, an account call signs with the profile's token, with no varia
       ),
       "no call reached the account signed with the profile's token",
     );
-  }),
-);
+  }));
 
-test("logout forgets the token: no file keeps it, and an account call no longer signs with it", TODO, () =>
+test("logout forgets the token: no file keeps it, and an account call no longer signs with it", () =>
   withBench("examples", async (bench) => {
     const home = freshHome();
     assert.ok(Exit.isSuccess((await login(bench, home)).exit), "login failed");
@@ -120,37 +114,32 @@ test("logout forgets the token: no file keeps it, and an account call no longer 
       Arr.every(after, (request) => request.credential !== `Bearer ${TOKEN}`),
       "a call after logout was signed with the forgotten token",
     );
-  }),
-);
+  }));
 
-test(
-  "use <world>: a world's command finds its endpoint with world.show and calls there with the operator's token",
-  TODO,
-  () =>
-    withBench("examples", async (bench) => {
-      const home = freshHome();
-      assert.ok(Exit.isSuccess((await login(bench, home)).exit), "login failed");
-      const use = await bench.run(["use", "town"], { env: { CAPXUL_HOME: home } });
-      assert.ok(Exit.isSuccess(use.exit), `use failed: ${everything(use)}`);
-      const ran = await bench.run([...DOC, ...(await exampleFlags(DOC_CREATE))], { env: { CAPXUL_HOME: home } });
-      assert.ok(Exit.isSuccess(ran.exit), `document create failed: ${everything(ran)}`);
-      assert.equal(ran.lines.length, 1);
-      assert.deepEqual(await bench.seen(), [WORLD_SHOW, DOC_CREATE]);
-      const sent = await bench.sent();
-      const show = sentTo(sent, bench.served.platform);
-      assert.ok(show !== undefined, "world.show was not asked of the account");
-      assert.ok(Str.includes('"world":"town"')(show.body), `world.show did not ask for town: ${show.body}`);
-      assert.equal(show.credential, `Bearer ${TOKEN}`);
-      const call = sentTo(sent, EXAMPLE_WORLD_URL);
-      assert.ok(
-        call !== undefined,
-        `document create was not sent to the endpoint world.show answered (${EXAMPLE_WORLD_URL})`,
-      );
-      assert.equal(call.credential, `Bearer ${TOKEN}`, "the world's call was not signed with the operator's token");
-    }),
-);
+test("use <world>: a world's command finds its endpoint with world.show and calls there with the operator's token", () =>
+  withBench("examples", async (bench) => {
+    const home = freshHome();
+    assert.ok(Exit.isSuccess((await login(bench, home)).exit), "login failed");
+    const use = await bench.run(["use", "town"], { env: { CAPXUL_HOME: home } });
+    assert.ok(Exit.isSuccess(use.exit), `use failed: ${everything(use)}`);
+    const ran = await bench.run([...DOC, ...(await exampleFlags(DOC_CREATE))], { env: { CAPXUL_HOME: home } });
+    assert.ok(Exit.isSuccess(ran.exit), `document create failed: ${everything(ran)}`);
+    assert.equal(ran.lines.length, 1);
+    assert.deepEqual(await bench.seen(), [WORLD_SHOW, DOC_CREATE]);
+    const sent = await bench.sent();
+    const show = sentTo(sent, bench.served.platform);
+    assert.ok(show !== undefined, "world.show was not asked of the account");
+    assert.ok(Str.includes('"world":"town"')(show.body), `world.show did not ask for town: ${show.body}`);
+    assert.equal(show.credential, `Bearer ${TOKEN}`);
+    const call = sentTo(sent, EXAMPLE_WORLD_URL);
+    assert.ok(
+      call !== undefined,
+      `document create was not sent to the endpoint world.show answered (${EXAMPLE_WORLD_URL})`,
+    );
+    assert.equal(call.credential, `Bearer ${TOKEN}`, "the world's call was not signed with the operator's token");
+  }));
 
-test("--world <name> stands over the world `use` set", TODO, () =>
+test("--world <name> stands over the world `use` set", () =>
   withBench("examples", async (bench) => {
     const home = freshHome();
     assert.ok(Exit.isSuccess((await login(bench, home)).exit), "login failed");
@@ -162,10 +151,9 @@ test("--world <name> stands over the world `use` set", TODO, () =>
     assert.ok(show !== undefined, "world.show was not asked of the account");
     assert.ok(Str.includes('"world":"town"')(show.body), `world.show did not ask for town: ${show.body}`);
     assert.ok(!Str.includes("elsewhere")(show.body), "world.show asked for the world use set, not --world's");
-  }),
-);
+  }));
 
-test("an account command's world field, left out, is the world `use` set", TODO, () =>
+test("an account command's world field, left out, is the world `use` set", () =>
   withBench("examples", async (bench) => {
     const home = freshHome();
     assert.ok(Exit.isSuccess((await login(bench, home)).exit), "login failed");
@@ -176,10 +164,9 @@ test("an account command's world field, left out, is the world `use` set", TODO,
     const show = sentTo(await bench.sent(), bench.served.platform);
     assert.ok(show !== undefined, "world.show was not asked of the account");
     assert.ok(Str.includes('"world":"town"')(show.body), `world.show did not ask for the world use set: ${show.body}`);
-  }),
-);
+  }));
 
-test("an account command's world field is --world, which stands over `use`", TODO, () =>
+test("an account command's world field is --world, which stands over `use`", () =>
   withBench("examples", async (bench) => {
     const home = freshHome();
     assert.ok(Exit.isSuccess((await login(bench, home)).exit), "login failed");
@@ -193,32 +180,27 @@ test("an account command's world field is --world, which stands over `use`", TOD
     assert.ok(show !== undefined, "world.show was not asked of the account");
     assert.ok(Str.includes('"world":"town"')(show.body), `world.show did not ask for --world's world: ${show.body}`);
     assert.ok(!Str.includes("elsewhere")(show.body), "world.show asked for the world use set, not --world's");
-  }),
-);
+  }));
 
-test(
-  "a world's command with no --world, no `use` and no CAPXUL_DOOR_URL is a usage error, exit 1, no answer",
-  TODO,
-  () =>
-    withBench("examples", async (bench) => {
-      const home = freshHome();
-      assert.ok(Exit.isSuccess((await login(bench, home)).exit), "login failed");
-      const ran = await bench.run([...DOC, ...(await exampleFlags(DOC_CREATE))], { env: { CAPXUL_HOME: home } });
-      assert.ok(Exit.isFailure(ran.exit), "document create ran with no world");
-      assert.equal(codeOf(ran), 1);
-      assert.deepEqual(
-        Arr.filter(ran.lines, (line) => Str.startsWith("{")(line)),
-        [],
-        "it printed an answer",
-      );
-      const said = everything(ran);
-      assert.ok(Str.includes("--world")(said), `the error does not name --world: ${said}`);
-      assert.ok(Str.includes("capxul use")(said), `the error does not name capxul use: ${said}`);
-      assert.deepEqual(await bench.seen(), [], "it called the door");
-    }),
-);
+test("a world's command with no --world, no `use` and no CAPXUL_DOOR_URL is a usage error, exit 1, no answer", () =>
+  withBench("examples", async (bench) => {
+    const home = freshHome();
+    assert.ok(Exit.isSuccess((await login(bench, home)).exit), "login failed");
+    const ran = await bench.run([...DOC, ...(await exampleFlags(DOC_CREATE))], { env: { CAPXUL_HOME: home } });
+    assert.ok(Exit.isFailure(ran.exit), "document create ran with no world");
+    assert.equal(codeOf(ran), 1);
+    assert.deepEqual(
+      Arr.filter(ran.lines, (line) => Str.startsWith("{")(line)),
+      [],
+      "it printed an answer",
+    );
+    const said = everything(ran);
+    assert.ok(Str.includes("--world")(said), `the error does not name --world: ${said}`);
+    assert.ok(Str.includes("capxul use")(said), `the error does not name capxul use: ${said}`);
+    assert.deepEqual(await bench.seen(), [], "it called the door");
+  }));
 
-test("the environment's variables stand over the profile, so --via=cli is unchanged", TODO, () =>
+test("the environment's variables stand over the profile, so --via=cli is unchanged", () =>
   withBench("examples", async (bench) => {
     const home = freshHome();
     const stale = "a-stale-profile-token";
@@ -234,5 +216,4 @@ test("the environment's variables stand over the profile, so --via=cli is unchan
       assert.notEqual(request.credential, `Bearer ${stale}`, "a call was signed with the profile's token");
       assert.ok(!Str.startsWith("http://127.0.0.1:9/")(request.url), "a call went to the profile's account");
     }
-  }),
-);
+  }));
