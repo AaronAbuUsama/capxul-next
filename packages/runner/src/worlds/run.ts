@@ -16,8 +16,7 @@ import * as Exit from "effect/Exit";
 import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
 import * as Ref from "effect/Ref";
-import { checkCall, failuresOf } from "../checks/checks.ts";
-import type { Call } from "../client.ts";
+import { failuresOf } from "../checks/checks.ts";
 import { describe, endedOf } from "../failure.ts";
 import { passedOr, slugOf, writeJson, RunRecord } from "../record.ts";
 import { freshName, journeyPlan, keptFor, stepsFor, use, viaOf } from "../run.ts";
@@ -32,6 +31,7 @@ import { coreLabel, Platform } from "./platform.ts";
 import { sharedStartingWorldsOf, type SharedStartingWorlds } from "../shared/starting.ts";
 import { startingWorldsOf, type StartingWorlds } from "./starting.ts";
 import { destroyAll, destroyStrays, leftOf, takeDownWorlds } from "./teardown.ts";
+import { checkedOrPlumbing } from "../telemetry/kept.ts";
 import { tapFailures } from "../telemetry/side-by-side.ts";
 
 /** The starting worlds of a run: made in its one world, or restored from a shared world (shared/starting.ts). */
@@ -41,13 +41,6 @@ const now = Effect.map(DateTime.now, DateTime.formatIso);
 
 const millis = (took: Duration.Duration) => Math.round(Duration.toMillis(took));
 const NOWHERE = "http://127.0.0.1:9";
-
-/** The checked calls of `calls`, read from where each was kept. */
-const checked = (calls: ReadonlyArray<Call>) =>
-  Effect.gen(function* () {
-    const kept = yield* keptFor(Option.none(), calls);
-    return Arr.map(calls, (call) => checkCall(call, kept));
-  });
 
 /** The one world reset to the journey's starting world, what it makes by its steps made, and the journey run. */
 const work = (scenario: Journey, settings: Settings, starting: Starting, timings: Timings, name: string) =>
@@ -63,9 +56,12 @@ const work = (scenario: Journey, settings: Settings, starting: Starting, timings
       ),
     ).pipe(Effect.exit, Effect.timed);
     const makingCalls = Arr.map(Arr.drop(yield* starting.made, callsBefore), (each) => each.call);
-    const madeChecked = yield* Effect.orElseSucceed(checked(makingCalls), () => []);
+    const { checked: madeChecked, plumbing } = yield* checkedOrPlumbing(
+      makingCalls,
+      keptFor(Option.none(), makingCalls),
+    );
     if (Exit.isFailure(making))
-      return { makeMs: millis(makeTook), making, madeChecked, readiness: null, stage: name, used: undefined };
+      return { makeMs: millis(makeTook), making, madeChecked, plumbing, readiness: null, stage: name, used: undefined };
     const own = making.value.own;
     const world = own === null ? null : yield* World.open(own.world).pipe(Effect.orDie);
     const readiness =
@@ -100,7 +96,7 @@ const work = (scenario: Journey, settings: Settings, starting: Starting, timings
       });
     if (Exit.isSuccess(used))
       yield* timings.record("checks", used.value.ms.checks, { journey: scenario.name, of: stage.name });
-    return { makeMs: millis(makeTook), making, madeChecked, readiness, stage: stage.name, used };
+    return { makeMs: millis(makeTook), making, madeChecked, plumbing, readiness, stage: stage.name, used };
   });
 
 /**
@@ -156,6 +152,7 @@ const runOne = (
           ? [`the starting world was not made: ${describe(got.making.cause)}`]
           : []),
         ...failuresOf(got?.madeChecked ?? []),
+        ...(got?.plumbing ?? []),
         ...(used !== undefined && Exit.isFailure(used) ? [`the run did not finish: ${describe(used.cause)}`] : []),
         ...(value !== undefined && Exit.isFailure(value.run) ? [`the run failed: ${describe(value.run.cause)}`] : []),
         ...(value === undefined ? [] : failuresOf(value.calls)),

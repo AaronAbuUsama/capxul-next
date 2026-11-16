@@ -9,13 +9,15 @@ import { Envelope, Pipeline } from "@capxul/blueprint";
 import { OUTCOME, SpanAttributes, type SpanOutcome } from "@capxul/core";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
 import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
 import * as Result from "effect/Result";
 import * as Schema from "effect/Schema";
 import type * as Redacted from "effect/Redacted";
+import { checkCall, type CheckedCall } from "../checks/checks.ts";
 import type { Call } from "../client.ts";
-import { RunnerFailure } from "../failure.ts";
+import { describe, RunnerFailure } from "../failure.ts";
 import { eventsOf, telemetryOf, type Kept, type SpanRow } from "../world/database.ts";
 import { OtherWorlds } from "../world/existing.ts";
 import type { FlatSpan } from "./flat.ts";
@@ -127,3 +129,29 @@ export const appKeptOf = Effect.fn(
     events: Arr.flatten([own.events, ...Arr.map(elsewhere, (kept) => kept.events)]),
   } satisfies Kept;
 });
+
+/** What a maker of calls outside a journey's own run gets of them: each checked, or a plumbing failure and no checks. */
+export interface CheckedOrPlumbing {
+  readonly checked: ReadonlyArray<CheckedCall>;
+  readonly plumbing: ReadonlyArray<string>;
+}
+
+/**
+ * Every call of `calls` checked against what `kept` reads of them; or, when that cannot be read whole (an answered
+ * call's trace missing from the tap, a tapped span with no outcome), no checks and one plumbing failure line. A tap
+ * that misses a call is the runner's failure, never the builder's missing spans, and it is never swallowed.
+ */
+export const checkedOrPlumbing = <E, R>(
+  calls: ReadonlyArray<Call>,
+  kept: Effect.Effect<Kept, E, R>,
+): Effect.Effect<CheckedOrPlumbing, never, R> =>
+  Effect.map(
+    Effect.exit(kept),
+    Exit.match({
+      onSuccess: (found) => ({ checked: Arr.map(calls, (call) => checkCall(call, found)), plumbing: [] }),
+      onFailure: (cause) => ({
+        checked: [],
+        plumbing: [`plumbing: what the api kept of ${calls.length} calls could not be read: ${describe(cause)}`],
+      }),
+    }),
+  );

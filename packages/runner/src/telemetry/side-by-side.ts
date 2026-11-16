@@ -1,11 +1,8 @@
 // Side by side (roadmap 4.4): for every call a run made, through its own stage's door or at another world's door (in
 // that world's database), the spans Core kept in
-// `app.spans` beside the spans the tap holds of it (tap.ts), and their parity (parity.ts), for the run record. The
-// generic checks still read `app.spans` alone until the flip. This is the runner's plumbing: a disagreement while the
-// tap is on fails the run as the runner's own failure, never as a check's.
-//
-// While a world's Core writes no tap (`CAPXUL_TAP` off), `telemetry.otlp` is empty: the tap is `absent`, nothing is
-// waited for and nothing fails.
+// `app.spans` beside the spans the tap holds of it (tap.ts), and their parity (parity.ts), for the run record. Since the
+// flip the generic checks read the tap (kept.ts), and this parity stays until the retire, so any drift shows. This is
+// the runner's plumbing: a disagreement fails the run as the runner's own failure, never as a check's.
 import { Pipeline, servedBy } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Duration from "effect/Duration";
