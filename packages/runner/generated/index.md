@@ -29,6 +29,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 
 - [`checks.ts`](../src/checks/checks.ts): The generic checks, applied to every call of every run.
 - [`events.ts`](../src/checks/events.ts): The generic `events` check.
+- [`isolation-run.ts`](../src/checks/isolation-run.ts): The generic `isolation` check over a whole run (roadmap step 4.8, part B; the per-call part is isolation.ts).
 - [`isolation.ts`](../src/checks/isolation.ts): The generic `isolation` check (roadmap step 4.8, "One shared world, every journey side by side"): every call of a journey acts only as the journey's own people and names no other journey's person, email or company.
 - [`paths.ts`](../src/checks/paths.ts): The generic `path` check (docs/roadmap.md, "Lifecycles are machines in the blueprint", step 3.4).
 
