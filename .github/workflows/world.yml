@@ -108,14 +108,13 @@ jobs:
           RUNNER_HUB_LIFETIME: 3 hours
           # The run leaves its one world and its own cluster to the job `teardown` below.
           RUNNER_TEARDOWN: job
-          # Every journey at once in one shared world, each with its own cast (roadmap 4.8, decision D8); the code's
-          # default stays `serial`, one after another, for a run started by hand.
-          RUNNER_SHAPE: shared
-          # Company sites made at once, kept at or under the staging bench's ready blank copies (its door's
-          # DOOR_BLANK_POOL_SIZE, packages/platform/door/pool.py): a site beyond the pool starts cold and can take over ten
-          # minutes (run 43789356026). The deployed door still keeps 4; raise this to 8 once the door with #337's pool of 8
-          # is deployed from master.
-          RUNNER_SITES_AT_ONCE: 4
+          # The journeys run one after another (RUNNER_SHAPE's default, `serial`) until the staging bench's door can make
+          # company sites side by side. Runs 43789356026 and 43793700222 ran them at once in one shared world (roadmap
+          # 4.8): every journey whose site came up passed, but the deployed door (a pool of 4 ready blank copies, without
+          # #376's remake of an interrupted site) left some sites "creating" past ten minutes, even at four at once. The door
+          # with #337's pool of 8 and #376 reaches staging from master after this landing (the conductor, 16 November
+          # 2026); the next landing sets RUNNER_SHAPE: shared and RUNNER_SITES_AT_ONCE: 8, with the runner capping itself
+          # to the door's reported pool, and that run measures 4.8.
         run: RUNNER_RECORDS="$RUNNER_TEMP/records" packages/runner/run.sh scenarios
       - uses: actions/upload-artifact@v4
         if: always()
