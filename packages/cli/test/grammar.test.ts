@@ -6,7 +6,7 @@
 // Written before the build, so each test is `todo` until the builder makes it pass and removes the mark.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { CLI_COMMANDS, CLI_FLAGS, commands, operations, type OperationName } from "@capxul/blueprint";
+import { CLI_COMMANDS, CLI_FLAGS, commands, operations, servedBy, Values, type OperationName } from "@capxul/blueprint";
 import * as Sdk from "@capxul/sdk";
 import * as Arr from "effect/Array";
 import * as Cause from "effect/Cause";
@@ -16,6 +16,7 @@ import * as Option from "effect/Option";
 import * as Order from "effect/Order";
 import * as Rec from "effect/Record";
 import * as Redacted from "effect/Redacted";
+import * as SchemaAST from "effect/SchemaAST";
 import * as Str from "effect/String";
 import type * as Command from "effect/cli/Command";
 import * as FetchHttpClient from "effect/http/FetchHttpClient";
@@ -123,10 +124,35 @@ test("every operation, at its new path, answers through the command line as thro
   }),
 );
 
-test("no operation's payload field takes a flag the command line reserves (CLI_FLAGS)", TODO, () => {
-  const reserved: ReadonlyArray<string> = Rec.values(CLI_FLAGS);
-  const taken = Arr.flatMap(names, (name) =>
-    Arr.flatMap(Cli.fieldsOf(name), (field) => (reserved.includes(field.flag) ? [`${name} --${field.flag}`] : [])),
-  );
+/** The type of each field of the operation's payload, by the field's name. */
+const fieldTypes = (name: OperationName) => {
+  const ast = operations[name].rpc.payloadSchema.ast;
+  return SchemaAST.isObjects(ast)
+    ? Arr.map(ast.propertySignatures, (signature) => ({ field: String(signature.name), type: signature.type }))
+    : [];
+};
+
+// A guard on the declarations rather than on the build: it passes today and is not `todo`.
+test("no payload field takes a flag its command reserves (CLI_FLAGS, by kind of command)", () => {
+  const world: ReadonlyArray<string> = Rec.values(CLI_FLAGS);
+  const account: ReadonlyArray<string> = [CLI_FLAGS.json, CLI_FLAGS.input, CLI_FLAGS.operator];
+  const taken = Arr.flatMap(names, (name) => {
+    const reserved = servedBy(name) === "world" ? world : account;
+    return Arr.flatMap(Cli.fieldsOf(name), (field) =>
+      reserved.includes(field.flag) ? [`${name} --${field.flag}`] : [],
+    );
+  });
   assert.deepEqual(taken, [], `payload fields that take a reserved flag: ${Arr.join(taken, ", ")}`);
+  const worldFields = Arr.flatMap(names, (name) =>
+    servedBy(name) === "platform"
+      ? Arr.flatMap(fieldTypes(name), (field) =>
+          field.field === CLI_FLAGS.world && field.type !== Values.WorldName.ast ? [name] : [],
+        )
+      : [],
+  );
+  assert.deepEqual(
+    worldFields,
+    [],
+    `account commands whose world field is not a WorldName: ${Arr.join(worldFields, ", ")}`,
+  );
 });

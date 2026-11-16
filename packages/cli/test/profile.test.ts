@@ -165,6 +165,37 @@ test("--world <name> stands over the world `use` set", TODO, () =>
   }),
 );
 
+test("an account command's world field, left out, is the world `use` set", TODO, () =>
+  withBench("examples", async (bench) => {
+    const home = freshHome();
+    assert.ok(Exit.isSuccess((await login(bench, home)).exit), "login failed");
+    assert.ok(Exit.isSuccess((await bench.run(["use", "town"], { env: { CAPXUL_HOME: home } })).exit), "use failed");
+    const ran = await bench.run([...commands[WORLD_SHOW]], { env: { CAPXUL_HOME: home } });
+    assert.ok(Exit.isSuccess(ran.exit), `world show with no --world failed: ${everything(ran)}`);
+    assert.deepEqual(await bench.seen(), [WORLD_SHOW]);
+    const show = sentTo(await bench.sent(), bench.served.platform);
+    assert.ok(show !== undefined, "world.show was not asked of the account");
+    assert.ok(Str.includes('"world":"town"')(show.body), `world.show did not ask for the world use set: ${show.body}`);
+  }),
+);
+
+test("an account command's world field is --world, which stands over `use`", TODO, () =>
+  withBench("examples", async (bench) => {
+    const home = freshHome();
+    assert.ok(Exit.isSuccess((await login(bench, home)).exit), "login failed");
+    assert.ok(
+      Exit.isSuccess((await bench.run(["use", "elsewhere"], { env: { CAPXUL_HOME: home } })).exit),
+      "use failed",
+    );
+    const ran = await bench.run([...commands[WORLD_SHOW], "--world", "town"], { env: { CAPXUL_HOME: home } });
+    assert.ok(Exit.isSuccess(ran.exit), `world show --world town failed: ${everything(ran)}`);
+    const show = sentTo(await bench.sent(), bench.served.platform);
+    assert.ok(show !== undefined, "world.show was not asked of the account");
+    assert.ok(Str.includes('"world":"town"')(show.body), `world.show did not ask for --world's world: ${show.body}`);
+    assert.ok(!Str.includes("elsewhere")(show.body), "world.show asked for the world use set, not --world's");
+  }),
+);
+
 test(
   "a world's command with no --world, no `use` and no CAPXUL_DOOR_URL is a usage error, exit 1, no answer",
   TODO,

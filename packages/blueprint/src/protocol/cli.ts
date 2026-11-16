@@ -17,11 +17,17 @@ export const CLI_COMMANDS = {
 export type CliCommand = keyof typeof CLI_COMMANDS;
 
 /**
- * The flags every command may take besides its payload's fields; no field may take one of these names. `--world`
- * names a world (its endpoint is what `world.show` answers for it, signed with the operator's token), over the world
- * `use` set; `--as` acts as a person of the world's cast; `--json` prints one line of JSON even on a terminal;
- * `--input` reads the payload's fields from a JSON file; `--operator` picks the operator whose token signs an
- * account call.
+ * The flags the command line adds to an operation's command besides its payload's fields. `--world` always means
+ * the world, by name: on a world's command, the world whose endpoint the call goes to (what `world.show` answers for
+ * it, signed with the operator's token), over the world `use` set; `--as` acts as a person of the world's cast;
+ * `--json` prints one line of JSON even on a terminal; `--input` reads the payload's fields from a JSON file;
+ * `--operator` picks the operator whose token signs an account call.
+ *
+ * Which names each kind of command reserves, so that no payload field may take them:
+ * - a world's command (served by the world): all five;
+ * - an account's command (served by the account): `json`, `input` and `operator`. It takes no `--as`, so a field
+ *   named `as` is its own (`world.snapshot.restore`'s, the new world's name). A field named `world` is allowed only
+ *   when it is a `WorldName`, and then `--world` is that field: given, it fills it; left out, the world `use` set does.
  */
 export const CLI_FLAGS = {
   world: "world",
