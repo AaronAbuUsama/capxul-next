@@ -75,6 +75,8 @@ export const PART_SPANS: ReadonlyArray<readonly [string, Declared]> = [
   ["prepare", workSpan(Pipeline.runPrepare)],
   ["world place", Pipeline.journeyRun.spans.place],
   ["site slot", Pipeline.journeyRun.spans.sites],
+  // After a journey's destroy, the waits until the accounts no longer list its worlds (worlds/teardown.ts, SETTLE).
+  ["settle after destroy", Pipeline.journeyRun.spans.wait],
 ];
 
 /** The span of a part no entry of `PART_SPANS` names: undeclared. */

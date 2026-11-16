@@ -16,6 +16,7 @@ import { castMember, textOf } from "../support/world.ts";
 import { closingSafeBalance, owedOn, safeBalanceOf } from "./books.ts";
 import { named } from "../support/names.ts";
 import { sign } from "./signatures.ts";
+import { steady } from "../support/steady.ts";
 
 const steps = outline({
   draft: [
@@ -113,7 +114,7 @@ export const payBrightside = journey(
         yield* same("the subject sent", sent.subject, { kind: "payment", id: held.payment.request });
         const again = yield* op.answers(named["AlreadySent"], bySam, sam);
         yield* same("the replay", [again.transaction, again.block], [sent.transaction, sent.block]);
-        const receipt = yield* capxul.chain.transaction({ transaction: sent.transaction });
+        const receipt = yield* steady(capxul.chain).transaction({ transaction: sent.transaction });
         const payments = Arr.filter(receipt.logs, (log) => log._tag === "PaymentSent");
         yield* same(
           "the payment sent",

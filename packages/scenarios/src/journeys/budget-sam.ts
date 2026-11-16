@@ -15,6 +15,7 @@ import { mintedTo } from "../support/chain.ts";
 import { present, same, sameAddress, sameAmount } from "../support/expect.ts";
 import { castMember, viewAt } from "../support/world.ts";
 import { signedByDirectors } from "./signatures.ts";
+import { steady } from "../support/steady.ts";
 
 const steps = outline({
   budgets: [
@@ -87,7 +88,7 @@ export const budgetSam = journey(
         yield* sameAmount("the top budget's amount", first.amount, "1000000");
         yield* sameAmount("the top budget's left", first.left, "1000000");
         yield* sameAmount("the top budget's spent", first.spent, "0");
-        const hat = yield* capxul.chain.hat({ hats: view.contracts.hats, hat: first.hat, block: null });
+        const hat = yield* steady(capxul.chain).hat({ hats: view.contracts.hats, hat: first.hat, block: null });
         yield* same("the top budget's hat", hat.details, Values.OFFICER_HAT_DETAILS["manage-books"]);
         const owned = yield* op.succeeds({ org });
         yield* same("Northwind's budgets as the world's owner sees them", owned.budgets, listed.budgets);
@@ -158,7 +159,7 @@ export const budgetSam = journey(
           kind: "budget_creation",
           id: proposed.creation.id,
         });
-        const landed = yield* capxul.chain.transaction({ transaction: sent.transaction });
+        const landed = yield* steady(capxul.chain).transaction({ transaction: sent.transaction });
         const created = budgetsCreated(world, landed.logs);
         yield* same("the budgets the transaction made", created.length, 1);
         const budget = yield* present("the budget the transaction made", created[0]);

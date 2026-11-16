@@ -14,6 +14,7 @@ import { hostNow, millis, same, sameAmount, sameInstant } from "../support/expec
 import { isTestAddress } from "../support/signing.ts";
 import { LIMITS, noWorld, operatorName, recordOf, view, viewOrNone, type View } from "../support/world.ts";
 import { check, checks } from "./format.ts";
+import { steady } from "../support/steady.ts";
 
 const MINUTE = 60_000;
 const SECOND = 1000;
@@ -107,7 +108,7 @@ export const worldCreate = checks<"world.create", { readonly now: string; readon
         Effect.gen(function* () {
           if (payload.clock.startAt !== null) yield* sameInstant("the clock", made.clock.now, payload.clock.startAt);
           const capxul = yield* Capxul;
-          const head = yield* capxul.chain.head({}, at);
+          const head = yield* steady(capxul.chain).head({}, at);
           yield* sameSecond("the chain head's timestamp", head.timestamp, made.clock.now);
         }),
       ),

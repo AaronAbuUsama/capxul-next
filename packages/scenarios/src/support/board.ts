@@ -11,6 +11,7 @@ import { given, holds } from "../expectation.ts";
 import { isAddress, logsOf, mintedTo } from "./chain.ts";
 import { present, same } from "./expect.ts";
 import { castMember, whereOf, type View, type Who } from "./world.ts";
+import { steady } from "./steady.ts";
 
 /** A company the journey's world founded: its Safe and its founder. */
 export interface Founding {
@@ -42,7 +43,7 @@ export const sorted = (addresses: ReadonlyArray<string>): ReadonlyArray<string> 
 export const onChain = (safe: string, who: Who = {}) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
-    const read = yield* capxul.chain.safe({ safe, block: null }, whereOf(who));
+    const read = yield* steady(capxul.chain).safe({ safe, block: null }, whereOf(who));
     return { owners: sorted(read.owners), threshold: read.threshold } satisfies OnChain;
   });
 
@@ -72,17 +73,20 @@ export const seatedBy = (world: View, transaction: string, person: string, who: 
     const capxul = yield* Capxul;
     const member = yield* castMember(world, person);
     const safe = yield* present(`${person}'s Safe`, member.safe);
-    const sent = yield* capxul.chain.transaction({ transaction }, whereOf(who));
+    const sent = yield* steady(capxul.chain).transaction({ transaction }, whereOf(who));
     const minted = mintedTo(world, sent.logs, safe);
     yield* same(`the hats ${transaction} minted to ${person}'s Safe`, minted.length, 1);
     const hat = yield* present(`the hat minted to ${person}'s Safe`, Option.getOrNull(Arr.head(minted)));
-    const read = yield* capxul.chain.hat({ hats: world.contracts.hats, hat: hat.id, block: null }, whereOf(who));
+    const read = yield* steady(capxul.chain).hat(
+      { hats: world.contracts.hats, hat: hat.id, block: null },
+      whereOf(who),
+    );
     yield* same("the minted hat's details", read.details, "Director");
     const seats = Arr.filter(
       logsOf(sent.logs, "HatMaxSupplyChanged"),
       (log) => isAddress(log.address, world.contracts.hats) && log.hatId === hat.id,
     );
-    const before = yield* capxul.chain.hat(
+    const before = yield* steady(capxul.chain).hat(
       { hats: world.contracts.hats, hat: hat.id, block: sent.block - 1 },
       whereOf(who),
     );

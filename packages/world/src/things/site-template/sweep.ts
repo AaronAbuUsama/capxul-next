@@ -120,7 +120,7 @@ export const TemplatesSwept = Schema.Struct({
 export type TemplatesSwept = typeof TemplatesSwept.Type;
 
 /** The world name a sweep's token is minted for: no world's, so it holds no site and may make none (quota 0). */
-const SWEEPER = "sweeper";
+export const SWEEPER = "sweeper";
 
 /**
  * Asks the bench `WORLD_BENCH` names to remove every template unused for `WORLD_TEMPLATE_IDLE`. A sweep never fails

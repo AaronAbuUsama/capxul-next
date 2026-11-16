@@ -7,6 +7,7 @@ import * as Effect from "effect/Effect";
 import * as Str from "effect/String";
 import { Capxul } from "../client.ts";
 import { whereOf, type View, type Who } from "./world.ts";
+import { steady } from "./steady.ts";
 
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -24,7 +25,7 @@ export const logsOf = <T extends Log["_tag"]>(logs: ReadonlyArray<Log>, tag: T):
 export const usdc = (world: View, holder: string, who: Who = {}, block: number | null = null) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
-    return yield* capxul.chain.balance({ token: world.contracts.usdc, holder, block }, whereOf(who));
+    return yield* steady(capxul.chain).balance({ token: world.contracts.usdc, holder, block }, whereOf(who));
   });
 
 /** The hats a transaction minted to `wearer`: its TransferSingle logs from the world's Hats, from the zero address. */
@@ -39,7 +40,7 @@ export const mintedTo = (world: View, logs: ReadonlyArray<Log>, wearer: string) 
 export const paymentsSent = (world: View, paymentId: string, who: Who = {}) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
-    const logs = yield* capxul.chain.logs(
+    const logs = yield* steady(capxul.chain).logs(
       { log: "PaymentSent", address: world.contracts.payments, fromBlock: null, toBlock: null },
       whereOf(who),
     );
@@ -50,7 +51,7 @@ export const paymentsSent = (world: View, paymentId: string, who: Who = {}) =>
 export const companySafesOf = (org: string, who: Who = {}) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
-    const logs = yield* capxul.chain.logs(
+    const logs = yield* steady(capxul.chain).logs(
       { log: "CompanySafeMinted", address: null, fromBlock: null, toBlock: null },
       whereOf(who),
     );
