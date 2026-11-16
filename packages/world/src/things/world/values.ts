@@ -1,6 +1,6 @@
 // What a caller says about the world it wants, what it is handed back, and the declared settings every world lives
 // by: the limits on private worlds and the timeout of every step.
-import { World } from "@capxul/blueprint";
+import { type Values, World } from "@capxul/blueprint";
 import * as Config from "effect/Config";
 import * as Duration from "effect/Duration";
 import type * as Effect from "effect/Effect";
@@ -43,6 +43,8 @@ export interface WorldSpec {
    * (packages/blueprint, src/protocol/headers.ts).
    */
   readonly operatorToken?: Redacted.Redacted;
+  /** The world's grade, which decides whether its Core gets the tap (src/stack/settings.ts); `private` when left out. */
+  readonly grade?: typeof Values.Grade.Type;
   /**
    * Keep a world whose run did not pass, stopped, for this long, so it can be looked into. Never applies to a
    * passing run. At most `Limits.maxKeep`, and never past the world's own expiry: the sweeper deletes it then.
