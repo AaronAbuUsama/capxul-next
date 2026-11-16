@@ -9,8 +9,6 @@ import * as Arr from "effect/Array";
 import { pipe } from "effect/Function";
 import * as Rec from "effect/Record";
 import * as Schema from "effect/Schema";
-import * as Str from "effect/String";
-import { failuresOf } from "./checks/checks.ts";
 import { sumCoverage } from "./checks/paths.ts";
 import { CallOutcome } from "./client.ts";
 import { Ended } from "./failure.ts";
@@ -20,6 +18,10 @@ import { FailedStep } from "./steps.ts";
 import { Timing } from "./timings.ts";
 import { Readiness } from "./world/warmup.ts";
 
+const NOT_IMPLEMENTED: Errors.NotImplemented["_tag"] = "NotImplemented";
+const EXPECTATION: ExpectationFailed["_tag"] = "ExpectationFailed";
+import { ONE_WORLD, SHARED_WORLD, sideBySide, WHAT, whyNotRefused } from "./summary-words.ts";
+
 export const Expectation = Schema.Literals(["pass", "not-implemented"]);
 export type Expectation = typeof Expectation.Type;
 
@@ -27,12 +29,19 @@ export type Expectation = typeof Expectation.Type;
  * `a stage each`: every journey in a fresh stage of its own. `one stage`: all of them in one fresh stage. `a world
  * each`: every journey in fresh private worlds, its starting world made for it. `one world`: every journey in the
  * run's one world on its hub, reset in place to its starting world before it (worlds/run.ts, roadmap step 1.18).
+ * `shared world`: each from a shared world's templates (`--shared`). `shared world, side by side`: every journey at
+ * once in one shared world (RUNNER_SHAPE=shared), `atOnce` of them.
  */
-export const Mode = Schema.Literals(["a stage each", "one stage", "a world each", "one world", "shared world"]);
+export const Mode = Schema.Literals([
+  "a stage each",
+  "one stage",
+  "a world each",
+  "one world",
+  "shared world",
+  "shared world, side by side",
+]);
 export type Mode = typeof Mode.Type;
 
-const NOT_IMPLEMENTED: Errors.NotImplemented["_tag"] = "NotImplemented";
-const EXPECTATION: ExpectationFailed["_tag"] = "ExpectationFailed";
 const JourneyLine = Schema.Struct({
   name: Schema.String,
   /** The starting world it began from. */
@@ -106,6 +115,8 @@ export const Summary = Schema.Struct({
   /** What `passed` means for this run, in words. */
   what: Schema.String,
   mode: Mode,
+  /** How many journeys ran at once, for a run side by side. */
+  atOnce: Schema.optional(Schema.Finite),
   expect: Expectation,
   owner: Schema.String,
   startedAt: Schema.String,
@@ -133,41 +144,12 @@ export const Summary = Schema.Struct({
 });
 export type Summary = typeof Summary.Type;
 
-const ONE_WORLD =
-  "The registered journeys run through the runner in one world, made on a fleet hub by the platform this process serves, its starting worlds made in it once and saved, and the world reset in place to each journey's starting world before the journey. Passed when every registered journey was in the run, every journey's run record passed (every step as it expected, every operation check and every generic check on every call), and every world the run made, the one world included, was destroyed with nothing of it left in the accounts, but a world handed over to CI's teardown job (RUNNER_TEARDOWN=job), which destroys it.";
-const SHARED_WORLD =
-  "The registered journeys run through the runner on a shared world that lives on (roadmap steps 2.3 and 2.4), which the run never resets or changes: before each journey whose starting world is made from a template, the shared world's template snapshot of it is restored into a new world of the run, and a starting world made by its steps is made by them. Passed when every registered journey was in the run, every journey's run record passed (every step as it expected, every operation check and every generic check on every call), and every world the run made was destroyed with nothing of it left in the accounts; the shared world is left as it was.";
-const WHAT: { readonly [E in Expectation]: string } = {
-  pass: "The registered journeys run through the runner, each in fresh private worlds made by the platform this process serves, its starting world made for it. Passed when every registered journey was in the run, every journey's run record passed (every step as it expected, every operation check and every generic check on every call), and every world it made was destroyed with nothing of it left in the accounts.",
-  "not-implemented":
-    "The registered journeys run through the runner against Core's deployed empty handlers (a stage deployed with CAPXUL_HANDLERS=empty). Passed when every registered journey was in the run, every journey failed at its first step on the NotImplemented its first step's operation was answered (never passed, never died, no later step reached), every call was answered NotImplemented and passed every generic check, and every stage was destroyed with nothing of it left in the accounts.",
-};
-
-/** Why a journey that should fail at its first step on the empty handlers did not, or null when it did. */
-const whyNotRefused = (record: RunRecord): string | null => {
-  const ended = record.ended;
-  if (ended === null) return `it did not run to an end: ${record.failure ?? "no failure recorded"}`;
-  if (ended.as === "succeeded") return "it passed against the empty handlers";
-  if (ended.as === "died") return `it died: ${ended.detail ?? ""}`;
-  const onNotImplemented =
-    ended.tag === NOT_IMPLEMENTED || (ended.tag === EXPECTATION && Str.includes(NOT_IMPLEMENTED)(ended.detail ?? ""));
-  if (!onNotImplemented) return `it failed on ${ended.tag ?? "an untagged failure"}, not on ${NOT_IMPLEMENTED}`;
-  if (record.calls.length === 0) return "it made no call";
-  if (record.failedStep?.step !== 1) return `it failed at step ${record.failedStep?.step ?? "none"}, not at its first`;
-  const reached = Arr.filter(record.steps ?? [], (step) => step.step > 1 && step.outcome !== "not reached");
-  if (reached.length > 0) return `it reached step ${reached[0]?.step ?? ""} after its first failed`;
-  const other = Arr.filter(record.calls, (call) => call.refusal !== NOT_IMPLEMENTED);
-  if (other.length > 0)
-    return `answered other than ${NOT_IMPLEMENTED}: ${Arr.join(
-      Arr.map(other, (call) => `${call.operation} (${call.outcome} ${call.refusal ?? ""})`),
-      ", ",
-    )}`;
-  const failed = failuresOf(record.calls);
-  return failed.length === 0 ? null : Arr.join(failed, "; ");
-};
-
 const whyNot = (expect: Expectation, record: RunRecord): string | null =>
-  expect === "pass" ? (record.outcome !== "failed" ? null : (record.failure ?? "failed")) : whyNotRefused(record);
+  expect === "pass"
+    ? record.outcome !== "failed"
+      ? null
+      : (record.failure ?? "failed")
+    : whyNotRefused(NOT_IMPLEMENTED, EXPECTATION)(record);
 
 const lineOf = (expect: Expectation, record: RunRecord, path: string): JourneyLine => {
   const why = whyNot(expect, record);
@@ -277,7 +259,15 @@ export const summarize = (input: SummaryInput): Summary => {
   return {
     kind: "journeys",
     run: input.run,
-    what: input.mode === "one world" ? ONE_WORLD : input.mode === "shared world" ? SHARED_WORLD : WHAT[input.expect],
+    what:
+      input.mode === "one world"
+        ? ONE_WORLD
+        : input.mode === "shared world"
+          ? SHARED_WORLD
+          : input.mode === "shared world, side by side"
+            ? sideBySide(input.records.length)
+            : WHAT[input.expect],
+    ...(input.mode === "shared world, side by side" ? { atOnce: input.records.length } : {}),
     mode: input.mode,
     expect: input.expect,
     owner: input.owner,

@@ -16,8 +16,9 @@ was decided on 13 November 2026"); the calls are in [site-service.md](site-servi
 - **Taking** (`POST /world/claim`, `door/claim.py`): a copy's folder renamed to the world's site name, then one bench
   process joins it to the world. An empty pool falls back to a copy from the site template on the call's path.
 - **Blank company sites** (`door/blank.py`): one blank site template per app fingerprint, a site with every app
-  installed and no company, kept warm in a pool of `DOOR_BLANK_POOL_SIZE` (default 4), so `POST /sites` starts a
-  company's site from a copy instead of building it from nothing.
+  installed and no company, kept warm in a pool of `DOOR_BLANK_POOL_SIZE` (default 8, at most 10: one for each company a run founds at once in
+  its shared world, roadmap 4.8; about 110 MiB of disk each), so `POST /sites` starts a company's site from a copy
+  instead of building it from nothing.
 
 ## Saving and resetting a world's sites in place
 

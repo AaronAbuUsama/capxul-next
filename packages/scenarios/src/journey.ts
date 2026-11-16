@@ -21,6 +21,7 @@ import * as Exit from "effect/Exit";
 import * as Order from "effect/Order";
 import * as Rec from "effect/Record";
 import * as Ref from "effect/Ref";
+import { castFor, JourneyCast, type JourneyKey } from "./cast.ts";
 import type { OperationChecks } from "./checks/format.ts";
 import type { Capxul, Failure, Given } from "./client.ts";
 import type { ExpectationFailed } from "./expectation.ts";
@@ -39,6 +40,24 @@ export interface Journey {
   readonly name: string;
   /** The story it tells, in one sentence. */
   readonly story: string;
+  /**
+   * Its key, unique among all journeys: the run casts its own people and company by it (cast.ts), so journeys side by
+   * side never share a person or a company. One of the blueprint's journey keys (`Cast.JOURNEY_KEYS`).
+   */
+  readonly key: JourneyKey;
+  /**
+   * Where it runs (roadmap step 4.11; docs/roadmap.md, "One shared world, every journey side by side"). `shared`: it
+   * acts on its own company and people only, so it runs in the run's one shared world beside the others. `own`: it acts
+   * on whole worlds (it fills an owner's quota, lists worlds, saves, restores or warps one), so it gets a world of its
+   * own under an owner of its own.
+   */
+  readonly world: "shared" | "own";
+  /**
+   * The most worlds it holds at once apart from the shared one: the worlds its starting point makes for it and those
+   * its own steps make, while they live. 0 for a `shared` journey; at least 1 for an `own` one. The runner reserves
+   * these places before it starts the journey, so journeys side by side never wait on each other for one.
+   */
+  readonly worlds: number;
   /** The starting world it begins from: one of the blueprint's. */
   readonly given: StartingWorld;
   /** Its steps, in order. */
@@ -93,14 +112,18 @@ export const outline = <const D extends Readonly<Record<string, readonly [Operat
 };
 
 /** Declares a journey: its steps run by `run`, in their order, each once. */
+/** Where a journey runs and how many worlds of its own it holds at once: none in the shared world. */
+type Where = { readonly world: "shared"; readonly worlds: 0 } | { readonly world: "own"; readonly worlds: number };
+
 export const journey = (
-  declared: {
+  declared: Where & {
     readonly name: string;
     readonly story: string;
+    readonly key: JourneyKey;
     readonly given: StartingWorld;
     readonly steps: Readonly<Record<string, StepOutline & { readonly index: number }>>;
   },
-  run: Effect.Effect<void, Failed, Needs | OperationChecks | Journal>,
+  run: Effect.Effect<void, Failed, Needs | OperationChecks | Journal | JourneyCast>,
 ): Declared => {
   const steps = Arr.sort(
     Rec.values(declared.steps),
@@ -109,6 +132,9 @@ export const journey = (
   return {
     name: declared.name,
     story: declared.story,
+    key: declared.key,
+    world: declared.world,
+    worlds: declared.worlds,
     given: declared.given,
     outline: Arr.map(steps, (each) => ({ operation: each.operation, does: each.does })),
     run: Effect.gen(function* () {
@@ -118,6 +144,7 @@ export const journey = (
       return yield* due === steps.length + 1 ? Effect.void : Effect.die(`the journey ended before step ${due}`);
     }).pipe(
       Effect.provideServiceEffect(Journal, Effect.all({ next: Ref.make(1), made: Ref.make<ReadonlyArray<Made>>([]) })),
+      Effect.provideServiceEffect(JourneyCast, castFor(declared.key)),
     ),
   };
 };
