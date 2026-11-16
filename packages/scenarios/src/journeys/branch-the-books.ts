@@ -51,6 +51,7 @@ export const branchTheBooks = journey(
   {
     name: "branch the books of a held payment",
     world: "own",
+    worlds: 2,
     key: "branch",
     story:
       "sam's payment to Brightside is held, the month is saved and branched into a second operator's world, sam pays in the first world while the branch never sees it, and in the branch a week passes and the held approval expires.",

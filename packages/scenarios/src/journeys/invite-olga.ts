@@ -52,6 +52,7 @@ export const inviteOlga = journey(
   {
     name: "invite olga to Northwind",
     world: "shared",
+    worlds: 0,
     key: "invite",
     story:
       "dana, Northwind's founder, invites olga as a member, olga declines, eli may not invite her again but dana does and she accepts, and is a member at once with nothing signed, so dana can propose a permission for her; everyone who may not is refused.",

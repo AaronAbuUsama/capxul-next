@@ -39,6 +39,14 @@ test("every journey has its own key, one of the blueprint's, by which the run ca
   for (const each of journeys) assert.ok(Arr.contains(Cast.JOURNEY_KEYS, each.key), `${each.name}'s key ${each.key}`);
 });
 
+test("a journey in the shared world holds no world of its own; one in a world of its own holds at least one", () => {
+  for (const each of journeys)
+    assert.ok(
+      each.world === "shared" ? each.worlds === 0 : each.worlds >= 1,
+      `${each.name} runs ${each.world} and holds ${each.worlds} worlds`,
+    );
+});
+
 test("at least the thin line's journeys, each 5 to 10 steps from a starting world the blueprint declares", () => {
   assert.ok(journeys.length >= 2, `${journeys.length} journeys`);
   for (const each of journeys) {
