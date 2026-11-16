@@ -52,7 +52,7 @@ const tapped: ReadonlyArray<FlatSpan> = [
       [SPAN_ATTRIBUTES.colo]: "LHR",
       [SPAN_ATTRIBUTES.queryMs]: 41.5,
       [SPAN_ATTRIBUTES.queryCount]: 2,
-      [OUTCOME_KEY]: "refused",
+      [OUTCOME_KEY]: OUTCOME.failure,
       "rpc.method": OPERATION,
     },
     events: [{ name: "exception", atMs: 1_800_000_000_119, attributes: {} }],
@@ -67,7 +67,7 @@ const tapped: ReadonlyArray<FlatSpan> = [
     statusMessage: null,
     durationMs: 20,
     endedMs: 1_800_000_000_060,
-    attributes: { "db.system.name": "postgresql", [OUTCOME_KEY]: "ok" },
+    attributes: { "db.system.name": "postgresql", [OUTCOME_KEY]: OUTCOME.success },
     events: [],
     service: Producers.producers.api.service,
   },
@@ -139,7 +139,7 @@ test("a different name, parent or outcome does not agree", () => {
     { ...tapped[0]!, attributes: { ...tapped[0]!.attributes, [OUTCOME_KEY]: outcome } },
     tapped[1]!,
   ];
-  assert.deepEqual(abouts(kept, stampedAs("error")), ["outcome"]);
+  assert.deepEqual(abouts(kept, stampedAs(OUTCOME.defect)), ["outcome"]);
 });
 
 test("each kept outcome matches the capxul.outcome and the status Core exports for it", () => {

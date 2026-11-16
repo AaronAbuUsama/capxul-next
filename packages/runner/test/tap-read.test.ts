@@ -3,6 +3,7 @@
 // Effect wrote them, are in `telemetry.otlp` under its trace id.
 import { strict as assert } from "node:assert";
 import { Envelope, operations } from "@capxul/blueprint";
+import { OUTCOME } from "@capxul/core";
 import { test } from "node:test";
 import * as Arr from "effect/Array";
 import * as Duration from "effect/Duration";
@@ -58,8 +59,8 @@ const standIn = (tables: Tables, reads: { count: number } = { count: 0 }) =>
 const oneCall = Effect.gen(function* () {
   const posted = yield* Effect.log("inside the step").pipe(
     // Each span carries the outcome Core stamps on every span it keeps (core/src/telemetry/spans.ts).
-    Effect.withSpan("database.query", { attributes: { [Envelope.attributes.outcome.name]: "ok" } }),
-    Effect.withSpan("call.op", { kind: "server", attributes: { [Envelope.attributes.outcome.name]: "ok" } }),
+    Effect.withSpan("database.query", { attributes: { [Envelope.attributes.outcome.name]: OUTCOME.success } }),
+    Effect.withSpan("call.op", { kind: "server", attributes: { [Envelope.attributes.outcome.name]: OUTCOME.success } }),
     exported,
   );
   const traces = bodiesTo(posted, "/v1/traces")[0]!;

@@ -38,12 +38,18 @@ export interface KeptSpan {
   readonly roundTrip: boolean;
 }
 
-/** Each outcome Core keeps, as the envelope's `capxul.outcome` says it: a typed failure is a refusal. */
+/** The envelope's words for how a span's work ended (the blueprint's `Envelope.Outcome`), in its declared order. */
+const [OK, REFUSED, ERROR, INTERRUPTED] = Envelope.Outcome.literals;
+
+/**
+ * Each outcome Core keeps (an Exit's kind, as `app.spans` stores it), as the envelope's `capxul.outcome` says it: a
+ * typed failure is a refusal, a defect is an error.
+ */
 export const OUTCOME: Readonly<Record<SpanOutcome, typeof Envelope.Outcome.Type>> = {
-  success: "ok",
-  failure: "refused",
-  defect: "error",
-  interrupted: "interrupted",
+  success: OK,
+  failure: REFUSED,
+  defect: ERROR,
+  interrupted: INTERRUPTED,
 };
 
 export const outcomeOf = (exit: Exit.Exit<unknown, unknown>): SpanOutcome => {
