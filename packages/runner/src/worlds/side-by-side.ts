@@ -45,7 +45,8 @@ export const aroundJourney =
   (places: Places, journey: Journey) =>
   <A, E, R>(effect: Effect.Effect<A, E, R>) =>
     effect.pipe(
-      places.worlds.held(journey.name, journey.worlds),
+      // A journey that needs more than the run can ever hold takes nothing: it fails into its own record (`tooMany`).
+      journey.worlds > places.worlds.size ? (each) => each : places.worlds.held(journey.name, journey.worlds),
       // Each journey is played by its own cast, as the blueprint declares it and the world makes it (4.11): its
       // starting world's makers (company.ts) and its steps (scenarios' cast.ts) read it.
       Effect.provideService(Casting, CAST_AS_DECLARED),
@@ -87,6 +88,11 @@ export const sideBySideOf = (settings: Settings, platformUrl: string, places: Pl
 
             return {
               around: (journey: Journey) => aroundJourney(places, journey),
+              /** Why `journey` cannot run here: it needs more worlds at once than the run holds; null when it fits. */
+              tooMany: (journey: Journey): string | null =>
+                journey.worlds > places.worlds.size
+                  ? `${journey.name} needs ${String(journey.worlds)} worlds at once, more than the run's ${String(places.worlds.size)}`
+                  : null,
               /** The shared world, made once before any journey, and waited for until it answers steadily, once. */
               prepare: (_worlds: ReadonlyArray<StartingWorld>) =>
                 Effect.flatMap(sharedWorld, (making) =>

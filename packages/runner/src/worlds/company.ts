@@ -7,8 +7,8 @@
 // Signatures are made with the cast's keys, the blueprint's `CAST_KEYS`, as a person's agent would: the digest an
 // approval names, signed as it is (src/things/approval/values.ts and src/common/values.ts), with viem
 // (src/common/chain/reads.ts). A wait polls an operation until it answers differently (points.ts; wait.ts).
-import { Cast, Site, Values, startingWorlds } from "@capxul/blueprint";
-import { Capxul, Casting, type Casted } from "@capxul/scenarios";
+import { Site, Values, startingWorlds } from "@capxul/blueprint";
+import { Capxul } from "@capxul/scenarios";
 import * as Arr from "effect/Array";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
@@ -16,10 +16,9 @@ import * as Option from "effect/Option";
 import * as Predicate from "effect/Predicate";
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
-import { mnemonicToAccount } from "viem/accounts";
 import { describe, RunnerFailure } from "../failure.ts";
 import { encodeAnswer } from "./encode.ts";
-import { JourneyMaking } from "./journey-making.ts";
+import { castAccounts, northwindOf, playersNow } from "./players.ts";
 import type { Making, Steps } from "./makers.ts";
 import { seenExit, siteReading, until } from "./wait.ts";
 
@@ -41,47 +40,6 @@ const doorOf = (making: Making) =>
     Effect.mapError(() => failed("a company's starting world is made in a world, and none was made yet")),
   );
 
-/** Who plays each role in the starting world being made, and its company's handle (scenarios' cast.ts). */
-type Players = Casted["people"] & { readonly company: string };
-
-/** Each role by the person of its name, and the story's company: one journey after another, as before. */
-const UNCAST: Players = { dana: "dana", eli: "eli", sam: "sam", pat: "pat", olga: "olga", company: Cast.CAST_COMPANY };
-
-/**
- * The players of the journey whose starting world is being made: its own cast, when the run casts every journey
- * (`Casting`, a run in one shared world, side-by-side.ts), so journeys side by side never found the same company or
- * share a person's Safe; otherwise each role by its own name.
- */
-const playersNow: Effect.Effect<Players> = Effect.gen(function* () {
-  const making = yield* Effect.serviceOption(JourneyMaking);
-  const casting = yield* Effect.serviceOption(Casting);
-  const journey = Option.flatMap(making, (each) => Option.fromNullishOr(each.journey));
-  if (Option.isNone(journey) || Option.isNone(casting)) return UNCAST;
-  const casted = yield* casting.value.castOf(journey.value.key);
-  return { ...casted.people, company: casted.company };
-});
-
-/**
- * How `founded` founds Northwind (packages/blueprint, src/starting-points/points.ts): dana founds it with eli, 2 of 2,
- * sam and pat, 1,000 USDC; each played by the journey's cast, the company under its handle.
- */
-const northwindOf = (players: Players) =>
-  ({
-    handle: players.company,
-    profile: { name: "Northwind Trading", country: "NL", bio: null, size: null },
-    directors: [players.eli],
-    threshold: 2,
-    members: [players.sam, players.pat],
-    capital: { asset: "USDC", amount: "1000" },
-  }) as const;
-
-/** The cast's well-known test keys (`CAST_KEYS`). */
-const accounts = Effect.sync(() =>
-  Arr.map(Arr.range(0, Values.CAST_KEYS.accounts - 1), (addressIndex) =>
-    mnemonicToAccount(Values.CAST_KEYS.mnemonic, { addressIndex }),
-  ),
-);
-
 type Approval = typeof Values.Approval.Type;
 
 /** The approval's signer signs its digest with their own key, and approval.sign takes it as them, at `door`. */
@@ -89,7 +47,7 @@ const approve = (approval: Approval, door: string) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
     const key = Arr.findFirst(
-      yield* accounts,
+      yield* castAccounts,
       (account) => Str.toLowerCase(account.address) === Str.toLowerCase(approval.signerAddress),
     );
     if (Option.isNone(key)) return yield* failed(`no test key signs as ${approval.signerAddress}`);
