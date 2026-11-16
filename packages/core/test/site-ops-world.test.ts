@@ -136,7 +136,7 @@ test("a warp's record says where its time went: a span per stretch, under it a s
       assert.equal(calls.length, 4, "each stretch through both sites");
       const stretchIds = Arr.map(stretches, (stretch) => stretch.spanId);
       assert.ok(Arr.every(calls, (one) => stretchIds.includes(one.parentSpanId ?? "")));
-      // Kept in the record (app.spans): the keys are declared (telemetry/attributes.ts).
+      // Kept and exported with the span: the keys are declared (telemetry/attributes.ts).
       assert.deepEqual(
         Arr.map(stretches, (stretch) => stretch.attributes),
         [

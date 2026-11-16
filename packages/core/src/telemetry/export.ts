@@ -1,4 +1,4 @@
-// Core's export of its telemetry over OTLP, beside the spans the sink keeps in `app.spans` (sink.ts). Each request
+// Core's export of its telemetry over OTLP: the only way its spans leave a world (sink.ts, `ExportedSpans`). Each request
 // builds Effect's `Otlp.layer` into its own scope, which Cloudflare closes in `ctx.waitUntil` after the answer has
 // left (Alchemy's Worker bridge): the flush runs then, so export adds nothing to the caller's time or to `serverMs`.
 //

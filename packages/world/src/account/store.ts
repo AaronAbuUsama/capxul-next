@@ -21,7 +21,7 @@ const TABLES = [
   "create schema if not exists platform",
   "create table if not exists platform.spans (id bigint generated always as identity primary key, trace_id text not null, span_id text not null, parent_span_id text, name text not null, outcome text not null, duration_ms double precision not null, ended_ms double precision not null)",
   "create index if not exists platform_spans_trace on platform.spans (trace_id)",
-  // A span's declared attributes (Core's src/telemetry/attributes.ts), as in Core's app.spans (its migration 0008).
+  // A span's declared attributes (Core's src/telemetry/attributes.ts), as Core exports them on the span.
   "alter table platform.spans add column if not exists attributes jsonb",
   "create table if not exists platform.calls (trace_id text primary key, stage text not null)",
   "create table if not exists platform.snapshots (stage text not null, snapshot text not null, branch_id text not null, record_seq integer not null, clock_mode text not null, clock_ms double precision not null, template boolean not null, saved_at text not null, companies integer not null, migrations text not null, primary key (stage, snapshot))",
@@ -42,7 +42,7 @@ export const prepareStore = Effect.flatMap(registry, (database) =>
 const attributesFrom = (colo: string, queryMs: string, queryCount: string) =>
   `nullif(jsonb_strip_nulls(jsonb_build_object('${SPAN_ATTRIBUTES.colo}', ${colo}::text, '${SPAN_ATTRIBUTES.queryMs}', ${queryMs}::float8, '${SPAN_ATTRIBUTES.queryCount}', ${queryCount}::int)), '{}'::jsonb)`;
 
-/** Keeps every platform call's spans in `platform.spans`, as Core keeps a world call's in `app.spans`. */
+/** Keeps every platform call's spans in `platform.spans`, where the runner reads them (a world's Core exports its own). */
 export const PlatformSpanSink = (database: Redacted.Redacted) =>
   Layer.effect(
     SpanSink,

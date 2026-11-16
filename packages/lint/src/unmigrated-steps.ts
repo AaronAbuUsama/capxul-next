@@ -62,7 +62,6 @@ export const declaredSteps: Unmigrated = {
   "packages/runner/src/shared/make.ts": 1,
   "packages/runner/src/shared/starting.ts": 1,
   "packages/runner/src/telemetry/observe.ts": 2,
-  "packages/runner/src/telemetry/side-by-side.ts": 1,
   "packages/runner/src/telemetry/tap.ts": 1,
   "packages/runner/src/world/database.ts": 1,
   "packages/runner/src/world/existing.ts": 1,

@@ -34,7 +34,7 @@ import { API_PLACEMENT } from "./stack/region.ts";
 import { coloOf, Placement } from "./telemetry/attributes.ts";
 import { CoreIdentity } from "./telemetry/middleware.ts";
 import { requestExport } from "./telemetry/export.ts";
-import { SqlSpanSink } from "./telemetry/sink.ts";
+import { ExportedSpans } from "./telemetry/sink.ts";
 
 /** The Hyperdrive binding as the running Worker holds it. */
 const connectionString = (env: Record<string, unknown>) =>
@@ -134,7 +134,7 @@ export default class Core extends Cloudflare.Worker<Core>()(
         Layer.provide(
           siteOpsLive(env).pipe(Layer.provide(SiteDoor.fromEnv(env).pipe(Layer.provide(FetchHttpClient.layer)))),
         ),
-        Layer.provide(SqlSpanSink),
+        Layer.provide(ExportedSpans),
         Layer.provide(ChainOps.layer(env)),
         Layer.provide(database),
         Layer.provide(Layer.succeed(CoreIdentity, identity)),
