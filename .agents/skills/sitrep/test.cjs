@@ -8,6 +8,7 @@ const here = __dirname;
 const template = fs.readFileSync(path.join(here, "template.html"), "utf8");
 const example = (f) => JSON.parse(fs.readFileSync(path.join(here, "example", f), "utf8"));
 const shots = process.env.SITREP_SHOTS || fs.mkdtempSync(path.join(os.tmpdir(), "sitrep-"));
+fs.mkdirSync(shots, { recursive: true });
 // The publish skeleton the artifact service wraps a page in.
 const page = (body) => `<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light}body{margin:0;font:14px system-ui}[hidden]{display:none!important}</style></head><body>${body}</body></html>`;
 
@@ -78,55 +79,55 @@ async function open(browser, { width, height = 900, scheme = "light", data, db =
   const browser = await chromium.launch();
   const full = { "sitrep/numbers": example("numbers.json"), "sitrep/now": example("now.json"), sitreps: example("sitreps.json") };
 
-  // 1. Every width and theme: renders, no sideways scroll, no errors.
+  const tab = (p, name) => p.click(`.tabbar .tab >> text=${name}`);
+
+  // 1. Every width and theme: renders, no sideways scroll, no errors, the five tabs.
   for (const width of [390, 768, 1440]) for (const scheme of ["light", "dark"]) {
     const { p, ctx, errors } = await open(browser, { width, scheme, data: JSON.parse(JSON.stringify(full)) });
     const sw = await p.evaluate(() => document.documentElement.scrollWidth);
     check(sw <= width, `${width} ${scheme}: no sideways scroll (${sw})`);
+    check((await p.locator(".tabbar .tab").count()) === 5, `${width} ${scheme}: five tabs`);
+    check(await p.isVisible("text=Nothing needs you"), `${width} ${scheme}: Now says nothing needs you`);
+    check(await p.isVisible("text=Master is green"), `${width} ${scheme}: Now shows master's health`);
+    await tab(p, "Plan");
+    check(await p.isVisible("text=Foundations core"), `${width} ${scheme}: Plan shows the next milestone`);
     check(errors.length === 0, `${width} ${scheme}: no errors ${errors.join(" | ")}`);
-    check(await p.isVisible("text=Foundations core"), `${width} ${scheme}: next milestone shown`);
-    check((await p.locator("#tiles .tile").count()) === 4, `${width} ${scheme}: four tiles`);
-    check(await p.evaluate(() => document.documentElement.classList.contains("native")) === (width <= 600), `${width}: native layout only on a phone`);
-    await p.screenshot({ path: path.join(shots, `now-${width}-${scheme}.png`), fullPage: true });
+    await p.screenshot({ path: path.join(shots, `plan-${width}-${scheme}.png`), fullPage: true });
     await ctx.close();
   }
 
   // 2. Interactions at phone width.
   {
     const { p, ctx, errors } = await open(browser, { width: 390, data: JSON.parse(JSON.stringify(full)) });
-    const bb = await p.locator("#chart").boundingBox();
-    await p.locator("#chart").scrollIntoViewIfNeeded();
-    const b2 = await p.locator("#chart").boundingBox();
+    await tab(p, "Plan");
+    const chart = p.locator(".chartbox svg.chart").first();
+    await chart.scrollIntoViewIfNeeded();
+    const b2 = await chart.boundingBox();
     await p.mouse.move(b2.x + b2.width * 0.5, b2.y + 60); await p.mouse.move(b2.x + b2.width * 0.6, b2.y + 70);
-    check(await p.isVisible("#tip") && /left ·/.test(await p.textContent("#tip")), "chart: hover shows a point's detail");
-    check(bb.width > 300, "chart: drawn at full width");
-    await p.click("button.lane >> nth=1");
-    check(await p.isVisible("text=Full run time"), "lane: opens in place with its measure");
-    check(await p.isVisible(".inline-detail .rhead"), "lane: shows its sitreps");
-    await p.click(".inline-detail .rhead >> nth=0");
-    check(await p.isVisible(".inline-detail .pbtn"), "lane: its sitrep opens with a play button");
-    await p.click(".tabbar button >> nth=1");
-    check(await p.isVisible("#view-reps") && !(await p.isVisible("#view-now")), "tab bar: switches to Sitreps");
-    check((await p.textContent("#tbbadge")) === "5", "badge: five new");
-    await p.click("#reps .rhead >> nth=0");
-    check(await p.isVisible("#reps .rlinks a"), "sitrep: opens with its links");
-    await p.click("#playnew");
+    check(await p.isVisible(".tip") && /left/.test(await p.textContent(".tip")), "chart: hover shows a point's detail");
+    await p.click(".row >> text=Foundations core");
+    check(await p.isVisible(".back"), "plan: a milestone opens as its own page with a back button");
+    await p.click(".back");
+    await tab(p, "Lanes");
+    await p.click(".row >> text=Speed");
+    check(await p.isVisible("text=Full run time"), "lanes: a lane opens with its measure");
+    await p.click(".back");
+    await tab(p, "Sitreps");
+    check((await p.textContent(".tabbar .badge")) === "5", "badge: five new");
+    await p.click(".rep .pl >> nth=0");
     await p.waitForTimeout(80);
-    check(await p.isVisible("#player"), "player: appears when reading starts");
-    const first = await p.evaluate(() => window.__log.speaks[0]);
-    check(first && first.ids.length >= 10, "player: one line per paragraph, oldest sitrep first");
-    await p.click("#pl-next"); await p.waitForTimeout(60);
+    check(await p.isVisible(".mini"), "player: appears when reading starts");
+    await p.click(".mini [aria-label=Forward]"); await p.waitForTimeout(60);
     check((await p.evaluate(() => window.__log.speaks.length)) === 2, "player: forward starts from the next part");
-    await p.click("#pl-speed");
-    check((await p.textContent("#pl-speed")) === "1.25×" && (await p.evaluate(() => window.__log.rates.pop())) === 1.25, "player: speed steps to 1.25");
-    await p.click("#pl-toggle"); await p.waitForTimeout(40);
-    check(/paused/.test(await p.textContent("#pl-where")), "player: pause");
-    await p.click("#pl-toggle"); await p.waitForTimeout(40);
-    await p.click("#pl-segs button >> nth=0"); await p.waitForTimeout(40);
-    check((await p.evaluate(() => window.__log.speaks.pop().ids[0])) === "0", "player: a segment jumps to its part");
+    await p.click(".mini .speed");
+    check((await p.evaluate(() => window.__log.rates.pop())) === 1.25, "player: speed steps to 1.25");
+    await p.click(".mini [aria-label=Pause]"); await p.waitForTimeout(40);
+    check(await p.isVisible(".mini [aria-label=Resume]"), "player: pause");
+    await p.click(".mini [aria-label=Resume]"); await p.waitForTimeout(40);
+    await p.click(".mini .segs button >> nth=0"); await p.waitForTimeout(40);
+    check((await p.evaluate(() => window.__log.speaks.pop().ids[0])) === "0", "player: a part jumps to its start");
     await p.waitForTimeout(2500);
-    check(!(await p.isVisible("#player")), "player: hides when the reading ends");
-    check((await p.textContent("#tbbadge")) === "0" || !(await p.isVisible("#tbbadge")), "heard: everything read is marked heard");
+    check(!(await p.isVisible(".mini")), "player: hides when the reading ends");
     await p.waitForTimeout(700);
     const w = await p.evaluate(() => window.__log.writes.filter((x) => x[0].indexOf("data/users/u_test/") === 0).length);
     check(w > 0, "heard: saved to the viewer's own document");
@@ -135,14 +136,13 @@ async function open(browser, { width, height = 900, scheme = "light", data, db =
     await ctx.close();
   }
 
-  // 3. No data yet, and no voice.
+  // 3. No data yet, no voice, no database.
   {
     const { p, ctx, errors } = await open(browser, { width: 1440, data: {}, tts: false });
-    check(await p.isVisible("text=Waiting for the conductor's first update."), "empty: lanes say what will appear");
-    check(await p.isVisible("text=No updates yet"), "empty: header says no updates yet");
-    await p.click("#tab-reps");
-    check(await p.isVisible("text=No sitreps yet."), "empty: sitreps say what will appear");
-    check(!(await p.isVisible("#playnew")), "no voice: no play button");
+    await tab(p, "Lanes");
+    check(await p.isVisible(".empty"), "empty: lanes say what will appear");
+    await tab(p, "Sitreps");
+    check((await p.locator(".rep .pl").count()) === 0, "no voice: no play buttons");
     check(errors.length === 0, "empty: no errors " + errors.join(" | "));
     await ctx.close();
   }
