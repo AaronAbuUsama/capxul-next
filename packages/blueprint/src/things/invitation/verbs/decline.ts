@@ -7,7 +7,6 @@ import { roles } from "../../../common/values.ts";
 import { startingPoints as w, type PromisesOf } from "../../../starting-points/points.ts";
 import { StepKind } from "../../../telemetry/step-kinds.ts";
 import { InvitationDeclined } from "../events.ts";
-import { invitation } from "../examples.ts";
 import { InvitationClosed, InvitationNotFound, NotYourInvitation } from "../refusals.ts";
 import { Invitation, InvitationId, RefusalRule } from "../values.ts";
 
@@ -49,7 +48,21 @@ export const invitationDecline = verb({
     ms: 1_500,
     basis: "a read of the invitation and the caller's cast entry in the world's database, then one write",
   },
-  examples: [{ payload: { invitation: "inv_olga01" }, success: invitation("inv_olga01", "declined") }],
+  examples: [
+    {
+      payload: { invitation: "inv_olga01" },
+      success: {
+        id: "inv_olga01",
+        org: "org_northwind1",
+        handle: "northwind",
+        email: "olga@cast.test",
+        role: "member" as const,
+        invitedBy: "dana",
+        state: "declined" as const,
+        invitedAt: "2026-11-13T09:05:00.000Z",
+      },
+    },
+  ],
 });
 
 /** Who serves it: a world's Core, through the world's door (`WorldRpcs`). */
