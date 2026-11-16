@@ -6,6 +6,7 @@ import { test } from "node:test";
 import { Cast, People } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Option from "effect/Option";
+import * as Str from "effect/String";
 import { checkIsolation, scopeOf, withIsolation } from "../src/checks/isolation.ts";
 import type { Call } from "../src/client.ts";
 
@@ -43,12 +44,12 @@ test("acting as, or naming, another journey's people, email or company fails, by
   assert.equal(checkIsolation(scope, own).passed, true);
   const theirs = person("pay", "sam");
   const actsAs = checkIsolation(scope, call({ as: theirs }));
-  assert.deepEqual([actsAs.passed, actsAs.detail.includes(theirs)], [false, true]);
+  assert.deepEqual([actsAs.passed, Str.includes(theirs)(actsAs.detail)], [false, true]);
   const names = checkIsolation(
     scope,
     call({ as: person("found", "dana"), payload: { email: Cast.castEmail(theirs) } }),
   );
-  assert.deepEqual([names.passed, names.detail.includes(Cast.castEmail(theirs))], [false, true]);
+  assert.deepEqual([names.passed, Str.includes(Cast.castEmail(theirs))(names.detail)], [false, true]);
   const company = checkIsolation(scope, call({ payload: { handle: Cast.castCompany("pay", Cast.CAST_COMPANY) } }));
   assert.equal(company.passed, false);
   assert.equal(checkIsolation(scope, call({ as: "dana" })).passed, false, "the plain dana is no journey's own");
