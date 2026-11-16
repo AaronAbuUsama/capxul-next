@@ -39,6 +39,7 @@ import { describe } from "./failure.ts";
 import { ObservationRetry } from "./settings.ts";
 import { OpenStep } from "./steps.ts";
 import { resendingWhileWarm } from "./world/warmup.ts";
+import { recordedRpc } from "./telemetry/chain.ts";
 import { RUN_SPANS, stepOptions } from "./telemetry/step.ts";
 
 /**
@@ -225,7 +226,8 @@ const recording = (
     });
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- one function per operation, built by name from the blueprint's own list, each the recorded call of the operation it is keyed by; the compiler cannot follow the mapping
   const calls = Rec.map(operations, (_operation, name) => each(name)) as unknown as Omit<CapxulClient, "chain">;
-  // Chain reads are not operations: no span of Core's, no event, nothing for the generic checks. They pass through.
+  // Chain reads are not operations: no span of Core's, no event, nothing for the generic checks. They pass through,
+  // each JSON-RPC request recorded on its way (`recordingChain`).
   return { ...calls, chain };
 };
 
@@ -244,12 +246,23 @@ const doors = (target: Target, http: HttpClient.HttpClient) =>
   Layer.mergeAll(
     Sdk.platformDoor({ url: target.platformUrl, token: target.platformToken }),
     Sdk.worldDoor({ url: `${target.url}${WORLD_PATH}`, token: target.doorToken }),
-    Sdk.reach({
-      platform: target.platformUrl,
-      chain: { url: `${target.url}${CHAIN_PATH}`, token: target.doorToken },
-      operators: { first: target.platformToken, second: target.secondPlatformToken },
-    }),
+    recordingChain(
+      Sdk.reach({
+        platform: target.platformUrl,
+        chain: { url: `${target.url}${CHAIN_PATH}`, token: target.doorToken },
+        operators: { first: target.platformToken, second: target.secondPlatformToken },
+      }),
+    ),
   ).pipe(Layer.provide(Layer.succeed(HttpClient.HttpClient, http)));
+
+/** `reach`, with every chain JSON-RPC request it sends recorded: a span each, heard by the open step (telemetry/chain.ts). */
+const recordingChain = <E, R>(reach: Layer.Layer<Sdk.ReachDoors, E, R>): Layer.Layer<Sdk.ReachDoors, E, R> =>
+  Layer.effect(
+    Sdk.ReachDoors,
+    Effect.map(Effect.service(Sdk.ReachDoors), (reached) =>
+      Sdk.ReachDoors.of({ ...reached, chain: (door, operator) => recordedRpc(reached.chain(door, operator)) }),
+    ),
+  ).pipe(Layer.provide(reach));
 
 /**
  * `Capxul` for one stage, every call recorded in `log`, through the SDK or the command line (`via`). Both send
