@@ -20,6 +20,7 @@ export const listsOf = (oldWords: Ratchets.Lists["oldWords"], files: Ratchets.Re
   formats: Rec.map(formats(Blueprint), (format) => format.unmigrated),
   oldWords,
   files,
+  glossary: Blueprint.glossary,
 });
 
 /** Every ratchet of the blueprint's registry, counted now, given old-words.json's counts and the repository's files. */
