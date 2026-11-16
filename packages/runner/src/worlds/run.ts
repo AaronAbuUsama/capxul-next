@@ -19,7 +19,7 @@ import * as Redacted from "effect/Redacted";
 import * as Ref from "effect/Ref";
 import { checkCall, failuresOf } from "../checks/checks.ts";
 import { MadeWorlds, type Call } from "../client.ts";
-import { describe, endedOf } from "../failure.ts";
+import { describe, endedOf, RunnerFailure } from "../failure.ts";
 import { passedOr, slugOf, writeJson, RunRecord } from "../record.ts";
 import { freshName, journeyPlan, keptFor, stepsFor, use, viaOf } from "../run.ts";
 import { stepsOf } from "../steps.ts";
@@ -133,7 +133,11 @@ const runOne = (
       const before = yield* platform.made;
       const triedBefore = (yield* platform.tried).length;
       const heard = yield* Ref.make<ReadonlyArray<string>>([]);
-      const journey = work(scenario, settings, starting, timings, `${run}-${index + 1}`);
+      const tooMany = "tooMany" in starting ? starting.tooMany(scenario) : null; // fails alone, into its record
+      const journey =
+        tooMany === null
+          ? work(scenario, settings, starting, timings, `${run}-${index + 1}`)
+          : Effect.fail(RunnerFailure.make({ step: "places", message: tooMany }));
       const done = yield* Effect.exit(restore(Effect.provideService(journey, MadeWorlds, heard)));
       const templates = yield* starting.templateWorlds;
       // Side by side, a journey's worlds are those its own calls made; one after another, those made while it ran.

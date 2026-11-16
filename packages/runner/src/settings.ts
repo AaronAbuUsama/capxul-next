@@ -48,7 +48,8 @@ export const Settings = Config.all({
   /**
    * With RUNNER_SHAPE=shared, the most worlds a run has at once, its shared world and its world-level journeys' worlds
    * together, each held from its create to its destroy (worlds/places.ts): Neon's concurrently active computes are
-   * shared by every run (documented default 20). The cluster's free places bound it too.
+   * shared by every run (documented default 20). The cluster's capacity bounds it too. Raising it needs an owner per
+   * world-level journey first: they share the run's operators' quotas (worlds/places.ts).
    */
   worldsAtOnce: Config.Int("RUNNER_WORLDS_AT_ONCE").pipe(Config.withDefault(8)),
   /** With RUNNER_SHAPE=shared, the most companies founded at once: the bench's ready blank copies (DOOR_BLANK_POOL_SIZE). */
