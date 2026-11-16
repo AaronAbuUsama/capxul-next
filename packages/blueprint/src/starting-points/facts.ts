@@ -11,17 +11,23 @@ import * as Schema from "effect/Schema";
 import { Json, OperatorName, OperatorRole, PersonId, TraceId, WorldName, WorldView } from "../common/values.ts";
 import { booksCollected, paymentSent } from "../things/approval/examples.ts";
 import { Collected, Sent } from "../things/approval/values.ts";
-import { northwindFounded } from "../things/company/examples.ts";
+import { approval, northwindFounded } from "../things/company/examples.ts";
 import { Founded } from "../things/company/values.ts";
 import { heldPayment, postedInvoice, supplierCreated } from "../things/document/examples.ts";
 import { Created, Held, Posted } from "../things/document/values.ts";
-import { samBooksGrant } from "../things/member/examples.ts";
 import { GrantProposed } from "../things/member/values.ts";
 import { restoredWorld, saved } from "../things/snapshot/examples.ts";
 import { Snapshot } from "../things/snapshot/values.ts";
 import { exampleWorld } from "../things/world/examples.ts";
 
 /** One call through a door made in making a starting world, as its maker made and saw it. */
+/** sam's Manage books, as `org.member.grant`'s first example proposes it, and as the starting points record it. */
+export const samBooksGrant: typeof GrantProposed.Type = {
+  change: { id: "chg_books1", member: "sam", permission: "manage-books", state: "proposed" },
+  proposal: { id: "prp_books1", nonce: 1, threshold: 2 },
+  approvals: [approval("apr_books1", "dana", 1), approval("apr_books2", "eli", 2)],
+};
+
 export const MadeCall = Schema.Struct({
   operation: Schema.String,
   /** The world whose door it went through, or for a platform operation the world it named. */
