@@ -103,7 +103,10 @@ export const use = (plan: Plan, settings: Settings) => (stage: Stage) =>
     } satisfies Used;
   }).pipe(
     Effect.mapError((error) =>
-      RunnerFailure.make({ step: "checks", message: `what Core kept could not be read: ${error.message}` }),
+      RunnerFailure.make({
+        step: "checks",
+        message: `what Core kept could not be read (stage ${stage.name}): ${error.message}`,
+      }),
     ),
   );
 
