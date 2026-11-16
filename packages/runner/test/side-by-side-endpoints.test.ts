@@ -100,7 +100,10 @@ const otherWorlds = Layer.succeed(OtherWorlds, {
   databaseAt: (door: string) => Effect.succeed(door === DOOR ? Option.some(THEIRS) : Option.none()),
 });
 
-/** Side by side for one call made at the other world's door, its two records in that world's database. */
+/**
+ * Side by side for one call made at the other world's endpoint. Its `app.spans` rows come in `kept`, as the checks
+ * read them there; its tap is in that world's database, which also holds rows that must not be read for it.
+ */
 const sideOfCallAtEndpoint = (theirSpans: (spans: ReadonlyArray<FlatSpan>) => ReadonlyArray<SpanRow>) =>
   Effect.gen(function* () {
     const call = yield* oneCall;
@@ -108,12 +111,16 @@ const sideOfCallAtEndpoint = (theirSpans: (spans: ReadonlyArray<FlatSpan>) => Re
       "ep-own.test": { otlp: [{ trace_id: "elsewhere", signal: "traces", body: call.body }], spans: [] },
       "ep-theirs.test": {
         otlp: [{ trace_id: call.traceId, signal: "traces", body: call.body }],
-        spans: theirSpans(call.spans),
+        // What the database's app.spans holds is not read again: `kept` is what counts.
+        spans: Arr.map(call.spans, (span) => ({ ...rowOf(span), name: "not read" })),
       },
     };
-    return yield* sideBySide(OWN, [callAt(call.traceId, DOOR)], { spans: [], events: [] }, QUICK).pipe(
-      Effect.provide(Layer.merge(standIn(tables), otherWorlds)),
-    );
+    return yield* sideBySide(
+      OWN,
+      [callAt(call.traceId, DOOR)],
+      { spans: theirSpans(call.spans), events: [] },
+      QUICK,
+    ).pipe(Effect.provide(Layer.merge(standIn(tables), otherWorlds)));
   });
 
 test("a call made at another world's door is compared in that world's database, and agrees", async () => {
@@ -149,4 +156,33 @@ test("a call at a door no known world answers at is not compared, and the tap st
   );
   assert.deepEqual(report.calls, []);
   assert.equal(report.state, "absent");
+  assert.deepEqual(report.unknownEndpoints, ["https://unknown.test"]);
+});
+
+test("a run with calls through its own endpoint and at another world's is compared in each one's database", async () => {
+  const report = await Effect.runPromise(
+    Effect.gen(function* () {
+      const own = yield* oneCall;
+      const theirs = yield* oneCall;
+      const tables = {
+        "ep-own.test": { otlp: [{ trace_id: own.traceId, signal: "traces", body: own.body }], spans: [] },
+        "ep-theirs.test": { otlp: [{ trace_id: theirs.traceId, signal: "traces", body: theirs.body }], spans: [] },
+      };
+      const kept = { spans: [...Arr.map(own.spans, rowOf), ...Arr.map(theirs.spans, rowOf)], events: [] };
+      const calls = [
+        callAt(own.traceId, null),
+        callAt(theirs.traceId, DOOR),
+        callAt(theirs.traceId, "https://unknown.test"),
+      ];
+      return yield* sideBySide(OWN, calls, kept, QUICK).pipe(Effect.provide(Layer.merge(standIn(tables), otherWorlds)));
+    }),
+  );
+  assert.equal(report.state, "on");
+  assert.equal(report.calls.length, 2);
+  assert.ok(
+    Arr.every(report.calls, (call) => call.complete && call.agrees),
+    JSON.stringify(report.calls),
+  );
+  assert.deepEqual(report.unknownEndpoints, ["https://unknown.test"]);
+  assert.deepEqual(tapFailures(report), []);
 });

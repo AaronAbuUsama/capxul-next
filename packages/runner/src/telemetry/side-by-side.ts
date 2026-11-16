@@ -16,7 +16,7 @@ import * as Result from "effect/Result";
 import type * as Redacted from "effect/Redacted";
 import type { Call } from "../client.ts";
 import type { TapReport } from "../record.ts";
-import { telemetryOf, type Kept, type SpanRow } from "../world/database.ts";
+import type { Kept, SpanRow } from "../world/database.ts";
 import { OtherWorlds } from "../world/existing.ts";
 import { PlatformKept } from "../worlds/kept.ts";
 import type { FlatSpan } from "./flat.ts";
@@ -106,25 +106,32 @@ export const sideBySide = (
       (call) => call.at === null && !(Option.isSome(served) && servedBy(call.operation) === "platform"),
     );
     const sides = [yield* sideOf(database, own, kept, wait)];
-    // A call made at another world's door is kept by that world: its two records are compared in its database.
+    // A call made at another world's endpoint is kept by that world: `kept` already holds its `app.spans` rows, read
+    // there by the checks (run.ts, keptFor); only its tap is read here, in that world's database.
     const others = yield* Effect.serviceOption(OtherWorlds);
-    const doors = Arr.dedupe(
+    const endpoints = Arr.dedupe(
       Arr.filterMap(calls, (call) => (call.at === null ? Result.failVoid : Result.succeed(call.at))),
     );
-    if (Option.isSome(others))
-      for (const door of doors) {
-        const theirs = yield* others.value.databaseAt(door);
-        if (Option.isNone(theirs)) continue;
-        const atEndpoint = Arr.filter(calls, (call) => call.at === door);
-        const theirKept = yield* telemetryOf(
-          theirs.value,
-          Arr.map(atEndpoint, (call) => call.traceId),
-        );
-        sides.push(yield* sideOf(theirs.value, atEndpoint, theirKept, wait));
+    const unknownEndpoints: Array<string> = [];
+    for (const endpoint of endpoints) {
+      const theirs = Option.isSome(others) ? yield* others.value.databaseAt(endpoint) : Option.none();
+      if (Option.isNone(theirs)) {
+        unknownEndpoints.push(endpoint);
+        continue;
       }
+      sides.push(
+        yield* sideOf(
+          theirs.value,
+          Arr.filter(calls, (call) => call.at === endpoint),
+          kept,
+          wait,
+        ),
+      );
+    }
+    const unknown = Arr.isReadonlyArrayEmpty(unknownEndpoints) ? {} : { unknownEndpoints };
     const on = Arr.getSomes(sides);
-    if (Arr.isReadonlyArrayEmpty(on)) return { state: "absent" as const, calls: [] };
-    return { state: "on" as const, calls: Arr.flatten(on) };
+    if (Arr.isReadonlyArrayEmpty(on)) return { state: "absent" as const, ...unknown, calls: [] };
+    return { state: "on" as const, ...unknown, calls: Arr.flatten(on) };
   }).pipe(
     Effect.timed,
     Effect.map(([took, report]) => ({ ...report, ms: Math.round(Duration.toMillis(took)) })),
