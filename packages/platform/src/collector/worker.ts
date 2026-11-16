@@ -39,6 +39,7 @@ import { collectorKeyId } from "./key.ts";
 import { countsExport, type Outcome } from "./counts.ts";
 import { AXIOM_EDGE, datasetsOf, type Identity, sinkHeadersOf, STAMPED, stampOf } from "./forward.ts";
 import { SIGNALS, stringAttribute } from "./otlp-json.ts";
+import { Datasets } from "@capxul/blueprint";
 
 /** The Worker's environment: its own facts, its key, and the sink's. */
 export const COLLECTOR_ENV = {
@@ -52,12 +53,13 @@ export const COLLECTOR_ENV = {
 
 /**
  * Cloudflare's own logs and traces of the Worker, exported to the account's Axiom destinations: a second view of the
- * platform, read by people, never by a check. Core and the hub's door take the same in a later pull request.
+ * platform, read by people, never by a check. The destinations' names are the blueprint's
+ * (`Datasets.cloudflareDestinations`), which Core's Worker and the world's gateway take too.
  */
 export const CLOUDFLARE_OBSERVABILITY = {
   enabled: true,
-  logs: { enabled: true, invocationLogs: true, destinations: ["axiom-capxul-logs"] },
-  traces: { enabled: true, destinations: ["axiom-capxul-traces"] },
+  logs: { enabled: true, invocationLogs: true, destinations: [Datasets.cloudflareDestinations.logs] },
+  traces: { enabled: true, destinations: [Datasets.cloudflareDestinations.traces] },
 };
 
 const runtimeProps = () => ({ main: import.meta.url, compatibility: { date: "2026-08-25" } });
