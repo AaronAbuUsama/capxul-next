@@ -7,6 +7,7 @@
 //   events   a successful call recorded exactly the events its outcome declares, each once, each carrying what the
 //            declaration computes from the call; any other call recorded none (events.ts).
 //   path     across a journey's calls, each thing's events form a path through its machine (paths.ts).
+//   isolation  a journey's call acts only as its own people and names no other journey's (isolation.ts).
 //
 // Measure first (AGENTS.md): every call's timings, caller side and server side, and the spans of each step are
 // recorded with the operation's budget beside them. The budget is never enforced, so no check is about speed.
@@ -22,7 +23,8 @@ import { checkEvents } from "./events.ts";
 
 export const Check = Schema.Struct({
   /** `path`: the call's events and refusal keep each thing on a path through its machine (paths.ts). */
-  check: Schema.Literals(["span", "outcome", "events", "path"]),
+  /** `isolation`: a journey's call acts only as its own people and names no other journey's (isolation.ts). */
+  check: Schema.Literals(["span", "outcome", "events", "path", "isolation"]),
   /** Every check gates: a call that fails one fails its run. */
   passed: Schema.Boolean,
   detail: Schema.String,
@@ -58,6 +60,9 @@ export const Timing = Schema.Struct({
 });
 export type Timing = typeof Timing.Type;
 
+/** How many times something was sent again: a call's resends while its stage was not routed, a look's retries. */
+const Count = Schema.Finite;
+
 export const CheckedCall = Schema.Struct({
   operation: Schema.String,
   traceId: Schema.String,
@@ -68,7 +73,9 @@ export const CheckedCall = Schema.Struct({
   refusal: Schema.NullOr(Schema.String),
   failure: Schema.NullOr(Schema.String),
   /** Sends repeated during the call because the stage's address was not routed yet. */
-  resent: Schema.Finite,
+  resent: Count,
+  /** For a look (a check's read, marked `Observing`): times the runner sent it again after its transport failed. */
+  retried: Schema.optional(Count),
   timing: Timing,
   /**
    * The declared attributes of the operation's server span: the Cloudflare data centre that ran Core (`cf.colo`) and
@@ -159,6 +166,7 @@ export const checkCall = (call: Call, kept: Kept): CheckedCall => {
     refusal: call.refusal,
     failure: call.failure,
     resent: call.resent,
+    ...(call.retried === undefined ? {} : { retried: call.retried }),
     timing: {
       callerMs: round(call.callerMs),
       serverMs: span === undefined ? null : round(span.duration_ms),

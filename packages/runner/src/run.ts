@@ -17,8 +17,8 @@ import * as Ref from "effect/Ref";
 import * as Result from "effect/Result";
 import * as Str from "effect/String";
 import type * as HttpClient from "effect/http/HttpClient";
-import { checkCall, failuresOf, type CheckedCall } from "./checks/checks.ts";
-import { withPaths } from "./checks/paths.ts";
+import { failuresOf, type CheckedCall } from "./checks/checks.ts";
+import { checkAll, scopeOf, type Scope } from "./checks/isolation.ts";
 import { capxulFor, type Call, type Target, type Via } from "./client.ts";
 import { describe, endedOf, RunnerFailure } from "./failure.ts";
 import { givenFor, type Handing } from "./given.ts";
@@ -45,6 +45,8 @@ export interface Plan {
   readonly via?: Via;
   /** A journey's steps, in order; none for the door. */
   readonly outline: ReadonlyArray<StepOutline>;
+  /** Whose people and company a journey's calls may name (checks/isolation.ts); none for a run that is no journey. */
+  readonly isolation?: Scope;
   /**
    * Makes the run's calls; every one goes through `log`, and a journey tells `heard` of each step. Fails when the
    * run's own expectations do not hold.
@@ -89,16 +91,12 @@ export const use = (plan: Plan, settings: Settings) => (stage: Stage) =>
     const [runTook, run] = yield* plan.calls(target, log, heard).pipe(Effect.exit, Effect.timed);
     const calls = yield* Ref.get(log);
     const [checksTook, kept] = yield* Effect.timed(keptFor(Option.some(stage.database), calls));
-    const paths = withPaths(
-      calls,
-      kept,
-      Arr.map(calls, (call) => checkCall(call, kept)),
-    );
+    const { calls: checked, coverage } = checkAll(plan.isolation, calls, kept);
     return {
       run,
-      calls: paths.calls,
-      coverage: paths.coverage,
-      steps: stepsOf(plan.outline, yield* Ref.get(heard), paths.calls),
+      calls: checked,
+      coverage,
+      steps: stepsOf(plan.outline, yield* Ref.get(heard), checked),
       tap: yield* sideBySide(stage.database, calls, kept),
       ms: { run: millis(runTook), checks: millis(checksTook) },
     } satisfies Used;
@@ -287,6 +285,8 @@ export const journeyPlan =
     given: journey.given.name,
     via: settings.via,
     outline: journey.outline,
+    // Side by side (RUNNER_SHAPE=shared) each journey is played by its own cast (`Casting`, worlds/side-by-side.ts).
+    isolation: scopeOf(journey, settings.shape === "shared"),
     calls: (target, log, heard) =>
       // oxlint-disable-next-line effecttsgo/strict-effect-provide -- each journey is its own program, handed its own stage's client, facts and ear
       Effect.provide(

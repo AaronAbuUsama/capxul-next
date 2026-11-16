@@ -22,6 +22,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 - [`scenario-runs.ts`](../src/scenario-runs.ts): A run of the journeys in stages of `CapxulCore` (a run that expects Core's empty handlers), in one of two modes, ending in its summary (summary.ts).
 - [`settings.ts`](../src/settings.ts): The runner's declared settings.
 - [`steps.ts`](../src/steps.ts): What the runner hears of a journey's steps, and how it records them.
+- [`summary-words.ts`](../src/summary-words.ts): What `passed` means for each kind of run, in words (a summary's `what`), and why a journey run against the empty handlers did not end as it must (summary.ts).
 - [`summary.ts`](../src/summary.ts): The summary of a run of the journeys: one record whose `outcome` says whether every journey ended as the run expected, whether the run held every registered journey, and whether every stage it used is gone.
 - [`timings.ts`](../src/timings.ts): Every part of a run in one world, timed in the order it happened (roadmap step 1.18; AGENTS.md, "Measure first"): the hub brought up, the world created, each starting world made, saved and kept on the bench, each reset before a journey, each journey's steps, the worlds a journey made destroyed, the world destroyed and the hub taken down.
 
@@ -29,6 +30,8 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 
 - [`checks.ts`](../src/checks/checks.ts): The generic checks, applied to every call of every run.
 - [`events.ts`](../src/checks/events.ts): The generic `events` check.
+- [`isolation-run.ts`](../src/checks/isolation-run.ts): The generic `isolation` check over a whole run (roadmap step 4.8, part B; the per-call part is isolation.ts).
+- [`isolation.ts`](../src/checks/isolation.ts): The generic `isolation` check (roadmap step 4.8, "One shared world, every journey side by side"): every call of a journey acts only as the journey's own people and names no other journey's person, email or company.
 - [`paths.ts`](../src/checks/paths.ts): The generic `path` check (docs/roadmap.md, "Lifecycles are machines in the blueprint", step 3.4).
 
 ## `src/local/`
@@ -69,15 +72,22 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 
 ## `src/worlds/`
 
-- [`company.ts`](../src/worlds/company.ts): The makers of the starting worlds with a company (packages/blueprint, src/things/company/verbs/create.ts, src/starting-points/points.ts, src/things/document/verbs/submit.ts, src/starting-points/facts.ts and src/common/site.ts; step 1.12): `founded`, `office-holder`, `payment-drafted`, `payment-held` and `paid`, each made by its declaration's steps (packages/blueprint, src/starting-points/points.ts) through the door of the world the steps run in, from the one before.
+- [`company.ts`](../src/worlds/company.ts): The makers of the starting worlds with a company (packages/blueprint, src/things/company/verbs/create.ts, src/starting-points/points.ts, src/things/document/verbs/submit.ts, src/starting-points/facts.ts and src/common/site.ts; step 1.12): `founded`, `office-holder`, `payment-drafted`, `payment-held` and `paid`, each made by its declaration's steps (src/starting-points/points.ts) through the door of the world the steps run in, from the one before.
 - [`encode.ts`](../src/worlds/encode.ts): How a starting world's maker keeps an answer as a fact: encoded as the blueprint's own schema of the operation encodes it (packages/blueprint, src/starting-points/facts.ts), so `given` decodes it with the same schema.
 - [`ending.ts`](../src/worlds/ending.ts): The summary of a run in one world (run.ts), however it ended: a starting world that was not made, named by the part of it that failed, and a run that died go into its `oneWorld.failure`, which fails the run, so a run never ends without a summary that says why (PR #227's CI run 43599082569 died on a starting world's save and left no record at all).
 - [`hub.ts`](../src/worlds/hub.ts): The fleet hub a run's one world lives on (packages/world, src/things/cluster; roadmap 1.15 and 1.18).
+- [`journey-making.ts`](../src/worlds/journey-making.ts): Where the calls made for one journey's starting world go, and which journey it is (roadmap 4.8): provided per journey by the run (worlds/run.ts), read by the recorder (making.ts) and the makers (company.ts).
 - [`kept.ts`](../src/worlds/kept.ts): What the platform this process serves kept of its calls (worlds/platform.ts): each call's spans, and the events it wrote into the record of the world it acted on.
 - [`makers.ts`](../src/worlds/makers.ts): How the runner makes each starting world: by the steps its declaration names (packages/blueprint, src/starting-points/points.ts), each an operation through the door, from the world before it (packages/blueprint, src/starting-points/points.ts and src/starting-points/facts.ts).
 - [`making.ts`](../src/worlds/making.ts): How a starting world's steps are run and recorded, whoever runs them: the run's one world (starting.ts) or a run on a shared world (shared.ts).
+- [`operators.ts`](../src/worlds/operators.ts): Who owns a run's worlds.
+- [`places.ts`](../src/worlds/places.ts): How many worlds and company sites a run in one shared world has at once (roadmap 4.8 b; RUNNER_SHAPE=shared).
 - [`platform.ts`](../src/worlds/platform.ts): The platform, served by this process for a run in private worlds (packages/blueprint, src/things/world/values.ts): the blueprint's platform group from packages/world, over HTTP on this machine's loopback, where the Cloudflare and Neon keys are.
+- [`players.ts`](../src/worlds/players.ts): Who plays each role in a starting world with a company, and the keys they sign with (roadmap 4.8 with 4.11): the journey's own cast when the run casts every journey (`Casting`, a run in one shared world, side-by-side.ts), so journeys side by side never found the same company or share a person's Safe; otherwise each role by its own name.
+- [`run-isolation.ts`](../src/worlds/run-isolation.ts): The whole-run isolation check, side by side (roadmap 4.8, part B; the check is checks/isolation-run.ts): once every journey has ended and before the shared world is taken down, the shared world's whole history is read once (telemetry/whole-run.ts) and each entry judged against the calls that wrote it.
 - [`run.ts`](../src/worlds/run.ts): A run of the journeys in one world (`./run.sh scenarios`, expecting `pass`; roadmap step 1.18 and the decision "One runner, one world"): the platform served by this process (platform.ts), the run's hub brought up (hub.ts), its one world created on it and every starting world the journeys name made in it once and saved (starting.ts); then for each journey the world reset in place to its starting world, what that world makes by its steps made, the journey run through the door with its operations' checks and the generic checks on every call, and every other world it made destroyed after it, whatever happened, with the accounts read before and after for anything of them.
+- [`side-by-side.ts`](../src/worlds/side-by-side.ts): A run with every journey at once in one shared world (RUNNER_SHAPE=shared; roadmap 4.8, decision D8).
 - [`starting.ts`](../src/worlds/starting.ts): Starting worlds for a run in one world (roadmap step 1.18; docs/roadmap.md, "One runner, one world"; packages/blueprint, src/starting-points/points.ts).
 - [`teardown.ts`](../src/worlds/teardown.ts): What a run in private worlds takes down, and what it reads of the accounts afterwards: the worlds it made, destroyed the newest first.
 - [`timing.ts`](../src/worlds/timing.ts): `./run.sh starting-worlds`: makes every starting world the runner can make, in the blueprint's order, as a journey of it would get it, and times each: in the run's one world on its hub (worlds/hub.ts), each made once and saved, then for each the one world reset to it and what it makes by its steps made.
+- [`wait.ts`](../src/worlds/wait.ts): The makers' wait for background work (decisions.md, 27): poll an operation until it answers differently.

@@ -1,7 +1,7 @@
 // How a starting world's steps are run and recorded, whoever runs them: the run's one world (starting.ts) or a run on
 // a shared world (shared.ts). Each making is its own program with a client of its own, so its calls are recorded
 // apart from any other's; every call is kept for the checks (`made`) and appended to the world's `calls` fact.
-import type { StartingWorld } from "@capxul/blueprint";
+import { Pipeline, type StartingWorld } from "@capxul/blueprint";
 import type { Capxul } from "@capxul/scenarios";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
@@ -12,22 +12,22 @@ import * as Redacted from "effect/Redacted";
 import * as Ref from "effect/Ref";
 import type * as HttpClient from "effect/http/HttpClient";
 import type * as World from "@capxul/world";
+import { checkCall } from "../checks/checks.ts";
 import { capxulFor, type Call, type Target } from "../client.ts";
 import type { RunnerFailure } from "../failure.ts";
+import { keptFor } from "../run.ts";
+import { stepOptions, workSpan } from "../telemetry/step.ts";
 import type { Settings } from "../settings.ts";
+import { JourneyMaking, type MakingCall } from "./journey-making.ts";
 import { madeCallOf, type Facts, type Making } from "./makers.ts";
+
+export { JourneyMaking, type MakingCall };
 
 /**
  * What making a starting world needs: the client's HTTP, the shared state the bench is found by, and the files its
  * template's code is fingerprinted from.
  */
 export type Needs = HttpClient.HttpClient | World.SharedState | FileSystem.FileSystem | Path.Path;
-
-/** One call made in making a starting world, with the world it was made for: what the starting worlds' record keeps. */
-export interface MakingCall {
-  readonly world: string;
-  readonly call: Call;
-}
 
 export const callsOf = (facts: Facts): ReadonlyArray<unknown> => {
   const calls = facts["calls"];
@@ -65,9 +65,21 @@ export const recorder =
       // oxlint-disable-next-line effecttsgo/strict-effect-provide -- a maker's client is built for its one making and closed with it
       const exit = yield* Effect.exit(steps(making).pipe(Effect.provide(capxulFor(target, log))));
       const calls = yield* Ref.get(log);
-      yield* Ref.update(made, (all) => [...all, ...Arr.map(calls, (call) => ({ world: world.name, call }))]);
+      const recorded = Arr.map(calls, (call): MakingCall => ({ world: world.name, call }));
+      yield* Ref.update(made, (all) => [...all, ...recorded]);
+      const journey = yield* Effect.serviceOption(JourneyMaking);
+      if (Option.isSome(journey)) yield* Ref.update(journey.value.calls, (all) => [...all, ...recorded]);
       const after = yield* exit;
       const entries = yield* Effect.forEach(calls, (call) => madeCallOf(call, making.own ?? after.own));
       const facts: Facts = { ...after.facts, calls: [...callsOf(after.facts), ...entries] };
       return { own: after.own, facts } satisfies Making;
     });
+
+/** The checked calls of `calls`, read from where each was kept. */
+export const checked = Effect.fn(
+  Pipeline.checkCall.name,
+  stepOptions(workSpan(Pipeline.checkCall)),
+)(function* (calls: ReadonlyArray<Call>) {
+  const kept = yield* keptFor(Option.none(), calls);
+  return Arr.map(calls, (call) => checkCall(call, kept));
+});
