@@ -1,7 +1,7 @@
-// The repository's files ratchets R7, R8 and R10 are counted from (packages/blueprint-tools, src/checks/
+// The repository's files ratchets R7, R8, R10 and R20 are counted from (packages/blueprint-tools, src/checks/
 // ratchet-files.ts): the blueprint's verbs, the long READMEs the docs' shape lists, the tracked READMEs and package docs (git's list of them), each package's
 // runtime dependencies, and what `capxul/effect-only` finds, run by oxlint alone (packages/lint/effect-only.json) on
-// the TypeScript the lint does not reach. Read once by `pnpm ratchets` and by this package's tests.
+// the TypeScript the lint does not reach, and every tracked path and root script. Read once by `pnpm ratchets` and by this package's tests.
 import { spawnSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import * as Arr from "effect/Array";
@@ -78,11 +78,21 @@ const dependencies = (): { [pkg: string]: ReadonlyArray<string> } =>
     }),
   );
 
-/** The repository's files, as the three counters read them. */
+/** A package.json: only its scripts are read. */
+const Scripts = Schema.Struct({ scripts: Schema.optional(Schema.Record(Schema.String, Schema.String)) });
+
+/** The root package.json's scripts, by name. */
+const scripts = (): ReadonlyArray<string> =>
+  // oxlint-disable-next-line effecttsgo/schema-sync -- read once from the command line: a manifest of another shape stops the run with its reason.
+  Rec.keys(Schema.decodeUnknownSync(Scripts)(JSON.parse(read("package.json"))).scripts ?? {});
+
+/** The repository's files, as the four counters read them. */
 export const repositoryFiles = (): Ratchets.RepositoryFiles => ({
   verbs: verbs(),
   longReadmes: LONG_READMES,
   docs: docs(),
   nonEffect: nonEffect(),
   dependencies: dependencies(),
+  tracked: Str.split(Str.trim(run("git", ["ls-files"])), "\n"),
+  scripts: scripts(),
 });
