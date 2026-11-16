@@ -9,7 +9,7 @@ import { Capxul } from "../client.ts";
 import { expect } from "../expectation.ts";
 import { isAddress, logsOf, usdc } from "../support/chain.ts";
 import { present, same, sameAddress, sameAmount } from "../support/expect.ts";
-import { castMember, companiesOf, company, view, whereOf } from "../support/world.ts";
+import { castMember, company, ownCompanies, view, whereOf } from "../support/world.ts";
 import { callerIn, callerOf, namesCaller, nothingRecorded, worldBefore, type Before } from "./common.ts";
 import { check, checks, type Asked, type Check } from "./format.ts";
 
@@ -21,13 +21,26 @@ const trimmed = (text: string | null) => (text === null ? null : Str.trim(text))
 const capitalOf = (capital: { readonly asset: string; readonly amount: string } | null) =>
   capital === null ? null : [capital.asset, Number(capital.amount)];
 
-/** Nothing is made: the record gains nothing and world.show lists the companies it listed before. */
-const nothingMade = (what: string, before: Before): ReadonlyArray<Check> => [
+/**
+ * The journey's own companies (`ownCompanies`) now and before the call, with the handle it asked for: in a shared world
+ * other journeys found companies at the same moment, and theirs are not this call's to judge.
+ */
+const ownNowAndBefore = (asked: Asking, before: Before) =>
+  Effect.gen(function* () {
+    const handles = [asked.payload.handle];
+    return {
+      now: yield* ownCompanies(yield* view(before.world.world), handles),
+      before: yield* ownCompanies(before.world, handles),
+    };
+  });
+
+/** Nothing is made: the record gains nothing and world.show lists the journey's companies it listed before. */
+const nothingMade = (what: string, asked: Asking, before: Before): ReadonlyArray<Check> => [
   nothingRecorded(what, before),
   check(
     `${what} makes no company`,
-    Effect.flatMap(view(before.world.world), (now) =>
-      same("the companies after the refusal", companiesOf(now), companiesOf(before.world)),
+    Effect.flatMap(ownNowAndBefore(asked, before), (companies) =>
+      same("the companies after the refusal", companies.now, companies.before),
     ),
   ),
 ];
@@ -47,7 +60,7 @@ export const orgCreate = checks<"org.create", Before>({
             same("the resumed company", [answer.org, answer.handle], [found.org, found.handle]),
           ),
         ),
-        ...nothingMade("the resumed founding", before),
+        ...nothingMade("the resumed founding", asked, before),
       ];
     const founded = answer;
     const where = whereOf(asked.options);
@@ -127,9 +140,9 @@ export const orgCreate = checks<"org.create", Before>({
       ),
       check(
         "world.show lists it, once, beside the companies it listed before",
-        Effect.flatMap(view(before.world.world), (now) =>
-          same("the companies", companiesOf(now), [
-            ...companiesOf(before.world),
+        Effect.flatMap(ownNowAndBefore(asked, before), (companies) =>
+          same("the companies", companies.now, [
+            ...companies.before,
             { org: founded.org, handle: founded.handle, name: founded.profile.name },
           ]),
         ),
@@ -145,7 +158,7 @@ export const orgCreate = checks<"org.create", Before>({
           same(`${founder.person}'s Safe`, founder.safe, null),
         ),
       ),
-      ...nothingMade("the refused founding", before),
+      ...nothingMade("the refused founding", asked, before),
     ],
     PersonNotFound: (asked, refused, before) => [
       check(
@@ -159,7 +172,7 @@ export const orgCreate = checks<"org.create", Before>({
           );
         }),
       ),
-      ...nothingMade("the refused founding", before),
+      ...nothingMade("the refused founding", asked, before),
     ],
     InsufficientBalance: (asked, refused, before) => [
       check(
@@ -179,7 +192,7 @@ export const orgCreate = checks<"org.create", Before>({
           yield* expect(Number(refused.amount) > Number(refused.balance), "the capital asked is not more than held");
         }),
       ),
-      ...nothingMade("the refused founding", before),
+      ...nothingMade("the refused founding", asked, before),
     ],
     SetupUnfinished: (asked, refused, before) => [
       check(
@@ -190,7 +203,7 @@ export const orgCreate = checks<"org.create", Before>({
           yield* expect(refused.handle !== asked.payload.handle, "SetupUnfinished names the handle asked");
         }),
       ),
-      ...nothingMade("the refused founding", before),
+      ...nothingMade("the refused founding", asked, before),
     ],
     FoundingChanged: (asked, refused, before) => [
       check(
@@ -199,7 +212,7 @@ export const orgCreate = checks<"org.create", Before>({
           same("FoundingChanged", [refused.handle, refused.org], [asked.payload.handle, found.org]),
         ),
       ),
-      ...nothingMade("the refused founding", before),
+      ...nothingMade("the refused founding", asked, before),
     ],
     HandleTaken: (asked, refused, before) => [
       check(
@@ -209,8 +222,8 @@ export const orgCreate = checks<"org.create", Before>({
           yield* listed(asked, before);
         }),
       ),
-      ...nothingMade("the refused founding", before),
+      ...nothingMade("the refused founding", asked, before),
     ],
-    PayloadRejected: (_asked, _refused, before) => nothingMade("the rejected founding", before),
+    PayloadRejected: (asked, _refused, before) => nothingMade("the rejected founding", asked, before),
   },
 });
