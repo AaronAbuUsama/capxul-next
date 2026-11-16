@@ -17,8 +17,8 @@ import * as Ref from "effect/Ref";
 import * as Result from "effect/Result";
 import * as Str from "effect/String";
 import type * as HttpClient from "effect/http/HttpClient";
-import { checkCall, failuresOf, type CheckedCall } from "./checks/checks.ts";
-import { withPaths } from "./checks/paths.ts";
+import { failuresOf, type CheckedCall } from "./checks/checks.ts";
+import { checkAll, scopeOf, type Scope } from "./checks/isolation.ts";
 import { capxulFor, type Call, type Target, type Via } from "./client.ts";
 import { describe, endedOf, RunnerFailure } from "./failure.ts";
 import { givenFor, type Handing } from "./given.ts";
@@ -28,7 +28,7 @@ export { stepsFor, viaOf } from "./record.ts";
 import { hearing, stepsOf, type Heard, type StepResult } from "./steps.ts";
 import type { Settings } from "./settings.ts";
 import { sideBySide, tapFailures } from "./telemetry/side-by-side.ts";
-import { telemetryOf } from "./world/database.ts";
+import { appKeptOf, tapTelemetryOf } from "./telemetry/kept.ts";
 import { isEmpty } from "./world/leftovers.ts";
 import { OtherWorlds } from "./world/existing.ts";
 import { PlatformKept } from "./worlds/kept.ts";
@@ -45,6 +45,8 @@ export interface Plan {
   readonly via?: Via;
   /** A journey's steps, in order; none for the door. */
   readonly outline: ReadonlyArray<StepOutline>;
+  /** Whose people and company a journey's calls may name (checks/isolation.ts); none for a run that is no journey. */
+  readonly isolation?: Scope;
   /**
    * Makes the run's calls; every one goes through `log`, and a journey tells `heard` of each step. Fails when the
    * run's own expectations do not hold.
@@ -89,17 +91,14 @@ export const use = (plan: Plan, settings: Settings) => (stage: Stage) =>
     const [runTook, run] = yield* plan.calls(target, log, heard).pipe(Effect.exit, Effect.timed);
     const calls = yield* Ref.get(log);
     const [checksTook, kept] = yield* Effect.timed(keptFor(Option.some(stage.database), calls));
-    const paths = withPaths(
-      calls,
-      kept,
-      Arr.map(calls, (call) => checkCall(call, kept)),
-    );
+    const { calls: checked, coverage } = checkAll(plan.isolation, calls, kept);
     return {
       run,
-      calls: paths.calls,
-      coverage: paths.coverage,
-      steps: stepsOf(plan.outline, yield* Ref.get(heard), paths.calls),
-      tap: yield* sideBySide(stage.database, calls, kept),
+      calls: checked,
+      coverage,
+      steps: stepsOf(plan.outline, yield* Ref.get(heard), checked),
+      // Parity still compares the tap with what Core keeps in `app.spans`, until the retire.
+      tap: yield* sideBySide(stage.database, calls, yield* appKeptOf(stage.database, calls)),
       ms: { run: millis(runTook), checks: millis(checksTook) },
     } satisfies Used;
   }).pipe(
@@ -118,11 +117,9 @@ export const keptFor = (database: Option.Option<Redacted.Redacted>, calls: Reado
     // Where the platform group is served by this process (worlds/platform.ts), its calls are kept by it.
     const platform = yield* Effect.serviceOption(PlatformKept);
     const byPlatform = (call: Call) => Option.isSome(platform) && servedBy(call.operation) === "platform";
-    const ownCalls = Arr.map(
-      Arr.filter(calls, (call) => call.at === null && !byPlatform(call)),
-      (call) => call.traceId,
-    );
-    const own = Option.isSome(database) ? yield* telemetryOf(database.value, ownCalls) : { spans: [], events: [] };
+    const ownCalls = Arr.filter(calls, (call) => call.at === null && !byPlatform(call));
+    // Since the flip (4.4) the spans come from the tap (telemetry/kept.ts); the events still from `app.events`.
+    const own = Option.isSome(database) ? yield* tapTelemetryOf(database.value, ownCalls) : { spans: [], events: [] };
     const served = Option.isNone(platform)
       ? { spans: [], events: [] }
       : yield* platform.value.kept(Arr.map(Arr.filter(calls, byPlatform), (call) => call.traceId));
@@ -137,12 +134,9 @@ export const keptFor = (database: Option.Option<Redacted.Redacted>, calls: Reado
         Option.match(found, {
           onNone: () => Effect.succeed({ spans: [], events: [] }),
           onSome: (theirs) =>
-            telemetryOf(
+            tapTelemetryOf(
               theirs,
-              Arr.map(
-                Arr.filter(calls, (call) => call.at === door),
-                (call) => call.traceId,
-              ),
+              Arr.filter(calls, (call) => call.at === door),
             ),
         }),
       ),
@@ -287,6 +281,8 @@ export const journeyPlan =
     given: journey.given.name,
     via: settings.via,
     outline: journey.outline,
+    // Side by side (RUNNER_SHAPE=shared) each journey is played by its own cast (`Casting`, worlds/side-by-side.ts).
+    isolation: scopeOf(journey, settings.shape === "shared"),
     calls: (target, log, heard) =>
       // oxlint-disable-next-line effecttsgo/strict-effect-provide -- each journey is its own program, handed its own stage's client, facts and ear
       Effect.provide(

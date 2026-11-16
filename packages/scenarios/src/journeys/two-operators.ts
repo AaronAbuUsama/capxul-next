@@ -6,11 +6,12 @@ import * as Arr from "effect/Array";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
+import { Cast } from "../cast.ts";
 import type { Payload } from "../client.ts";
 import { expect, given } from "../expectation.ts";
 import { journey, outline } from "../journey.ts";
 import { hostNow, millis, present, same } from "../support/expect.ts";
-import { freshName, LIMITS, operators, type View } from "../support/world.ts";
+import { freshName, LIMITS, operators, ownCast, type View } from "../support/world.ts";
 
 const LONG_AGO = "2000-01-01T00:00:00Z";
 const SECOND = 1000;
@@ -29,7 +30,7 @@ const steps = outline({
   ],
   record: [
     "record.export",
-    "the owner reads the new world's record; each person of its cast is signed in at its door, and refused it",
+    "the owner reads the new world's record; each of the journey's own people is signed in at its door, and refused it",
   ],
   warp: ["world.clock.warp", "dana, a person of the world, may not move its clock"],
   save: [
@@ -62,6 +63,9 @@ const everyRecord = { from: null, to: null } as const;
 export const twoOperators = journey(
   {
     name: "two operators and their worlds",
+    world: "own",
+    worlds: 6,
+    key: "twoop",
     story:
       "An operator at the limit of live worlds is refused another; a second operator opens one, shows it, keeps its record to themselves, saves it and cannot restore it where no restore may be made.",
     given: startingWorlds.quotaFull,
@@ -118,13 +122,17 @@ export const twoOperators = journey(
     yield* steps.record.run((op) =>
       Effect.gen(function* () {
         yield* op.succeeds(everyRecord, there);
-        for (const person of made.cast)
+        // The journey's own people only: the world is born with every journey's cast, and a journey acts as no one
+        // else's (roadmap step 4.8's isolation check holds every journey to that, its own worlds included).
+        for (const person of yield* ownCast(made))
           yield* op.refused("NotWorldOwner", everyRecord, { ...there, as: person.person });
       }),
     );
 
     yield* steps.warp.run((op) =>
-      op.refused("NotWorldOwner", { target: { _tag: "by", seconds: 3600 } }, { ...there, as: "dana" }),
+      Effect.flatMap(Cast, (cast) =>
+        op.refused("NotWorldOwner", { target: { _tag: "by", seconds: 3600 } }, { ...there, as: cast.dana }),
+      ),
     );
 
     yield* steps.save.run((op) =>

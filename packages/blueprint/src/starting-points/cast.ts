@@ -25,7 +25,7 @@ export type CastRole = (typeof CAST_ROLES)[number]["role"];
  * Every journey's key, in the order their numbers are given: a journey's people and company are numbered by its place
  * here, from 1. A new journey appends its key; a key is never reused or moved, so a number always means one journey.
  */
-export const JOURNEY_KEYS = ["twoop", "invent", "branch", "found", "pay", "invite", "seat", "budget"] as const;
+export const JOURNEY_KEYS = ["twoop", "invent", "branch", "found", "pay", "invite", "seat", "budget", "nogo"] as const;
 
 export type JourneyKey = (typeof JOURNEY_KEYS)[number];
 

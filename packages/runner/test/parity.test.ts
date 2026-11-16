@@ -1,16 +1,18 @@
 // Parity (src/telemetry/parity.ts): one call's spans as `app.spans` keeps them against the same spans read from the
-// tap. They agree only when the tap holds every kept span with the same name, parent, outcome and declared attributes.
-import { Producers } from "@capxul/blueprint";
+// tap. They agree only when the tap holds every kept span with the same name, parent, outcome (its `capxul.outcome` and
+// its OTLP status) and declared attributes.
+import { Envelope, Producers } from "@capxul/blueprint";
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import * as Arr from "effect/Array";
 import * as Str from "effect/String";
-import { SPAN_ATTRIBUTES } from "@capxul/core";
+import { OUTCOME, SPAN_ATTRIBUTES } from "@capxul/core";
 import type { SpanRow } from "../src/world/database.ts";
 import type { FlatSpan } from "../src/telemetry/flat.ts";
-import { parity } from "../src/telemetry/parity.ts";
+import { parity, sameValue } from "../src/telemetry/parity.ts";
 
 const TRACE = Str.repeat(32)("c");
+const OUTCOME_KEY = Envelope.attributes.outcome.name;
 const OPERATION = "board.decide";
 
 const kept: ReadonlyArray<SpanRow> = [
@@ -42,14 +44,15 @@ const tapped: ReadonlyArray<FlatSpan> = [
     traceId: TRACE,
     spanId: "s-call",
     parentSpanId: "s-caller",
-    status: "error",
-    statusMessage: "refused",
+    status: "unset",
+    statusMessage: null,
     durationMs: 120.2,
     endedMs: 1_800_000_000_120,
     attributes: {
       [SPAN_ATTRIBUTES.colo]: "LHR",
       [SPAN_ATTRIBUTES.queryMs]: 41.5,
       [SPAN_ATTRIBUTES.queryCount]: 2,
+      [OUTCOME_KEY]: OUTCOME.failure,
       "rpc.method": OPERATION,
     },
     events: [{ name: "exception", atMs: 1_800_000_000_119, attributes: {} }],
@@ -64,7 +67,7 @@ const tapped: ReadonlyArray<FlatSpan> = [
     statusMessage: null,
     durationMs: 20,
     endedMs: 1_800_000_000_060,
-    attributes: { "db.system.name": "postgresql" },
+    attributes: { "db.system.name": "postgresql", [OUTCOME_KEY]: OUTCOME.success },
     events: [],
     service: Producers.producers.api.service,
   },
@@ -73,9 +76,15 @@ const tapped: ReadonlyArray<FlatSpan> = [
 const abouts = (rows: ReadonlyArray<SpanRow>, spans: ReadonlyArray<FlatSpan>) =>
   Arr.map(parity(rows, spans).differences, (difference) => difference.about);
 
-/** Whether the second kept span, ended with `outcome`, agrees with its twin exported with `status`. */
-const agreesOn = (outcome: string, status: FlatSpan["status"]) =>
-  parity([{ ...kept[1]!, outcome }], [{ ...tapped[1]!, status }]).agrees;
+/**
+ * Whether the second kept span, ended with `outcome`, agrees with its twin exported with `status` and `capxul.outcome`
+ * as Core stamps it for that outcome (or `stamped`).
+ */
+const agreesOn = (outcome: keyof typeof OUTCOME, status: FlatSpan["status"], stamped: string = OUTCOME[outcome]) =>
+  parity(
+    [{ ...kept[1]!, outcome }],
+    [{ ...tapped[1]!, status, attributes: { ...tapped[1]!.attributes, [OUTCOME_KEY]: stamped } }],
+  ).agrees;
 
 test("the same spans agree, library attributes and timings aside", () => {
   assert.deepEqual(parity(kept, tapped), { agrees: true, differences: [] });
@@ -125,13 +134,92 @@ test("a declared attribute only the tap carries does not agree", () => {
 test("a different name, parent or outcome does not agree", () => {
   assert.deepEqual(abouts(kept, [{ ...tapped[0]!, name: "board.other" }, tapped[1]!]), ["name"]);
   assert.deepEqual(abouts(kept, [{ ...tapped[0]!, parentSpanId: null }, tapped[1]!]), ["parent"]);
-  assert.deepEqual(abouts(kept, [{ ...tapped[0]!, status: "ok" }, tapped[1]!]), ["outcome"]);
+  assert.deepEqual(abouts(kept, [{ ...tapped[0]!, status: "ok" }, tapped[1]!]), ["status"]);
+  const stampedAs = (outcome: string) => [
+    { ...tapped[0]!, attributes: { ...tapped[0]!.attributes, [OUTCOME_KEY]: outcome } },
+    tapped[1]!,
+  ];
+  assert.deepEqual(abouts(kept, stampedAs(OUTCOME.defect)), ["outcome"]);
 });
 
-test("each kept outcome matches the status Effect exports for it", () => {
+test("each kept outcome matches the capxul.outcome and the status Core exports for it", () => {
   assert.ok(agreesOn("success", "ok"));
-  assert.ok(agreesOn("failure", "error"));
+  assert.ok(agreesOn("failure", "unset"));
   assert.ok(agreesOn("defect", "error"));
   assert.ok(agreesOn("interrupted", "unset"));
   assert.ok(!agreesOn("success", "unset"));
+  // A refusal and a defect look alike in the status alone; only the outcome tells them apart.
+  assert.ok(!agreesOn("failure", "error"));
+  assert.ok(!agreesOn("defect", "error", OUTCOME.failure));
+});
+
+test("a tapped span with no outcome does not agree", () => {
+  const { [OUTCOME_KEY]: _dropped, ...rest } = tapped[1]!.attributes;
+  assert.deepEqual(abouts(kept, [tapped[0]!, { ...tapped[1]!, attributes: rest }]), ["outcome"]);
+});
+
+/**
+ * A clock warp's site span as run 43789356026 kept and tapped it: its declared attributes are arrays, read from
+ * `app.spans`' jsonb on one side and from the tap's OTLP on the other, so equal values are never the same object.
+ */
+const warpSite = (shift: number) => {
+  const attributes = {
+    "warp.stop_ms": [2264.4, 1294.4, 155.4 + shift],
+    "warp.stop_jobs": [95, 100, 18],
+    "warp.jobs": ["capxul.clock.daily", "frappe.deferred_insert.save_to_db"],
+    "warp.job_runs": [7, 8],
+    "warp.job_ms": [429.8, 136.9],
+  };
+  const row: SpanRow = {
+    trace_id: TRACE,
+    span_id: "s-warp-site",
+    parent_span_id: "s-call",
+    name: "world.clock.warp.site",
+    outcome: "success",
+    duration_ms: 11559,
+    ended_ms: 1_800_000_011_559,
+    attributes: structuredClone(attributes),
+  };
+  const span: FlatSpan = {
+    ...tapped[1]!,
+    name: "world.clock.warp.site",
+    spanId: "s-warp-site",
+    parentSpanId: "s-call",
+    attributes: {
+      ...structuredClone(attributes),
+      "warp.stop_ms": [2264.4, 1294.4, 155.4],
+      [OUTCOME_KEY]: OUTCOME.success,
+    },
+  };
+  return { row, span };
+};
+
+test("array-valued declared attributes agree when their values are equal, and not when one differs", () => {
+  const same = warpSite(0);
+  assert.deepEqual(parity([same.row], [same.span]), { agrees: true, differences: [] });
+  const moved = warpSite(1);
+  assert.deepEqual(
+    Arr.map(parity([moved.row], [moved.span]).differences, (each) => [each.about, each.key]),
+    [["attribute", "warp.stop_ms"]],
+  );
+});
+
+test("sameValue: arrays of different lengths, and records with extra keys, are not the same; key order does not matter", () => {
+  assert.ok(sameValue([1, 2, 3], [1, 2, 3]));
+  assert.ok(!sameValue([1, 2, 3], [1, 2]));
+  assert.ok(!sameValue([1, 2], [1, 2, 3]));
+  assert.ok(sameValue({ a: 1, b: [2, 3] }, { b: [2, 3], a: 1 }));
+  assert.ok(!sameValue({ a: 1 }, { a: 1, b: 2 }));
+  assert.ok(!sameValue({ a: 1, b: 2 }, { a: 1 }));
+  assert.ok(!sameValue([1], { 0: 1 }));
+  assert.ok(!sameValue(1, "1"));
+});
+
+test("a declared warp attribute only the tap carries does not agree", () => {
+  const { row, span } = warpSite(0);
+  const { ["warp.job_ms"]: _dropped, ...fewer } = row.attributes ?? {};
+  assert.deepEqual(
+    Arr.map(parity([{ ...row, attributes: fewer }], [span]).differences, (each) => [each.about, each.key]),
+    [["attribute", "warp.job_ms"]],
+  );
 });

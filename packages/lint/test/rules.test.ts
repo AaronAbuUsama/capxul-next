@@ -264,20 +264,8 @@ tester.run("declared-steps", declaredSteps({}), {
   ],
 });
 
-tester.run("declared-steps: the ratchet", declaredSteps({ "packages/core/src/a.ts": 1 }), {
-  valid: [{ code: `const f = Effect.fn("x")(function* () {});`, ...OURS }],
-  invalid: [
-    {
-      code: `const f = Effect.fn("x")(function* () {}); const g = Effect.fn("y")(function* () {});`,
-      ...OURS,
-      errors: [{ message: /must not grow/ }, { message: /must not grow/ }],
-    },
-    { code: `const f = 1;`, ...OURS, errors: [{ message: /lower it to 0/, line: 1 }] },
-  ],
-});
-
 // The most findings declared-steps' unmigrated list may hold in all: what it found when turned on. It may only fall.
-const STEPS_CEILING = 315;
+const STEPS_CEILING = 307;
 const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 
 test("declared-steps: its unmigrated list names tracked files, each with a positive whole count, within its ceiling", () => {

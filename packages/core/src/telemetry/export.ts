@@ -11,7 +11,7 @@
 // The tracer is not made ambient: only `measured` (spans.ts) uses it, as the inner tracer of a call's keeping
 // tracer, so the spans exported are the spans kept, with the same ids, names, parents and attributes, and no others.
 // Logs and metrics are exported as Effect's OTLP logger and metrics make them.
-import { Conventions, Producers } from "@capxul/blueprint";
+import { Conventions, Envelope, Producers } from "@capxul/blueprint";
 import * as SQL from "@alchemy.run/sql/Postgres";
 import * as PgClient from "@effect/sql-pg/PgClient";
 import * as Arr from "effect/Array";
@@ -32,8 +32,12 @@ import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import * as Otlp from "effect/observability/Otlp";
 import * as OtlpExporter from "effect/observability/OtlpExporter";
+import type * as OtlpTracer from "effect/observability/OtlpTracer";
 import { ENV, textOf } from "../env.ts";
-import { CallTracer } from "./spans.ts";
+import { CallTracer, OUTCOME } from "./spans.ts";
+
+/** The envelope's `capxul.outcome` of a refusal. */
+const REFUSED = OUTCOME.failure;
 
 /** The value of `ENV.tap` that turns the tap on. */
 export const TAP_ON = "on";
@@ -145,6 +149,21 @@ export interface ExportOptions {
   readonly headers?: Headers.Input | undefined;
 }
 
+type OtlpSpan = OtlpTracer.ScopeSpan["spans"][number];
+
+/** True for a span whose `capxul.outcome` is a refusal (spans.ts stamps every kept span). */
+const isRefused = (span: OtlpSpan): boolean =>
+  Arr.some(
+    span.attributes,
+    (each) => each.key === Envelope.attributes.outcome.name && each.value.stringValue === REFUSED,
+  );
+
+/**
+ * A refusal is not an error (docs/design/blueprint.md, part 10, point 5): its span's status is left unset, and only
+ * what nobody declared, a defect, keeps Effect's ERROR. Its exception event stays, naming the refusal.
+ */
+const refusalUnset = (span: OtlpSpan): OtlpSpan => (isRefused(span) ? { ...span, status: { code: 0 } } : span);
+
 /**
  * OTLP JSON with every resource carrying the blueprint's convention version (`Conventions.SCHEMA_URL`), so the sink
  * shapes what it receives by the version we pinned and not by its own default. Effect's exporters leave it out.
@@ -155,7 +174,14 @@ export const jsonWithSchema = Layer.effect(
     const json = yield* OtlpSerialization.OtlpSerialization;
     const schemaUrl = Conventions.SCHEMA_URL;
     return {
-      traces: (data) => json.traces({ resourceSpans: Arr.map(data.resourceSpans, (each) => ({ ...each, schemaUrl })) }),
+      traces: (data) =>
+        json.traces({
+          resourceSpans: Arr.map(data.resourceSpans, (each) => ({
+            ...each,
+            schemaUrl,
+            scopeSpans: Arr.map(each.scopeSpans, (scope) => ({ ...scope, spans: Arr.map(scope.spans, refusalUnset) })),
+          })),
+        }),
       logs: (data) => json.logs({ resourceLogs: Arr.map(data.resourceLogs, (each) => ({ ...each, schemaUrl })) }),
       metrics: (data) =>
         json.metrics({ resourceMetrics: Arr.map(data.resourceMetrics, (each) => ({ ...each, schemaUrl })) }),

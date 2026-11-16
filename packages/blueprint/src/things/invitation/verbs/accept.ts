@@ -6,10 +6,8 @@ import { NotImplemented } from "../../../common/refusals.ts";
 import { roles } from "../../../common/values.ts";
 import { startingPoints as w, type PromisesOf } from "../../../starting-points/points.ts";
 import { StepKind } from "../../../telemetry/step-kinds.ts";
-import { olga } from "../../member/examples.ts";
 import { Member } from "../../member/values.ts";
 import { InvitationAccepted } from "../events.ts";
-import { invitation } from "../examples.ts";
 import { InvitationClosed, InvitationNotFound, NotYourInvitation } from "../refusals.ts";
 import { Invitation, InvitationId, RefusalRule } from "../values.ts";
 
@@ -79,11 +77,35 @@ export const invitationAccept = verb({
   examples: [
     {
       payload: { invitation: "inv_olga02" },
-      success: Accepted.make({ invitation: invitation("inv_olga02", "accepted"), member: olga }),
+      success: Accepted.make({
+        invitation: {
+          id: "inv_olga02",
+          org: "org_northwind1",
+          handle: "northwind",
+          email: "olga@cast.test",
+          role: "member" as const,
+          invitedBy: "dana",
+          state: "accepted" as const,
+          invitedAt: "2026-11-13T09:05:00.000Z",
+        },
+        member: { person: "olga", email: "olga@cast.test", role: "member" as const },
+      }),
     },
     {
       payload: { invitation: "inv_olga02" },
-      success: AlreadyAccepted.make({ invitation: invitation("inv_olga02", "accepted"), member: olga }),
+      success: AlreadyAccepted.make({
+        invitation: {
+          id: "inv_olga02",
+          org: "org_northwind1",
+          handle: "northwind",
+          email: "olga@cast.test",
+          role: "member" as const,
+          invitedBy: "dana",
+          state: "accepted" as const,
+          invitedAt: "2026-11-13T09:05:00.000Z",
+        },
+        member: { person: "olga", email: "olga@cast.test", role: "member" as const },
+      }),
     },
   ],
 });

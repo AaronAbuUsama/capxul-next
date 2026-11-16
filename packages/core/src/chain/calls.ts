@@ -116,37 +116,60 @@ const service = privateKeyToAccount(SERVICE_KEY);
 export const SERVICE_ADDRESS = service.address;
 
 /**
+ * True when the chain refused a send because another took its nonce first: Core's Worker isolates sign with the one
+ * service key, so two sends at once can read the same pending nonce (world run 43782964738: four companies founded at
+ * once, "nonce too low"). The send is then signed again at the next pending nonce.
+ */
+export const nonceTaken = (error: ChainFailed): boolean =>
+  error.method === "eth_sendRawTransaction" &&
+  /nonce too low|replacement transaction underpriced|replacement underpriced/i.test(error.message);
+
+/**
+ * How often a send whose nonce was taken is signed again, and how long it waits first: a little, and at random. Of
+ * sends that read the same nonce, one lands each round, so `n` at once need at most `n` tries: eight again covers the
+ * companies a run founds at once (the runner's RUNNER_SITES_AT_ONCE, 8). A queue would serialise only within one
+ * isolate, and one in a Durable Object would add a hop to every send.
+ */
+const RESENDS = Schedule.max([Schedule.jittered(Schedule.spaced("150 millis")), Schedule.recurs(8)]);
+
+/**
  * Sends one transaction from the service key and answers its receipt once it is in a block. A transaction that
- * reverts is a fault: Core only sends what it has checked would succeed.
+ * reverts is a fault: Core only sends what it has checked would succeed. A send whose nonce another send took first
+ * is signed again at the next pending nonce, up to eight times (`nonceTaken`); no step is declared for the resend, so
+ * it is part of this span.
  */
 export const sendAsService = Effect.fn("chain.send")(function* (to: string, data: Hex, gas: bigint = 8_000_000n) {
   const chain = yield* WorldChain;
-  const nonce = yield* hexOf(
-    "eth_getTransactionCount",
-    yield* chain.rpc("eth_getTransactionCount", [service.address, "pending"]),
-  );
-  // The latest block's base fee twice over and a gwei: enough to be mined at once, and never compounding as
-  // eth_gasPrice, which follows the last transactions' own prices, would.
-  const latest = yield* chain.rpc("eth_getBlockByNumber", ["latest", false]).pipe(
-    Effect.flatMap(Schema.decodeUnknownEffect(Schema.Struct({ baseFeePerGas: Schema.String }))),
-    Effect.mapError((error) =>
-      Schema.is(ChainFailed)(error) ? error : answerFailed("eth_getBlockByNumber", error.message),
-    ),
-  );
-  const signed = yield* Effect.tryPromise({
-    try: () =>
-      service.signTransaction({
-        to: hex(to),
-        data,
-        gas,
-        gasPrice: BigInt(latest.baseFeePerGas) * 2n + 1_000_000_000n,
-        nonce: Number(BigInt(nonce)),
-        chainId: CHAIN_ID,
-        type: "legacy",
-      }),
-    catch: (cause) => answerFailed("eth_sendRawTransaction", `signing: ${String(cause)}`),
+  /** One try: the service key's pending nonce, signed at twice the base fee and a gwei, and sent. */
+  const once = Effect.gen(function* () {
+    const nonce = yield* hexOf(
+      "eth_getTransactionCount",
+      yield* chain.rpc("eth_getTransactionCount", [service.address, "pending"]),
+    );
+    // The latest block's base fee twice over and a gwei: enough to be mined at once, and never compounding as
+    // eth_gasPrice, which follows the last transactions' own prices, would.
+    const latest = yield* chain.rpc("eth_getBlockByNumber", ["latest", false]).pipe(
+      Effect.flatMap(Schema.decodeUnknownEffect(Schema.Struct({ baseFeePerGas: Schema.String }))),
+      Effect.mapError((error) =>
+        Schema.is(ChainFailed)(error) ? error : answerFailed("eth_getBlockByNumber", error.message),
+      ),
+    );
+    const signed = yield* Effect.tryPromise({
+      try: () =>
+        service.signTransaction({
+          to: hex(to),
+          data,
+          gas,
+          gasPrice: BigInt(latest.baseFeePerGas) * 2n + 1_000_000_000n,
+          nonce: Number(BigInt(nonce)),
+          chainId: CHAIN_ID,
+          type: "legacy",
+        }),
+      catch: (cause) => answerFailed("eth_sendRawTransaction", `signing: ${String(cause)}`),
+    });
+    return yield* hexOf("eth_sendRawTransaction", yield* chain.rpc("eth_sendRawTransaction", [signed]));
   });
-  const hash = yield* hexOf("eth_sendRawTransaction", yield* chain.rpc("eth_sendRawTransaction", [signed]));
+  const hash = yield* once.pipe(Effect.retry({ schedule: RESENDS, while: nonceTaken }));
   const receipt = yield* receiptOf(hash);
   if (receipt.status !== "0x1")
     return yield* answerFailed("eth_sendRawTransaction", `${hash} to ${to} reverted (${Str.slice(0, 10)(data)})`);

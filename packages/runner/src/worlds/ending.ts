@@ -35,8 +35,11 @@ const notMadeWhy = (timings: Timings, cause: Cause.Cause<unknown>) =>
 /** What a run in one world hands its summary, however it ended. */
 export interface Ending {
   readonly run: string;
-  /** "shared world" when the journeys ran in worlds restored from a shared world (src/shared). */
-  readonly mode?: "one world" | "shared world" | undefined;
+  /**
+   * "shared world" when the journeys ran in worlds restored from a shared world (src/shared); "shared world, side by
+   * side" when they ran all at once in one shared world (RUNNER_SHAPE=shared).
+   */
+  readonly mode?: "one world" | "shared world" | "shared world, side by side" | undefined;
   readonly startedAt: string;
   readonly owner: string;
   /** Where records are written. */
@@ -47,6 +50,8 @@ export interface Ending {
   readonly notMade: string | null;
   /** What the run's take-down could not do, one line each with why (teardown.ts); any of it fails the run. */
   readonly notTakenDown: ReadonlyArray<string>;
+  /** Side by side, what the whole run's isolation check found, one line each (run-isolation.ts); any of it fails. */
+  readonly isolation?: ReadonlyArray<string>;
   /** The worlds, by stage, left up on purpose for CI's teardown job (RUNNER_TEARDOWN=job); none otherwise. */
   readonly handedOver: ReadonlyArray<string>;
   readonly world: string | null;
@@ -68,7 +73,7 @@ export const summaryOf = (ending: Ending) =>
   Effect.gen(function* () {
     const { ran, run } = ending;
     const died = Exit.isFailure(ran) ? `the run did not finish: ${describe(ran.cause)}` : null;
-    const failures = Arr.filter([ending.notMade, died], (each) => each !== null);
+    const failures = [...Arr.filter([ending.notMade, died], (each) => each !== null), ...(ending.isolation ?? [])];
     const hub: HubUse = ending.used ?? {
       stage: yield* Effect.orElseSucceed(World.HubStage, () => "unknown"),
       broughtUp: false,
