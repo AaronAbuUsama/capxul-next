@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { promisify } from "node:util";
-import { Errors, operations, type OperationName } from "@capxul/blueprint";
+import { commands, Errors, operations, type OperationName } from "@capxul/blueprint";
 import * as Sdk from "@capxul/sdk";
 import * as NodeHttpServer from "@effect/platform-node/NodeHttpServer";
 import * as NodeServices from "@effect/platform-node/NodeServices";
@@ -56,7 +56,7 @@ const fileOf = (name: OperationName): Array<string> => {
   return ["--input", path];
 };
 
-const argsOf = (name: OperationName, rest: Array<string>) => [...Str.split(name, "."), ...rest];
+const argsOf = (name: OperationName, rest: Array<string>) => [...commands[name], ...rest];
 
 type Served = { readonly platform: string; readonly world: string };
 

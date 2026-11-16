@@ -124,7 +124,7 @@ test("a payload that is not of its schema is rejected as the SDK rejects it, and
     assert.ok(Exit.isFailure(args));
   }));
 
-test("a call's arguments are its command's path, one flag per field and its options", async () => {
+test("a call's arguments are its command's thing and verb, one flag per field and its options", async () => {
   const args = await Effect.runPromise(
     Cli.argsOf(
       "org.member.grant",
@@ -133,7 +133,6 @@ test("a call's arguments are its command's path, one flag per field and its opti
     ),
   );
   assert.deepEqual(args, [
-    "org",
     "member",
     "grant",
     "--org=org_northwind1",

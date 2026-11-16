@@ -55,6 +55,7 @@ export * from "./protocol/paths.ts";
 export * from "./protocol/trace.ts";
 export * from "./protocol/headers.ts";
 export * from "./protocol/sign-in.ts";
+export * from "./protocol/cli.ts";
 export {
   verb,
   eventNamesOf,
@@ -77,6 +78,7 @@ export * as Cast from "./starting-points/cast.ts";
 export * as Chain from "./common/chain/chain.ts";
 export * as Site from "./common/site.ts";
 export { allClaims } from "./generated/promises.ts";
+export { commands, type CommandPath } from "./generated/commands.ts";
 export { glossary } from "./glossary.ts";
 /** Who may call an operation (roadmap item 5.1): each role, declared once. */
 export { roles } from "./common/values.ts";
