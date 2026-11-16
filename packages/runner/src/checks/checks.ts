@@ -7,6 +7,7 @@
 //   events   a successful call recorded exactly the events its outcome declares, each once, each carrying what the
 //            declaration computes from the call; any other call recorded none (events.ts).
 //   path     across a journey's calls, each thing's events form a path through its machine (paths.ts).
+//   isolation  a journey's call acts only as its own people and names no other journey's (isolation.ts).
 //
 // Measure first (AGENTS.md): every call's timings, caller side and server side, and the spans of each step are
 // recorded with the operation's budget beside them. The budget is never enforced, so no check is about speed.
@@ -22,7 +23,8 @@ import { checkEvents } from "./events.ts";
 
 export const Check = Schema.Struct({
   /** `path`: the call's events and refusal keep each thing on a path through its machine (paths.ts). */
-  check: Schema.Literals(["span", "outcome", "events", "path"]),
+  /** `isolation`: a journey's call acts only as its own people and names no other journey's (isolation.ts). */
+  check: Schema.Literals(["span", "outcome", "events", "path", "isolation"]),
   /** Every check gates: a call that fails one fails its run. */
   passed: Schema.Boolean,
   detail: Schema.String,
