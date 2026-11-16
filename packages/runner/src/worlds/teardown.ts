@@ -1,6 +1,7 @@
 // What a run in private worlds takes down, and what it reads of the accounts afterwards: the worlds it made, destroyed
-// the newest first. The bench templates it kept are not its to take down: they are the bench's, never dropped by a run,
-// and the sweep removes them by age (docs/roadmap.md, "Bench templates never change"). A take-down that fails is never
+// in layers, a world restored from another before its source and unrelated ones together (`destroyInOrder`). The
+// bench templates it kept are not its to take down: they are the bench's, never dropped by a run, and the sweep
+// removes them by age (docs/roadmap.md, "Bench templates never change"). A take-down that fails is never
 // ignored: it is timed `ok: false` with why, and its failures are handed back for the run's record to fail on.
 import * as World from "@capxul/world";
 import * as Arr from "effect/Array";
@@ -8,6 +9,7 @@ import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Ref from "effect/Ref";
+import * as Str from "effect/String";
 import { describe, RunnerFailure } from "../failure.ts";
 import type { Timings } from "../timings.ts";
 import type { Inventory } from "../world/leftovers.ts";
@@ -24,24 +26,43 @@ export const leftOf = (stages: ReadonlyArray<string>) =>
     Effect.catchCause((cause) => Effect.as(Effect.logWarning(`inventory not read: ${describe(cause)}`), null)),
   );
 
+/** How many worlds a take-down destroys at once. */
+export const DESTROYS_AT_ONCE = 4;
+
+/** `stage` destroyed by the world, any failure a RunnerFailure that says why. */
+const destroyOne = (stage: string) =>
+  World.destroy(stage).pipe(
+    Effect.asVoid,
+    Effect.catchCause((cause) => Effect.fail(RunnerFailure.make({ step: "destroy", message: describe(cause) }))),
+  );
+
 /**
- * Destroys `stages`, the newest first, so a world restored from a snapshot goes before the world it came from. Every
- * one is tried; then it fails, when any was not destroyed, with each such world and why.
+ * Destroys `stages` in order (`destroyInOrder`), `DESTROYS_AT_ONCE` at a time, a world restored from another before its
+ * source when `restoredFrom` says which (it says none by default). Then each that failed is tried again, one at a time,
+ * the newest first: a source the order did not know refuses while a world restored from it remains, and passes once it
+ * is gone. Every one is tried; then it fails, when any was still not destroyed, with each such world and why.
  */
-export const destroyEach = (stages: ReadonlyArray<string>) =>
-  Effect.forEach(Arr.reverse(stages), (stage) =>
-    World.destroy(stage).pipe(
-      Effect.exit,
-      Effect.flatMap((gone) =>
-        Exit.isSuccess(gone)
-          ? Effect.succeed<ReadonlyArray<string>>([])
-          : Effect.as(Effect.logError(`world ${stage}: destroy failed: ${describe(gone.cause)}`), [
-              `${stage}: ${describe(gone.cause)}`,
-            ]),
+export const destroyEach = (
+  stages: ReadonlyArray<string>,
+  restoredFrom: (stage: string) => string | null = () => null,
+) =>
+  destroyInOrder(
+    Arr.map(stages, (stage) => ({ stage, from: restoredFrom(stage) })),
+    destroyOne,
+    DESTROYS_AT_ONCE,
+  ).pipe(
+    Effect.flatMap((first) =>
+      Effect.forEach(
+        // The failures again, the newest first, as `stages` lists them oldest first.
+        Arr.filter(Arr.reverse(stages), (stage) => Arr.some(first, Str.startsWith(`${stage}: `))),
+        (stage) =>
+          Effect.map(Effect.exit(destroyOne(stage)), (gone) =>
+            Exit.isSuccess(gone) ? [] : [`${stage}: ${describe(gone.cause)}`],
+          ),
       ),
     ),
-  ).pipe(
     Effect.map(Arr.flatten),
+    Effect.tap((failed) => Effect.forEach(failed, (each) => Effect.logError(`world ${each}`))),
     Effect.flatMap((failed) =>
       Arr.isReadonlyArrayEmpty(failed)
         ? Effect.void
@@ -120,23 +141,43 @@ export interface Doomed {
 }
 
 /**
- * Destroys `worlds` with `destroy` (roadmap 4.8, the own-world track's teardown): a world restored from another goes
- * before its source, whose branch it forks; worlds unrelated to each other go together, at most `atOnce` at a time.
- * Every one is tried; answers each that was not destroyed, with why.
- *
- * The seam test/teardown-order.test.ts drives, written first. What is here is today's order, a stand-in: one at a
- * time, the newest first. The runner's builder replaces it, and the run's take-down uses it.
+ * `worlds` in the order they can go: each layer holds every world no other world left was restored from, so a world
+ * restored from another goes in a layer before its source's; worlds unrelated to each other share a layer. A layer
+ * lists its worlds the newest first. (A world restored from itself, which cannot be, would end the layers: the rest go
+ * together.)
  */
-export const destroyInOrder = (
+export const layersOf = (worlds: ReadonlyArray<Doomed>): ReadonlyArray<ReadonlyArray<Doomed>> => {
+  const layers: Array<ReadonlyArray<Doomed>> = [];
+  let left = worlds;
+  while (Arr.isReadonlyArrayNonEmpty(left)) {
+    const leaves = Arr.filter(left, (each) => !Arr.some(left, (other) => other.from === each.stage));
+    const layer = Arr.isReadonlyArrayNonEmpty(leaves) ? leaves : left;
+    layers.push(Arr.reverse(layer));
+    left = Arr.filter(left, (each) => !Arr.contains(layer, each));
+  }
+  return layers;
+};
+
+/**
+ * Destroys `worlds` with `destroy` (roadmap 4.8, the own-world track's teardown): a world restored from another goes
+ * before its source, whose branch it forks; worlds unrelated to each other go together, at most `atOnce` at a time
+ * (`layersOf`). Every one is tried; answers each that was not destroyed, with why.
+ */
+export const destroyInOrder = <R>(
   worlds: ReadonlyArray<Doomed>,
-  destroy: (stage: string) => Effect.Effect<void, RunnerFailure>,
-  _atOnce: number,
-): Effect.Effect<ReadonlyArray<string>> =>
+  destroy: (stage: string) => Effect.Effect<void, RunnerFailure, R>,
+  atOnce: number,
+): Effect.Effect<ReadonlyArray<string>, never, R> =>
   Effect.map(
-    Effect.forEach(Arr.reverse(worlds), (world) =>
-      Effect.map(Effect.exit(destroy(world.stage)), (gone) =>
-        Exit.isSuccess(gone) ? [] : [`${world.stage}: ${describe(gone.cause)}`],
+    Effect.forEach(layersOf(worlds), (layer) =>
+      Effect.forEach(
+        layer,
+        (world) =>
+          Effect.map(Effect.exit(destroy(world.stage)), (gone) =>
+            Exit.isSuccess(gone) ? [] : [`${world.stage}: ${describe(gone.cause)}`],
+          ),
+        { concurrency: Math.max(1, atOnce) },
       ),
     ),
-    Arr.flatten,
+    (layers) => Arr.flatten(Arr.flatten(layers)),
   );
