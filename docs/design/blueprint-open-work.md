@@ -2,7 +2,8 @@
 
 Status: open. Written on 16 November 2026 by the blueprint lead (later the CLI lead) for the local thread that will
 refactor the blueprint system on `slice/blueprint-studio`. It maps what was planned and not done, where it is written,
-and what shaped it. The counts are from `master` after #473 (3.9).
+and what shaped it. The counts are from `master` at 5657dbe. Item 3.9, the CLI's grammar, is built on `slice/cli` but
+not on `master`: its pull request, #473, is green and was left open by Aaron's pause of 16 November 2026 (section 5).
 
 The design itself is [blueprint.md](blueprint.md). This note does not repeat it: it says what is left, and points.
 
@@ -29,11 +30,11 @@ ratchet's own lane closes when its list is empty).
 | R8 | Long or hand-mapped docs | 10 | READMEs over 60 lines (`LONG_READMES`), hand-written file maps, and `packages/blueprint/docs/build-order.md`, not yet folded | Part 7; [docs.md](docs.md) | Shorten each README behind its generated map; fold `build-order.md` into the roadmap or declarations |
 | R10 | Non-Effect code | 63 | `effect-only` findings outside the lint's reach (Ponder's files, the contracts' TypeScript), and non-Effect runtime dependencies | Decision "Effect everywhere it can be" | Mostly blocked on Ponder and Hono (decision "Hono"); the dependencies need replacing one by one. Phase 7 |
 | R15 | Old words | 599 | Distinct names in code still holding a glossary old word, counted per word in `generated/old-words.json`; gated by `pnpm words`, not by `pnpm ratchets` | 3.8; decision "One glossary" | The renames' lane. Waits until the speed lane's door work has landed (conductor, 16 November 2026) |
-| R16 | Names not from their path | 16 | Operations not named `<thing>.<verb>` from their file (`org.threshold.set` lives at `board/set-threshold.ts`) | Part 13, amended, point 3 | Rename each operation directly ("No callers, no compatibility"); the journeys' author updates the journeys. The CLI already takes its commands from the path (3.9), so callers of the CLI see no change |
+| R16 | Names not from their path | 16 | Operations not named `<thing>.<verb>` from their file (`org.threshold.set` lives at `board/set-threshold.ts`) | Part 13, amended, point 3 | Rename each operation directly ("No callers, no compatibility"); the journeys' author updates the journeys. The CLI on `slice/cli` already takes its commands from the path (3.9), so its callers would see no change |
 | R17 | Operations without who may call | 21 | The `allowed` format's unmigrated list | 5.1; decision "Who may call is declared" | Declare roles and `allowed` per operation, with Core's one standing check |
 | R18 | Operations without steps and logs | 21 | The `spans` or `logs` formats' unmigrated lists | 4.1 | Declare each operation's spans and logs, first drafted from measured runs |
 | R19 | Promises that do not name every refusal | 8 | The `promises` format's unmigrated list | 3.10 | Write a promise naming each refusal the operation decides. Part of the climb |
-| R20 | Glossary words not yet landed | 15 | `packages/api`, `packages/sites`, `packages/journeys` and `pnpm gate` not there yet; 9 `door.ts` and 2 `door.py` files | 3.8 (#446) | The renames' lane, with R15. `--world <name>` landed in 3.9 and is not counted |
+| R20 | Glossary words not yet landed | 15 | `packages/api`, `packages/sites`, `packages/journeys` and `pnpm gate` not there yet; 9 `door.ts` and 2 `door.py` files | 3.8 (#446) | The renames' lane, with R15. `--world <name>` is 3.9's (on `slice/cli`) and is not counted |
 
 ### Registered, not yet counted
 
@@ -60,7 +61,7 @@ Each names the item that will count it (`countedBy` in the registry). No count i
   tools listed on a ratchet with their reasons, has no ratchet registered.
 - **Part 10, telemetry.** `src/telemetry/` exists; the run-time checks of steps and logs (4.1) and the explainability
   eval (4.2) do not.
-- **Part 12, decision 8.** Item 1 is Done (3.9). Items 3 (Frappe through generated commands, 5.3) and 4 (the `safe`
+- **Part 12, decision 8.** Item 1 is built on `slice/cli` (3.9, #473 open; section 5). Items 3 (Frappe through generated commands, 5.3) and 4 (the `safe`
   verbs from the ABI, 5.4) are not started.
 - **Part 14.** The climb (C.1 to C.3) is not started: 0 of 13 things.
 - **Part 15, the backlog.** Fourteen ideas from the triage, none built: five blueprint candidates (`approval.show` and
@@ -170,3 +171,50 @@ All in [docs/decisions.md](../decisions.md); the dates are theirs.
 
 The plan already says (part 14) that the toolkit is split off as its own product only once the whole system works.
 The climb (C.1) has not started, so that condition is not met yet.
+
+## 5. The CLI: generated, hand-written, and meant to be generated
+
+State at the pause: the grammar of decision 8, item 1 (roadmap 3.9) is built on `slice/cli` at head d99e155d, in
+#452 (the delta), #453 (the checks, written first by another agent) and #458 (the build), with the roadmap row marked
+Done in #466 and #472. Its pull request into `master`, #473, passed `gate` and both 🔍 reviews and is **not merged**:
+Aaron's pause stopped it. `master` still has the 1.10 CLI, whose commands are the operation's name split at its dots
+(`capxul org threshold set`).
+
+**From the blueprint, generated by `pnpm generate`:**
+
+- Each operation's command path, `capxul <thing> <verb>`: `packages/blueprint/src/generated/commands.ts`, written by
+  `packages/generate/src/commands.ts` from the things' folders and the verbs' files.
+
+**From the blueprint, derived when the CLI runs** (no generated file; `packages/cli` reads the declarations):
+
+- The command tree: one group per thing, one command per verb, from `commands` (`src/commands.ts`).
+- Each command's flags: one per payload field, from the operation's payload schema (`src/input.ts`); the reserved
+  names from `CLI_FLAGS` (`packages/blueprint/src/protocol/cli.ts`).
+- Decoding the payload, and printing the answer: the operation's own schemas (`src/output.ts` for JSON, `src/view.ts`
+  for the readable view, which walks the schema and has no per-operation code).
+- Exit codes: the blueprint's `Errors.exitCode`.
+- Which group serves a command (account or world): `servedBy`.
+
+**Hand-written in `packages/cli`:**
+
+- `login`, `logout` and `use` (`src/sign-in.ts`), the profile file (`src/profile.ts`) and where a call goes
+  (`src/target.ts`: the environment over the profile, a world found by `world.show`). The blueprint declares their
+  names and one-line meanings (`CLI_COMMANDS`), not their arguments or behaviour.
+- Every flag's help text (`src/commands.ts`), and each command's description, which is only
+  `<operation>: served by the <group>`. The blueprint holds no per-operation description the CLI could use.
+- The in-process call the runner uses (`src/call.ts`, `callVia`), with the hidden `--at`.
+
+**Meant to be generated, not done:**
+
+- **The CLI tree as a generated artefact.** Part 14 lists "the CLI tree" among the generators; today it is built at run
+  time from `commands` instead. Either is defensible; the plan named the first.
+- **The pipeline's commands** (decision 8, item 2): `capxul world create|destroy|reset|renew|sweep`, `capxul run start
+  --shards N`, `capxul journey run`, `capxul verdict show`, and the rest of `run.sh`'s jobs as declared work. The work
+  verbs exist in the blueprint (`src/things/run/`, `journey/`, ...), but the CLI serves only operations a group serves
+  (`Sdk.names`); no work verb is a command, and `run.sh` is unchanged. The ratchet for build tools that stay package
+  scripts was never registered.
+- **Frappe's commands** (decision 8, item 3; roadmap 5.3): the generic verbs declared once and typed commands per app
+  generated from the pinned apps' metadata (`capxul erp purchase-invoice create`), with the coverage list.
+- **The Safe's commands** (decision 8, item 4; roadmap 5.4): `capxul safe call ...` generated from the contracts' ABI.
+- **Real sign-in** (phase 8): `login` keeps an operator token until then.
+- **The help text from the blueprint**: per-operation descriptions and per-field meanings, so `--help` is generated too.
