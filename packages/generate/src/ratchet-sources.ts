@@ -1,6 +1,6 @@
 // The repository's own ratchet lists and scorecard inputs, as ratchets.ts and scorecard.ts read them: the
 // blueprint's registry and operations, the delta check's formats, lint's unmigrated lists, and the glossary's old
-// words as generated/old-words.json counts them, and the repository's files R7, R8 and R10 are counted from. That file is JSON, which only an entry or a test parses, so they hand
+// words as generated/old-words.json counts them, and the repository's files R7, R8, R10 and R20 are counted from. That file is JSON, which only an entry or a test parses, so they hand
 // its counts in, and the files. The toolkit imports nothing of the blueprint, so the lists are gathered here, beside the entries that
 // read them.
 import * as Blueprint from "@capxul/blueprint";

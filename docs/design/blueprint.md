@@ -140,7 +140,7 @@ behaviour: every journey stays green.
 | R17 | Operations without who may call | Operations on the `allowed` format's list: no roles allowed, nor the refusal anyone else gets | 22 operations (item 3.10) | 5.1 |
 | R18 | Operations without declared steps and logs | Operations on the `spans` or `logs` format's list: no declared spans or logs, or no log where a refusal is decided | 22 operations (item 3.10) | 4.1 |
 | R19 | Promises that do not name every refusal they decide | Operations on the `promises` format's list | 8 operations (item 3.10) | C.1 |
-| R20 | Glossary words not yet landed | Each glossary word whose landing place (a package, a `pnpm` command) is not there yet, and each tracked file still named by an old file name (`door.ts`, `door.py`) | 15 (item 3.8, 16 November 2026) | The renames' lane |
+| R20 | Glossary words not yet landed | Each glossary word whose landing place (a package, a `pnpm` command) is not there yet, and each tracked file still named by an old word written as a file name (`door.ts`, `door.py`); a CLI flag's landing is the CLI's (3.9) | 15 (item 3.8, 16 November 2026) | The renames' lane (3.8's landings) |
 
 **Measures, climbed by trend, never a gate until the data sets a threshold:**
 
