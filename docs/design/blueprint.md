@@ -700,6 +700,7 @@ take their words from; the rename runs as a ratchet, user-facing names side by s
 | What judges one call or run | check | **check** (only this) |
 | The pass every pull request clears | `pnpm check`, gate, ladder | **gate** (`pnpm gate`; its levels are rungs) |
 | What a CI run proved | run record, proof record, verdict | **verdict** |
+| The one store of what happened (added with Aaron's yes of 16 November 2026, `docs/design/state-store.md`) | records in git, the `proofs` branch, the `state` branch | **logbook** |
 | A world's ordered history | record, `record.export` | **history** |
 | A timed piece of work inside an operation | step (declared) | **span** |
 | One move of a journey | step | **step** (journeys only) |

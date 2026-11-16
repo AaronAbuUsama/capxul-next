@@ -27,9 +27,13 @@ The plan this line follows is [docs/roadmap.md](docs/roadmap.md).
 - **The blueprint** (`packages/blueprint`) says what Capxul does: its operations, refusals, events and starting worlds,
   as Effect declarations the product imports.
 - **The world** (`packages/world`) says what runs where: the Alchemy stacks that create and destroy a world.
-- **Verdicts** say what is proven: made only by CI, kept on the orphan branch `proofs`, each notarised by a GitHub
-  check (roadmap step 4.5). What happened is **telemetry**, in the sink. Until 4.5 lands, run records made by checks and
-  scenario runs stand in for verdicts; nobody writes one by hand, and a run from an agent's container is never proof.
+- **Verdicts** say what is proven: made only by CI, kept in the **logbook**, which accepts one only from a GitHub
+  Actions job it verifies by that job's OIDC token (roadmap item K.2). What happened is **telemetry**, in the sink, and
+  its facts (runs, verdicts, tasks, asks, threads, sitreps, the plan's state) are in the logbook, never in git
+  ([docs/decisions.md](docs/decisions.md), "State is not in git"; [the logbook's guide](docs/guides/logbook.md)).
+  Commit no record: until the logbook exists, a proof is cited by its CI run (the workflow's run id, its job and its
+  artifact), and the records already in `records/` folders stand in for the verdicts of items already Done. Nobody
+  writes a record by hand, and a run from an agent's container is never proof.
 
 Every fact has one owner in code. Everything else that needs it imports it, generates it from it, or is checked
 against it, so two places cannot disagree ([docs/decisions.md](docs/decisions.md), "One source for every fact"). Which owner holds which
@@ -78,7 +82,8 @@ slice branch `slice/<lane>`. One more session, the **conductor**, starts leads a
   `master`; for each step it has the scenarios and checks written first by another agent, so they fail on empty
   handlers, then has builders open pull requests into the slice; it merges each when `check` is green, opens the slice's
   pull request into `master` and merges it when `check` and `world` are green; and it marks each step Done in the
-  roadmap with the proof committed, in that same pull request. When a step it needs from another lane lands, it merges
+  roadmap with its proof cited (its CI run until the logbook exists; never a committed record), in that same pull
+  request. When a step it needs from another lane lands, it merges
   `master` into its slice.
 - **A builder** does one piece of work on one branch and one pull request into the slice, and is started by its lead.
 - **Every thread is one type**, titled with its emoji: 🎼 conductor, 🧭 lead, ✍️ author, 🔨 builder, 🔍 reviewer,
@@ -101,12 +106,13 @@ Standing rules from Aaron, for the conductor and every lead (14 and 15 November 
 - Ask Aaron only about money beyond the cap, credentials, production, or a decision nothing covers; batch the
   questions.
 - Spend at most $10 a day across Cloudflare and Neon, all lanes together.
-- Every world, stage and site you make is destroyed; nothing is left running. Touch only your own resources. Never run
-  `alchemy nuke`.
+- Every world, stage and site you make is destroyed; nothing is left running, except the platform's stage, the shared
+  world and the logbook, each long-lived by Aaron's yes. Touch only your own resources. Never run `alchemy nuke`.
 - On `abuusama.dev`, create records only under `worlds.abuusama.dev`, never edit or delete another record, and remove
   what you made. No certificate changes without Aaron's yes.
 - Never print a key or connection string; the network proxy adds keys. Never create a cloud credential without
-  Aaron's written yes. Never give Cloudflare a route into an agent's container.
+  Aaron's written yes; he has given it for one: the logbook's write token for agents, held by its Worker and added by
+  the proxy (16 November 2026). Never give Cloudflare a route into an agent's container.
 - Keep people's emails and personal details private.
 
 ## How a feature is built
@@ -167,7 +173,8 @@ them by reading the diff.
 | A person's account (5.2) | The blueprint: grade groups, account version, the email's normalisation, the derivation | The salt Core sends to `claim`; checked against the contract's `safeAddressFor` |
 | Capxul's own names on a company's site (3.1) | The blueprint, `src/common/site.ts` | A generated Python module in `packages/frappe-app` |
 | What runs where, and where telemetry goes | `packages/world`, `packages/platform` | |
-| What is proven | Verdicts on `proofs` (4.5); run records until then | The roadmap's step states |
+| What is proven | Verdicts in the logbook (K.2); CI runs cited by id until then, and the committed records of items already Done | The roadmap's item states |
+| What happened: runs, tasks, asks, threads, sitreps, the plan's state and evidence (K.2) | The logbook | The sitrep, Aaron's app, the CLI's `plan` and `run` verbs |
 
 These rules make "typed once" and "measured" checks rather than hopes (3.3, 4.1), each with its ratchet:
 
@@ -185,7 +192,7 @@ CI's `pnpm generate:check` fails when generating again would change any file (3.
 
 ### Changing what works: side by side, then flip, then retire
 
-Until a real caller exists (phase 8), this does not apply: existing operations are reshaped and renamed directly,
+Until a real caller exists (milestone 10), this does not apply: existing operations are reshaped and renamed directly,
 and the journey author updates the journeys in the same lane ([docs/decisions.md](docs/decisions.md), "No callers, no compatibility"). From the
 first real caller:
 

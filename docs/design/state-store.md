@@ -1,9 +1,11 @@
 # The logbook: state out of git
 
-Status: open. Written 16 November 2026 by a 📐 designer thread for the 🎼 conductor, from Aaron's words of that day:
-"saving stuff to the repo is actually kind of bad. I want to stop doing that and purge it all." He refused a `state`
-branch that agents would write to. Nothing here is agreed until Aaron says yes in writing; the decisions it needs are
-in section 7.
+Status: agreed with Aaron, 16 November 2026 ("Yeah, no problem, but there needs to be some docs for it somewhere", to
+the six changes of section 8; `docs/decisions.md`, "State is not in git" and the decisions after it). Written that day
+by a 📐 designer thread for the 🎼 conductor, from Aaron's words: "saving stuff to the repo is actually kind of bad. I
+want to stop doing that and purge it all." He refused a `state` branch that agents would write to. This note is the
+why; how to use the logbook is the guide [docs/guides/logbook.md](../guides/logbook.md). It is built as roadmap item
+K.2, in milestone 5 (Cleanup).
 
 **The recommendation in one paragraph.** Git keeps what we write and review: source, declarations, generated files,
 the seeded chain, design notes. Everything that _happens_ goes to one store outside git, **the logbook** (not "ledger", which the glossary retires): a Cloudflare
@@ -213,9 +215,9 @@ In order, each a pull request that changes no behaviour of the product:
    run (`world` run 43796480962, as step 3.6 already does) or a `check:`; a container's run is cited in its pull
    request's text only. CI already uploads its records as artifacts; they last 90 days, longer than the logbook takes to
    build. This needs one line of AGENTS.md and Aaron's yes.
-1. **The logbook, as one lane** (it touches the blueprint, `packages/platform` and the runner): the things declared with
+1. **The logbook, item K.2** (it touches the blueprint, `packages/platform` and the runner): the things declared with
    their machines, journeys and checks written first by another agent, the Worker and its objects, `verdict.record`
-   with OIDC, the runner's upload, `world.yml` writing its verdict. Needs 4.4 as step 4.5 does, which it replaces.
+   with OIDC, the runner's upload, `world.yml` writing its verdict. Needs 4.4 and 3.9; item 4.5 then closes on its verdicts.
 2. **Import.** One command walks every `records/` folder, uploads each file to R2 by its digest, and writes a legacy
    record row: its path, digest, the commit that added it and that commit's author. Legacy rows are marked
    `legacy: committed by hand`, never verdicts. Run once by CI (`prove.yml`), so the import is itself on record.

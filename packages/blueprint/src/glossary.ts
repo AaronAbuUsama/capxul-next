@@ -173,6 +173,13 @@ export const glossary: ReadonlyArray<Entry> = [
     scope: "user-facing",
   },
   {
+    // Aaron, 16 November 2026 (docs/decisions.md, "State is not in git"; docs/guides/logbook.md).
+    word: "logbook",
+    meaning: "The one store of what happened: runs, verdicts, tasks, asks, threads, sitreps and the plan's state.",
+    replaces: [],
+    scope: "internal",
+  },
+  {
     word: "history",
     meaning: "A world's ordered history.",
     replaces: ["record", code("record.export")],

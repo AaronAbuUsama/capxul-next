@@ -40,6 +40,7 @@ Scope: **user-facing** words are seen by callers (operation names, the CLI, the 
 | **check** | What judges one call or run, and only that. | (kept) | internal |
 | **gate** (`pnpm gate`) | The pass every pull request clears; its levels are rungs. | `pnpm check`, ladder | internal |
 | **verdict** | What a CI run proved. | run record, proof record | user-facing |
+| **logbook** | The one store of what happened: runs, verdicts, tasks, asks, threads, sitreps and the plan's state. | (kept) | internal |
 | **history** | A world's ordered history. | record, `record.export` | user-facing |
 | **span** | A timed piece of work inside an operation. | step (not counted) | internal |
 | **step** | One move of a journey, and only that. | (kept) | internal |
