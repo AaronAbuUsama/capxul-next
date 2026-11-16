@@ -15,7 +15,8 @@ export type { Counter, Ratchet } from "@capxul/blueprint-tools";
 /**
  * Every ratchet: R1 to R14 as agreed on 15 November 2026, R15, the glossary's old words (roadmap item 3.8, #302), and
  * R16 to R19 (roadmap item 3.10): the names that differ from their path, and the operations not yet in the formats it
- * added, each counted from today. New ones take the next number.
+ * added, each counted from today, and R20, the glossary's words not yet landed (roadmap item 3.8). New ones take the
+ * next number.
  */
 export const ratchets: ReadonlyArray<Ratchet> = [
   {
@@ -191,6 +192,14 @@ export const ratchets: ReadonlyArray<Ratchet> = [
       "Operations on the `promises` format's unmigrated list: some refusal they decide is named in none of their promises.",
     closes: "C.1",
     count: "formats:promises",
+  },
+  {
+    id: "R20",
+    name: "Glossary words not yet landed",
+    holds:
+      "Each glossary word whose landing place (a package, a `pnpm` command) is not there yet, and each tracked file still named by an old word written as a file name (`door.ts`, `door.py`). A CLI flag's landing is the CLI's (3.9).",
+    closes: "the renames' lane (3.8's landings)",
+    count: "glossary:not-landed",
   },
 ];
 

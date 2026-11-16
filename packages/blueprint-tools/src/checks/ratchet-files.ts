@@ -1,12 +1,14 @@
 // The ratchets counted from the repository's files (roadmap item 3.6): R7, the verbs whose examples still sit in their
 // thing's `examples.ts`; R8, the long READMEs, the hand-written file maps and the docs not yet folded; R10, the
-// non-Effect constructs and runtime dependencies. Pure: packages/generate (src/ratchet-files.entry.ts) reads the files,
+// non-Effect constructs and runtime dependencies; R20, the glossary's words not yet landed (roadmap item 3.8). Pure: packages/generate (src/ratchet-files.entry.ts) reads the files,
 // git's list of them and the effect-only rule's findings, and hands them in; the tests run these on made-up files.
 import * as Arr from "effect/Array";
+import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
 import * as Str from "effect/String";
+import type { Entry } from "../language/glossary.ts";
 
-/** What the three counters read, each gathered by packages/generate. */
+/** What the four counters read, each gathered by packages/generate. */
 export interface RepositoryFiles {
   /** Each verb's file, `src/things/<thing>/verbs/<verb>.ts` under packages/blueprint, and its text. */
   readonly verbs: { readonly [path: string]: string };
@@ -25,6 +27,10 @@ export interface RepositoryFiles {
   readonly nonEffect: { readonly [file: string]: number };
   /** Each package's runtime dependencies (`dependencies` of its package.json), by its path. */
   readonly dependencies: { readonly [pkg: string]: ReadonlyArray<string> };
+  /** Every tracked file, by its path from the root (git's list). */
+  readonly tracked: ReadonlyArray<string>;
+  /** The root package.json's scripts, by name. */
+  readonly scripts: ReadonlyArray<string>;
 }
 
 /**
@@ -108,4 +114,36 @@ export const nonEffectCode = (files: RepositoryFiles): Counted => {
       ...dependencies,
     ],
   };
+};
+
+/** An old word written as code that is a bare file name (`door.ts`): no folder, no space, an extension. */
+const FILE_NAME = /^[\w.-]+\.[a-z]{1,5}$/;
+
+const baseName = (path: string): string => Arr.last(Str.split(path, "/")).pipe(Option.getOrElse(() => path));
+
+/**
+ * R20: each glossary word whose landing place is not there yet, and each tracked file still named by an old word.
+ * A `lands` that is a path under `packages/` counts once while no tracked file sits under it; a `lands` that is a
+ * `pnpm` command counts once while the root package.json has no script of its name. Any other `lands` (a CLI flag) is
+ * the CLI's to land (roadmap item 3.9), and is not counted here. Each tracked file whose name is an old word written as
+ * code (`door.ts`, `door.py`) counts once, until it is renamed.
+ */
+export const wordsNotLanded = (files: RepositoryFiles, glossary: ReadonlyArray<Entry>): Counted => {
+  const places = Arr.flatMap(glossary, ({ word, lands }) => {
+    if (lands === undefined) return [];
+    if (Str.startsWith("packages/")(lands))
+      return Arr.some(files.tracked, Str.startsWith(`${lands}/`)) ? [] : [`not landed: ${word}: ${lands}`];
+    const script = /^pnpm (\S+)$/.exec(lands)?.[1];
+    return script === undefined || Arr.contains(files.scripts, script) ? [] : [`not landed: ${word}: ${lands}`];
+  });
+  const oldNames = Arr.flatMap(glossary, ({ word, replaces }) =>
+    Arr.flatMap(replaces, (old) =>
+      typeof old !== "string" && old.kind === "code" && FILE_NAME.test(old.text) ? [[old.text, word] as const] : [],
+    ),
+  );
+  const tracked: ReadonlyArray<string> = Arr.sort(files.tracked, Str.Order);
+  const renames = Arr.flatMap(tracked, (path) =>
+    Arr.flatMap(oldNames, ([old, word]) => (baseName(path) === old ? [`not renamed: ${path} (${word})`] : [])),
+  );
+  return each([...places, ...renames]);
 };
