@@ -2,7 +2,7 @@
 // a JSON file holding the payload or part of it; and, the other way, the arguments that make a given call
 // (`argsOf`). This is the command line's input edge (.oxlintrc.json, settings.capxul.jsonEdges): the one place it
 // reads JSON text, which it decodes at once with the payload's schema, and writes a field's value as JSON text.
-import { operations, servedBy, type CallOptions, type OperationName } from "@capxul/blueprint";
+import { CLI_FLAGS, commands, operations, servedBy, type CallOptions, type OperationName } from "@capxul/blueprint";
 import * as Sdk from "@capxul/sdk";
 import * as Arr from "effect/Array";
 import * as Effect from "effect/Effect";
@@ -16,10 +16,13 @@ import * as Str from "effect/String";
 import * as CliError from "effect/cli/CliError";
 
 /**
- * The flags a command has besides its fields' own: `--input` and `--operator` on every command, `--as` and `--at` on
- * a world's. A payload field may not take the name of one its command has.
+ * The flags a command has besides its fields' own (the blueprint's `CLI_FLAGS`): `--json`, `--input` and
+ * `--operator` on every command; `--world` and `--as` on a world's. An account's command whose payload has a `world`
+ * field takes that field as its `--world`. `--at`, hidden, is a world's command's too: another world's endpoint, as
+ * `world.show` answers it, which only `callVia` (`CallOptions.at`) gives. A payload field may not take the name of
+ * one its command has.
  */
-export const RESERVED = { input: "input", as: "as", operator: "operator", at: "at" } as const;
+export const RESERVED = { ...CLI_FLAGS, at: "at" } as const;
 
 /** One field of an operation's payload and the flag that sets it. */
 export interface Field {
@@ -83,10 +86,15 @@ export interface Given {
 }
 
 /**
- * The operation's payload: the `--input` file's fields, then each given flag over them, decoded with the
- * operation's own payload schema. A payload that does not decode is refused here, before any call is made.
+ * The operation's payload: the `--input` file's fields, then each given flag over them, then `fill`'s fields for
+ * any still left out, decoded with the operation's own payload schema. A payload that does not decode is refused
+ * here, before any call is made.
  */
-export const payloadOf = (name: OperationName, given: Given) =>
+export const payloadOf = <E, R>(
+  name: OperationName,
+  given: Given,
+  fill: (missing: ReadonlyArray<string>) => Effect.Effect<Readonly<Record<string, unknown>>, E, R>,
+) =>
   Effect.gen(function* () {
     const fromFile = yield* Option.match(given.input, {
       onNone: () => Effect.succeed<Readonly<Record<string, unknown>>>({}),
@@ -100,8 +108,11 @@ export const payloadOf = (name: OperationName, given: Given) =>
         }),
       ),
     );
+    const stated = { ...fromFile, ...fromFlags };
+    const missing = Arr.filter(fieldsOf(name), (field) => !(field.field in stated));
+    const filled = yield* fill(Arr.map(missing, (field) => field.field));
     const payload = Schema.toCodecJson(operations[name].rpc.payloadSchema);
-    return yield* Effect.mapError(Schema.decodeUnknownEffect(payload)({ ...fromFile, ...fromFlags }), (issue) =>
+    return yield* Effect.mapError(Schema.decodeUnknownEffect(payload)({ ...filled, ...stated }), (issue) =>
       CliError.UserError.make({ cause: issue, userMessage: `${name}: ${String(issue)}` }),
     );
   });
@@ -116,7 +127,7 @@ const flagText = (field: Field, value: unknown) =>
     : Effect.orDie(Schema.encodeUnknownEffect(JsonText)(value));
 
 /**
- * The arguments of the command that makes this call: the operation's path, `--<flag>=<text>` for each field of its
+ * The arguments of the command that makes this call: its thing and verb (the blueprint's `commands`), `--<flag>=<text>` for each field of its
  * payload, encoded with the operation's own payload schema, and `--as`, `--operator` and `--at` for its options. A
  * payload that is not of its schema has no arguments: it is rejected as the SDK rejects it (`PayloadRejected`, with
  * the SDK's own check), before the command line runs. A platform operation takes no `as` or `at`.
@@ -136,7 +147,7 @@ export const argsOf = (name: OperationName, payload: unknown, options: CallOptio
         : Effect.map(flagText(field, value), (text) => [`--${field.flag}=${text}`]);
     });
     return [
-      ...Str.split(name, "."),
+      ...commands[name],
       ...Arr.flatten(fields),
       ...option(RESERVED.as, options.as),
       ...option(RESERVED.operator, options.operator),

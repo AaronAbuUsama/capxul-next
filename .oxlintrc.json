@@ -53,6 +53,7 @@
         "packages/runner/src/record.ts": "run records are JSON files on disk, which the dashboard and the speed climb read",
         "packages/cli/src/input.ts": "the command line's input: a flag's JSON value and the --input file, decoded at once with the payload's schema",
         "packages/cli/src/output.ts": "the command line's output: one line of JSON per answer, encoded with the operation's own schemas",
+        "packages/cli/src/profile.ts": "the command line's profile: a JSON file under CAPXUL_HOME that capxul login writes and its commands read back",
         "packages/world/src/common/record.ts": "run records and proof records are JSON files, written to be read by people and by scoring, and read back by the proofs; the command line prints its results as the same JSON text",
         "packages/platform/src/collector/otlp-json.ts": "the collector reads and rewrites OTLP/HTTP's JSON encoding, the producers' and the sink's format, to stamp each resource",
         "packages/runner/src/telemetry/otlp.ts": "OTLP JSON, OpenTelemetry's wire format: the bodies the tap and the sink hold, decoded from their text at this one edge"
@@ -63,6 +64,7 @@
         "packages/world/src/common/failures.ts": "the world's own infrastructure failures (a step timed out, a part not ready): faults the contract does not promise, so the blueprint does not name their fields",
         "packages/core/src/failures.ts": "Core's own failure in reaching a site through its door: a fault of the infrastructure, mapped to the blueprint's refusals before it reaches a caller",
         "packages/runner/src/record.ts": "a run record is a JSON file on disk, written by the runner and read by the dashboard and the speed climb; its schema is that file's format",
+        "packages/cli/src/profile.ts": "the command line's profile is a JSON file of its own format (the account's address, the operator's token, the current world), not a value of the contract",
         "packages/runner/src/summary.ts": "a run's summary is the JSON file a step's Proof names; its schema is that file's format",
         "packages/world/src/common/record.ts": "run records and proof records are JSON files outside the world; their schemas are those files' format",
         "packages/world/src/things/world/handle.ts": "a deployed world's stack outputs as Alchemy stores them: the format of a file outside the world, read back as it was written",
