@@ -24,7 +24,8 @@ export type CliCommand = keyof typeof CLI_COMMANDS;
  * `--operator` picks the operator whose token signs an account call.
  *
  * Which names each kind of command reserves, so that no payload field may take them:
- * - a world's command (served by the world): all five;
+ * - a world's command (served by the world): all five, and the hidden `--at` (a world's endpoint by address), kept
+ *   only for the runner's in-process calls (packages/cli, `callVia`) until journeys name worlds;
  * - an account's command (served by the account): `json`, `input` and `operator`. It takes no `--as`, so a field
  *   named `as` is its own (`world.snapshot.restore`'s, the new world's name). A field named `world` is allowed only
  *   when it is a `WorldName`, and then `--world` is that field: given, it fills it; left out, the world `use` set does.
