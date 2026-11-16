@@ -2,7 +2,7 @@
 // (the blueprint's `commands`), and every field of its payload has its own flag.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { CLI_COMMANDS, commands, operations, servedBy, type OperationName } from "@capxul/blueprint";
+import { CLI_COMMANDS, CLI_FLAGS, commands, operations, servedBy, Values, type OperationName } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Order from "effect/Order";
 import * as Rec from "effect/Record";
@@ -80,4 +80,15 @@ test("a flag's text is its field's JSON value when the field takes it, and the t
   const name = Arr.findFirst(Cli.fieldsOf("doc.submit"), (field) => field.field === "name");
   assert.ok(name._tag === "Some");
   assert.equal(Cli.valueOf(name.value, "123"), "123");
+});
+
+test("an account command's field named world is a WorldName, so --world always names a world (CLI_FLAGS)", () => {
+  for (const name of operationNames) {
+    if (servedBy(name) !== "platform") continue;
+    const ast = operations[name].rpc.payloadSchema.ast;
+    if (!SchemaAST.isObjects(ast)) continue;
+    for (const signature of ast.propertySignatures)
+      if (String(signature.name) === CLI_FLAGS.world)
+        assert.equal(signature.type, Values.WorldName.ast, `${name}: its world field is not a WorldName`);
+  }
 });

@@ -38,6 +38,12 @@ const secondToken = Effect.mapError(
   usage("CAPXUL_SECOND_PLATFORM_TOKEN is not a token"),
 );
 
+/** True when the environment names an account (`CAPXUL_PLATFORM_URL` is set): the profile is then never read. */
+export const accountInEnv = Effect.map(
+  Effect.orElseSucceed(Config.option(Config.String("CAPXUL_PLATFORM_URL")), () => Option.none<string>()),
+  Option.isSome,
+);
+
 /** The account from the environment's variables alone, when they name one. */
 const accountFromEnv = Effect.gen(function* () {
   const given = yield* Effect.mapError(
@@ -53,6 +59,7 @@ const accountFromEnv = Effect.gen(function* () {
 export const account = Effect.gen(function* () {
   const fromEnv = yield* accountFromEnv;
   if (Option.isSome(fromEnv)) return fromEnv.value;
+  if (yield* accountInEnv) return yield* refuse("CAPXUL_PLATFORM_URL is set: set CAPXUL_PLATFORM_TOKEN beside it");
   const profile = yield* readProfile;
   if (profile.account === undefined || profile.token === undefined)
     return yield* refuse(

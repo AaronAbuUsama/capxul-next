@@ -60,17 +60,29 @@ export const readProfile = Effect.gen(function* () {
   );
 });
 
-/** Keeps `profile`, readable by its owner alone. */
+/**
+ * Keeps `profile`, readable by its owner alone. The folder is made owner-only even when it was there already, and
+ * the profile is written to a new file created owner-only, then renamed over the old one, so the token never sits in
+ * a file anyone else may read.
+ */
 export const writeProfile = (profile: Profile) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const folder = yield* home;
     const file = yield* fileOf;
+    const fresh = `${file}.new`;
     const text = yield* Effect.orDie(Schema.encodeEffect(ProfileText)(profile));
     yield* Effect.mapError(
-      Effect.andThen(
-        fs.makeDirectory(folder, { recursive: true, mode: FOLDER_MODE }),
-        Effect.andThen(fs.writeFileString(file, text, { mode: FILE_MODE }), fs.chmod(file, FILE_MODE)),
+      Effect.all(
+        [
+          fs.makeDirectory(folder, { recursive: true, mode: FOLDER_MODE }),
+          fs.chmod(folder, FOLDER_MODE),
+          fs.remove(fresh, { force: true }),
+          fs.writeFileString(fresh, text, { flag: "wx", mode: FILE_MODE }),
+          fs.chmod(fresh, FILE_MODE),
+          fs.rename(fresh, file),
+        ],
+        { discard: true },
       ),
       failed(`cannot write the profile at ${file}`),
     );

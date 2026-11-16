@@ -17,6 +17,7 @@ import type * as Path from "effect/Path";
 import * as Rec from "effect/Record";
 import * as Schema from "effect/Schema";
 import * as Stdio from "effect/Stdio";
+import type * as Terminal from "effect/Terminal";
 import * as CliError from "effect/cli/CliError";
 import * as Command from "effect/cli/Command";
 import * as Flag from "effect/cli/Flag";
@@ -25,14 +26,17 @@ import { fieldsOf, payloadOf, RESERVED, type Given } from "./input.ts";
 import { answerLine, type Answer } from "./output.ts";
 import { readProfile } from "./profile.ts";
 import { ownCommands, say } from "./sign-in.ts";
-import { account, accountForWorld, ownWorld, reachingLayer } from "./target.ts";
+import { account, accountForWorld, accountInEnv, ownWorld, reachingLayer } from "./target.ts";
 import { answerView } from "./view.ts";
 
 /** What a command fails with after printing its answer: the refusal, or input it could not use. */
 export type Failure = Sdk.Refusal<OperationName> | CliError.UserError;
 
-/** What a command needs from the process: its disk (the `--input` file, the profile), an HTTP client, its stdio. */
-export type Services = FileSystem.FileSystem | Path.Path | HttpClient.HttpClient | Stdio.Stdio;
+/**
+ * What a command needs from the process: its disk (the `--input` file, the profile), an HTTP client, its stdio and
+ * its terminal (`capxul login` reads a typed token from it).
+ */
+export type Services = FileSystem.FileSystem | Path.Path | HttpClient.HttpClient | Stdio.Stdio | Terminal.Terminal;
 
 export type CapxulCommand = Command.Command<string, never, {}, Failure, Services>;
 
@@ -46,14 +50,15 @@ const print = (answer: Answer, json: boolean) =>
 
 /**
  * The payload's fields the profile fills: on an account's command, its `world` field, when it is left out, is the
- * world `capxul use` set. The profile is read only then.
+ * world `capxul use` set. The profile is read only then, and never when the environment names the account.
  */
 const fillFor = (name: OperationName) => (missing: ReadonlyArray<string>) =>
-  servedBy(name) === "platform" && missing.includes(RESERVED.world)
-    ? Effect.map(readProfile, (profile): Record<string, unknown> =>
-        profile.world === undefined ? {} : { [RESERVED.world]: profile.world },
-      )
-    : Effect.succeed({});
+  Effect.gen(function* () {
+    if (servedBy(name) !== "platform" || !missing.includes(RESERVED.world)) return {};
+    if (yield* accountInEnv) return {};
+    const profile = yield* readProfile;
+    return profile.world === undefined ? {} : { [RESERVED.world]: profile.world };
+  });
 
 /** The call, through the SDK, to where it goes: the account, or the world `--world`, the environment or `use` names. */
 const callThrough = (name: OperationName, payload: unknown, options: CallOptions, world: Option.Option<string>) =>
