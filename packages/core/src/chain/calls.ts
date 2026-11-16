@@ -124,13 +124,18 @@ export const nonceTaken = (error: ChainFailed): boolean =>
   error.method === "eth_sendRawTransaction" &&
   /nonce too low|replacement transaction underpriced|replacement underpriced/i.test(error.message);
 
-/** How often a send whose nonce was taken is signed again, and how long it waits first: a little, and at random. */
-const RESENDS = Schedule.max([Schedule.jittered(Schedule.spaced("150 millis")), Schedule.recurs(5)]);
+/**
+ * How often a send whose nonce was taken is signed again, and how long it waits first: a little, and at random. Of
+ * sends that read the same nonce, one lands each round, so `n` at once need at most `n` tries: eight again covers the
+ * companies a run founds at once (the runner's RUNNER_SITES_AT_ONCE, 8). A queue would serialise only within one
+ * isolate, and one in a Durable Object would add a hop to every send.
+ */
+const RESENDS = Schedule.max([Schedule.jittered(Schedule.spaced("150 millis")), Schedule.recurs(8)]);
 
 /**
  * Sends one transaction from the service key and answers its receipt once it is in a block. A transaction that
  * reverts is a fault: Core only sends what it has checked would succeed. A send whose nonce another send took first
- * is signed again at the next pending nonce, up to five times (`nonceTaken`); no step is declared for the resend, so
+ * is signed again at the next pending nonce, up to eight times (`nonceTaken`); no step is declared for the resend, so
  * it is part of this span.
  */
 export const sendAsService = Effect.fn("chain.send")(function* (to: string, data: Hex, gas: bigint = 8_000_000n) {

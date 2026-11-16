@@ -54,7 +54,7 @@ test("a send answered 'nonce too low' once is signed again at the next pending n
 test("a send whose nonce is taken every time stops after its tries", async () => {
   const { exit, sends } = await send(100, "replacement transaction underpriced");
   assert.equal(exit._tag, "Failure");
-  assert.equal(sends, 6, "one send and five again");
+  assert.equal(sends, 9, "one send and eight again");
 });
 
 test("any other refusal is not sent again", async () => {
