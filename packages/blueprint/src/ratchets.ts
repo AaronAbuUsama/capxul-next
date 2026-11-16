@@ -252,8 +252,9 @@ export const unmigrated: { readonly [format in FormatName]?: ReadonlyArray<Opera
     "world.snapshot.delete",
   ],
   allowed: notClimbed,
-  // world.create declares its steps (4.8's world track, B-1); its logs come with the logs format.
-  spans: Arr.filter(notClimbed, (name) => name !== "world.create"),
+  // world.create and world.snapshot.save declare their steps (4.8's world track, B-1 and B-2); their logs come with
+  // the logs format.
+  spans: Arr.filter(notClimbed, (name) => name !== "world.create" && name !== "world.snapshot.save"),
   logs: notClimbed,
   promises: [
     "org.member.grant",

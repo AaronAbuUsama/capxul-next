@@ -1,7 +1,7 @@
 // `capxul snapshot save` (today `world.snapshot.save`): saving a world's state under a name.
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
-import { verb, claim, kept } from "@capxul/blueprint-tools";
+import { verb, claim, kept, span } from "@capxul/blueprint-tools";
 import { NotImplemented, NotWorldOwner } from "../../../common/refusals.ts";
 import { SnapshotName, WorldName } from "../../../common/values.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
@@ -10,6 +10,7 @@ import { SnapshotSaved } from "../events.ts";
 import { saved } from "../examples.ts";
 import { SnapshotExists, SnapshotInUse } from "../refusals.ts";
 import { Snapshot } from "../values.ts";
+import { StepKind } from "../../../telemetry/step-kinds.ts";
 
 // A snapshot is a Neon branch of the world's branch with no compute, the chain's whole state in the world's own R2
 // bucket under the snapshot's name, a backup of each of the world's sites on the bench (`bench backup`, kept by the
@@ -40,6 +41,24 @@ export const snapshotSave = verb({
       }),
     },
   ],
+  // Its steps (4.1), as `packages/world` saves a world: the sites' side (their backup, then the point) beside the
+  // database and chain side (the index stopped, the branch and the chain's state saved, the index resumed), then kept.
+  spans: {
+    /** The world's company sites backed up by the bench's site door. */
+    sites: span("world.snapshot.save.sites", StepKind.site),
+    /** The sites' backup kept as the snapshot's point. */
+    point: span("world.snapshot.save.point", StepKind.site),
+    /** The world's index stopped, so the branch holds a still index. */
+    indexStop: span("world.snapshot.save.index.stop", StepKind.container),
+    /** The world's database branched for the snapshot. */
+    branch: span("world.snapshot.save.branch", StepKind.branch),
+    /** The world's chain state saved by its hub. */
+    chain: span("world.snapshot.save.chain", StepKind.container),
+    /** The world's index started again. */
+    indexResume: span("world.snapshot.save.index.resume", StepKind.container),
+    /** The snapshot written to the registry and the world's record. */
+    keep: span("world.snapshot.save.keep", StepKind.database),
+  },
   budget: {
     ms: 30_000,
     excludes: ["waking a parked world"],
