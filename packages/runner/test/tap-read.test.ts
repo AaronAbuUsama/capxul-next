@@ -2,7 +2,8 @@
 // database: Neon's `/sql` endpoint, answering each query by what it reads. One call's traces and logs bodies, as
 // Effect wrote them, are in `telemetry.otlp` under its trace id.
 import { strict as assert } from "node:assert";
-import { operations } from "@capxul/blueprint";
+import { Envelope, operations } from "@capxul/blueprint";
+import { OUTCOME } from "@capxul/core";
 import { test } from "node:test";
 import * as Arr from "effect/Array";
 import * as Duration from "effect/Duration";
@@ -57,8 +58,9 @@ const standIn = (tables: Tables, reads: { count: number } = { count: 0 }) =>
 /** One call as Core makes it: its server span, a step inside it, and a log in the step. */
 const oneCall = Effect.gen(function* () {
   const posted = yield* Effect.log("inside the step").pipe(
-    Effect.withSpan("database.query"),
-    Effect.withSpan("call.op", { kind: "server" }),
+    // Each span carries the outcome Core stamps on every span it keeps (core/src/telemetry/spans.ts).
+    Effect.withSpan("database.query", { attributes: { [Envelope.attributes.outcome.name]: OUTCOME.success } }),
+    Effect.withSpan("call.op", { kind: "server", attributes: { [Envelope.attributes.outcome.name]: OUTCOME.success } }),
     exported,
   );
   const traces = bodiesTo(posted, "/v1/traces")[0]!;

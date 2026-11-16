@@ -38,6 +38,8 @@ may still hold. A listed file with more findings than its count fails (the count
 too, saying to lower the count. So when you migrate a file, lower its count to what the rule now finds there (remove
 the entry at zero), and lower the rule's ceiling in `test/owned-values.test.ts` by the same amount. A new file is
 never added to a list: new work is born compliant.
+A finding excused on its line by `// oxlint-disable-next-line capxul/<rule> -- <reason>` is not counted, in a listed
+file or not: the reason sits next to it, as AGENTS.md asks of every override. An override without a reason counts.
 
 To add a package, add it to `PACKAGES` in `src/shape.ts` with a one-line reason, in the same pull request. To add an
 entry file, add its path to `settings.capxul.entries` with a reason and to the entry override in `.oxlintrc.json`.
