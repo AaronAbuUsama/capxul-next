@@ -25,6 +25,7 @@ export { keepSitesAsTemplate } from "./things/site-template/keep.ts";
 export { sweepTemplates, templateCode, templateName, TemplatesSwept } from "./things/site-template/sweep.ts";
 export { HubStage, hubDown, hubUp, openHub } from "./things/cluster/client.ts";
 export { BenchStage, LOCAL_BENCH, sitesOn } from "./things/site/bench.ts";
+export { benchPool } from "./things/site/show.ts";
 export { withWorld } from "./things/world/use.ts";
 export { Limits, Timeouts, type World, type WorldSpec } from "./things/world/values.ts";
 export { requireComplete, sweep, SweepReport } from "./things/world/sweep.ts";

@@ -15,6 +15,7 @@ import { decodedAsTyped, foundingFor, type Founding, type TypedFounding } from "
 import { nowWears } from "../support/hats.ts";
 import { castMember, company, recordOf, textOf } from "../support/world.ts";
 import { approvalOf, sign, signedByBoard } from "./signatures.ts";
+import { steady } from "../support/steady.ts";
 
 const steps = outline({
   cannot: [
@@ -139,7 +140,7 @@ export const foundNorthwind = journey(
           as: cast.eli,
         });
         yield* same("the subject eli's signature sent", sent.subject, kept.subject);
-        const board = yield* capxul.chain.safe({ safe: founded.safe, block: null });
+        const board = yield* steady(capxul.chain).safe({ safe: founded.safe, block: null });
         const directors = yield* Effect.forEach([cast.dana, cast.eli], (person) =>
           Effect.map(castMember(world, person), (member) => Str.toLowerCase(member.safe ?? "")),
         );

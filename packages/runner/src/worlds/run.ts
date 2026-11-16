@@ -36,7 +36,7 @@ import { coreLabel, Platform } from "./platform.ts";
 import { sharedStartingWorldsOf, type SharedStartingWorlds } from "../shared/starting.ts";
 import { startingWorldsOf, type StartingWorlds } from "./starting.ts";
 import { ofTheRun } from "./operators.ts";
-import { destroyAll, destroyStrays, leftOf, takeDown } from "./teardown.ts";
+import { destroyAll, destroyStrays, leftAfterDestroy, leftOf, stillHeld, takeDown } from "./teardown.ts";
 import { tapFailures } from "../telemetry/side-by-side.ts";
 
 /**
@@ -156,7 +156,7 @@ const runOne = (
         journey: scenario.name,
         note: mine.length === 0 ? "none" : Arr.join(mine, ", "),
       });
-      const leftAfter = yield* leftOf(looked);
+      const leftAfter = yield* leftAfterDestroy(looked, timings, scenario.name); // read until settled (teardown.ts)
       const got = Exit.isSuccess(done) ? done.value : undefined;
       const used = got?.used;
       const value = used !== undefined && Exit.isSuccess(used) ? used.value : undefined;
@@ -172,9 +172,7 @@ const runOne = (
         ...(value === undefined ? [] : failuresOf(value.calls)),
         ...tapFailures(value?.tap),
         ...(destroyed ? [] : ["a world's destroy failed"]),
-        ...(leftAfter === null || (leftAfter.worlds ?? []).length > 0
-          ? ["the accounts still hold some of its worlds"]
-          : []),
+        ...stillHeld(leftAfter),
       ];
       const record: RunRecord = {
         kind: "journey",

@@ -12,6 +12,7 @@ import { same, sameAddress } from "../support/expect.ts";
 import { castMember, whereOf } from "../support/world.ts";
 import { callerOf, nothingRecorded, worldBefore, type Before } from "./common.ts";
 import { check, checks } from "./format.ts";
+import { steady } from "../support/steady.ts";
 
 export const orgDirectorList = checks<"org.director.list", Before>({
   before: (asked) => worldBefore(asked.options),
@@ -50,7 +51,7 @@ export const orgDirectorList = checks<"org.director.list", Before>({
         const capxul = yield* Capxul;
         for (const each of listed.directors)
           yield* expect(
-            yield* capxul.chain.wears(
+            yield* steady(capxul.chain).wears(
               { hats: before.world.contracts.hats, hat: listed.directorHat, wearer: each.safe, block: null },
               whereOf(asked.options),
             ),
