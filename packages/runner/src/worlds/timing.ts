@@ -12,11 +12,13 @@ import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
+import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
-import { checkCall, CheckedCall, failuresOf } from "../checks/checks.ts";
+import { CheckedCall, failuresOf } from "../checks/checks.ts";
 import { describe } from "../failure.ts";
 import { Outcome, passedOr, writeJson } from "../record.ts";
 import { freshName, keptFor } from "../run.ts";
+import { checkedOrPlumbing } from "../telemetry/kept.ts";
 import type { Settings } from "../settings.ts";
 import { Inventory } from "../world/leftovers.ts";
 import { waitsOn } from "./makers.ts";
@@ -66,6 +68,8 @@ export const timeStartingWorlds = (settings: Settings) =>
     const startedAt = DateTime.formatIso(yield* DateTime.now);
     const run = yield* freshName("run");
     const timings = yield* makeTimings;
+    // The runner's own failures to read what the api kept of a world's calls: those calls then hold no checks.
+    const plumbing = yield* Ref.make<ReadonlyArray<string>>([]);
     const [lines, templates, destroyMs, notTakenDown] = yield* onHub(settings, timings, () =>
       Effect.gen(function* () {
         const starting = yield* startingWorldsOf(settings, platform.url, timings);
@@ -81,10 +85,11 @@ export const timeStartingWorlds = (settings: Settings) =>
               starting.forScenario(world),
             ).pipe(Effect.exit, Effect.timed);
             const calls = Arr.map(Arr.drop(yield* starting.made, callsBefore), (each) => each.call);
-            const found = yield* Effect.orElseSucceed(keptFor(Option.none(), calls), () => ({
-              spans: [],
-              events: [],
-            }));
+            const found = yield* checkedOrPlumbing(calls, keptFor(Option.none(), calls));
+            yield* Ref.update(plumbing, (so) => [
+              ...so,
+              ...Arr.map(found.plumbing, (each) => `${world.name}: ${each}`),
+            ]);
             const one = yield* starting.templateWorlds;
             yield* destroyAll(Arr.filter(Arr.drop(yield* platform.made, before.length), (s) => !Arr.contains(one, s)));
             const waits = waitsOn(world);
@@ -100,7 +105,7 @@ export const timeStartingWorlds = (settings: Settings) =>
               outcome,
               ms: millis(took),
               why: Exit.isSuccess(exit) ? null : describe(exit.cause),
-              calls: Arr.map(calls, (call) => checkCall(call, found)),
+              calls: found.checked,
             };
           }),
         ).pipe(
@@ -119,6 +124,7 @@ export const timeStartingWorlds = (settings: Settings) =>
     const failures = [
       ...Arr.flatMap(lines, (line) => (line.outcome === "failed" ? [`${line.name}: ${line.why ?? ""}`] : [])),
       ...failuresOf(Arr.flatMap(lines, (line) => line.calls)),
+      ...(yield* Ref.get(plumbing)),
       ...notTakenDown,
       ...(after === null || (after.worlds ?? []).length > 0
         ? ["the accounts still hold some of the run's worlds"]
