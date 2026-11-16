@@ -65,6 +65,7 @@
         "packages/runner/src/record.ts": "a run record is a JSON file on disk, written by the runner and read by the dashboard and the speed climb; its schema is that file's format",
         "packages/runner/src/summary.ts": "a run's summary is the JSON file a step's Proof names; its schema is that file's format",
         "packages/world/src/common/record.ts": "run records and proof records are JSON files outside the world; their schemas are those files' format",
+        "packages/world/src/things/site/show.ts": "the site door's `GET /templates` answer is door.py's own JSON (packages/platform/door, pool.py): its pool size is the door's setting, not the contract's",
         "packages/world/src/things/world/handle.ts": "a deployed world's stack outputs as Alchemy stores them: the format of a file outside the world, read back as it was written",
         "packages/core/src/site-ops/warp-times.ts": "where a company site's warp spent its time, as the Capxul app's Python answers it (capxul/core_api.py, warp): an outside format, decoded only to be recorded on a span",
         "packages/core/src/telemetry/attributes.ts": "the attributes of a kept span as OpenTelemetry and effect/sql set them: an outside format, decoded where it is read",

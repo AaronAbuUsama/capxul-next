@@ -3,7 +3,8 @@
 // world-level journey's worlds, under the smaller of `RUNNER_WORLDS_AT_ONCE` (Neon's concurrently active computes,
 // shared by every run; its documented default is 20) and the cluster's capacity (not its free places: the cluster's
 // ledger is not read). Sites: the companies being founded
-// at once, under `RUNNER_SITES_AT_ONCE`, the bench's ready blank copies (packages/platform, DOOR_BLANK_POOL_SIZE).
+// at once, under the smaller of `RUNNER_SITES_AT_ONCE` and the bench's ready blank copies its door reports
+// (packages/platform, DOOR_BLANK_POOL_SIZE): a site made beyond the pool is made cold and may not come up in time.
 //
 // A journey takes everything it needs at once, before it starts, and gives it back when its worlds are destroyed: two
 // journeys each holding part of what they need and waiting for the rest would wait for ever. A journey that needs more
