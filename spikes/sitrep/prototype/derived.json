@@ -1,0 +1,435 @@
+{
+ "sources": [
+  {
+   "id": "roadmap",
+   "name": "The roadmap and master's history",
+   "read": "2026-11-15T20:10:11Z"
+  },
+  {
+   "id": "github",
+   "name": "GitHub Actions",
+   "read": "2026-11-15T20:22:52Z"
+  },
+  {
+   "id": "conductor",
+   "name": "The conductor's lanes and pull requests",
+   "read": "2026-11-15T18:50:00Z"
+  }
+ ],
+ "health": {
+  "master": {
+   "state": "green",
+   "label": "a1aa96c",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43756426573",
+   "at": "2026-11-15T20:11:36Z"
+  },
+  "runs": [
+   {
+    "slice": "slice/blueprint",
+    "outcome": "passed",
+    "minutes": 28.5,
+    "at": "2026-11-15T15:47:16Z",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43729159341"
+   },
+   {
+    "slice": "slice/world-layout",
+    "outcome": "passed",
+    "minutes": 29.2,
+    "at": "2026-11-15T16:01:43Z",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43730455893"
+   },
+   {
+    "slice": "slice/docs",
+    "outcome": "passed",
+    "minutes": 31.6,
+    "at": "2026-11-15T16:11:23Z",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43731122192"
+   },
+   {
+    "slice": "slice/blueprint",
+    "outcome": "passed",
+    "minutes": 34.2,
+    "at": "2026-11-15T16:39:26Z",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43733471806"
+   },
+   {
+    "slice": "slice/world-layout",
+    "outcome": "passed",
+    "minutes": 36.8,
+    "at": "2026-11-15T16:42:49Z",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43733548394"
+   },
+   {
+    "slice": "slice/docs",
+    "outcome": "passed",
+    "minutes": 32.0,
+    "at": "2026-11-15T17:09:36Z",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43736529998"
+   },
+   {
+    "slice": "slice/blueprint",
+    "outcome": "passed",
+    "minutes": 30.0,
+    "at": "2026-11-15T17:38:08Z",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43739380878"
+   },
+   {
+    "slice": "slice/docs",
+    "outcome": "passed",
+    "minutes": 47.2,
+    "at": "2026-11-15T18:43:17Z",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43743871074"
+   },
+   {
+    "slice": "slice/run-time",
+    "outcome": "failed",
+    "minutes": 54.2,
+    "at": "2026-11-15T19:41:31Z",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43748713626"
+   },
+   {
+    "slice": "slice/telemetry",
+    "outcome": "failed",
+    "minutes": 30.8,
+    "at": "2026-11-15T19:19:18Z",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43748823395"
+   },
+   {
+    "slice": "slice/placement",
+    "outcome": "failed",
+    "minutes": 41.6,
+    "at": "2026-11-15T19:31:08Z",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43748913939"
+   },
+   {
+    "slice": "slice/blueprint",
+    "outcome": "passed",
+    "minutes": 52.2,
+    "at": "2026-11-15T19:44:00Z",
+    "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43749125267"
+   }
+  ]
+ },
+ "pulls": [
+  {
+   "number": 319,
+   "title": "slice/blueprint into master",
+   "state": "draft",
+   "lane": "blueprint",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/319"
+  },
+  {
+   "number": 339,
+   "title": "Each journey's own cast, declared once",
+   "state": "open",
+   "lane": "blueprint",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/339"
+  },
+  {
+   "number": 323,
+   "title": "Stage 2 small follow-up",
+   "state": "draft",
+   "lane": "blueprint",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/323"
+  },
+  {
+   "number": 341,
+   "title": "slice/run-time into master, landing 1",
+   "state": "draft",
+   "lane": "run-time",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/341"
+  },
+  {
+   "number": 344,
+   "title": "Every journey says where it runs",
+   "state": "open",
+   "lane": "run-time",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/344"
+  },
+  {
+   "number": 345,
+   "title": "The reset's bundler check retries",
+   "state": "draft",
+   "lane": "run-time",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/345"
+  },
+  {
+   "number": 337,
+   "title": "Bench door: ready blank copies",
+   "state": "draft",
+   "lane": "run-time",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/337"
+  },
+  {
+   "number": 317,
+   "title": "slice/telemetry into master",
+   "state": "draft",
+   "lane": "telemetry",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/317"
+  },
+  {
+   "number": 346,
+   "title": "The runner exports from CI",
+   "state": "draft",
+   "lane": "telemetry",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/346"
+  },
+  {
+   "number": 318,
+   "title": "Place the api's Worker in Europe",
+   "state": "merged",
+   "lane": "placement",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/318"
+  },
+  {
+   "number": 320,
+   "title": "slice/placement into master",
+   "state": "draft",
+   "lane": "placement",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/320"
+  }
+ ],
+ "landed": [
+  {
+   "at": "2026-11-15T20:09:11Z",
+   "title": "Roadmap",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/355"
+  },
+  {
+   "at": "2026-11-15T20:05:43Z",
+   "title": "slice/placement",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/320"
+  },
+  {
+   "at": "2026-11-15T20:01:33Z",
+   "title": "slice/blueprint",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/356"
+  },
+  {
+   "at": "2026-11-15T19:48:31Z",
+   "title": "Full runs paused until the run is fast",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/338"
+  },
+  {
+   "at": "2026-11-15T19:44:33Z",
+   "title": "slice/blueprint",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/319"
+  },
+  {
+   "at": "2026-11-15T18:49:05Z",
+   "title": "slice/docs",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/304"
+  },
+  {
+   "at": "2026-11-15T17:53:20Z",
+   "title": "📐 The world run in under 5 minutes",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/316"
+  },
+  {
+   "at": "2026-11-15T17:38:27Z",
+   "title": "slice/blueprint",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/295"
+  }
+ ],
+ "measures": {
+  "ratchets": [
+   {
+    "id": "R1",
+    "name": "Raw schemas",
+    "holds": "Raw schemas outside values files, machines and listed edges, as findings of capxul/owned-values.",
+    "closes": "3.3",
+    "count": 667,
+    "series": [
+     {
+      "at": "2026-11-15T13:25:34Z",
+      "count": 681
+     },
+     {
+      "at": "2026-11-15T13:58:50Z",
+      "count": 671
+     },
+     {
+      "at": "2026-11-15T17:38:27Z",
+      "count": 667
+     }
+    ]
+   },
+   {
+    "id": "R2",
+    "name": "Names typed as strings",
+    "holds": "Declared names retyped as strings outside the blueprint, as findings of capxul/declared-names.",
+    "closes": "3.3",
+    "count": 766,
+    "series": [
+     {
+      "at": "2026-11-15T13:25:34Z",
+      "count": 766
+     }
+    ]
+   },
+   {
+    "id": "R3",
+    "name": "Rows not decoded",
+    "holds": "Stored rows cast to hand-written types instead of decoded, as findings of capxul/decoded-rows.",
+    "closes": "3.3",
+    "count": 38,
+    "series": [
+     {
+      "at": "2026-11-15T13:25:34Z",
+      "count": 38
+     }
+    ]
+   },
+   {
+    "id": "R4",
+    "name": "Lifecycles not machines",
+    "holds": "Things with a lifecycle not yet declared as a machine (site, approval, world, budget among them).",
+    "closes": "C.1 (was 7.3)",
+    "count": null,
+    "series": [],
+    "countedBy": "C.1"
+   },
+   {
+    "id": "R5",
+    "name": "Operations not in the full format",
+    "holds": "Operations on a format's unmigrated list: missing machine moves, and later allowed, steps, logs, budget.",
+    "closes": "3.5, 4.1, 5.1",
+    "count": 13,
+    "series": [
+     {
+      "at": "2026-11-15T17:38:27Z",
+      "count": 13
+     }
+    ]
+   },
+   {
+    "id": "R6",
+    "name": "Undeclared spans",
+    "holds": "Effectful functions of our own code (Core, the world, the platform client, the runner) with no declared step.",
+    "closes": "4.1",
+    "count": null,
+    "series": [],
+    "countedBy": "4.1"
+   },
+   {
+    "id": "R7",
+    "name": "Operations not in one file",
+    "holds": "Operations whose declaration is still split across files beside their verb's own file.",
+    "closes": "Decision 3",
+    "count": null,
+    "series": [],
+    "countedBy": "3.6"
+   },
+   {
+    "id": "R8",
+    "name": "Long or hand-mapped docs",
+    "holds": "READMEs over one screen (60 lines), hand-written file maps, and docs not yet folded.",
+    "closes": "Decision 3",
+    "count": null,
+    "series": [],
+    "countedBy": "3.6"
+   },
+   {
+    "id": "R9",
+    "name": "Unreached declarations",
+    "holds": "Declared moves, refusals and outcomes no journey reaches.",
+    "closes": "3.7",
+    "count": null,
+    "series": [],
+    "countedBy": "3.7"
+   },
+   {
+    "id": "R10",
+    "name": "Non-Effect code",
+    "holds": "Non-Effect constructs outside entry files, and non-Effect runtime dependencies.",
+    "closes": "Phase 7",
+    "count": null,
+    "series": [],
+    "countedBy": "3.6"
+   },
+   {
+    "id": "R11",
+    "name": "Untyped starting worlds",
+    "holds": "Starting-world steps in prose, and payloads retyped in the runner.",
+    "closes": "7.2",
+    "count": null,
+    "series": [],
+    "countedBy": "7.2"
+   },
+   {
+    "id": "R12",
+    "name": "Proofs by file path",
+    "holds": "Roadmap proof entries naming files instead of verdicts, for steps not yet Done.",
+    "closes": "4.5",
+    "count": null,
+    "series": [],
+    "countedBy": "4.5"
+   },
+   {
+    "id": "R13",
+    "name": "Provisional budgets",
+    "holds": "Operations whose budget is not yet set from a measured verdict.",
+    "closes": "4.1 and the measured runs",
+    "count": null,
+    "series": [],
+    "countedBy": "4.1"
+   },
+   {
+    "id": "R14",
+    "name": "Own telemetry tables",
+    "holds": "Readers of app.spans and the runner's JSON records beside OTLP.",
+    "closes": "4.4",
+    "count": null,
+    "series": [],
+    "countedBy": "4.4"
+   },
+   {
+    "id": "R15",
+    "name": "Old words",
+    "holds": "The glossary's old words still written as names in code, counted per word in generated/old-words.json; its count is their total.",
+    "closes": "3.8",
+    "count": 7604,
+    "series": [
+     {
+      "at": "2026-11-15T19:44:33Z",
+      "count": 7629
+     },
+     {
+      "at": "2026-11-15T20:01:33Z",
+      "count": 7604
+     }
+    ]
+   }
+  ],
+  "budgets": [
+   {
+    "name": "A full run",
+    "budget": 5,
+    "unit": "min",
+    "source": "github",
+    "measured": [
+     29.2,
+     31.6,
+     34.2,
+     36.8,
+     32.0,
+     30.0,
+     47.2,
+     52.2
+    ]
+   }
+  ],
+  "evals": [
+   {
+    "step": "4.2",
+    "name": "Explainability",
+    "what": "Every refusal has its deciding log, every span its parent, and the share of each call's time its declared steps explain."
+   },
+   {
+    "step": "4.3",
+    "name": "The build evals",
+    "what": "Tries to green, breakage and recovery, and speed and cost per journey, read from the verdicts."
+   }
+  ]
+ }
+}
