@@ -56,6 +56,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 - [`side-by-side.ts`](../src/telemetry/side-by-side.ts): Side by side (roadmap 4.4): for every call a run made through its own stage's door, the spans Core kept in `app.spans` beside the spans the tap holds of it (tap.ts), and their parity (parity.ts), for the run record.
 - [`step.ts`](../src/telemetry/step.ts): A span the runner records under a name the blueprint declares (roadmap 4.7): its name from `Pipeline`, never written here as a string, and its kind under the envelope's `capxul.step.kind`.
 - [`tap.ts`](../src/telemetry/tap.ts): The tap: in a test world, Core writes the OTLP it exports into the world's database as well (`telemetry.otlp`: the trace id, the signal, the body), and the runner reads a call's spans and logs back from it by trace id, through the same `/sql` endpoint it reads `app.spans` by (world/database.ts; roadmap 4.4; design note "Proof and telemetry", section 7).
+- [`whole-run.ts`](../src/telemetry/whole-run.ts): A whole run as its world kept it, for the isolation check (roadmap 4.8, part B; written by 4.11's author): every event of `app.events` in the order of its ids, and, for each trace the tap holds (`telemetry.otlp`, tap.ts), the producer that exported its root server span and that span's name.
 
 ## `src/world/`
 
