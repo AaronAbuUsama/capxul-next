@@ -4,7 +4,7 @@
 // nothing of the tap. The checks themselves (src/checks) are not changed.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { Envelope, operations } from "@capxul/blueprint";
+import { Envelope, operations, servedBy } from "@capxul/blueprint";
 import { OUTCOME, SPAN_ATTRIBUTES } from "@capxul/core";
 import * as Arr from "effect/Array";
 import * as Duration from "effect/Duration";
@@ -25,6 +25,7 @@ import { appKeptOf, checkedOrPlumbing, rowOf, tapTelemetryOf } from "../src/tele
 import { decodeTraces } from "../src/telemetry/otlp.ts";
 import type { SpanRow } from "../src/world/database.ts";
 import { OtherWorlds } from "../src/world/existing.ts";
+import { PlatformKept } from "../src/worlds/kept.ts";
 import { bodiesTo, exported } from "./support/capture.ts";
 
 const DATABASE = Redacted.make("postgresql://user:password@ep-kept.test/neondb");
@@ -190,15 +191,47 @@ test("parity's app.spans side reads a call at another world's endpoint in that w
   });
   const kept = await Effect.runPromise(
     appKeptOf(own, [
-      { traceId: Str.repeat(32)("a"), at: null },
-      { traceId: Str.repeat(32)("b"), at: endpoint },
-      { traceId: Str.repeat(32)("c"), at: "https://unknown.test" },
+      { traceId: Str.repeat(32)("a"), at: null, operation: WORLD_SERVED },
+      { traceId: Str.repeat(32)("b"), at: endpoint, operation: WORLD_SERVED },
+      { traceId: Str.repeat(32)("c"), at: "https://unknown.test", operation: WORLD_SERVED },
     ]).pipe(Effect.provide(Layer.merge(tables, otherWorlds))),
   );
   assert.deepEqual(
     Arr.map(kept.spans, (span) => span.name),
     ["own", "theirs"],
   );
+});
+
+/** An operation each group serves: one served in this process in a run in private worlds, and one a world serves. */
+const SERVED_HERE = Option.getOrThrow(Arr.findFirst(Rec.keys(operations), (op) => servedBy(op) !== "world"));
+const WORLD_SERVED = Option.getOrThrow(Arr.findFirst(Rec.keys(operations), (op) => servedBy(op) === "world"));
+
+/** An HTTP client that fails the test on any request: nothing may be sent. */
+const sendsNothing = Layer.succeed(
+  HttpClient.HttpClient,
+  HttpClient.make((request) => Effect.die(new assert.AssertionError({ message: `${request.url} was sent` }))),
+);
+
+test("a stage with no world of its own reads nothing of app.spans for the calls served in this process", async () => {
+  // Run 43807337978: a journey given `quota-full` in the shared shape owns no world, so its stage's database is empty,
+  // and its own calls served in this process were read from app.spans there: "Transport error (POST https:///sql)".
+  const servedHere = Layer.succeed(PlatformKept, { kept: () => Effect.succeed({ spans: [], events: [] }) });
+  const kept = await Effect.runPromise(
+    appKeptOf(Redacted.make(""), [{ traceId: Str.repeat(32)("d"), at: null, operation: SERVED_HERE }]).pipe(
+      Effect.provide(Layer.merge(sendsNothing, servedHere)),
+    ),
+  );
+  assert.deepEqual(kept, { spans: [], events: [] });
+});
+
+test("a database with no host fails as plumbing, saying so, and sends nothing", async () => {
+  const exit = await Effect.runPromiseExit(
+    appKeptOf(Redacted.make(""), [{ traceId: Str.repeat(32)("e"), at: null, operation: WORLD_SERVED }]).pipe(
+      Effect.provide(sendsNothing),
+    ),
+  );
+  assert.ok(Exit.isFailure(exit));
+  assert.match(String(exit.cause), /plumbing: a database with no host was read/);
 });
 
 test("a starting world's call missing from the tap fails as plumbing, with no checks, never as nothing", async () => {
