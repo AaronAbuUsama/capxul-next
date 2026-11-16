@@ -108,6 +108,9 @@ jobs:
           RUNNER_HUB_LIFETIME: 3 hours
           # The run leaves its one world and its own cluster to the job `teardown` below.
           RUNNER_TEARDOWN: job
+          # Every journey at once in one shared world, each with its own cast (roadmap 4.8, decision D8); the code's
+          # default stays `serial`, one after another, for a run started by hand.
+          RUNNER_SHAPE: shared
         run: RUNNER_RECORDS="$RUNNER_TEMP/records" packages/runner/run.sh scenarios
       - uses: actions/upload-artifact@v4
         if: always()

@@ -285,7 +285,8 @@ export const journeyPlan =
     given: journey.given.name,
     via: settings.via,
     outline: journey.outline,
-    isolation: scopeOf(journey, false), // today's runner casts nobody (scenarios' `Casting`)
+    // Side by side (RUNNER_SHAPE=shared) each journey is played by its own cast (`Casting`, worlds/side-by-side.ts).
+    isolation: scopeOf(journey, settings.shape === "shared"),
     calls: (target, log, heard) =>
       // oxlint-disable-next-line effecttsgo/strict-effect-provide -- each journey is its own program, handed its own stage's client, facts and ear
       Effect.provide(

@@ -45,6 +45,14 @@ export const Settings = Config.all({
    * and each journey about worlds in a world of its own (roadmap 4.8, decision D8), which is not built yet.
    */
   shape: Config.Literals(["serial", "shared"], "RUNNER_SHAPE").pipe(Config.withDefault("serial")),
+  /**
+   * With RUNNER_SHAPE=shared, the most worlds a run has at once, its shared world and its world-level journeys' worlds
+   * together, each held from its create to its destroy (worlds/places.ts): Neon's concurrently active computes are
+   * shared by every run (documented default 20). The cluster's free places bound it too.
+   */
+  worldsAtOnce: Config.Int("RUNNER_WORLDS_AT_ONCE").pipe(Config.withDefault(8)),
+  /** With RUNNER_SHAPE=shared, the most companies founded at once: the bench's ready blank copies (DOOR_BLANK_POOL_SIZE). */
+  sitesAtOnce: Config.Int("RUNNER_SITES_AT_ONCE").pipe(Config.withDefault(8)),
   destroyTimeout: Config.Duration("WORLD_DESTROY_TIMEOUT").pipe(Config.withDefault(Duration.minutes(4))),
   /**
    * A stage is ready after this many answers in a row from its Core (warmup.ts). Five since no run has ever recorded
