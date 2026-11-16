@@ -5,6 +5,7 @@
 import * as CheckVerbsCall from "../things/check/verbs/call.ts";
 import * as CheckVerbsConfirm from "../things/check/verbs/confirm.ts";
 import * as CheckVerbsGate from "../things/check/verbs/gate.ts";
+import * as CheckVerbsIsolation from "../things/check/verbs/isolation.ts";
 import * as CheckVerbsWatch from "../things/check/verbs/watch.ts";
 import * as ClusterVerbsDown from "../things/cluster/verbs/down.ts";
 import * as ClusterVerbsShow from "../things/cluster/verbs/show.ts";
@@ -43,6 +44,7 @@ export { StartingPointName, PointStep } from "../things/starting-point/values.ts
 export { checkCall } from "../things/check/verbs/call.ts";
 export { checkConfirm } from "../things/check/verbs/confirm.ts";
 export { checkGate } from "../things/check/verbs/gate.ts";
+export { checkIsolation } from "../things/check/verbs/isolation.ts";
 export { checkWatch } from "../things/check/verbs/watch.ts";
 export { clusterDown } from "../things/cluster/verbs/down.ts";
 export { clusterShow } from "../things/cluster/verbs/show.ts";
@@ -67,6 +69,7 @@ export const work = {
   "check.call": CheckVerbsCall.checkCall,
   "check.confirm": CheckVerbsConfirm.checkConfirm,
   "check.gate": CheckVerbsGate.checkGate,
+  "check.isolation": CheckVerbsIsolation.checkIsolation,
   "check.watch": CheckVerbsWatch.checkWatch,
   "cluster.down": ClusterVerbsDown.clusterDown,
   "cluster.show": ClusterVerbsShow.clusterShow,
