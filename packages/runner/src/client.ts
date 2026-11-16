@@ -20,6 +20,7 @@ import * as Cli from "@capxul/cli";
 import { CallTraces, Capxul, Observing, type CallOptions, type CapxulClient } from "@capxul/scenarios";
 import * as Sdk from "@capxul/sdk";
 import * as World from "@capxul/world";
+import * as Arr from "effect/Array";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Duration from "effect/Duration";
@@ -36,6 +37,7 @@ import * as Schema from "effect/Schema";
 import * as HttpClient from "effect/http/HttpClient";
 import { RpcClientError } from "effect/rpc/RpcClientError";
 import { describe } from "./failure.ts";
+import { restoredFromOf, type MadeWorld } from "./worlds/restored.ts";
 import { ObservationRetry } from "./settings.ts";
 import { OpenStep } from "./steps.ts";
 import { resendingWhileWarm } from "./world/warmup.ts";
@@ -128,10 +130,10 @@ type Send = (
 /** Every call through `send`, appended to `log`, whatever its outcome, and answered unchanged; `chain` as it is. */
 /**
  * Where a journey hears every world its calls make (world.create and world.snapshot.restore that answered one), by
- * stage: provided per journey by a run with journeys side by side (worlds/run.ts), which destroys them when the
- * journey ends; a slice of the platform's list would mix the journeys running at once.
+ * stage, with each restored world's source: provided per journey by the run (worlds/run.ts), which destroys them when
+ * the journey ends, a restored world before its source; a slice of the platform's list would mix journeys at once.
  */
-export class MadeWorlds extends Context.Service<MadeWorlds, Ref.Ref<ReadonlyArray<string>>>()(
+export class MadeWorlds extends Context.Service<MadeWorlds, Ref.Ref<ReadonlyArray<MadeWorld>>>()(
   "@capxul/runner/client/MadeWorlds",
 ) {}
 
@@ -217,7 +219,11 @@ const recording = (
       };
       yield* Ref.update(log, (calls) => [...calls, call]);
       const made = yield* Effect.serviceOption(MadeWorlds);
-      if (Option.isSome(made)) yield* Ref.update(made.value, (all) => [...all, ...madeWorldOf(call)]);
+      if (Option.isSome(made))
+        yield* Ref.update(made.value, (all) => [
+          ...all,
+          ...Arr.map(madeWorldOf(call), (stage) => ({ stage, from: restoredFromOf(call) })),
+        ]);
       // The try that made the call hears its trace, so its checks judge only what this call caused (roadmap 4.11).
       const traces = yield* Effect.serviceOption(CallTraces);
       if (Option.isSome(traces)) yield* traces.value.heard(span.traceId);

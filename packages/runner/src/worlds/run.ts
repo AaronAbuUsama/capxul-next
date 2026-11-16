@@ -19,6 +19,7 @@ import * as Redacted from "effect/Redacted";
 import * as Ref from "effect/Ref";
 import { failuresOf } from "../checks/checks.ts";
 import { MadeWorlds } from "../client.ts";
+import type { MadeWorld } from "./restored.ts";
 import { describe, endedOf, RunnerFailure } from "../failure.ts";
 import { passedOr, slugOf, writeJson, RunRecord } from "../record.ts";
 import { freshName, journeyPlan, stepsFor, use, viaOf } from "../run.ts";
@@ -36,7 +37,7 @@ import { coreLabel, Platform } from "./platform.ts";
 import { sharedStartingWorldsOf, type SharedStartingWorlds } from "../shared/starting.ts";
 import { startingWorldsOf, type StartingWorlds } from "./starting.ts";
 import { ofTheRun } from "./operators.ts";
-import { destroyAll, destroyStrays, leftOf, takeDown } from "./teardown.ts";
+import { leftOf, ownWorldsDown, stagesOf, takeDown } from "./teardown.ts";
 import { tapFailures } from "../telemetry/side-by-side.ts";
 
 /**
@@ -129,7 +130,7 @@ const runOne = (
       const startedAt = yield* now;
       const before = yield* platform.made;
       const triedBefore = (yield* platform.tried).length;
-      const heard = yield* Ref.make<ReadonlyArray<string>>([]);
+      const heard = yield* Ref.make<ReadonlyArray<MadeWorld>>([]);
       const tooMany = "tooMany" in starting ? starting.tooMany(scenario) : null; // fails alone, into its record
       const journey =
         tooMany === null
@@ -139,7 +140,7 @@ const runOne = (
       const templates = yield* starting.templateWorlds;
       // Side by side, a journey's worlds are those its own calls made; one after another, those made while it ran.
       const mine = Arr.filter(
-        settings.shape === "shared" ? yield* Ref.get(heard) : Arr.drop(yield* platform.made, before.length),
+        settings.shape === "shared" ? stagesOf(yield* Ref.get(heard)) : Arr.drop(yield* platform.made, before.length),
         (stage) => !Arr.contains(templates, stage),
       );
       // The one world lives on until the run ends; everything else the platform made or tried is this journey's.
@@ -149,9 +150,8 @@ const runOne = (
       );
       const leftBefore = yield* leftOf(looked);
       const strays = Arr.filter(looked, (stage) => !Arr.contains(mine, stage));
-      const [destroyTook, destroyed] = yield* Effect.timed(
-        Effect.zipWith(destroyAll(mine), destroyStrays(strays, ofTheRun(settings)), (a, b) => a && b),
-      );
+      const owns = ofTheRun(settings);
+      const [destroyTook, destroyed] = yield* Effect.timed(ownWorldsDown(mine, yield* Ref.get(heard), strays, owns));
       yield* timings.record("destroy the journey's own worlds", millis(destroyTook), {
         journey: scenario.name,
         note: mine.length === 0 ? "none" : Arr.join(mine, ", "),

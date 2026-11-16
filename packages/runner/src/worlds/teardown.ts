@@ -8,8 +8,10 @@ import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
+import * as Option from "effect/Option";
 import * as Ref from "effect/Ref";
 import * as Str from "effect/String";
+import type { MadeWorld } from "./restored.ts";
 import { describe, RunnerFailure } from "../failure.ts";
 import type { Timings } from "../timings.ts";
 import type { Inventory } from "../world/leftovers.ts";
@@ -26,6 +28,31 @@ export const leftOf = (stages: ReadonlyArray<string>) =>
     Effect.catchCause((cause) => Effect.as(Effect.logWarning(`inventory not read: ${describe(cause)}`), null)),
   );
 
+/** The stages of the worlds a journey's calls made. */
+export const stagesOf = (made: ReadonlyArray<MadeWorld>): ReadonlyArray<string> => Arr.map(made, (each) => each.stage);
+
+/** The world each of `made` was restored from, as `destroyEach` asks it: null for one not restored, or not made here. */
+export const sourcesIn =
+  (made: ReadonlyArray<MadeWorld>) =>
+  (stage: string): string | null =>
+    Option.getOrNull(
+      Option.flatMap(
+        Arr.findFirst(made, (each) => each.stage === stage),
+        (each) => Option.fromNullishOr(each.from),
+      ),
+    );
+
+/**
+ * A journey's own worlds destroyed, a restored one before its source (as its calls made them: `made`), beside the
+ * strays the platform tried for it, of those only the ones the run's operators own (`owns`); true when all are gone.
+ */
+export const ownWorldsDown = (
+  mine: ReadonlyArray<string>,
+  made: ReadonlyArray<MadeWorld>,
+  strays: ReadonlyArray<string>,
+  owns: (owner: string) => boolean,
+) => Effect.zipWith(destroyAll(mine, sourcesIn(made)), destroyStrays(strays, owns), (a, b) => a && b);
+
 /** How many worlds a take-down destroys at once. */
 export const DESTROYS_AT_ONCE = 4;
 
@@ -38,7 +65,7 @@ const destroyOne = (stage: string) =>
 
 /**
  * Destroys `stages` in order (`destroyInOrder`), `DESTROYS_AT_ONCE` at a time, a world restored from another before its
- * source when `restoredFrom` says which (it says none by default). Then each that failed is tried again, one at a time,
+ * source when `restoredFrom` says which (a journey's own calls say: `sourcesIn`; none by default). Then each that failed is tried again, one at a time,
  * the newest first: a source the order did not know refuses while a world restored from it remains, and passes once it
  * is gone. Every one is tried; then it fails, when any was still not destroyed, with each such world and why.
  */
@@ -70,9 +97,12 @@ export const destroyEach = (
     ),
   );
 
-/** Destroys `stages` as `destroyEach` does; true when every one is gone. */
-export const destroyAll = (stages: ReadonlyArray<string>) =>
-  destroyEach(stages).pipe(
+/** Destroys `stages` as `destroyEach` does, restored worlds before their sources; true when every one is gone. */
+export const destroyAll = (
+  stages: ReadonlyArray<string>,
+  restoredFrom: (stage: string) => string | null = () => null,
+) =>
+  destroyEach(stages, restoredFrom).pipe(
     Effect.as(true),
     Effect.orElseSucceed(() => false),
   );
