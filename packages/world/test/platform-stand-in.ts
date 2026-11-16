@@ -20,6 +20,7 @@ import { OPERATOR_TOKEN_ID } from "../src/parts/api/Api.ts";
 import { ADMIN_TOKEN_ID, HUB_STACK } from "../src/things/cluster/values.ts";
 import type { SnapshotRow } from "../src/account/store.ts";
 import { SharedState } from "../src/stack/engine.ts";
+import { beforeSaveAnswer, saveAnswer, type Saving } from "./save-stand-in.ts";
 import { PLATFORM, STACK } from "../src/stack/names.ts";
 
 export const FAR = "2099-01-01T00:00:00.000Z";
@@ -31,6 +32,14 @@ export interface Database {
   head: number;
   readonly appended: Array<{ readonly event: string; readonly carried: Record<string, unknown> }>;
   readonly born: { readonly grade: string; readonly parent: unknown } | null;
+  /** Its companies, as `app.companies` holds them; none when left out. */
+  readonly companies?: ReadonlyArray<{
+    readonly org: string;
+    readonly handle: string;
+    readonly name: string;
+    readonly site_state: string;
+    readonly site_url: string | null;
+  }>;
 }
 
 export interface Branch {
@@ -40,7 +49,7 @@ export interface Branch {
 }
 
 /** What the stand-ins hold and saw. */
-export interface Outside {
+export interface Outside extends Saving {
   readonly claims: Array<{ readonly name: string; readonly owner: string }>;
   snapshots: Array<SnapshotRow>;
   branches: Array<Branch>;
@@ -116,6 +125,10 @@ const registry = (
     outside.snapshots = Arr.filter(outside.snapshots, (row) => !(row.stage === first && row.snapshot === second));
     return [];
   }
+  if (Str.startsWith("insert into platform.snapshots")(query)) {
+    outside.saving?.push(`kept ${String(second)}`);
+    return [];
+  }
   if (Str.includes("from platform.snapshots where stage = $1 and snapshot = $2")(query))
     return Arr.filter(outside.snapshots, (row) => row.stage === first && row.snapshot === second);
   if (Str.includes("from platform.snapshots where stage = $1 order by saved_at, snapshot")(query))
@@ -145,7 +158,8 @@ const world = (
         born: database.born,
       },
     ];
-  if (Str.startsWith("select person")(query) || Str.startsWith("select org")(query)) return [];
+  if (Str.startsWith("select person")(query)) return [];
+  if (Str.startsWith("select org")(query)) return database.companies ?? [];
   if (Str.startsWith("insert into app.events")(query)) {
     const pairs = Arr.chunksOf(params.slice(3, -1), 2);
     database.head += 1;
@@ -184,6 +198,8 @@ const NEON = "/api/v2/projects/project";
 
 const answer = (outside: Outside, request: Request, body: unknown): Response => {
   const url = new URL(request.url);
+  const saved = saveAnswer(outside, url, request, body);
+  if (saved !== undefined) return saved;
   if (url.hostname === "registry.db.test") return sql(body, (one) => registry(outside, one.query, one.params));
   if (Str.endsWith(".db.test")(url.hostname)) {
     const database = outside.databases[Str.slice(0, -".db.test".length)(url.hostname)];
@@ -222,7 +238,12 @@ const client = (outside: Outside) =>
   HttpClient.make((request) =>
     Effect.gen(function* () {
       const web = yield* HttpClientRequest.toWeb(request);
-      const body: unknown = web.method === "POST" ? yield* Effect.promise(() => web.json()) : null;
+      // A POST with no body (the hub's index stop and resume) is read as none.
+      const body: unknown =
+        web.method === "POST"
+          ? yield* Effect.tryPromise(() => web.json()).pipe(Effect.orElseSucceed(() => null))
+          : null;
+      yield* beforeSaveAnswer(outside, web, body);
       return HttpClientResponse.fromWeb(request, answer(outside, web, body));
     }).pipe(Effect.orDie),
   );

@@ -10,12 +10,14 @@
 // A world's company sites are saved with it, on its bench (src/things/site/snapshot.ts): each site's database, backed up under
 // the snapshot's name; a restore makes each again in the new world from its backup, under its own label, and points
 // the new world's companies at their new sites. A world with companies and no bench is a fault to save.
-import { CurrentOperator, Errors, type World as Blueprint } from "@capxul/blueprint";
+import { CurrentOperator, Errors, World, type World as Blueprint } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Clock from "effect/Clock";
 import * as DateTime from "effect/DateTime";
+import * as Deferred from "effect/Deferred";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
 import * as Option from "effect/Option";
 import * as Random from "effect/Random";
 import * as Ref from "effect/Ref";
@@ -50,6 +52,9 @@ const ownedWorld = (world: string) =>
     return { stage, output, handle };
   });
 
+/** The steps `world.snapshot.save` declares (packages/blueprint, src/things/snapshot/verbs/save.ts), each a span. */
+const steps = World.snapshotSave.spans;
+
 export const save = Effect.fn("platform.world.snapshot.save")(function* (payload: SavePayload) {
   const { operator } = yield* CurrentOperator;
   const { stage, output, handle } = yield* ownedWorld(payload.world);
@@ -69,42 +74,58 @@ export const save = Effect.fn("platform.world.snapshot.save")(function* (payload
   return yield* Effect.gen(function* () {
     const hostMs = yield* Clock.currentTimeMillis;
     const facts = yield* readFacts(handle.database, hostMs);
-    if (facts.companies.length > 0) {
-      const bench = output.bench ?? "none";
-      if (bench === "none") return yield* Effect.die(`${stage} has companies but no bench: its sites cannot be saved`);
-      yield* saveSites(stage, bench, payload.snapshot);
-      // And a point of the bench, which an in-place reset puts the sites back to (src/things/site/reset.ts).
-      yield* savePoint(stage, bench, payload.snapshot);
-    }
-    const parent = yield* forkable(stage);
-    if (Option.isSome(found)) yield* dropBranch(found.value.branch_id);
-    const suffix = yield* Random.nextIntBetween(0, 0xffffff);
-    // Ponder is stopped with SIGTERM while the snapshot is taken, so the snapshot does not carry its schema lock (a
-    // Ponder started on a database copied while one ran waits the lock out: spikes/world-speed, 4.5) and nothing is
-    // indexed between the branch and the chain's save; it is started again right after, without waiting for it.
-    yield* stopIndex(handle);
-    const branch = yield* branchOf(parent, `snap-${stage}-${payload.snapshot}-${suffix.toString(16)}`).pipe(
-      Effect.onError(() => Effect.ignore(resumeIndex(handle))),
-    );
-    // A branch the platform keeps no row of would be left behind, and Neon would refuse the world's own delete for
-    // it ("cannot delete branch that has children", seen once in a rehearsal when the chain's save failed here).
-    yield* saveChain(handle, payload.snapshot).pipe(
-      Effect.onError(() => Effect.ignore(dropBranch(branch))),
-      Effect.ensuring(Effect.ignore(resumeIndex(handle))),
-    );
-    const savedAt = instantOf(hostMs);
-    yield* keepSnapshot({
-      stage,
-      snapshot: payload.snapshot,
-      branch_id: branch,
-      record_seq: facts.recordHead,
-      clock_mode: facts.clock.mode,
-      clock_ms: facts.clockMs,
-      template: payload.template,
-      saved_at: savedAt,
-      companies: facts.companies.length,
-      migrations: facts.migrations,
+    const bench = output.bench ?? "none";
+    if (facts.companies.length > 0 && bench === "none")
+      return yield* Effect.die(`${stage} has companies but no bench: its sites cannot be saved`);
+    // Two sides, side by side, while the world is quiet (its caller waits for the save): the sites' (their backup, then
+    // a point of the bench, which an in-place reset puts the sites back to: src/things/site/reset.ts) and the database
+    // and chain's (the index stopped, the branch and the chain's state saved together, the index resumed). Neither
+    // side interrupts the other, so a branch made is always known, and dropped when the save fails.
+    const sitesSide =
+      facts.companies.length > 0
+        ? Effect.andThen(
+            saveSites(stage, bench, payload.snapshot).pipe(Effect.withSpan(steps.sites.name)),
+            savePoint(stage, bench, payload.snapshot).pipe(Effect.withSpan(steps.point.name)),
+          )
+        : Effect.void;
+    // The database and chain's side: the world's branch made forkable (a snapshot of this name being replaced has its
+    // branch dropped first), then the index stopped, the branch made while the chain's state is saved, and the index
+    // always resumed after, whatever fails. Ponder is stopped with SIGTERM so the snapshot does not carry its schema
+    // lock (a Ponder started on a database copied while one ran waits the lock out: spikes/world-speed, 4.5) and
+    // nothing is indexed between the branch and the chain's save; it is started again without waiting for it.
+    const databaseAndChain = Effect.gen(function* () {
+      const parent = yield* forkable(stage);
+      if (Option.isSome(found)) yield* dropBranch(found.value.branch_id);
+      const suffix = yield* Random.nextIntBetween(0, 0xffffff);
+      const name = `snap-${stage}-${payload.snapshot}-${suffix.toString(16)}`;
+      // The chain's save starts once Neon has taken the branch's request, beside Neon's own making of it (most of the
+      // branch's time); a branch Neon refused has no chain saved for it.
+      const asked = yield* Deferred.make<boolean>();
+      const branching = branchOf(parent, name, Deferred.succeed(asked, true).pipe(Effect.asVoid)).pipe(
+        Effect.onExit(() => Deferred.succeed(asked, false)),
+        Effect.withSpan(steps.branch.name),
+      );
+      const chaining = Effect.flatMap(Deferred.await(asked), (sent) =>
+        sent ? saveChain(handle, payload.snapshot).pipe(Effect.asVoid, Effect.withSpan(steps.chain.name)) : Effect.void,
+      );
+      const [branched, chained] = yield* Effect.andThen(
+        stopIndex(handle).pipe(Effect.withSpan(steps.indexStop.name)),
+        Effect.all([Effect.exit(branching), Effect.exit(chaining)], { concurrency: 2 }),
+      ).pipe(Effect.ensuring(Effect.ignore(resumeIndex(handle).pipe(Effect.withSpan(steps.indexResume.name)))));
+      // Neon would refuse the world's own delete for a branch the platform keeps no row of ("cannot delete branch
+      // that has children", seen once in a rehearsal when the chain's save failed after the branch).
+      if (Exit.isSuccess(branched) && Exit.isFailure(chained)) yield* Effect.ignore(dropBranch(branched.value));
+      yield* chained;
+      return yield* branched;
     });
+    const [sites, saved] = yield* Effect.all([Effect.exit(sitesSide), Effect.exit(databaseAndChain)], {
+      concurrency: 2,
+    });
+    // A branch the platform keeps no row of would be left behind, and Neon would refuse the world's own delete for it.
+    if (Exit.isFailure(sites) && Exit.isSuccess(saved)) yield* Effect.ignore(dropBranch(saved.value));
+    yield* sites;
+    const branch = yield* saved;
+    const savedAt = instantOf(hostMs);
     const success = {
       world: payload.world,
       snapshot: payload.snapshot,
@@ -115,7 +136,21 @@ export const save = Effect.fn("platform.world.snapshot.save")(function* (payload
       companies: facts.companies.length,
       migrations: facts.migrations,
     };
-    yield* emitDeclared("world.snapshot.save", { payload, success }, stage, handle.database, facts.clockMs);
+    yield* Effect.andThen(
+      keepSnapshot({
+        stage,
+        snapshot: payload.snapshot,
+        branch_id: branch,
+        record_seq: facts.recordHead,
+        clock_mode: facts.clock.mode,
+        clock_ms: facts.clockMs,
+        template: payload.template,
+        saved_at: savedAt,
+        companies: facts.companies.length,
+        migrations: facts.migrations,
+      }),
+      emitDeclared("world.snapshot.save", { payload, success }, stage, handle.database, facts.clockMs),
+    ).pipe(Effect.withSpan(steps.keep.name));
     return success;
   }).pipe(Effect.orDie);
 });

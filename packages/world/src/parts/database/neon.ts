@@ -3,12 +3,14 @@
 // package's `records/hub` spans). The world's create makes its branch here first, looking every 250 ms, and its
 // stack then adopts it by name (src/parts/database/Database.ts), so Alchemy still owns it and destroys it with the world. The same
 // helpers restore a branch in place from a snapshot's (src/things/world/reset.ts) and delete branches leaf first.
+import { World } from "@capxul/blueprint";
 import * as Arr from "effect/Array";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Predicate from "effect/Predicate";
 import * as Redacted from "effect/Redacted";
 import * as Schedule from "effect/Schedule";
+import * as Semaphore from "effect/Semaphore";
 import * as Schema from "effect/Schema";
 import * as Str from "effect/String";
 import * as HttpClient from "effect/http/HttpClient";
@@ -30,8 +32,22 @@ interface Refused {
   readonly body: string;
 }
 
-/** One request to Neon's API and its JSON answer; a 404 is `null` when `missing` says so. */
-export const neon = (request: HttpClientRequest.HttpClientRequest, missing: "fail" | "ok" = "fail") =>
+/** True when Neon refused a request because an operation on the project holds its lock. */
+const isLocked = (error: unknown): boolean => Predicate.hasProperty(error, "status") && error.status === LOCKED;
+
+/** How many times a request Neon refused for its lock is sent again, a second apart. */
+const LOCKED_TRIES = 60;
+
+/**
+ * One wait for Neon's lock on the project, before a refused request is sent again: its own span, so a run's record
+ * shows how long the branch operations waited for each other (`world.create.branch.locked`).
+ */
+const lockedWait = Effect.fn(World.create.spans.branchLocked.name)(function* (tried: number) {
+  yield* Effect.annotateCurrentSpan("capxul.neon.tried", tried);
+  yield* Effect.sleep("1 second");
+});
+
+const sentOnce = (request: HttpClientRequest.HttpClientRequest, missing: "fail" | "ok") =>
   Effect.gen(function* () {
     const key = yield* Config.Redacted("NEON_API_KEY");
     const response = yield* HttpClient.execute(request.pipe(HttpClientRequest.bearerToken(Redacted.value(key))));
@@ -41,14 +57,30 @@ export const neon = (request: HttpClientRequest.HttpClientRequest, missing: "fai
       return yield* Effect.fail<Refused>({ status: response.status, body: Str.slice(0, 300)(body) });
     }
     return yield* response.json;
-  }).pipe(
-    Effect.scoped,
-    Effect.retry({
-      while: (error) => Predicate.hasProperty(error, "status") && error.status === LOCKED,
-      schedule: Schedule.spaced("1 second"),
-      times: 60,
-    }),
+  }).pipe(Effect.scoped);
+
+/** `attempt`, sent again after a recorded wait each time Neon refuses it for its lock, at most `LOCKED_TRIES` times. */
+const whileLocked = <A, E, R>(attempt: Effect.Effect<A, E, R>, tried: number): Effect.Effect<A, E, R> =>
+  attempt.pipe(
+    Effect.catchIf(
+      (error) => isLocked(error) && tried < LOCKED_TRIES,
+      () => Effect.andThen(lockedWait(tried + 1), whileLocked(attempt, tried + 1)),
+    ),
   );
+
+/** One request to Neon's API and its JSON answer; a 404 is `null` when `missing` says so. */
+export const neon = (request: HttpClientRequest.HttpClientRequest, missing: "fail" | "ok" = "fail") =>
+  whileLocked(sentOnce(request, missing), 0);
+
+/**
+ * The branch operations this process runs at once: Neon runs one operation on a project at a time and refuses the
+ * rest with its lock (423), so more at once only wait in `lockedWait`. Two keep one queued behind the running one.
+ */
+const branchOperations = Semaphore.makeUnsafe(2);
+
+/** Runs a branch operation, its request and the wait for Neon to finish it, holding one of `branchOperations`. */
+export const branchOperation = <A, E, R>(operation: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+  Semaphore.withPermits(branchOperations, 1)(operation);
 
 const Operations = Schema.Struct({
   operations: Schema.Array(Schema.Struct({ id: Schema.String, status: Schema.String })),
@@ -93,33 +125,32 @@ export interface MadeBranch {
  * Makes a branch with its own compute, named `name`, from `parent` (the project's default branch when none), that
  * Neon deletes by itself at `expiresAt`; waits until its compute answers.
  */
-export const makeBranch = Effect.fn("world.neon.makeBranch")(function* (
-  project: string,
-  name: string,
-  parent: string | undefined,
-  expiresAt: string | undefined,
-) {
-  const answer = yield* neon(
-    HttpClientRequest.post(`${NEON}/projects/${project}/branches`).pipe(
-      HttpClientRequest.bodyJsonUnsafe({
-        branch: {
-          name,
-          ...(parent === undefined ? {} : { parent_id: parent }),
-          ...(expiresAt === undefined ? {} : { expires_at: expiresAt }),
-        },
-        endpoints: [{ type: "read_write" }],
-      }),
-    ),
-  );
-  const created = yield* Schema.decodeUnknownEffect(Created)(answer);
-  yield* finished(project, answer);
-  const uri = yield* Effect.fromOption(Arr.head(created.connection_uris));
-  return {
-    id: created.branch.id,
-    expiresAt: created.branch.expires_at ?? null,
-    connectionUri: Redacted.make(uri.connection_uri),
-  } satisfies MadeBranch;
-}, Effect.mapError(failed));
+export const makeBranch = Effect.fn("world.neon.makeBranch")(
+  function* (project: string, name: string, parent: string | undefined, expiresAt: string | undefined) {
+    const answer = yield* neon(
+      HttpClientRequest.post(`${NEON}/projects/${project}/branches`).pipe(
+        HttpClientRequest.bodyJsonUnsafe({
+          branch: {
+            name,
+            ...(parent === undefined ? {} : { parent_id: parent }),
+            ...(expiresAt === undefined ? {} : { expires_at: expiresAt }),
+          },
+          endpoints: [{ type: "read_write" }],
+        }),
+      ),
+    );
+    const created = yield* Schema.decodeUnknownEffect(Created)(answer);
+    yield* finished(project, answer);
+    const uri = yield* Effect.fromOption(Arr.head(created.connection_uris));
+    return {
+      id: created.branch.id,
+      expiresAt: created.branch.expires_at ?? null,
+      connectionUri: Redacted.make(uri.connection_uri),
+    } satisfies MadeBranch;
+  },
+  branchOperation,
+  Effect.mapError(failed),
+);
 
 /** The Neon project every world's branch belongs to, as the platform stage recorded it. */
 export const projectId = Effect.flatMap(
@@ -155,33 +186,36 @@ export const branchesOf = (project: string) =>
   );
 
 /** Deletes a branch and waits for Neon to finish; one that is already gone is no failure. */
-export const deleteBranch = Effect.fn("world.neon.deleteBranch")(function* (project: string, branch: string) {
-  const answer = yield* neon(HttpClientRequest.delete(`${NEON}/projects/${project}/branches/${branch}`), "ok").pipe(
-    // Neon answers 422 "branch is already deleted" for a branch it is still deleting (spikes/world-speed, 5.10).
-    Effect.catchIf(
-      (error): error is Refused =>
-        Predicate.hasProperty(error, "status") && error.status === 422 && Str.includes("already deleted")(error.body),
-      () => Effect.succeed(null),
-    ),
-  );
-  if (answer !== null) yield* finished(project, answer);
-}, Effect.mapError(failed));
+export const deleteBranch = Effect.fn("world.neon.deleteBranch")(
+  function* (project: string, branch: string) {
+    const answer = yield* neon(HttpClientRequest.delete(`${NEON}/projects/${project}/branches/${branch}`), "ok").pipe(
+      // Neon answers 422 "branch is already deleted" for a branch it is still deleting (spikes/world-speed, 5.10).
+      Effect.catchIf(
+        (error): error is Refused =>
+          Predicate.hasProperty(error, "status") && error.status === 422 && Str.includes("already deleted")(error.body),
+        () => Effect.succeed(null),
+      ),
+    );
+    if (answer !== null) yield* finished(project, answer);
+  },
+  branchOperation,
+  Effect.mapError(failed),
+);
 
 /**
  * Rewinds `branch` in place to what `source` holds (Neon's restore): the branch keeps its id, its compute and its
  * connection string. Its state until now is kept as a branch called `preserveAs`, which Neon requires when the
  * branch has children; the caller deletes it when nothing hangs from it.
  */
-export const restoreBranch = Effect.fn("world.neon.restoreBranch")(function* (
-  project: string,
-  branch: string,
-  source: string,
-  preserveAs: string,
-) {
-  const answer = yield* neon(
-    HttpClientRequest.post(`${NEON}/projects/${project}/branches/${branch}/restore`).pipe(
-      HttpClientRequest.bodyJsonUnsafe({ source_branch_id: source, preserve_under_name: preserveAs }),
-    ),
-  );
-  yield* finished(project, answer);
-}, Effect.mapError(failed));
+export const restoreBranch = Effect.fn("world.neon.restoreBranch")(
+  function* (project: string, branch: string, source: string, preserveAs: string) {
+    const answer = yield* neon(
+      HttpClientRequest.post(`${NEON}/projects/${project}/branches/${branch}/restore`).pipe(
+        HttpClientRequest.bodyJsonUnsafe({ source_branch_id: source, preserve_under_name: preserveAs }),
+      ),
+    );
+    yield* finished(project, answer);
+  },
+  branchOperation,
+  Effect.mapError(failed),
+);

@@ -93,7 +93,7 @@ export const declaredSteps: Unmigrated = {
   "packages/world/src/parts/chain/objects.ts": 1,
   "packages/world/src/parts/containers/patience.ts": 1,
   "packages/world/src/parts/containers/stop.ts": 1,
-  "packages/world/src/parts/database/branches.ts": 5,
+  "packages/world/src/parts/database/branches.ts": 4,
   "packages/world/src/parts/database/neon.ts": 6,
   "packages/world/src/parts/database/sql.ts": 2,
   "packages/world/src/proofs/cases/bundler.ts": 2,

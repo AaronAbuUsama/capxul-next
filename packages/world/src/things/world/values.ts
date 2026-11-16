@@ -160,6 +160,8 @@ export const Timeouts = Config.all({
   // "Capacity"), so three such waits fit.
   admit: limit("admit", Duration.minutes(15)),
   claim: limit("claim", Duration.seconds(45)),
+  // The site token and the collector token, minted from the platform's keys in the shared state: once part of the claim.
+  grant: limit("grant", Duration.seconds(45)),
   register: limit("register", Duration.seconds(30)),
   branch: limit("branch", Duration.minutes(1)),
   deploy: limit("deploy", Duration.minutes(4)),

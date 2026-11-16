@@ -8,6 +8,7 @@
 // hub's state) works it out again (`worldSecret`).
 import * as Alchemist from "alchemy/Alchemist";
 import * as Arr from "effect/Array";
+import * as Clock from "effect/Clock";
 import * as Config from "effect/Config";
 import * as Mac from "effect/crypto/Mac";
 import * as SecureRandom from "effect/crypto/SecureRandom";
@@ -76,7 +77,7 @@ const cryptoLayer = Mac.layerWebCrypto.pipe(Layer.provide(SecureRandom.layerWebC
 const bytes = (text: string) => new TextEncoder().encode(text);
 
 /** The world's door secret on the hub: HMAC-SHA256 of its stage, owner and expiry under the admin token, 32 hex. */
-export const worldSecret = Effect.fn("world.hub.secret")(function* (
+const signedSecret = Effect.fn("world.hub.secret")(function* (
   hub: Pick<Hub, "admin">,
   world: { readonly stage: string; readonly owner: string; readonly expiresAt: string },
 ) {
@@ -87,12 +88,29 @@ export const worldSecret = Effect.fn("world.hub.secret")(function* (
   // oxlint-disable-next-line effecttsgo/strict-effect-provide -- WebCrypto's HMAC, used for this one signature
 }, Effect.provide(cryptoLayer));
 
+/** Each world's secret worked out in this process, by the cluster's admin token: the same facts sign the same tag. */
+const secrets = new WeakMap<Redacted.Redacted, Map<string, string>>();
+
+/** The world's secret on its cluster, worked out once per process for each world (`signedSecret`). */
+export const worldSecret = (cluster: Parameters<typeof signedSecret>[0], world: Parameters<typeof signedSecret>[1]) =>
+  Effect.suspend(() => {
+    const key = `${world.stage}\n${world.owner}\n${world.expiresAt}`;
+    const known = secrets.get(cluster.admin)?.get(key);
+    if (known !== undefined) return Effect.succeed(known);
+    return Effect.tap(signedSecret(cluster, world), (secret) =>
+      Effect.sync(() => {
+        const held = secrets.get(cluster.admin) ?? new Map<string, string>();
+        secrets.set(cluster.admin, held.set(key, secret));
+      }),
+    );
+  });
+
 /** The world's door token on the hub, as a secret. */
 export const worldToken = (hub: Pick<Hub, "admin">, world: Parameters<typeof worldSecret>[1]) =>
   Effect.map(worldSecret(hub, world), (secret) => Redacted.make(tokenOf(world.stage, secret)));
 
 /** A hub by its stage, from the shared state: refused unless it was deployed and has not expired. */
-export const openHub = Effect.fn("world.hub.open")(function* (stage: string) {
+const readCluster = Effect.fn("world.hub.open")(function* (stage: string) {
   const missing = (message: string) => HubMissing.make({ hub: stage, message });
   const output = yield* Schema.decodeUnknownEffect(HubOutput)(yield* recordedOutput(stage, HUB_STACK)).pipe(
     Effect.mapError(() => missing(`no hub ${stage}: bring it up with \`hub up --hub ${stage}\``)),
@@ -108,6 +126,29 @@ export const openHub = Effect.fn("world.hub.open")(function* (stage: string) {
     capacity: output.capacity ?? LEGACY_HUB_CAPACITY,
   } satisfies Hub;
 });
+
+/** How long a cluster opened in this process is used before it is read again: another process may renew it. */
+const OPENED_FOR_MS = 60_000;
+
+/** Clusters opened in this process, by stage, with when each was read; `hubUp` and `hubDown` forget theirs. */
+type Opened = Effect.Success<ReturnType<typeof readCluster>>;
+const openedClusters = new Map<string, { readonly cluster: Opened; readonly readAtMs: number }>();
+
+/** Forgets the cluster this process opened as `stage`, so the next `openHub` reads the shared state again. */
+const forgetOpened = (stage: string) => Effect.sync(() => openedClusters.delete(stage));
+
+/**
+ * A cluster by its stage (`readCluster`), read from the shared state at most once a minute in a process: every world's
+ * create opens its cluster, and the read is two calls to the shared state.
+ */
+export const openHub = (stage: string) =>
+  Effect.flatMap(Clock.currentTimeMillis, (nowMs) => {
+    const kept = openedClusters.get(stage);
+    if (kept !== undefined && nowMs - kept.readAtMs < OPENED_FOR_MS) return Effect.succeed(kept.cluster);
+    return Effect.tap(readCluster(stage), (cluster) =>
+      Effect.sync(() => openedClusters.set(stage, { cluster, readAtMs: nowMs })),
+    );
+  });
 
 /** One call to the hub's admin routes; its answer decoded with `schema`. A connection reset is tried again. */
 const adminCall = <S extends Schema.Constraint>(hub: Hub, request: HttpClientRequest.HttpClientRequest, schema: S) =>
@@ -186,6 +227,7 @@ export const hubUp = Effect.fn("world.hub.up")(function* (spec: {
     Effect.scoped,
   );
   yield* forgetHub(spec.stage);
+  yield* forgetOpened(spec.stage);
   return yield* Schema.decodeEffect(HubOutput)(output);
 });
 
@@ -204,5 +246,6 @@ export const hubDown = Effect.fn("world.hub.down")(function* (stage: string) {
   yield* Alchemist.apply(plan);
   yield* forgetStage(stage, HUB_STACK);
   yield* forgetHub(stage);
+  yield* forgetOpened(stage);
   return { hub: stage, resourcesDestroyed: plan.summary.delete };
 }, Effect.scoped);
