@@ -13,6 +13,10 @@ test("sites at once are the setting, capped at the pool the door reports", () =>
   assert.equal(sitesOf(4, Option.some(8)), 4);
 });
 
+test("a door with a pool of 0 still makes sites, cold: the bound is never under one", () => {
+  assert.equal(sitesOf(8, Option.some(0)), 1);
+});
+
 test("a door that does not report its pool leaves the setting as the bound", () => {
   assert.equal(sitesOf(8, Option.none()), 8);
 });

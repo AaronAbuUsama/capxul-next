@@ -15,6 +15,7 @@ import { startingWorlds, type OperationName, type StartingWorld } from "@capxul/
 import { Casting, declaredCast, type Journey, type JourneyKey } from "@capxul/scenarios";
 import * as World from "@capxul/world";
 import * as Arr from "effect/Array";
+import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Rec from "effect/Record";
@@ -61,8 +62,11 @@ export const aroundJourney =
       // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the journey's own platform is built for its one journey and closed with it
       Effect.provide(accountOfJourney(journey.world === "own", operatorsOf(settings, journey.key))),
       // A journey that needs more than the run can ever hold takes nothing: it fails into its own record (`tooMany`).
-      // A journey whose own steps found a company holds a site slot, inside its worlds' places (worlds first, everywhere).
-      foundsInSteps(journey) ? places.sites.held(journey.name, 1) : (each) => each,
+      // A journey whose own steps found a company holds a site slot, inside its worlds' places (worlds first, everywhere);
+      // one too big for the run takes none, as it takes no world place.
+      foundsInSteps(journey) && journey.worlds <= places.worlds.size
+        ? places.sites.held(journey.name, 1)
+        : (each) => each,
       journey.worlds > places.worlds.size ? (each) => each : places.worlds.held(journey.name, journey.worlds),
       // Each journey is played by its own cast, as the blueprint declares it and the world makes it (4.11): its
       // starting world's makers (company.ts) and its steps (scenarios' cast.ts) read it.
@@ -186,21 +190,26 @@ export const placesForRun = (settings: Settings, cluster: string, timings: Timin
       Effect.map((hub) => hub.capacity),
       Effect.orElseSucceed(() => settings.worldsAtOnce),
     ),
-    World.benchPool,
+    Effect.timed(World.benchPool),
   ]).pipe(
-    Effect.flatMap(([capacity, pool]) => {
+    Effect.flatMap(([capacity, [took, pool]]) => {
       const sites = sitesOf(settings.sitesAtOnce, pool);
       return Effect.andThen(
-        // Both numbers in the run's record: what was asked, what the door keeps, and so the bound.
-        timings.record("prepare places", 0, { note: sitesNote(settings.sitesAtOnce, pool, sites) }),
+        // Both numbers in the run's record, and how long the door took to say: what was asked, what it keeps, the bound.
+        timings.record("prepare places", Math.round(Duration.toMillis(took)), {
+          note: sitesNote(settings.sitesAtOnce, pool, sites),
+        }),
         placesOf({ worldsAtOnce: settings.worldsAtOnce - 1, sitesAtOnce: sites }, capacity - 1, timings),
       );
     }),
   );
 
-/** The company sites a run makes at once: `asked` (RUNNER_SITES_AT_ONCE), never more than the door's `pool`. */
+/**
+ * The company sites a run makes at once: `asked` (RUNNER_SITES_AT_ONCE), never more than the door's `pool`, and never
+ * fewer than one: a door with a pool of 0 still makes sites, cold, and a bound of 0 would fail every founding journey.
+ */
 export const sitesOf = (asked: number, pool: Option.Option<number>): number =>
-  Option.match(pool, { onNone: () => asked, onSome: (ready) => Math.min(asked, ready) });
+  Option.match(pool, { onNone: () => asked, onSome: (ready) => Math.max(1, Math.min(asked, ready)) });
 
 const sitesNote = (asked: number, pool: Option.Option<number>, sites: number) =>
   `sites at once ${String(sites)}: RUNNER_SITES_AT_ONCE ${String(asked)}, the door's pool ${Option.match(pool, { onNone: () => "not reported", onSome: String })}`;
