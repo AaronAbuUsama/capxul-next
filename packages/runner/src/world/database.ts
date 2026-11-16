@@ -101,7 +101,21 @@ export interface Kept {
   readonly events: ReadonlyArray<EventRow>;
 }
 
-/** Everything Core kept under the given trace ids, in the order it was written. */
+/** The events Core recorded under the given trace ids (`app.events`), in the order it wrote them. */
+export const eventsOf = (database: Redacted.Redacted, traceIds: ReadonlyArray<string>) =>
+  Arr.isReadonlyArrayEmpty(traceIds)
+    ? Effect.succeed<ReadonlyArray<EventRow>>([])
+    : query(
+        database,
+        "select trace_id, operation, event, payload from app.events where trace_id = any($1) order by id",
+        [traceIds],
+      ).pipe(Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(EventRow))));
+
+/**
+ * Everything Core kept under the given trace ids in its own tables, in the order it was written: `app.spans` and
+ * `app.events`. Since the flip the checks read the spans from the tap (telemetry/kept.ts); this is the side-by-side
+ * parity's other record until the retire.
+ */
 export const telemetryOf = Effect.fn(
   Pipeline.checkCall.spans.read.name,
   stepOptions(Pipeline.checkCall.spans.read),

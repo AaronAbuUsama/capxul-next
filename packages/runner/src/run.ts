@@ -28,7 +28,7 @@ export { stepsFor, viaOf } from "./record.ts";
 import { hearing, stepsOf, type Heard, type StepResult } from "./steps.ts";
 import type { Settings } from "./settings.ts";
 import { sideBySide, tapFailures } from "./telemetry/side-by-side.ts";
-import { telemetryOf } from "./world/database.ts";
+import { appKeptOf, tapTelemetryOf } from "./telemetry/kept.ts";
 import { isEmpty } from "./world/leftovers.ts";
 import { OtherWorlds } from "./world/existing.ts";
 import { PlatformKept } from "./worlds/kept.ts";
@@ -99,7 +99,8 @@ export const use = (plan: Plan, settings: Settings) => (stage: Stage) =>
       calls: paths.calls,
       coverage: paths.coverage,
       steps: stepsOf(plan.outline, yield* Ref.get(heard), paths.calls),
-      tap: yield* sideBySide(stage.database, calls, kept),
+      // Parity still compares the tap with what Core keeps in `app.spans`, until the retire.
+      tap: yield* sideBySide(stage.database, calls, yield* appKeptOf(stage.database, calls)),
       ms: { run: millis(runTook), checks: millis(checksTook) },
     } satisfies Used;
   }).pipe(
@@ -118,11 +119,9 @@ export const keptFor = (database: Option.Option<Redacted.Redacted>, calls: Reado
     // Where the platform group is served by this process (worlds/platform.ts), its calls are kept by it.
     const platform = yield* Effect.serviceOption(PlatformKept);
     const byPlatform = (call: Call) => Option.isSome(platform) && servedBy(call.operation) === "platform";
-    const ownCalls = Arr.map(
-      Arr.filter(calls, (call) => call.at === null && !byPlatform(call)),
-      (call) => call.traceId,
-    );
-    const own = Option.isSome(database) ? yield* telemetryOf(database.value, ownCalls) : { spans: [], events: [] };
+    const ownCalls = Arr.filter(calls, (call) => call.at === null && !byPlatform(call));
+    // Since the flip (4.4) the spans come from the tap (telemetry/kept.ts); the events still from `app.events`.
+    const own = Option.isSome(database) ? yield* tapTelemetryOf(database.value, ownCalls) : { spans: [], events: [] };
     const served = Option.isNone(platform)
       ? { spans: [], events: [] }
       : yield* platform.value.kept(Arr.map(Arr.filter(calls, byPlatform), (call) => call.traceId));
@@ -137,12 +136,9 @@ export const keptFor = (database: Option.Option<Redacted.Redacted>, calls: Reado
         Option.match(found, {
           onNone: () => Effect.succeed({ spans: [], events: [] }),
           onSome: (theirs) =>
-            telemetryOf(
+            tapTelemetryOf(
               theirs,
-              Arr.map(
-                Arr.filter(calls, (call) => call.at === door),
-                (call) => call.traceId,
-              ),
+              Arr.filter(calls, (call) => call.at === door),
             ),
         }),
       ),

@@ -5,7 +5,7 @@
 // One bundle of Core per run (bundle.ts), one chain forwarder for every world (forward.ts), and for each world its
 // database bridge (database.ts) and its workerd process (workerd.ts), in a scope of its own that its destroy closes.
 // A record of a run with this host says so (`LOCAL_CORE_LABEL`): it is a rehearsal, never the Cloudflare proof.
-import { CORE_ENV } from "@capxul/core";
+import { CORE_ENV, TAP_ON } from "@capxul/core";
 import * as World from "@capxul/world";
 import * as BunSocketServer from "@effect/platform-bun/BunSocketServer";
 import * as Arr from "effect/Array";
@@ -46,6 +46,8 @@ const envOf = (core: World.HostedCore): Readonly<Record<string, Text>> => ({
   [CORE_ENV.doorToken]: core.world.doorToken,
   [CORE_ENV.platformToken]: core.operatorToken,
   [CORE_ENV.chainToken]: core.world.doorToken,
+  // A rehearsal's world is a test world: its Core writes the tap, which the checks read (src/telemetry/kept.ts).
+  [CORE_ENV.tap]: TAP_ON,
   ...Option.match(core.bench, {
     onNone: () => ({}),
     onSome: (bench) => ({
