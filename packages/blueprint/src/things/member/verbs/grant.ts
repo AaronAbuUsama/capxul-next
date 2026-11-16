@@ -5,11 +5,11 @@ import * as Rpc from "effect/rpc/Rpc";
 import { verb, claim, kept, rewritten, dropped } from "@capxul/blueprint-tools";
 import { NotImplemented, OrgNotFound } from "../../../common/refusals.ts";
 import { OrgId, Permission, PersonId } from "../../../common/values.ts";
+import { samBooksGrant } from "../../../starting-points/facts.ts";
 import { startingWorlds as w, type ClaimsOf } from "../../../starting-points/points.ts";
 import { ProposalOpened } from "../../company/events.ts";
 import { MemberHasNoSafe, NotADirector, NotAMember } from "../../company/refusals.ts";
 import { OfficerChangeProposed } from "../events.ts";
-import { samBooksGrant } from "../examples.ts";
 import { AlreadyHeld, ChangeWaiting } from "../refusals.ts";
 import { GrantProposed } from "../values.ts";
 
