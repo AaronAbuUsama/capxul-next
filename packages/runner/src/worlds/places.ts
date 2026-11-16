@@ -10,7 +10,7 @@
 // than the bound can ever give fails at once, by name. Each wait is a timed part (`world place`, `site slot`), so the
 // record shows whether it is on the run's critical path.
 //
-// Each journey with worlds of its own has two operators of its own, named for it (owners.ts), so its worlds fill quotas
+// Each journey with worlds of its own has two operators of its own, named for it (operators.ts), so its worlds fill quotas
 // of 5 no other journey's do (two operators and inventory each fill one): the bound (15, less the shared world) holds
 // every such journey at once. Before, they shared the run's operators, the bound kept them one after another, and the
 // first operator's quota also held the shared world (world run 43782964738: inventory's WorldQuotaReached at 5 of 5).

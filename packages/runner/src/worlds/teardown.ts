@@ -59,7 +59,7 @@ export const destroyAll = (stages: ReadonlyArray<string>) =>
 /**
  * Destroys what is left of the worlds the platform tried to make but never handed over: a create that failed after
  * its claim takes its world down itself, and when that take-down fails too the world is left. Only a world one of the
- * run's operators owns (`owns`, owners.ts) is touched; one already gone is no failure.
+ * run's operators owns (`owns`, operators.ts) is touched; one already gone is no failure.
  */
 export const destroyStrays = (stages: ReadonlyArray<string>, owns: (owner: string) => boolean) =>
   Effect.forEach(stages, (stage) =>

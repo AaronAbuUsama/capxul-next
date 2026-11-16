@@ -81,11 +81,11 @@ export const platformFor = (settings: Settings) =>
 
 /**
  * A platform of its own for one journey with worlds of its own (side by side, RUNNER_SHAPE=shared): two operators
- * named for it (`ownersOf`), so its worlds count against quotas no other journey shares, while what it makes and
+ * named for it (`operatorsOf`), so its worlds count against quotas no other journey shares, while what it makes and
  * tries is kept in the run's own lists, where the run's sweep, summary and teardown read them. Built fresh, so no
  * part of it is shared with the run's platform or another journey's.
  */
-export const journeyPlatform = (settings: Settings) =>
+export const journeyAccount = (settings: Settings) =>
   Effect.map(Effect.all([World.Made, World.Tried]), ([made, tried]) =>
     served(
       operators(settings, { first: settings.owner, second: settings.secondOwner }),
@@ -96,14 +96,14 @@ export const journeyPlatform = (settings: Settings) =>
 /** The run's own platform, passed on as it is: what a journey of the shared world calls. */
 const theRun = () => Layer.effectContext(Effect.context<Platform | PlatformKept>());
 
-type Own = ReturnType<typeof journeyPlatform>;
+type Own = ReturnType<typeof journeyAccount>;
 
 /**
- * The platform a journey calls side by side: one of its own when it has worlds of its own (`journeyPlatform`, with
+ * The platform a journey calls side by side: one of its own when it has worlds of its own (`journeyAccount`, with
  * `settings` naming its operators), else the run's.
  */
-export const platformOfJourney = (
+export const accountOfJourney = (
   own: boolean,
   settings: Settings,
 ): Layer.Layer<Platform | PlatformKept, Layer.Error<Own>, Layer.Services<Own> | Platform | PlatformKept> =>
-  own ? journeyPlatform(settings) : theRun();
+  own ? journeyAccount(settings) : theRun();

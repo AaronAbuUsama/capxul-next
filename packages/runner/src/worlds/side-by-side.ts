@@ -4,7 +4,7 @@
 // - one shared world, made once by `fresh`'s maker in the run's preparation, and never reset or saved;
 // - a journey of the shared world (`world: "shared"`) builds its starting world by its steps in it, from `fresh` on;
 // - a journey about worlds (`world: "own"`) builds its starting world in a fresh world of its own, made for it, through
-//   a platform of its own whose two operators are named for it (owners.ts), so its worlds fill quotas of their own;
+//   a platform of its own whose two operators are named for it (operators.ts), so its worlds fill quotas of their own;
 // - a company founded on the way holds one of the bench's site slots while it is built, and a journey holds its
 //   worlds' places for as long as it runs (places.ts): the shared world's place is taken off the bound at the start.
 //
@@ -25,9 +25,9 @@ import type { Timings } from "../timings.ts";
 import { companyMakers } from "./company.ts";
 import type { Making } from "./makers.ts";
 import { JourneyMaking, nothingOf, recorder, targetOf, type MakingCall, type Needs } from "./making.ts";
-import { ownersOf, runOwns } from "./owners.ts";
+import { operatorsOf, ofTheRun } from "./operators.ts";
 import { placesOf, type Places } from "./places.ts";
-import { Platform, platformOfJourney } from "./platform.ts";
+import { Platform, accountOfJourney } from "./platform.ts";
 import { destroyStrays } from "./teardown.ts";
 import { stepsOf } from "./starting.ts";
 import { answersSteadily, type Readiness } from "../world/warmup.ts";
@@ -49,7 +49,7 @@ export const aroundJourney =
     effect.pipe(
       // A journey with worlds of its own calls a platform of its own, its operators named for it, for as long as it runs.
       // oxlint-disable-next-line effecttsgo/strict-effect-provide -- the journey's own platform is built for its one journey and closed with it
-      Effect.provide(platformOfJourney(journey.world === "own", ownersOf(settings, journey.key))),
+      Effect.provide(accountOfJourney(journey.world === "own", operatorsOf(settings, journey.key))),
       // A journey that needs more than the run can ever hold takes nothing: it fails into its own record (`tooMany`).
       journey.worlds > places.worlds.size ? (each) => each : places.worlds.held(journey.name, journey.worlds),
       // Each journey is played by its own cast, as the blueprint declares it and the world makes it (4.11): its
@@ -94,7 +94,7 @@ export const sideBySideOf = (settings: Settings, platformUrl: string, places: Pl
                       onSome: (each) =>
                         Effect.flatMap(Effect.service(Platform), (platform) => {
                           const by = recorder(targetOf(settings, platform.url), made);
-                          const mine = nothingOf(ownersOf(settings, each.key));
+                          const mine = nothingOf(operatorsOf(settings, each.key));
                           return Effect.flatMap(stepsOf(startingWorlds.fresh), (steps) =>
                             by(startingWorlds.fresh, steps, mine),
                           ).pipe(Effect.flatMap((base) => build(by, world, base, name)));
@@ -104,9 +104,9 @@ export const sideBySideOf = (settings: Settings, platformUrl: string, places: Pl
 
             return {
               around: (journey: Journey) => aroundJourney(places, journey, settings),
-              /** The settings a journey runs with: a journey with worlds of its own, its own operators (owners.ts). */
+              /** The settings a journey runs with: a journey with worlds of its own, its own operators (operators.ts). */
               settingsFor: (journey: Journey): Settings =>
-                journey.world === "own" ? ownersOf(settings, journey.key) : settings,
+                journey.world === "own" ? operatorsOf(settings, journey.key) : settings,
               /** Why `journey` cannot run here: it needs more worlds at once than the run holds; null when it fits. */
               tooMany: (journey: Journey): string | null =>
                 journey.worlds > places.worlds.size
@@ -183,7 +183,7 @@ export const sweepOf = (settings: Settings, templateWorlds: Effect.Effect<Readon
           Effect.flatMap(([made, tried, shared]) =>
             destroyStrays(
               Arr.filter(Arr.dedupe([...made, ...tried]), (stage) => !Arr.contains(shared, stage)),
-              runOwns(settings),
+              ofTheRun(settings),
             ),
           ),
           Effect.asVoid,

@@ -34,7 +34,7 @@ import { JourneyMaking, type MakingCall } from "./making.ts";
 import { coreLabel, Platform } from "./platform.ts";
 import { sharedStartingWorldsOf, type SharedStartingWorlds } from "../shared/starting.ts";
 import { startingWorldsOf, type StartingWorlds } from "./starting.ts";
-import { runOwns } from "./owners.ts";
+import { ofTheRun } from "./operators.ts";
 import { destroyAll, destroyStrays, leftOf, takeDown } from "./teardown.ts";
 import { tapFailures } from "../telemetry/side-by-side.ts";
 
@@ -128,7 +128,7 @@ const runOne = (
 ) =>
   Effect.uninterruptibleMask((restore) =>
     Effect.gen(function* () {
-      // Side by side, a journey with worlds of its own has operators of its own (owners.ts).
+      // Side by side, a journey with worlds of its own has operators of its own (operators.ts).
       const settings = "settingsFor" in starting ? starting.settingsFor(scenario) : runSettings;
       const platform = yield* Platform;
       const core = yield* coreLabel;
@@ -156,7 +156,7 @@ const runOne = (
       const leftBefore = yield* leftOf(looked);
       const strays = Arr.filter(looked, (stage) => !Arr.contains(mine, stage));
       const [destroyTook, destroyed] = yield* Effect.timed(
-        Effect.zipWith(destroyAll(mine), destroyStrays(strays, runOwns(settings)), (a, b) => a && b),
+        Effect.zipWith(destroyAll(mine), destroyStrays(strays, ofTheRun(settings)), (a, b) => a && b),
       );
       yield* timings.record("destroy the journey's own worlds", millis(destroyTook), {
         journey: scenario.name,

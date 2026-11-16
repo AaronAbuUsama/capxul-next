@@ -7,17 +7,17 @@ import * as Str from "effect/String";
 import type { Settings } from "../settings.ts";
 
 /** The run's two operators, as its settings name them. */
-type Owners = Pick<Settings, "owner" | "secondOwner">;
+type RunOperators = Pick<Settings, "owner" | "secondOwner">;
 
 /** The settings of one journey with worlds of its own: its two operators, `<owner>-<key>` and `<owner>-<key>-2`. */
-export const ownersOf = <S extends Owners>(settings: S, key: string): S => ({
+export const operatorsOf = <S extends RunOperators>(settings: S, key: string): S => ({
   ...settings,
   owner: `${settings.owner}-${key}`,
   secondOwner: `${settings.owner}-${key}-2`,
 });
 
-/** True when `owner` is one of the run's operators: its two, or one a journey of it was given (`ownersOf`). */
-export const runOwns =
-  (settings: Owners) =>
+/** True when `owner` is one of the run's operators: its two, or one a journey of it was given (`operatorsOf`). */
+export const ofTheRun =
+  (settings: RunOperators) =>
   (owner: string): boolean =>
     owner === settings.owner || owner === settings.secondOwner || Str.startsWith(`${settings.owner}-`)(owner);
