@@ -7,7 +7,8 @@
 import * as Arr from "effect/Array";
 import * as Rec from "effect/Record";
 import { Envelope } from "@capxul/blueprint";
-import { OUTCOME, SPAN_ATTRIBUTES } from "@capxul/core";
+import { OUTCOME, SpanAttributes } from "@capxul/core";
+import * as Predicate from "effect/Predicate";
 import type { SpanRow } from "../world/database.ts";
 import type { FlatSpan, FlatStatus } from "./flat.ts";
 
@@ -48,14 +49,33 @@ const OUTCOME_OF: Readonly<Record<string, string>> = OUTCOME;
 /** The attribute Core stamps every kept span's outcome under. */
 const OUTCOME_KEY = Envelope.attributes.outcome.name;
 
-const DECLARED: ReadonlyArray<string> = Rec.values(SPAN_ATTRIBUTES);
+/** Every attribute Core declares on a kept span (`SpanAttributes`): the call's own and a clock warp's (warp-times.ts). */
+const DECLARED: ReadonlyArray<string> = Rec.keys(SpanAttributes.fields);
+
+/**
+ * Whether two attribute values are the same value: equal text, numbers or booleans, or arrays and records holding the
+ * same values. A warp's attributes are arrays, read separately from `app.spans`' jsonb and from the tap's OTLP, so
+ * they are never the same object (run 43789356026 failed on equal ones compared with `===`).
+ */
+export const sameValue = (a: unknown, b: unknown): boolean => {
+  if (Arr.isArray(a) || Arr.isArray(b))
+    return (
+      Arr.isArray(a) && Arr.isArray(b) && a.length === b.length && Arr.every(a, (each, i) => sameValue(each, b[i]))
+    );
+  if (Predicate.isObject(a) || Predicate.isObject(b)) {
+    if (!Predicate.isObject(a) || !Predicate.isObject(b)) return false;
+    const keys = Rec.keys(a);
+    return keys.length === Rec.keys(b).length && Arr.every(keys, (key) => Rec.has(b, key) && sameValue(a[key], b[key]));
+  }
+  return a === b;
+};
 
 /** The declared attributes (each a string or a number) of a kept span and of its tapped twin that differ, one difference per key. */
 const attributeDifferences = (row: SpanRow, span: FlatSpan): ReadonlyArray<Difference> => {
   const kept: Readonly<Record<string, unknown>> = row.attributes ?? {};
   const keys = Arr.dedupe([...Rec.keys(kept), ...Arr.filter(DECLARED, (key) => key in span.attributes)]);
   return Arr.flatMap(keys, (key) =>
-    kept[key] === span.attributes[key]
+    sameValue(kept[key], span.attributes[key])
       ? []
       : [
           {
