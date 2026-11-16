@@ -157,3 +157,49 @@ test("a tapped span with no outcome does not agree", () => {
   const { [OUTCOME_KEY]: _dropped, ...rest } = tapped[1]!.attributes;
   assert.deepEqual(abouts(kept, [tapped[0]!, { ...tapped[1]!, attributes: rest }]), ["outcome"]);
 });
+
+/**
+ * A clock warp's site span as run 43789356026 kept and tapped it: its declared attributes are arrays, read from
+ * `app.spans`' jsonb on one side and from the tap's OTLP on the other, so equal values are never the same object.
+ */
+const warpSite = (shift: number) => {
+  const attributes = {
+    "warp.stop_ms": [2264.4, 1294.4, 155.4 + shift],
+    "warp.stop_jobs": [95, 100, 18],
+    "warp.jobs": ["capxul.clock.daily", "frappe.deferred_insert.save_to_db"],
+    "warp.job_runs": [7, 8],
+    "warp.job_ms": [429.8, 136.9],
+  };
+  const row: SpanRow = {
+    trace_id: TRACE,
+    span_id: "s-warp-site",
+    parent_span_id: "s-call",
+    name: "world.clock.warp.site",
+    outcome: "success",
+    duration_ms: 11559,
+    ended_ms: 1_800_000_011_559,
+    attributes: JSON.parse(JSON.stringify(attributes)),
+  };
+  const span: FlatSpan = {
+    ...tapped[1]!,
+    name: "world.clock.warp.site",
+    spanId: "s-warp-site",
+    parentSpanId: "s-call",
+    attributes: {
+      ...JSON.parse(JSON.stringify(attributes)),
+      "warp.stop_ms": [2264.4, 1294.4, 155.4],
+      [OUTCOME_KEY]: OUTCOME.success,
+    },
+  };
+  return { row, span };
+};
+
+test("array-valued declared attributes agree when their values are equal, and not when one differs", () => {
+  const same = warpSite(0);
+  assert.deepEqual(parity([same.row], [same.span]), { agrees: true, differences: [] });
+  const moved = warpSite(1);
+  assert.deepEqual(
+    Arr.map(parity([moved.row], [moved.span]).differences, (each) => [each.about, each.key]),
+    [["attribute", "warp.stop_ms"]],
+  );
+});
