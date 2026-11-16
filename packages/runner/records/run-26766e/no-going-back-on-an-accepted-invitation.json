@@ -1,0 +1,5662 @@
+{
+  "kind": "journey",
+  "name": "no going back on an accepted invitation",
+  "proves": null,
+  "given": "founded",
+  "stage": "w-tpl-2634db",
+  "owner": "ci-43819398010-1",
+  "startedAt": "2026-11-16T07:15:01.583Z",
+  "outcome": "passed",
+  "failure": null,
+  "ended": {
+    "as": "succeeded",
+    "tag": null,
+    "detail": null
+  },
+  "readiness": {
+    "probes": 5,
+    "relapses": 0,
+    "ms": 3135
+  },
+  "calls": [
+    {
+      "operation": "record.export",
+      "traceId": "e0a760c5d255257f5087cfee3ced4538",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 443.746,
+        "serverMs": 127,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 127,
+        "db.query_count": 3
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 62,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 62,
+          "ms": 57,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 119,
+          "ms": 8,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 127 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "e5986e412ad796c8612cf192950bb9ac",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 844.651,
+        "serverMs": 707.554,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "db.query_ms": 0,
+        "db.query_count": 0
+      },
+      "steps": [
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": -0.892,
+          "ms": 707.445,
+          "outcome": "success"
+        },
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": -0.767,
+          "ms": 136.321,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": -0.48,
+          "ms": 136.034,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 135.541,
+          "ms": 571.013,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 135.939,
+          "ms": 148.614,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 136.368,
+          "ms": 149.186,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 136.428,
+          "ms": 0.125,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle.kept",
+          "parent": "world.handle",
+          "startMs": 136.52,
+          "ms": 0.034,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle.kept",
+          "parent": "world.handle",
+          "startMs": 136.544,
+          "ms": 0.009,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle.kept",
+          "parent": "world.handle",
+          "startMs": 136.548,
+          "ms": 0.006,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 136.571,
+          "ms": 148.983,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 285.217,
+          "ms": 421.337,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 707.554 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "invitation.send",
+      "traceId": "9b2156a5d38e28e9acc54bb247e5d056",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 457.703,
+        "serverMs": 119,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 119,
+        "db.query_count": 10
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "organizations.byOrg",
+          "startMs": 0,
+          "ms": 56,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.byOrg",
+          "parent": "invitation.send.load",
+          "startMs": 0,
+          "ms": 56,
+          "outcome": "success"
+        },
+        {
+          "name": "invitation.send.load",
+          "parent": "invitation.send",
+          "startMs": 0,
+          "ms": 80,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "invitation.send.load",
+          "startMs": 55,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "people.joined",
+          "startMs": 61,
+          "ms": 9,
+          "outcome": "success"
+        },
+        {
+          "name": "people.joined",
+          "parent": "people.roster",
+          "startMs": 61,
+          "ms": 9,
+          "outcome": "success"
+        },
+        {
+          "name": "people.roster",
+          "parent": "invitation.send.load",
+          "startMs": 61,
+          "ms": 9,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "people.pendingTo",
+          "startMs": 70,
+          "ms": 10,
+          "outcome": "success"
+        },
+        {
+          "name": "people.pendingTo",
+          "parent": "invitation.send.load",
+          "startMs": 70,
+          "ms": 10,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "invitation.send",
+          "startMs": 79,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "BEGIN postgres",
+          "parent": "sql.transaction",
+          "startMs": 85,
+          "ms": 7,
+          "outcome": "success"
+        },
+        {
+          "name": "sql.transaction",
+          "parent": "invitation.send.write",
+          "startMs": 85,
+          "ms": 34,
+          "outcome": "success"
+        },
+        {
+          "name": "invitation.send.write",
+          "parent": "invitation.send",
+          "startMs": 85,
+          "ms": 34,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "people.invite",
+          "startMs": 92,
+          "ms": 7,
+          "outcome": "success"
+        },
+        {
+          "name": "people.invite",
+          "parent": "sql.transaction",
+          "startMs": 92,
+          "ms": 7,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "sql.transaction",
+          "startMs": 99,
+          "ms": 6,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "sql.transaction",
+          "startMs": 105,
+          "ms": 8,
+          "outcome": "success"
+        },
+        {
+          "name": "COMMIT postgres",
+          "parent": "sql.transaction",
+          "startMs": 113,
+          "ms": 6,
+          "outcome": "success"
+        }
+      ],
+      "events": [
+        "member_invited"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one invitation.send span, 119 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: member_invited {\"by\":\"dana\",\"org\":\"org_gvrs179f8pvx\",\"role\":\"member\",\"invitation\":\"inv_gkxqnq3lf4be\"}; declared for a success: member_invited {\"invitation\":\"inv_gkxqnq3lf4be\",\"org\":\"org_gvrs179f8pvx\",\"role\":\"member\",\"by\":\"dana\"}"
+        },
+        {
+          "check": "path",
+          "passed": true,
+          "detail": "invitation inv_gkxqnq3lf4be: started pending"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "e6b111145be82e7be11ced61451a32bc",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 351.088,
+        "serverMs": 65,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 65,
+        "db.query_count": 3
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 55,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 55,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 60,
+          "ms": 5,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 65 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "d22b8e34f7644f84411a0b67068e7596",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 316.248,
+        "serverMs": 60,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 60,
+        "db.query_count": 3
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 8,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 8,
+          "ms": 47,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 55,
+          "ms": 5,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 60 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "invitation.list",
+      "traceId": "22159b5d84815c40af917cc109ff70ad",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 277.6,
+        "serverMs": 20,
+        "budgetMs": 1000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 20,
+        "db.query_count": 2
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "invitation.list.load",
+          "startMs": 0,
+          "ms": 12,
+          "outcome": "success"
+        },
+        {
+          "name": "invitation.list.load",
+          "parent": "invitation.list",
+          "startMs": 0,
+          "ms": 20,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "people.invitationsTo",
+          "startMs": 12,
+          "ms": 8,
+          "outcome": "success"
+        },
+        {
+          "name": "people.invitationsTo",
+          "parent": "invitation.list.load",
+          "startMs": 12,
+          "ms": 8,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one invitation.list span, 20 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "0d9b2d4745800ea01bb184d2a6356b51",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 281.281,
+        "serverMs": 24,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 24,
+        "db.query_count": 3
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 11,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 11,
+          "ms": 7,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 18,
+          "ms": 6,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 24 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "a7c4ca703c371877cd48d80c4b3ddf20",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 565.971,
+        "serverMs": 428.007,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "db.query_ms": 0,
+        "db.query_count": 0
+      },
+      "steps": [
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": 0.046,
+          "ms": 100.961,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.098,
+          "ms": 427.91,
+          "outcome": "success"
+        },
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": 0.77,
+          "ms": 101.237,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 101.394,
+          "ms": 326.613,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 101.438,
+          "ms": 128.569,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 101.825,
+          "ms": 128.182,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 101.861,
+          "ms": 0.147,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle.kept",
+          "parent": "world.handle",
+          "startMs": 101.977,
+          "ms": 0.03,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle.kept",
+          "parent": "world.handle",
+          "startMs": 101.978,
+          "ms": 0.029,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle.kept",
+          "parent": "world.handle",
+          "startMs": 102,
+          "ms": 0.007,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 102.287,
+          "ms": 128.72,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 230.617,
+          "ms": 197.39,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 428.007 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "invitation.list",
+      "traceId": "847608e6d67e9db7ee5f5429fa18dc35",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 283.36,
+        "serverMs": 18,
+        "budgetMs": 1000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 18,
+        "db.query_count": 2
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "invitation.list.load",
+          "startMs": 0,
+          "ms": 13,
+          "outcome": "success"
+        },
+        {
+          "name": "invitation.list.load",
+          "parent": "invitation.list",
+          "startMs": 0,
+          "ms": 18,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "people.invitationsTo",
+          "startMs": 13,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "people.invitationsTo",
+          "parent": "invitation.list.load",
+          "startMs": 13,
+          "ms": 5,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one invitation.list span, 18 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "invitation.accept",
+      "traceId": "8c0095cd8adb5adde7969472cc561cdd",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 332.864,
+        "serverMs": 54,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 49,
+        "db.query_count": 9
+      },
+      "steps": [
+        {
+          "name": "sql.transaction",
+          "parent": "invitation.accept",
+          "startMs": 0,
+          "ms": 54,
+          "outcome": "success"
+        },
+        {
+          "name": "BEGIN postgres",
+          "parent": "sql.transaction",
+          "startMs": 5,
+          "ms": 7,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "invitation.accept.load",
+          "startMs": 12,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "invitation.accept.load",
+          "parent": "sql.transaction",
+          "startMs": 12,
+          "ms": 10,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "people.invitation",
+          "startMs": 17,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "people.invitation",
+          "parent": "invitation.accept.load",
+          "startMs": 17,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "invitation.accept.write",
+          "startMs": 22,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "invitation.accept.write",
+          "parent": "sql.transaction",
+          "startMs": 22,
+          "ms": 27,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "people.answer",
+          "startMs": 26,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "people.answer",
+          "parent": "invitation.accept.write",
+          "startMs": 26,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "people.join",
+          "startMs": 32,
+          "ms": 7,
+          "outcome": "success"
+        },
+        {
+          "name": "people.join",
+          "parent": "invitation.accept.write",
+          "startMs": 32,
+          "ms": 7,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "invitation.accept.write",
+          "startMs": 39,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "invitation.accept.write",
+          "startMs": 44,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "COMMIT postgres",
+          "parent": "sql.transaction",
+          "startMs": 49,
+          "ms": 5,
+          "outcome": "success"
+        }
+      ],
+      "events": [
+        "invitation_accepted"
+      ],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one invitation.accept span, 54 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: invitation_accepted {\"org\":\"org_gvrs179f8pvx\",\"role\":\"member\",\"person\":\"olga\",\"invitation\":\"inv_gkxqnq3lf4be\"}; declared for a success: invitation_accepted {\"invitation\":\"inv_gkxqnq3lf4be\",\"org\":\"org_gvrs179f8pvx\",\"person\":\"olga\",\"role\":\"member\"}"
+        },
+        {
+          "check": "path",
+          "passed": true,
+          "detail": "invitation inv_gkxqnq3lf4be: pending to accepted by accept"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "member.list",
+      "traceId": "3ce73f18c3f2c65cf17bbea31ed39e97",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 326.583,
+        "serverMs": 75,
+        "budgetMs": 1000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 75,
+        "db.query_count": 7
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "organizations.byOrg",
+          "startMs": 0,
+          "ms": 11,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.byOrg",
+          "parent": "member.list.read",
+          "startMs": 0,
+          "ms": 11,
+          "outcome": "success"
+        },
+        {
+          "name": "member.list.read",
+          "parent": "member.list",
+          "startMs": 0,
+          "ms": 75,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "people.joined",
+          "startMs": 11,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "people.joined",
+          "parent": "people.roster",
+          "startMs": 11,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "people.roster",
+          "parent": "member.list.read",
+          "startMs": 11,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "member.list.read",
+          "startMs": 16,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "member.list.read",
+          "startMs": 21,
+          "ms": 36,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "member.list.read",
+          "startMs": 57,
+          "ms": 6,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "member.list.read",
+          "startMs": 63,
+          "ms": 6,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "member.list.read",
+          "startMs": 69,
+          "ms": 6,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one member.list span, 75 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "195c6c5beb23b6048ede66b7a217a5e8",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 287.328,
+        "serverMs": 21,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 21,
+        "db.query_count": 3
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": -1,
+          "ms": 10,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 10,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 15,
+          "ms": 6,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 21 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "2889604dc7aa4581075ca6317d98610c",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 284.27,
+        "serverMs": 26,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 26,
+        "db.query_count": 3
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": -1,
+          "ms": 15,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 15,
+          "ms": 6,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 21,
+          "ms": 5,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 26 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "da96520c98386ad8b84cf73e83a7b22f",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 776.392,
+        "serverMs": 645.033,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "db.query_ms": 0,
+        "db.query_count": 0
+      },
+      "steps": [
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": 0.026,
+          "ms": 327.006,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.06,
+          "ms": 644.973,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": 0.37,
+          "ms": 326.662,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 326.9,
+          "ms": 0.132,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle.kept",
+          "parent": "world.handle",
+          "startMs": 327,
+          "ms": 0.033,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle.kept",
+          "parent": "world.handle",
+          "startMs": 327.023,
+          "ms": 0.009,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle.kept",
+          "parent": "world.handle",
+          "startMs": 327.025,
+          "ms": 0.008,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 327.138,
+          "ms": 317.895,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 327.349,
+          "ms": 127.684,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 327.519,
+          "ms": 127.514,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 327.903,
+          "ms": 127.13,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 455.302,
+          "ms": 189.731,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 645.033 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "invitation.list",
+      "traceId": "0c6f5d8ae6822edd01d5bb51ac479fa2",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 310.234,
+        "serverMs": 23,
+        "budgetMs": 1000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 23,
+        "db.query_count": 2
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "invitation.list.load",
+          "startMs": -1,
+          "ms": 17,
+          "outcome": "success"
+        },
+        {
+          "name": "invitation.list.load",
+          "parent": "invitation.list",
+          "startMs": 0,
+          "ms": 23,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "people.invitationsTo",
+          "startMs": 17,
+          "ms": 6,
+          "outcome": "success"
+        },
+        {
+          "name": "people.invitationsTo",
+          "parent": "invitation.list.load",
+          "startMs": 17,
+          "ms": 6,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one invitation.list span, 23 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "invitation.decline",
+      "traceId": "fb7a771354f642d402eb373313d354b3",
+      "at": null,
+      "outcome": "refusal",
+      "refusal": "NotYourInvitation",
+      "failure": "{\"_tag\":\"NotYourInvitation\",\"invitation\":\"inv_gkxqnq3lf4be\",\"person\":\"sam\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 341.876,
+        "serverMs": 37,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 33,
+        "db.query_count": 4
+      },
+      "steps": [
+        {
+          "name": "sql.transaction",
+          "parent": "invitation.decline",
+          "startMs": 0,
+          "ms": 37,
+          "outcome": "failure"
+        },
+        {
+          "name": "BEGIN postgres",
+          "parent": "sql.transaction",
+          "startMs": 4,
+          "ms": 10,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "invitation.decline.load",
+          "startMs": 14,
+          "ms": 7,
+          "outcome": "success"
+        },
+        {
+          "name": "invitation.decline.load",
+          "parent": "sql.transaction",
+          "startMs": 14,
+          "ms": 15,
+          "outcome": "failure"
+        },
+        {
+          "name": "postgres",
+          "parent": "people.invitation",
+          "startMs": 21,
+          "ms": 8,
+          "outcome": "success"
+        },
+        {
+          "name": "people.invitation",
+          "parent": "invitation.decline.load",
+          "startMs": 21,
+          "ms": 8,
+          "outcome": "success"
+        },
+        {
+          "name": "ROLLBACK postgres",
+          "parent": "sql.transaction",
+          "startMs": 29,
+          "ms": 8,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one invitation.decline span, 37 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "f2264cfdacde700039efa0518e5dfa3c",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 423.898,
+        "serverMs": 20,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 20,
+        "db.query_count": 3
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 1,
+          "ms": 9,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 10,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 14,
+          "ms": 6,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 20 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "e9b06818ab76329fcb93792b6e2b32f9",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 316.678,
+        "serverMs": 20,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 20,
+        "db.query_count": 3
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 10,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 10,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 15,
+          "ms": 5,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 20 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "bb75ef06b37c22b17ab321f122932700",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 552.811,
+        "serverMs": 421.423,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "db.query_ms": 0,
+        "db.query_count": 0
+      },
+      "steps": [
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.051,
+          "ms": 421.371,
+          "outcome": "success"
+        },
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": 0.322,
+          "ms": 102.101,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": 0.625,
+          "ms": 101.797,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 102.216,
+          "ms": 127.207,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 102.217,
+          "ms": 319.206,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 102.303,
+          "ms": 0.12,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle.kept",
+          "parent": "world.handle",
+          "startMs": 102.394,
+          "ms": 0.028,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle.kept",
+          "parent": "world.handle",
+          "startMs": 102.414,
+          "ms": 0.008,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle.kept",
+          "parent": "world.handle",
+          "startMs": 102.417,
+          "ms": 0.006,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 102.677,
+          "ms": 127.745,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 102.85,
+          "ms": 127.572,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 230.417,
+          "ms": 191.005,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 421.423 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "invitation.list",
+      "traceId": "832f3502e350d133e3215e3268bc9257",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 289.111,
+        "serverMs": 17,
+        "budgetMs": 1000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 17,
+        "db.query_count": 2
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "invitation.list.load",
+          "startMs": 0,
+          "ms": 10,
+          "outcome": "success"
+        },
+        {
+          "name": "invitation.list.load",
+          "parent": "invitation.list",
+          "startMs": 0,
+          "ms": 17,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "people.invitationsTo",
+          "startMs": 10,
+          "ms": 7,
+          "outcome": "success"
+        },
+        {
+          "name": "people.invitationsTo",
+          "parent": "invitation.list.load",
+          "startMs": 10,
+          "ms": 7,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one invitation.list span, 17 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "invitation.decline",
+      "traceId": "41c25397b4867b191d5b0166d596ed55",
+      "at": null,
+      "outcome": "refusal",
+      "refusal": "InvitationClosed",
+      "failure": "{\"_tag\":\"InvitationClosed\",\"invitation\":\"inv_gkxqnq3lf4be\",\"state\":\"accepted\"}",
+      "resent": 0,
+      "timing": {
+        "callerMs": 559.587,
+        "serverMs": 27,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 25,
+        "db.query_count": 4
+      },
+      "steps": [
+        {
+          "name": "sql.transaction",
+          "parent": "invitation.decline",
+          "startMs": 0,
+          "ms": 27,
+          "outcome": "failure"
+        },
+        {
+          "name": "BEGIN postgres",
+          "parent": "sql.transaction",
+          "startMs": 2,
+          "ms": 7,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "invitation.decline.load",
+          "startMs": 9,
+          "ms": 7,
+          "outcome": "success"
+        },
+        {
+          "name": "invitation.decline.load",
+          "parent": "sql.transaction",
+          "startMs": 9,
+          "ms": 12,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "people.invitation",
+          "startMs": 16,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "people.invitation",
+          "parent": "invitation.decline.load",
+          "startMs": 16,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "ROLLBACK postgres",
+          "parent": "sql.transaction",
+          "startMs": 21,
+          "ms": 6,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one invitation.decline span, 27 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw refusal; the span says failure"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a refusal: none"
+        },
+        {
+          "check": "path",
+          "passed": true,
+          "detail": "invitation inv_gkxqnq3lf4be: decline refused from accepted with InvitationClosed"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "d7a60128896469a31e9a3c1f8a05df34",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 289.097,
+        "serverMs": 24,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 24,
+        "db.query_count": 3
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 11,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 10,
+          "ms": 6,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 17,
+          "ms": 7,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 24 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "65feee0ce3dfdabe823567f23f1fbf15",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 269.684,
+        "serverMs": 23,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 23,
+        "db.query_count": 3
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 11,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 11,
+          "ms": 6,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 17,
+          "ms": 6,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 23 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "ad9650b94556f2773ce0c15e32131fa1",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 592.077,
+        "serverMs": 460.8,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "db.query_ms": 0,
+        "db.query_count": 0
+      },
+      "steps": [
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": -0.024,
+          "ms": 107.824,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.056,
+          "ms": 460.744,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": 0.259,
+          "ms": 107.542,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 107.331,
+          "ms": 127.469,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 107.656,
+          "ms": 0.144,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle.kept",
+          "parent": "world.handle",
+          "startMs": 107.771,
+          "ms": 0.029,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle.kept",
+          "parent": "world.handle",
+          "startMs": 107.791,
+          "ms": 0.01,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle.kept",
+          "parent": "world.handle",
+          "startMs": 107.794,
+          "ms": 0.007,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 107.799,
+          "ms": 128.001,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 107.934,
+          "ms": 352.867,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 107.955,
+          "ms": 127.845,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 235.467,
+          "ms": 224.333,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 460.8 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "invitation.list",
+      "traceId": "0b0c7d7b49e94a49fd0967ae8df5cf69",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 278.864,
+        "serverMs": 24,
+        "budgetMs": 1000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 24,
+        "db.query_count": 2
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "invitation.list.load",
+          "startMs": 0,
+          "ms": 16,
+          "outcome": "success"
+        },
+        {
+          "name": "invitation.list.load",
+          "parent": "invitation.list",
+          "startMs": 0,
+          "ms": 24,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "people.invitationsTo",
+          "startMs": 16,
+          "ms": 8,
+          "outcome": "success"
+        },
+        {
+          "name": "people.invitationsTo",
+          "parent": "invitation.list.load",
+          "startMs": 16,
+          "ms": 8,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one invitation.list span, 24 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "2dcaddb177c01ea821221d280ece3837",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 293.824,
+        "serverMs": 20,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 20,
+        "db.query_count": 3
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 10,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 10,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 15,
+          "ms": 5,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 20 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "2ca11dcc23262dd10e468e59f5cd3dfb",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 271.584,
+        "serverMs": 24,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 24,
+        "db.query_count": 3
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 10,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 9,
+          "ms": 7,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 17,
+          "ms": 7,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 24 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "world.show",
+      "traceId": "8159b9df63913ddeb442b76b80601ec0",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 544.661,
+        "serverMs": 412.795,
+        "budgetMs": 2000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "db.query_ms": 0,
+        "db.query_count": 0
+      },
+      "steps": [
+        {
+          "name": "platform.world.show",
+          "parent": "world.show",
+          "startMs": 0.053,
+          "ms": 412.742,
+          "outcome": "success"
+        },
+        {
+          "name": "world.mustExist",
+          "parent": "platform.world.show",
+          "startMs": 0.222,
+          "ms": 98.573,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "world.mustExist",
+          "startMs": 0.515,
+          "ms": 98.28,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle",
+          "parent": "platform.view",
+          "startMs": 98.669,
+          "ms": 0.126,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle.kept",
+          "parent": "world.handle",
+          "startMs": 98.765,
+          "ms": 0.03,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.view",
+          "parent": "platform.world.show",
+          "startMs": 98.78,
+          "ms": 314.015,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle.kept",
+          "parent": "world.handle",
+          "startMs": 98.787,
+          "ms": 0.008,
+          "outcome": "success"
+        },
+        {
+          "name": "world.handle.kept",
+          "parent": "world.handle",
+          "startMs": 98.789,
+          "ms": 0.006,
+          "outcome": "success"
+        },
+        {
+          "name": "platform.facts",
+          "parent": "platform.view",
+          "startMs": 98.869,
+          "ms": 127.926,
+          "outcome": "success"
+        },
+        {
+          "name": "world.database.post",
+          "parent": "platform.facts",
+          "startMs": 99.019,
+          "ms": 127.776,
+          "outcome": "success"
+        },
+        {
+          "name": "POST",
+          "parent": "world.database.post",
+          "startMs": 99.357,
+          "ms": 127.439,
+          "outcome": "success"
+        },
+        {
+          "name": "GET",
+          "parent": "platform.view",
+          "startMs": 227.178,
+          "ms": 185.617,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one world.show span, 412.795 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "member.list",
+      "traceId": "14d840c7a018547c69334c9a0a8a325a",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 313.532,
+        "serverMs": 42,
+        "budgetMs": 1000,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 42,
+        "db.query_count": 7
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "organizations.byOrg",
+          "startMs": -1,
+          "ms": 11,
+          "outcome": "success"
+        },
+        {
+          "name": "organizations.byOrg",
+          "parent": "member.list.read",
+          "startMs": -1,
+          "ms": 11,
+          "outcome": "success"
+        },
+        {
+          "name": "member.list.read",
+          "parent": "member.list",
+          "startMs": 0,
+          "ms": 42,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "people.joined",
+          "startMs": 11,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "people.joined",
+          "parent": "people.roster",
+          "startMs": 11,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "people.roster",
+          "parent": "member.list.read",
+          "startMs": 11,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "member.list.read",
+          "startMs": 16,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "member.list.read",
+          "startMs": 21,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "member.list.read",
+          "startMs": 26,
+          "ms": 6,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "member.list.read",
+          "startMs": 32,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "member.list.read",
+          "startMs": 37,
+          "ms": 5,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one member.list span, 42 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "operation": "record.export",
+      "traceId": "a62c3a16b42159831a5cb7fe5ae01580",
+      "at": null,
+      "outcome": "success",
+      "refusal": null,
+      "failure": null,
+      "resent": 0,
+      "timing": {
+        "callerMs": 281.011,
+        "serverMs": 22,
+        "budgetMs": 1500,
+        "provisional": true,
+        "enforced": false,
+        "overBudget": false
+      },
+      "attributes": {
+        "cf.colo": "LAX",
+        "db.query_ms": 22,
+        "db.query_count": 3
+      },
+      "steps": [
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 0,
+          "ms": 10,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 10,
+          "ms": 5,
+          "outcome": "success"
+        },
+        {
+          "name": "postgres",
+          "parent": "record.export",
+          "startMs": 15,
+          "ms": 7,
+          "outcome": "success"
+        }
+      ],
+      "events": [],
+      "checks": [
+        {
+          "check": "span",
+          "passed": true,
+          "detail": "one record.export span, 22 ms"
+        },
+        {
+          "check": "outcome",
+          "passed": true,
+          "detail": "the caller saw success; the span says success"
+        },
+        {
+          "check": "events",
+          "passed": true,
+          "detail": "recorded: none; declared for a success: none"
+        },
+        {
+          "check": "isolation",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "step": 1,
+      "operation": "invitation.send",
+      "does": "dana, Northwind's founder, invites olga as a member: pending at once",
+      "outcome": "passed",
+      "failure": null,
+      "tries": [
+        {
+          "operation": "invitation.send",
+          "as": "dana",
+          "operator": "first",
+          "at": null,
+          "expected": "a success",
+          "answered": "a success",
+          "checks": [
+            {
+              "says": "it answers a pending invitation of the email and role asked, to the company asked, from the caller",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the caller who invited is the company's founder, as its org_founded names them",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the record gains one member_invited, carrying only invitation, org, role and by: nothing is signed",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "nothing is written to the chain",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "its invitee, when a person of the world, lists it pending",
+              "passed": true,
+              "detail": ""
+            }
+          ]
+        }
+      ],
+      "calls": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "ms": 9975,
+      "chain": [
+        {
+          "method": "eth_getBlockByNumber",
+          "from": null,
+          "to": null,
+          "ms": 253.553686,
+          "outcome": "ok"
+        },
+        {
+          "method": "eth_getLogs",
+          "from": "earliest",
+          "to": "latest",
+          "ms": 6146.626957,
+          "outcome": "ok"
+        },
+        {
+          "method": "eth_getLogs",
+          "from": "0x2dacb30",
+          "to": "latest",
+          "ms": 417.473779,
+          "outcome": "ok"
+        },
+        {
+          "method": "eth_getLogs",
+          "from": "0x2dacb30",
+          "to": "latest",
+          "ms": 233.944185,
+          "outcome": "ok"
+        },
+        {
+          "method": "eth_getLogs",
+          "from": "0x2dacb30",
+          "to": "latest",
+          "ms": 228.034272,
+          "outcome": "ok"
+        }
+      ]
+    },
+    {
+      "step": 2,
+      "operation": "invitation.accept",
+      "does": "olga accepts, and is a member at once",
+      "outcome": "passed",
+      "failure": null,
+      "tries": [
+        {
+          "operation": "invitation.accept",
+          "as": "olga",
+          "operator": "first",
+          "at": null,
+          "expected": "Accepted",
+          "answered": "Accepted",
+          "checks": [
+            {
+              "says": "it answers the invitation asked, accepted, and the caller a member under the email they sign in with",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the company lists the caller once, as a member",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the invitation was the caller's, pending",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the record gains one invitation_accepted, carrying only invitation, org, person and role",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "nothing is written to the chain",
+              "passed": true,
+              "detail": ""
+            }
+          ]
+        }
+      ],
+      "calls": [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "ms": 22077,
+      "chain": [
+        {
+          "method": "eth_getBlockByNumber",
+          "from": null,
+          "to": null,
+          "ms": 211.654933,
+          "outcome": "ok"
+        },
+        {
+          "method": "eth_getLogs",
+          "from": "earliest",
+          "to": "latest",
+          "ms": 19054.104675,
+          "outcome": "ok"
+        },
+        {
+          "method": "eth_getLogs",
+          "from": "0x2dacb30",
+          "to": "latest",
+          "ms": 296.395838,
+          "outcome": "ok"
+        },
+        {
+          "method": "eth_getLogs",
+          "from": "0x2dacb30",
+          "to": "latest",
+          "ms": 218.855383,
+          "outcome": "ok"
+        },
+        {
+          "method": "eth_getLogs",
+          "from": "0x2dacb30",
+          "to": "latest",
+          "ms": 214.305064,
+          "outcome": "ok"
+        }
+      ]
+    },
+    {
+      "step": 3,
+      "operation": "invitation.decline",
+      "does": "sam may not decline olga's invitation; olga cannot decline the invitation she accepted: it is closed, in state accepted",
+      "outcome": "passed",
+      "failure": null,
+      "tries": [
+        {
+          "operation": "invitation.decline",
+          "as": "sam",
+          "operator": "first",
+          "at": null,
+          "expected": "refused NotYourInvitation",
+          "answered": "refused NotYourInvitation",
+          "checks": [
+            {
+              "says": "NotYourInvitation names the invitation asked and the caller",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the caller does not list it among their own",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the refused decline leaves the record as it was",
+              "passed": true,
+              "detail": ""
+            }
+          ]
+        },
+        {
+          "operation": "invitation.decline",
+          "as": "olga",
+          "operator": "first",
+          "at": null,
+          "expected": "refused InvitationClosed",
+          "answered": "refused InvitationClosed",
+          "checks": [
+            {
+              "says": "InvitationClosed names the invitation asked, in the state the caller lists it in",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "the refused decline leaves the record as it was",
+              "passed": true,
+              "detail": ""
+            }
+          ]
+        }
+      ],
+      "calls": [
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22
+      ],
+      "ms": 4588,
+      "chain": [
+        {
+          "method": "eth_getBlockByNumber",
+          "from": null,
+          "to": null,
+          "ms": 227.156063,
+          "outcome": "ok"
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "from": null,
+          "to": null,
+          "ms": 213.595824,
+          "outcome": "ok"
+        }
+      ]
+    },
+    {
+      "step": 4,
+      "operation": "invitation.list",
+      "does": "olga's invitation is still accepted: declining it changed nothing",
+      "outcome": "passed",
+      "failure": null,
+      "tries": [
+        {
+          "operation": "invitation.list",
+          "as": "olga",
+          "operator": "first",
+          "at": null,
+          "expected": "a success",
+          "answered": "a success",
+          "checks": [
+            {
+              "says": "every invitation it answers was sent to the caller's email",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "each invitation once, oldest first",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "invitation.list leaves the record as it was",
+              "passed": true,
+              "detail": ""
+            }
+          ]
+        }
+      ],
+      "calls": [
+        23,
+        24,
+        25,
+        26
+      ],
+      "ms": 1436,
+      "chain": []
+    },
+    {
+      "step": 5,
+      "operation": "member.list",
+      "does": "olga is still a member of Northwind, last, as dana sees its people",
+      "outcome": "passed",
+      "failure": null,
+      "tries": [
+        {
+          "operation": "member.list",
+          "as": "dana",
+          "operator": "first",
+          "at": null,
+          "expected": "a success",
+          "answered": "a success",
+          "checks": [
+            {
+              "says": "it answers the company asked",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "each person once, under the email of their cast entry",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "its Directors come before its members",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "a person who asks is among them",
+              "passed": true,
+              "detail": ""
+            },
+            {
+              "says": "member.list leaves the record as it was",
+              "passed": true,
+              "detail": ""
+            }
+          ]
+        }
+      ],
+      "calls": [
+        27,
+        28,
+        29,
+        30
+      ],
+      "ms": 1412,
+      "chain": []
+    }
+  ],
+  "failedStep": null,
+  "making": [],
+  "coverage": [
+    {
+      "machine": "invitation",
+      "started": 1,
+      "moves": [
+        {
+          "move": "accept",
+          "reached": 1
+        },
+        {
+          "move": "decline",
+          "reached": 0
+        }
+      ],
+      "refused": [
+        {
+          "state": "declined",
+          "move": "accept",
+          "refusal": "InvitationClosed",
+          "reached": 0
+        },
+        {
+          "state": "accepted",
+          "move": "decline",
+          "refusal": "InvitationClosed",
+          "reached": 1
+        },
+        {
+          "state": "declined",
+          "move": "decline",
+          "refusal": "InvitationClosed",
+          "reached": 0
+        }
+      ]
+    }
+  ],
+  "tap": {
+    "state": "on",
+    "ms": 382,
+    "calls": [
+      {
+        "traceId": "e0a760c5d255257f5087cfee3ced4538",
+        "operation": "record.export",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "89737d4478f0d0a5",
+            "parentSpanId": "3dc95c28db96f190",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 62
+          },
+          {
+            "spanId": "b9fdf32f8a06a2c5",
+            "parentSpanId": "3dc95c28db96f190",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 57
+          },
+          {
+            "spanId": "e86b24eecb18866e",
+            "parentSpanId": "3dc95c28db96f190",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 8
+          },
+          {
+            "spanId": "3dc95c28db96f190",
+            "parentSpanId": "f2a96d8b4eeacbc1",
+            "name": "record.export",
+            "outcome": "success",
+            "durationMs": 127
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "89737d4478f0d0a5",
+            "parentSpanId": "3dc95c28db96f190",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 62
+          },
+          {
+            "spanId": "b9fdf32f8a06a2c5",
+            "parentSpanId": "3dc95c28db96f190",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 57
+          },
+          {
+            "spanId": "e86b24eecb18866e",
+            "parentSpanId": "3dc95c28db96f190",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 8
+          },
+          {
+            "spanId": "3dc95c28db96f190",
+            "parentSpanId": "f2a96d8b4eeacbc1",
+            "name": "record.export",
+            "outcome": "ok",
+            "durationMs": 127
+          }
+        ],
+        "differences": []
+      },
+      {
+        "traceId": "9b2156a5d38e28e9acc54bb247e5d056",
+        "operation": "invitation.send",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "09ff18d95e0a651e",
+            "parentSpanId": "9f627734b27cae55",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 56
+          },
+          {
+            "spanId": "9f627734b27cae55",
+            "parentSpanId": "70e2a37b6fc03130",
+            "name": "organizations.byOrg",
+            "outcome": "success",
+            "durationMs": 56
+          },
+          {
+            "spanId": "4132a5302990d130",
+            "parentSpanId": "70e2a37b6fc03130",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "9057f704ce8bd1d8",
+            "parentSpanId": "a02af262e59f5cd0",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 9
+          },
+          {
+            "spanId": "a02af262e59f5cd0",
+            "parentSpanId": "f853076c9aee21f7",
+            "name": "people.joined",
+            "outcome": "success",
+            "durationMs": 9
+          },
+          {
+            "spanId": "f853076c9aee21f7",
+            "parentSpanId": "70e2a37b6fc03130",
+            "name": "people.roster",
+            "outcome": "success",
+            "durationMs": 9
+          },
+          {
+            "spanId": "d83a8db53104b1a0",
+            "parentSpanId": "741b3af1737cfdf1",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 10
+          },
+          {
+            "spanId": "741b3af1737cfdf1",
+            "parentSpanId": "70e2a37b6fc03130",
+            "name": "people.pendingTo",
+            "outcome": "success",
+            "durationMs": 10
+          },
+          {
+            "spanId": "70e2a37b6fc03130",
+            "parentSpanId": "a7ae12f4fd36c41c",
+            "name": "invitation.send.load",
+            "outcome": "success",
+            "durationMs": 80
+          },
+          {
+            "spanId": "f3b757a808793940",
+            "parentSpanId": "a7ae12f4fd36c41c",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "d203b46c15ed2b4e",
+            "parentSpanId": "fd8b83aa3ef19878",
+            "name": "BEGIN postgres",
+            "outcome": "success",
+            "durationMs": 7
+          },
+          {
+            "spanId": "67d1aca85cf58ab4",
+            "parentSpanId": "60abb9035dc48619",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 7
+          },
+          {
+            "spanId": "60abb9035dc48619",
+            "parentSpanId": "fd8b83aa3ef19878",
+            "name": "people.invite",
+            "outcome": "success",
+            "durationMs": 7
+          },
+          {
+            "spanId": "7670b872250eac01",
+            "parentSpanId": "fd8b83aa3ef19878",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 6
+          },
+          {
+            "spanId": "f19af7d95f2a6c65",
+            "parentSpanId": "fd8b83aa3ef19878",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 8
+          },
+          {
+            "spanId": "7a8b5c13edf01a23",
+            "parentSpanId": "fd8b83aa3ef19878",
+            "name": "COMMIT postgres",
+            "outcome": "success",
+            "durationMs": 6
+          },
+          {
+            "spanId": "fd8b83aa3ef19878",
+            "parentSpanId": "8568197f825644b9",
+            "name": "sql.transaction",
+            "outcome": "success",
+            "durationMs": 34
+          },
+          {
+            "spanId": "8568197f825644b9",
+            "parentSpanId": "a7ae12f4fd36c41c",
+            "name": "invitation.send.write",
+            "outcome": "success",
+            "durationMs": 34
+          },
+          {
+            "spanId": "a7ae12f4fd36c41c",
+            "parentSpanId": "b150ae0bde0c380f",
+            "name": "invitation.send",
+            "outcome": "success",
+            "durationMs": 119
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "09ff18d95e0a651e",
+            "parentSpanId": "9f627734b27cae55",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 56
+          },
+          {
+            "spanId": "9f627734b27cae55",
+            "parentSpanId": "70e2a37b6fc03130",
+            "name": "organizations.byOrg",
+            "outcome": "ok",
+            "durationMs": 56
+          },
+          {
+            "spanId": "4132a5302990d130",
+            "parentSpanId": "70e2a37b6fc03130",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "9057f704ce8bd1d8",
+            "parentSpanId": "a02af262e59f5cd0",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 9
+          },
+          {
+            "spanId": "a02af262e59f5cd0",
+            "parentSpanId": "f853076c9aee21f7",
+            "name": "people.joined",
+            "outcome": "ok",
+            "durationMs": 9
+          },
+          {
+            "spanId": "f853076c9aee21f7",
+            "parentSpanId": "70e2a37b6fc03130",
+            "name": "people.roster",
+            "outcome": "ok",
+            "durationMs": 9
+          },
+          {
+            "spanId": "d83a8db53104b1a0",
+            "parentSpanId": "741b3af1737cfdf1",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 10
+          },
+          {
+            "spanId": "741b3af1737cfdf1",
+            "parentSpanId": "70e2a37b6fc03130",
+            "name": "people.pendingTo",
+            "outcome": "ok",
+            "durationMs": 10
+          },
+          {
+            "spanId": "70e2a37b6fc03130",
+            "parentSpanId": "a7ae12f4fd36c41c",
+            "name": "invitation.send.load",
+            "outcome": "ok",
+            "durationMs": 80
+          },
+          {
+            "spanId": "f3b757a808793940",
+            "parentSpanId": "a7ae12f4fd36c41c",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "d203b46c15ed2b4e",
+            "parentSpanId": "fd8b83aa3ef19878",
+            "name": "BEGIN postgres",
+            "outcome": "ok",
+            "durationMs": 7
+          },
+          {
+            "spanId": "67d1aca85cf58ab4",
+            "parentSpanId": "60abb9035dc48619",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 7
+          },
+          {
+            "spanId": "60abb9035dc48619",
+            "parentSpanId": "fd8b83aa3ef19878",
+            "name": "people.invite",
+            "outcome": "ok",
+            "durationMs": 7
+          },
+          {
+            "spanId": "7670b872250eac01",
+            "parentSpanId": "fd8b83aa3ef19878",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 6
+          },
+          {
+            "spanId": "f19af7d95f2a6c65",
+            "parentSpanId": "fd8b83aa3ef19878",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 8
+          },
+          {
+            "spanId": "7a8b5c13edf01a23",
+            "parentSpanId": "fd8b83aa3ef19878",
+            "name": "COMMIT postgres",
+            "outcome": "ok",
+            "durationMs": 6
+          },
+          {
+            "spanId": "fd8b83aa3ef19878",
+            "parentSpanId": "8568197f825644b9",
+            "name": "sql.transaction",
+            "outcome": "ok",
+            "durationMs": 34
+          },
+          {
+            "spanId": "8568197f825644b9",
+            "parentSpanId": "a7ae12f4fd36c41c",
+            "name": "invitation.send.write",
+            "outcome": "ok",
+            "durationMs": 34
+          },
+          {
+            "spanId": "a7ae12f4fd36c41c",
+            "parentSpanId": "b150ae0bde0c380f",
+            "name": "invitation.send",
+            "outcome": "ok",
+            "durationMs": 119
+          }
+        ],
+        "differences": []
+      },
+      {
+        "traceId": "e6b111145be82e7be11ced61451a32bc",
+        "operation": "record.export",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "2dc1bbd3c40dd2d7",
+            "parentSpanId": "9cb5ddcd6339fee4",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 55
+          },
+          {
+            "spanId": "af33459e38163bcd",
+            "parentSpanId": "9cb5ddcd6339fee4",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "d7da2513c8fe8591",
+            "parentSpanId": "9cb5ddcd6339fee4",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "9cb5ddcd6339fee4",
+            "parentSpanId": "37faaecd5326c3ae",
+            "name": "record.export",
+            "outcome": "success",
+            "durationMs": 65
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "2dc1bbd3c40dd2d7",
+            "parentSpanId": "9cb5ddcd6339fee4",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 55
+          },
+          {
+            "spanId": "af33459e38163bcd",
+            "parentSpanId": "9cb5ddcd6339fee4",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "d7da2513c8fe8591",
+            "parentSpanId": "9cb5ddcd6339fee4",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "9cb5ddcd6339fee4",
+            "parentSpanId": "37faaecd5326c3ae",
+            "name": "record.export",
+            "outcome": "ok",
+            "durationMs": 65
+          }
+        ],
+        "differences": []
+      },
+      {
+        "traceId": "d22b8e34f7644f84411a0b67068e7596",
+        "operation": "record.export",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "5b416e09486704f4",
+            "parentSpanId": "b8646631e6c4d403",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 8
+          },
+          {
+            "spanId": "0902f2b120a94573",
+            "parentSpanId": "b8646631e6c4d403",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 47
+          },
+          {
+            "spanId": "c16866b865e9f94d",
+            "parentSpanId": "b8646631e6c4d403",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "b8646631e6c4d403",
+            "parentSpanId": "03b92a2933f9fb11",
+            "name": "record.export",
+            "outcome": "success",
+            "durationMs": 60
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "5b416e09486704f4",
+            "parentSpanId": "b8646631e6c4d403",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 8
+          },
+          {
+            "spanId": "0902f2b120a94573",
+            "parentSpanId": "b8646631e6c4d403",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 47
+          },
+          {
+            "spanId": "c16866b865e9f94d",
+            "parentSpanId": "b8646631e6c4d403",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "b8646631e6c4d403",
+            "parentSpanId": "03b92a2933f9fb11",
+            "name": "record.export",
+            "outcome": "ok",
+            "durationMs": 60
+          }
+        ],
+        "differences": []
+      },
+      {
+        "traceId": "22159b5d84815c40af917cc109ff70ad",
+        "operation": "invitation.list",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "3b45a954f68fffd2",
+            "parentSpanId": "1ea6ec83fa8dc875",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 12
+          },
+          {
+            "spanId": "9cf1343be5b88a71",
+            "parentSpanId": "e7320226c21cf5ef",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 8
+          },
+          {
+            "spanId": "e7320226c21cf5ef",
+            "parentSpanId": "1ea6ec83fa8dc875",
+            "name": "people.invitationsTo",
+            "outcome": "success",
+            "durationMs": 8
+          },
+          {
+            "spanId": "1ea6ec83fa8dc875",
+            "parentSpanId": "c00da7e7063c9c02",
+            "name": "invitation.list.load",
+            "outcome": "success",
+            "durationMs": 20
+          },
+          {
+            "spanId": "c00da7e7063c9c02",
+            "parentSpanId": "bb6efd6fd866c1ee",
+            "name": "invitation.list",
+            "outcome": "success",
+            "durationMs": 20
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "3b45a954f68fffd2",
+            "parentSpanId": "1ea6ec83fa8dc875",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 12
+          },
+          {
+            "spanId": "9cf1343be5b88a71",
+            "parentSpanId": "e7320226c21cf5ef",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 8
+          },
+          {
+            "spanId": "e7320226c21cf5ef",
+            "parentSpanId": "1ea6ec83fa8dc875",
+            "name": "people.invitationsTo",
+            "outcome": "ok",
+            "durationMs": 8
+          },
+          {
+            "spanId": "1ea6ec83fa8dc875",
+            "parentSpanId": "c00da7e7063c9c02",
+            "name": "invitation.list.load",
+            "outcome": "ok",
+            "durationMs": 20
+          },
+          {
+            "spanId": "c00da7e7063c9c02",
+            "parentSpanId": "bb6efd6fd866c1ee",
+            "name": "invitation.list",
+            "outcome": "ok",
+            "durationMs": 20
+          }
+        ],
+        "differences": []
+      },
+      {
+        "traceId": "0d9b2d4745800ea01bb184d2a6356b51",
+        "operation": "record.export",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "ac95ece1fcb37ccf",
+            "parentSpanId": "dd418037b871434a",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 11
+          },
+          {
+            "spanId": "c70b67c667778b2b",
+            "parentSpanId": "dd418037b871434a",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 7
+          },
+          {
+            "spanId": "fbef2c3cfe86cae8",
+            "parentSpanId": "dd418037b871434a",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 6
+          },
+          {
+            "spanId": "dd418037b871434a",
+            "parentSpanId": "5f13c3b54a5cb571",
+            "name": "record.export",
+            "outcome": "success",
+            "durationMs": 24
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "ac95ece1fcb37ccf",
+            "parentSpanId": "dd418037b871434a",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 11
+          },
+          {
+            "spanId": "c70b67c667778b2b",
+            "parentSpanId": "dd418037b871434a",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 7
+          },
+          {
+            "spanId": "fbef2c3cfe86cae8",
+            "parentSpanId": "dd418037b871434a",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 6
+          },
+          {
+            "spanId": "dd418037b871434a",
+            "parentSpanId": "5f13c3b54a5cb571",
+            "name": "record.export",
+            "outcome": "ok",
+            "durationMs": 24
+          }
+        ],
+        "differences": []
+      },
+      {
+        "traceId": "847608e6d67e9db7ee5f5429fa18dc35",
+        "operation": "invitation.list",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "840c81f6772b1eb2",
+            "parentSpanId": "f5b7592421d6b35a",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 13
+          },
+          {
+            "spanId": "4e628752dfbfd256",
+            "parentSpanId": "eabda166cc722013",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "eabda166cc722013",
+            "parentSpanId": "f5b7592421d6b35a",
+            "name": "people.invitationsTo",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "f5b7592421d6b35a",
+            "parentSpanId": "961e4eacd3ef1071",
+            "name": "invitation.list.load",
+            "outcome": "success",
+            "durationMs": 18
+          },
+          {
+            "spanId": "961e4eacd3ef1071",
+            "parentSpanId": "9e578fb7c6e0996c",
+            "name": "invitation.list",
+            "outcome": "success",
+            "durationMs": 18
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "840c81f6772b1eb2",
+            "parentSpanId": "f5b7592421d6b35a",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 13
+          },
+          {
+            "spanId": "4e628752dfbfd256",
+            "parentSpanId": "eabda166cc722013",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "eabda166cc722013",
+            "parentSpanId": "f5b7592421d6b35a",
+            "name": "people.invitationsTo",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "f5b7592421d6b35a",
+            "parentSpanId": "961e4eacd3ef1071",
+            "name": "invitation.list.load",
+            "outcome": "ok",
+            "durationMs": 18
+          },
+          {
+            "spanId": "961e4eacd3ef1071",
+            "parentSpanId": "9e578fb7c6e0996c",
+            "name": "invitation.list",
+            "outcome": "ok",
+            "durationMs": 18
+          }
+        ],
+        "differences": []
+      },
+      {
+        "traceId": "8c0095cd8adb5adde7969472cc561cdd",
+        "operation": "invitation.accept",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "5a3ff93f0c659c3f",
+            "parentSpanId": "51f2ea8a65f441ec",
+            "name": "BEGIN postgres",
+            "outcome": "success",
+            "durationMs": 7
+          },
+          {
+            "spanId": "5a751b6bea61492a",
+            "parentSpanId": "e5f3d2dd3624e6d2",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "c2fcbe002163827c",
+            "parentSpanId": "5df714d47b052776",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "5df714d47b052776",
+            "parentSpanId": "e5f3d2dd3624e6d2",
+            "name": "people.invitation",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "e5f3d2dd3624e6d2",
+            "parentSpanId": "51f2ea8a65f441ec",
+            "name": "invitation.accept.load",
+            "outcome": "success",
+            "durationMs": 10
+          },
+          {
+            "spanId": "b6f1fed7eee18de3",
+            "parentSpanId": "ab9b907faa395773",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "3e7ede89598cd188",
+            "parentSpanId": "554d7431be429ebf",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "554d7431be429ebf",
+            "parentSpanId": "ab9b907faa395773",
+            "name": "people.answer",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "d1fd4c26aff0b4c5",
+            "parentSpanId": "eb0892569a6cba3b",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 7
+          },
+          {
+            "spanId": "eb0892569a6cba3b",
+            "parentSpanId": "ab9b907faa395773",
+            "name": "people.join",
+            "outcome": "success",
+            "durationMs": 7
+          },
+          {
+            "spanId": "c771dc2f3f7c4b29",
+            "parentSpanId": "ab9b907faa395773",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "605ba7d88b950577",
+            "parentSpanId": "ab9b907faa395773",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "ab9b907faa395773",
+            "parentSpanId": "51f2ea8a65f441ec",
+            "name": "invitation.accept.write",
+            "outcome": "success",
+            "durationMs": 27
+          },
+          {
+            "spanId": "176dffde4f748962",
+            "parentSpanId": "51f2ea8a65f441ec",
+            "name": "COMMIT postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "51f2ea8a65f441ec",
+            "parentSpanId": "26fd98b6246b1068",
+            "name": "sql.transaction",
+            "outcome": "success",
+            "durationMs": 54
+          },
+          {
+            "spanId": "26fd98b6246b1068",
+            "parentSpanId": "0b82ed50ad515e10",
+            "name": "invitation.accept",
+            "outcome": "success",
+            "durationMs": 54
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "5a3ff93f0c659c3f",
+            "parentSpanId": "51f2ea8a65f441ec",
+            "name": "BEGIN postgres",
+            "outcome": "ok",
+            "durationMs": 7
+          },
+          {
+            "spanId": "5a751b6bea61492a",
+            "parentSpanId": "e5f3d2dd3624e6d2",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "c2fcbe002163827c",
+            "parentSpanId": "5df714d47b052776",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "5df714d47b052776",
+            "parentSpanId": "e5f3d2dd3624e6d2",
+            "name": "people.invitation",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "e5f3d2dd3624e6d2",
+            "parentSpanId": "51f2ea8a65f441ec",
+            "name": "invitation.accept.load",
+            "outcome": "ok",
+            "durationMs": 10
+          },
+          {
+            "spanId": "b6f1fed7eee18de3",
+            "parentSpanId": "ab9b907faa395773",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "3e7ede89598cd188",
+            "parentSpanId": "554d7431be429ebf",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "554d7431be429ebf",
+            "parentSpanId": "ab9b907faa395773",
+            "name": "people.answer",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "d1fd4c26aff0b4c5",
+            "parentSpanId": "eb0892569a6cba3b",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 7
+          },
+          {
+            "spanId": "eb0892569a6cba3b",
+            "parentSpanId": "ab9b907faa395773",
+            "name": "people.join",
+            "outcome": "ok",
+            "durationMs": 7
+          },
+          {
+            "spanId": "c771dc2f3f7c4b29",
+            "parentSpanId": "ab9b907faa395773",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "605ba7d88b950577",
+            "parentSpanId": "ab9b907faa395773",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "ab9b907faa395773",
+            "parentSpanId": "51f2ea8a65f441ec",
+            "name": "invitation.accept.write",
+            "outcome": "ok",
+            "durationMs": 27
+          },
+          {
+            "spanId": "176dffde4f748962",
+            "parentSpanId": "51f2ea8a65f441ec",
+            "name": "COMMIT postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "51f2ea8a65f441ec",
+            "parentSpanId": "26fd98b6246b1068",
+            "name": "sql.transaction",
+            "outcome": "ok",
+            "durationMs": 54
+          },
+          {
+            "spanId": "26fd98b6246b1068",
+            "parentSpanId": "0b82ed50ad515e10",
+            "name": "invitation.accept",
+            "outcome": "ok",
+            "durationMs": 54
+          }
+        ],
+        "differences": []
+      },
+      {
+        "traceId": "3ce73f18c3f2c65cf17bbea31ed39e97",
+        "operation": "member.list",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "3db09c3cd4696e2f",
+            "parentSpanId": "b133c95db4981e92",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 11
+          },
+          {
+            "spanId": "b133c95db4981e92",
+            "parentSpanId": "d24b5bfb5332138a",
+            "name": "organizations.byOrg",
+            "outcome": "success",
+            "durationMs": 11
+          },
+          {
+            "spanId": "2a91968e9ceb2f22",
+            "parentSpanId": "db332c6a6f463257",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "db332c6a6f463257",
+            "parentSpanId": "48ec71411df8d541",
+            "name": "people.joined",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "48ec71411df8d541",
+            "parentSpanId": "d24b5bfb5332138a",
+            "name": "people.roster",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "f85176b939dc777a",
+            "parentSpanId": "d24b5bfb5332138a",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "d22c600b574eb436",
+            "parentSpanId": "d24b5bfb5332138a",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 36
+          },
+          {
+            "spanId": "80d8493e0cc14d3e",
+            "parentSpanId": "d24b5bfb5332138a",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 6
+          },
+          {
+            "spanId": "2cddb2f7816ec4cc",
+            "parentSpanId": "d24b5bfb5332138a",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 6
+          },
+          {
+            "spanId": "d8d28401317cc85e",
+            "parentSpanId": "d24b5bfb5332138a",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 6
+          },
+          {
+            "spanId": "d24b5bfb5332138a",
+            "parentSpanId": "58d4b72136367f1d",
+            "name": "member.list.read",
+            "outcome": "success",
+            "durationMs": 75
+          },
+          {
+            "spanId": "58d4b72136367f1d",
+            "parentSpanId": "dd609bf2f3b33fb1",
+            "name": "member.list",
+            "outcome": "success",
+            "durationMs": 75
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "3db09c3cd4696e2f",
+            "parentSpanId": "b133c95db4981e92",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 11
+          },
+          {
+            "spanId": "b133c95db4981e92",
+            "parentSpanId": "d24b5bfb5332138a",
+            "name": "organizations.byOrg",
+            "outcome": "ok",
+            "durationMs": 11
+          },
+          {
+            "spanId": "2a91968e9ceb2f22",
+            "parentSpanId": "db332c6a6f463257",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "db332c6a6f463257",
+            "parentSpanId": "48ec71411df8d541",
+            "name": "people.joined",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "48ec71411df8d541",
+            "parentSpanId": "d24b5bfb5332138a",
+            "name": "people.roster",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "f85176b939dc777a",
+            "parentSpanId": "d24b5bfb5332138a",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "d22c600b574eb436",
+            "parentSpanId": "d24b5bfb5332138a",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 36
+          },
+          {
+            "spanId": "80d8493e0cc14d3e",
+            "parentSpanId": "d24b5bfb5332138a",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 6
+          },
+          {
+            "spanId": "2cddb2f7816ec4cc",
+            "parentSpanId": "d24b5bfb5332138a",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 6
+          },
+          {
+            "spanId": "d8d28401317cc85e",
+            "parentSpanId": "d24b5bfb5332138a",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 6
+          },
+          {
+            "spanId": "d24b5bfb5332138a",
+            "parentSpanId": "58d4b72136367f1d",
+            "name": "member.list.read",
+            "outcome": "ok",
+            "durationMs": 75
+          },
+          {
+            "spanId": "58d4b72136367f1d",
+            "parentSpanId": "dd609bf2f3b33fb1",
+            "name": "member.list",
+            "outcome": "ok",
+            "durationMs": 75
+          }
+        ],
+        "differences": []
+      },
+      {
+        "traceId": "195c6c5beb23b6048ede66b7a217a5e8",
+        "operation": "record.export",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "6c195b559ee8dc17",
+            "parentSpanId": "c9ec0438471de28d",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 10
+          },
+          {
+            "spanId": "518193d244a623a2",
+            "parentSpanId": "c9ec0438471de28d",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "19d38958c86ffbff",
+            "parentSpanId": "c9ec0438471de28d",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 6
+          },
+          {
+            "spanId": "c9ec0438471de28d",
+            "parentSpanId": "39575c2d28e10f2b",
+            "name": "record.export",
+            "outcome": "success",
+            "durationMs": 21
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "6c195b559ee8dc17",
+            "parentSpanId": "c9ec0438471de28d",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 10
+          },
+          {
+            "spanId": "518193d244a623a2",
+            "parentSpanId": "c9ec0438471de28d",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "19d38958c86ffbff",
+            "parentSpanId": "c9ec0438471de28d",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 6
+          },
+          {
+            "spanId": "c9ec0438471de28d",
+            "parentSpanId": "39575c2d28e10f2b",
+            "name": "record.export",
+            "outcome": "ok",
+            "durationMs": 21
+          }
+        ],
+        "differences": []
+      },
+      {
+        "traceId": "2889604dc7aa4581075ca6317d98610c",
+        "operation": "record.export",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "e098e58fae4f2e20",
+            "parentSpanId": "866c6f69678e33e1",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 15
+          },
+          {
+            "spanId": "0db0949595bd787d",
+            "parentSpanId": "866c6f69678e33e1",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 6
+          },
+          {
+            "spanId": "d0a8de4c01b5353c",
+            "parentSpanId": "866c6f69678e33e1",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "866c6f69678e33e1",
+            "parentSpanId": "5fe6507e9be896da",
+            "name": "record.export",
+            "outcome": "success",
+            "durationMs": 26
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "e098e58fae4f2e20",
+            "parentSpanId": "866c6f69678e33e1",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 15
+          },
+          {
+            "spanId": "0db0949595bd787d",
+            "parentSpanId": "866c6f69678e33e1",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 6
+          },
+          {
+            "spanId": "d0a8de4c01b5353c",
+            "parentSpanId": "866c6f69678e33e1",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "866c6f69678e33e1",
+            "parentSpanId": "5fe6507e9be896da",
+            "name": "record.export",
+            "outcome": "ok",
+            "durationMs": 26
+          }
+        ],
+        "differences": []
+      },
+      {
+        "traceId": "0c6f5d8ae6822edd01d5bb51ac479fa2",
+        "operation": "invitation.list",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "795f001cf8d9e673",
+            "parentSpanId": "50d63e93a0aba840",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 17
+          },
+          {
+            "spanId": "0900f95647fb712a",
+            "parentSpanId": "2386af694e20663f",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 6
+          },
+          {
+            "spanId": "2386af694e20663f",
+            "parentSpanId": "50d63e93a0aba840",
+            "name": "people.invitationsTo",
+            "outcome": "success",
+            "durationMs": 6
+          },
+          {
+            "spanId": "50d63e93a0aba840",
+            "parentSpanId": "d73e62e4a8d62056",
+            "name": "invitation.list.load",
+            "outcome": "success",
+            "durationMs": 23
+          },
+          {
+            "spanId": "d73e62e4a8d62056",
+            "parentSpanId": "1186be9933d4e7a6",
+            "name": "invitation.list",
+            "outcome": "success",
+            "durationMs": 23
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "795f001cf8d9e673",
+            "parentSpanId": "50d63e93a0aba840",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 17
+          },
+          {
+            "spanId": "0900f95647fb712a",
+            "parentSpanId": "2386af694e20663f",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 6
+          },
+          {
+            "spanId": "2386af694e20663f",
+            "parentSpanId": "50d63e93a0aba840",
+            "name": "people.invitationsTo",
+            "outcome": "ok",
+            "durationMs": 6
+          },
+          {
+            "spanId": "50d63e93a0aba840",
+            "parentSpanId": "d73e62e4a8d62056",
+            "name": "invitation.list.load",
+            "outcome": "ok",
+            "durationMs": 23
+          },
+          {
+            "spanId": "d73e62e4a8d62056",
+            "parentSpanId": "1186be9933d4e7a6",
+            "name": "invitation.list",
+            "outcome": "ok",
+            "durationMs": 23
+          }
+        ],
+        "differences": []
+      },
+      {
+        "traceId": "fb7a771354f642d402eb373313d354b3",
+        "operation": "invitation.decline",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "4b1fe9840ccbba3a",
+            "parentSpanId": "03da3225d203711b",
+            "name": "BEGIN postgres",
+            "outcome": "success",
+            "durationMs": 10
+          },
+          {
+            "spanId": "d75e4f2776f67375",
+            "parentSpanId": "fbe39f12ba27b7b2",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 7
+          },
+          {
+            "spanId": "24a093c803bbcffa",
+            "parentSpanId": "c363ced8bce65a42",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 8
+          },
+          {
+            "spanId": "c363ced8bce65a42",
+            "parentSpanId": "fbe39f12ba27b7b2",
+            "name": "people.invitation",
+            "outcome": "success",
+            "durationMs": 8
+          },
+          {
+            "spanId": "fbe39f12ba27b7b2",
+            "parentSpanId": "03da3225d203711b",
+            "name": "invitation.decline.load",
+            "outcome": "failure",
+            "durationMs": 15
+          },
+          {
+            "spanId": "65bd74deca49f955",
+            "parentSpanId": "03da3225d203711b",
+            "name": "ROLLBACK postgres",
+            "outcome": "success",
+            "durationMs": 8
+          },
+          {
+            "spanId": "03da3225d203711b",
+            "parentSpanId": "539dbc812c02340d",
+            "name": "sql.transaction",
+            "outcome": "failure",
+            "durationMs": 37
+          },
+          {
+            "spanId": "539dbc812c02340d",
+            "parentSpanId": "24ffcccca9ba54a7",
+            "name": "invitation.decline",
+            "outcome": "failure",
+            "durationMs": 37
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "4b1fe9840ccbba3a",
+            "parentSpanId": "03da3225d203711b",
+            "name": "BEGIN postgres",
+            "outcome": "ok",
+            "durationMs": 10
+          },
+          {
+            "spanId": "d75e4f2776f67375",
+            "parentSpanId": "fbe39f12ba27b7b2",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 7
+          },
+          {
+            "spanId": "24a093c803bbcffa",
+            "parentSpanId": "c363ced8bce65a42",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 8
+          },
+          {
+            "spanId": "c363ced8bce65a42",
+            "parentSpanId": "fbe39f12ba27b7b2",
+            "name": "people.invitation",
+            "outcome": "ok",
+            "durationMs": 8
+          },
+          {
+            "spanId": "fbe39f12ba27b7b2",
+            "parentSpanId": "03da3225d203711b",
+            "name": "invitation.decline.load",
+            "outcome": "unset",
+            "durationMs": 15
+          },
+          {
+            "spanId": "65bd74deca49f955",
+            "parentSpanId": "03da3225d203711b",
+            "name": "ROLLBACK postgres",
+            "outcome": "ok",
+            "durationMs": 8
+          },
+          {
+            "spanId": "03da3225d203711b",
+            "parentSpanId": "539dbc812c02340d",
+            "name": "sql.transaction",
+            "outcome": "unset",
+            "durationMs": 37
+          },
+          {
+            "spanId": "539dbc812c02340d",
+            "parentSpanId": "24ffcccca9ba54a7",
+            "name": "invitation.decline",
+            "outcome": "unset",
+            "durationMs": 37
+          }
+        ],
+        "differences": []
+      },
+      {
+        "traceId": "f2264cfdacde700039efa0518e5dfa3c",
+        "operation": "record.export",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "465f5ce1541e40eb",
+            "parentSpanId": "9ea1c186d043be72",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 9
+          },
+          {
+            "spanId": "ecd0c73e6707764b",
+            "parentSpanId": "9ea1c186d043be72",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "1ab3305ad946899e",
+            "parentSpanId": "9ea1c186d043be72",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 6
+          },
+          {
+            "spanId": "9ea1c186d043be72",
+            "parentSpanId": "8ba2fd751d3f993d",
+            "name": "record.export",
+            "outcome": "success",
+            "durationMs": 20
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "465f5ce1541e40eb",
+            "parentSpanId": "9ea1c186d043be72",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 9
+          },
+          {
+            "spanId": "ecd0c73e6707764b",
+            "parentSpanId": "9ea1c186d043be72",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "1ab3305ad946899e",
+            "parentSpanId": "9ea1c186d043be72",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 6
+          },
+          {
+            "spanId": "9ea1c186d043be72",
+            "parentSpanId": "8ba2fd751d3f993d",
+            "name": "record.export",
+            "outcome": "ok",
+            "durationMs": 20
+          }
+        ],
+        "differences": []
+      },
+      {
+        "traceId": "e9b06818ab76329fcb93792b6e2b32f9",
+        "operation": "record.export",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "7f7cbb5e740463da",
+            "parentSpanId": "456361d8be16e75c",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 10
+          },
+          {
+            "spanId": "84e00d21189a51d9",
+            "parentSpanId": "456361d8be16e75c",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "23f564bb565e952b",
+            "parentSpanId": "456361d8be16e75c",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "456361d8be16e75c",
+            "parentSpanId": "31a32b31a5b78c22",
+            "name": "record.export",
+            "outcome": "success",
+            "durationMs": 20
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "7f7cbb5e740463da",
+            "parentSpanId": "456361d8be16e75c",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 10
+          },
+          {
+            "spanId": "84e00d21189a51d9",
+            "parentSpanId": "456361d8be16e75c",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "23f564bb565e952b",
+            "parentSpanId": "456361d8be16e75c",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "456361d8be16e75c",
+            "parentSpanId": "31a32b31a5b78c22",
+            "name": "record.export",
+            "outcome": "ok",
+            "durationMs": 20
+          }
+        ],
+        "differences": []
+      },
+      {
+        "traceId": "832f3502e350d133e3215e3268bc9257",
+        "operation": "invitation.list",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "db1d5d5b65a6b498",
+            "parentSpanId": "f8633f5b370bac64",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 10
+          },
+          {
+            "spanId": "10bbd588865b5da5",
+            "parentSpanId": "a9077266f5b1567e",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 7
+          },
+          {
+            "spanId": "a9077266f5b1567e",
+            "parentSpanId": "f8633f5b370bac64",
+            "name": "people.invitationsTo",
+            "outcome": "success",
+            "durationMs": 7
+          },
+          {
+            "spanId": "f8633f5b370bac64",
+            "parentSpanId": "1de0f82ae4d58b67",
+            "name": "invitation.list.load",
+            "outcome": "success",
+            "durationMs": 17
+          },
+          {
+            "spanId": "1de0f82ae4d58b67",
+            "parentSpanId": "9f1af49a4b0f4aff",
+            "name": "invitation.list",
+            "outcome": "success",
+            "durationMs": 17
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "db1d5d5b65a6b498",
+            "parentSpanId": "f8633f5b370bac64",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 10
+          },
+          {
+            "spanId": "10bbd588865b5da5",
+            "parentSpanId": "a9077266f5b1567e",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 7
+          },
+          {
+            "spanId": "a9077266f5b1567e",
+            "parentSpanId": "f8633f5b370bac64",
+            "name": "people.invitationsTo",
+            "outcome": "ok",
+            "durationMs": 7
+          },
+          {
+            "spanId": "f8633f5b370bac64",
+            "parentSpanId": "1de0f82ae4d58b67",
+            "name": "invitation.list.load",
+            "outcome": "ok",
+            "durationMs": 17
+          },
+          {
+            "spanId": "1de0f82ae4d58b67",
+            "parentSpanId": "9f1af49a4b0f4aff",
+            "name": "invitation.list",
+            "outcome": "ok",
+            "durationMs": 17
+          }
+        ],
+        "differences": []
+      },
+      {
+        "traceId": "41c25397b4867b191d5b0166d596ed55",
+        "operation": "invitation.decline",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "1d3d93b196b115df",
+            "parentSpanId": "b2576ddc4b6e28c7",
+            "name": "BEGIN postgres",
+            "outcome": "success",
+            "durationMs": 7
+          },
+          {
+            "spanId": "a968354dc9c2f164",
+            "parentSpanId": "0d568e1295d2673a",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 7
+          },
+          {
+            "spanId": "a2987672b1c50cd3",
+            "parentSpanId": "b9a3efa3b18785ef",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "b9a3efa3b18785ef",
+            "parentSpanId": "0d568e1295d2673a",
+            "name": "people.invitation",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "0d568e1295d2673a",
+            "parentSpanId": "b2576ddc4b6e28c7",
+            "name": "invitation.decline.load",
+            "outcome": "success",
+            "durationMs": 12
+          },
+          {
+            "spanId": "c9e64db010a7f1bc",
+            "parentSpanId": "b2576ddc4b6e28c7",
+            "name": "ROLLBACK postgres",
+            "outcome": "success",
+            "durationMs": 6
+          },
+          {
+            "spanId": "b2576ddc4b6e28c7",
+            "parentSpanId": "345b79252bff9b4a",
+            "name": "sql.transaction",
+            "outcome": "failure",
+            "durationMs": 27
+          },
+          {
+            "spanId": "345b79252bff9b4a",
+            "parentSpanId": "6b24764a3dd57344",
+            "name": "invitation.decline",
+            "outcome": "failure",
+            "durationMs": 27
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "1d3d93b196b115df",
+            "parentSpanId": "b2576ddc4b6e28c7",
+            "name": "BEGIN postgres",
+            "outcome": "ok",
+            "durationMs": 7
+          },
+          {
+            "spanId": "a968354dc9c2f164",
+            "parentSpanId": "0d568e1295d2673a",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 7
+          },
+          {
+            "spanId": "a2987672b1c50cd3",
+            "parentSpanId": "b9a3efa3b18785ef",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "b9a3efa3b18785ef",
+            "parentSpanId": "0d568e1295d2673a",
+            "name": "people.invitation",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "0d568e1295d2673a",
+            "parentSpanId": "b2576ddc4b6e28c7",
+            "name": "invitation.decline.load",
+            "outcome": "ok",
+            "durationMs": 12
+          },
+          {
+            "spanId": "c9e64db010a7f1bc",
+            "parentSpanId": "b2576ddc4b6e28c7",
+            "name": "ROLLBACK postgres",
+            "outcome": "ok",
+            "durationMs": 6
+          },
+          {
+            "spanId": "b2576ddc4b6e28c7",
+            "parentSpanId": "345b79252bff9b4a",
+            "name": "sql.transaction",
+            "outcome": "unset",
+            "durationMs": 27
+          },
+          {
+            "spanId": "345b79252bff9b4a",
+            "parentSpanId": "6b24764a3dd57344",
+            "name": "invitation.decline",
+            "outcome": "unset",
+            "durationMs": 27
+          }
+        ],
+        "differences": []
+      },
+      {
+        "traceId": "d7a60128896469a31e9a3c1f8a05df34",
+        "operation": "record.export",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "db68f99bbadb0925",
+            "parentSpanId": "8d643a31617820cc",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 11
+          },
+          {
+            "spanId": "7d37b8968604f64c",
+            "parentSpanId": "8d643a31617820cc",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 6
+          },
+          {
+            "spanId": "c57ce0a2254a9976",
+            "parentSpanId": "8d643a31617820cc",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 7
+          },
+          {
+            "spanId": "8d643a31617820cc",
+            "parentSpanId": "3b9fe1af89ee9bc5",
+            "name": "record.export",
+            "outcome": "success",
+            "durationMs": 24
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "db68f99bbadb0925",
+            "parentSpanId": "8d643a31617820cc",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 11
+          },
+          {
+            "spanId": "7d37b8968604f64c",
+            "parentSpanId": "8d643a31617820cc",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 6
+          },
+          {
+            "spanId": "c57ce0a2254a9976",
+            "parentSpanId": "8d643a31617820cc",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 7
+          },
+          {
+            "spanId": "8d643a31617820cc",
+            "parentSpanId": "3b9fe1af89ee9bc5",
+            "name": "record.export",
+            "outcome": "ok",
+            "durationMs": 24
+          }
+        ],
+        "differences": []
+      },
+      {
+        "traceId": "65feee0ce3dfdabe823567f23f1fbf15",
+        "operation": "record.export",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "a80c9d4d45a03f9f",
+            "parentSpanId": "7408cc397ec9c3bf",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 11
+          },
+          {
+            "spanId": "ef41648dceeb45c4",
+            "parentSpanId": "7408cc397ec9c3bf",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 6
+          },
+          {
+            "spanId": "171d1381263a5191",
+            "parentSpanId": "7408cc397ec9c3bf",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 6
+          },
+          {
+            "spanId": "7408cc397ec9c3bf",
+            "parentSpanId": "c29fe5f6f590b420",
+            "name": "record.export",
+            "outcome": "success",
+            "durationMs": 23
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "a80c9d4d45a03f9f",
+            "parentSpanId": "7408cc397ec9c3bf",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 11
+          },
+          {
+            "spanId": "ef41648dceeb45c4",
+            "parentSpanId": "7408cc397ec9c3bf",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 6
+          },
+          {
+            "spanId": "171d1381263a5191",
+            "parentSpanId": "7408cc397ec9c3bf",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 6
+          },
+          {
+            "spanId": "7408cc397ec9c3bf",
+            "parentSpanId": "c29fe5f6f590b420",
+            "name": "record.export",
+            "outcome": "ok",
+            "durationMs": 23
+          }
+        ],
+        "differences": []
+      },
+      {
+        "traceId": "0b0c7d7b49e94a49fd0967ae8df5cf69",
+        "operation": "invitation.list",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "f06b2b1528d39c3c",
+            "parentSpanId": "0d2631c384346d0f",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 16
+          },
+          {
+            "spanId": "9505d7385f313b93",
+            "parentSpanId": "6e69b6df584ac5ef",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 8
+          },
+          {
+            "spanId": "6e69b6df584ac5ef",
+            "parentSpanId": "0d2631c384346d0f",
+            "name": "people.invitationsTo",
+            "outcome": "success",
+            "durationMs": 8
+          },
+          {
+            "spanId": "0d2631c384346d0f",
+            "parentSpanId": "b939a011e83a0703",
+            "name": "invitation.list.load",
+            "outcome": "success",
+            "durationMs": 24
+          },
+          {
+            "spanId": "b939a011e83a0703",
+            "parentSpanId": "b6a14230e10e470e",
+            "name": "invitation.list",
+            "outcome": "success",
+            "durationMs": 24
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "f06b2b1528d39c3c",
+            "parentSpanId": "0d2631c384346d0f",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 16
+          },
+          {
+            "spanId": "9505d7385f313b93",
+            "parentSpanId": "6e69b6df584ac5ef",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 8
+          },
+          {
+            "spanId": "6e69b6df584ac5ef",
+            "parentSpanId": "0d2631c384346d0f",
+            "name": "people.invitationsTo",
+            "outcome": "ok",
+            "durationMs": 8
+          },
+          {
+            "spanId": "0d2631c384346d0f",
+            "parentSpanId": "b939a011e83a0703",
+            "name": "invitation.list.load",
+            "outcome": "ok",
+            "durationMs": 24
+          },
+          {
+            "spanId": "b939a011e83a0703",
+            "parentSpanId": "b6a14230e10e470e",
+            "name": "invitation.list",
+            "outcome": "ok",
+            "durationMs": 24
+          }
+        ],
+        "differences": []
+      },
+      {
+        "traceId": "2dcaddb177c01ea821221d280ece3837",
+        "operation": "record.export",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "f82d13aaffa03304",
+            "parentSpanId": "326f97dbb33a06f0",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 10
+          },
+          {
+            "spanId": "0a9d9c8fbfd95c3e",
+            "parentSpanId": "326f97dbb33a06f0",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "ee1cea6d4aee7455",
+            "parentSpanId": "326f97dbb33a06f0",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "326f97dbb33a06f0",
+            "parentSpanId": "99a9f1359fc57c70",
+            "name": "record.export",
+            "outcome": "success",
+            "durationMs": 20
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "f82d13aaffa03304",
+            "parentSpanId": "326f97dbb33a06f0",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 10
+          },
+          {
+            "spanId": "0a9d9c8fbfd95c3e",
+            "parentSpanId": "326f97dbb33a06f0",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "ee1cea6d4aee7455",
+            "parentSpanId": "326f97dbb33a06f0",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "326f97dbb33a06f0",
+            "parentSpanId": "99a9f1359fc57c70",
+            "name": "record.export",
+            "outcome": "ok",
+            "durationMs": 20
+          }
+        ],
+        "differences": []
+      },
+      {
+        "traceId": "2ca11dcc23262dd10e468e59f5cd3dfb",
+        "operation": "record.export",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "59da6544561c883b",
+            "parentSpanId": "9ebb9ec146943ef4",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 10
+          },
+          {
+            "spanId": "4a003fbd7d44732b",
+            "parentSpanId": "9ebb9ec146943ef4",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 7
+          },
+          {
+            "spanId": "61ef227192f5017e",
+            "parentSpanId": "9ebb9ec146943ef4",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 7
+          },
+          {
+            "spanId": "9ebb9ec146943ef4",
+            "parentSpanId": "18da458f269fb5fb",
+            "name": "record.export",
+            "outcome": "success",
+            "durationMs": 24
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "59da6544561c883b",
+            "parentSpanId": "9ebb9ec146943ef4",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 10
+          },
+          {
+            "spanId": "4a003fbd7d44732b",
+            "parentSpanId": "9ebb9ec146943ef4",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 7
+          },
+          {
+            "spanId": "61ef227192f5017e",
+            "parentSpanId": "9ebb9ec146943ef4",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 7
+          },
+          {
+            "spanId": "9ebb9ec146943ef4",
+            "parentSpanId": "18da458f269fb5fb",
+            "name": "record.export",
+            "outcome": "ok",
+            "durationMs": 24
+          }
+        ],
+        "differences": []
+      },
+      {
+        "traceId": "14d840c7a018547c69334c9a0a8a325a",
+        "operation": "member.list",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "ab959b1a177bdbf5",
+            "parentSpanId": "eca80f0ab82d0fea",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 11
+          },
+          {
+            "spanId": "eca80f0ab82d0fea",
+            "parentSpanId": "40851bd17dd0e04c",
+            "name": "organizations.byOrg",
+            "outcome": "success",
+            "durationMs": 11
+          },
+          {
+            "spanId": "53f9d43c27d83a9d",
+            "parentSpanId": "75acb4e002a34cba",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "75acb4e002a34cba",
+            "parentSpanId": "1d0d05cab7a146d3",
+            "name": "people.joined",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "1d0d05cab7a146d3",
+            "parentSpanId": "40851bd17dd0e04c",
+            "name": "people.roster",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "8402a9e17a7eddaa",
+            "parentSpanId": "40851bd17dd0e04c",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "26e778e890e0cebb",
+            "parentSpanId": "40851bd17dd0e04c",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "f5776768cbb9fa4c",
+            "parentSpanId": "40851bd17dd0e04c",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 6
+          },
+          {
+            "spanId": "aa7acce00497c982",
+            "parentSpanId": "40851bd17dd0e04c",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "e9bf8e6b2414b2c7",
+            "parentSpanId": "40851bd17dd0e04c",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "40851bd17dd0e04c",
+            "parentSpanId": "70511106e03f417e",
+            "name": "member.list.read",
+            "outcome": "success",
+            "durationMs": 42
+          },
+          {
+            "spanId": "70511106e03f417e",
+            "parentSpanId": "6f9766dd96001637",
+            "name": "member.list",
+            "outcome": "success",
+            "durationMs": 42
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "ab959b1a177bdbf5",
+            "parentSpanId": "eca80f0ab82d0fea",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 11
+          },
+          {
+            "spanId": "eca80f0ab82d0fea",
+            "parentSpanId": "40851bd17dd0e04c",
+            "name": "organizations.byOrg",
+            "outcome": "ok",
+            "durationMs": 11
+          },
+          {
+            "spanId": "53f9d43c27d83a9d",
+            "parentSpanId": "75acb4e002a34cba",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "75acb4e002a34cba",
+            "parentSpanId": "1d0d05cab7a146d3",
+            "name": "people.joined",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "1d0d05cab7a146d3",
+            "parentSpanId": "40851bd17dd0e04c",
+            "name": "people.roster",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "8402a9e17a7eddaa",
+            "parentSpanId": "40851bd17dd0e04c",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "26e778e890e0cebb",
+            "parentSpanId": "40851bd17dd0e04c",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "f5776768cbb9fa4c",
+            "parentSpanId": "40851bd17dd0e04c",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 6
+          },
+          {
+            "spanId": "aa7acce00497c982",
+            "parentSpanId": "40851bd17dd0e04c",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "e9bf8e6b2414b2c7",
+            "parentSpanId": "40851bd17dd0e04c",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "40851bd17dd0e04c",
+            "parentSpanId": "70511106e03f417e",
+            "name": "member.list.read",
+            "outcome": "ok",
+            "durationMs": 42
+          },
+          {
+            "spanId": "70511106e03f417e",
+            "parentSpanId": "6f9766dd96001637",
+            "name": "member.list",
+            "outcome": "ok",
+            "durationMs": 42
+          }
+        ],
+        "differences": []
+      },
+      {
+        "traceId": "a62c3a16b42159831a5cb7fe5ae01580",
+        "operation": "record.export",
+        "complete": true,
+        "agrees": true,
+        "kept": [
+          {
+            "spanId": "d859b0cb085d11b2",
+            "parentSpanId": "19d8ebc273e23f69",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 10
+          },
+          {
+            "spanId": "306ae68765503d8b",
+            "parentSpanId": "19d8ebc273e23f69",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 5
+          },
+          {
+            "spanId": "78bed9ba51220c8f",
+            "parentSpanId": "19d8ebc273e23f69",
+            "name": "postgres",
+            "outcome": "success",
+            "durationMs": 7
+          },
+          {
+            "spanId": "19d8ebc273e23f69",
+            "parentSpanId": "3f71d1b1a3593547",
+            "name": "record.export",
+            "outcome": "success",
+            "durationMs": 22
+          }
+        ],
+        "tapped": [
+          {
+            "spanId": "d859b0cb085d11b2",
+            "parentSpanId": "19d8ebc273e23f69",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 10
+          },
+          {
+            "spanId": "306ae68765503d8b",
+            "parentSpanId": "19d8ebc273e23f69",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 5
+          },
+          {
+            "spanId": "78bed9ba51220c8f",
+            "parentSpanId": "19d8ebc273e23f69",
+            "name": "postgres",
+            "outcome": "ok",
+            "durationMs": 7
+          },
+          {
+            "spanId": "19d8ebc273e23f69",
+            "parentSpanId": "3f71d1b1a3593547",
+            "name": "record.export",
+            "outcome": "ok",
+            "durationMs": 22
+          }
+        ],
+        "differences": []
+      }
+    ]
+  },
+  "afterwards": {
+    "stage": "destroyed",
+    "before": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": []
+    },
+    "after": {
+      "workers": [],
+      "hyperdrives": [],
+      "neonProjects": [],
+      "worlds": []
+    }
+  },
+  "ms": {
+    "create": 25951,
+    "run": 39492,
+    "checks": 1237,
+    "destroy": 0
+  }
+}
