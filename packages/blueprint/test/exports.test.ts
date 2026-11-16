@@ -73,10 +73,10 @@ const NAMESPACES: { readonly [namespace: string]: ReadonlyArray<string> } = {
     Entry claims exportRecord machines operations platformRpcs stateless worldRpcs
   `),
   Pipeline: named(`
-    CallCheck CheckLayer CheckName ClusterRefusal ItemCount JourneyName JourneyStep LeftBehind Measure NotCounted
-    PointStep PreparePart RatchetName Rung RunId RunPart Shard ShardCount StageName StartingPointName TakeRefusal
+    CallCheck CheckLayer CheckName ClusterRefusal ItemCount JourneyName JourneyStep LeftBehind MakeFallback Measure NotCounted
+    PointStep PreparePart RatchetName Rung RunId RunPart Shard ShardCount SiteOrigin StageName StartingPointName TakeRefusal
     Trusted checkCall checkConfirm checkGate checkIsolation checkWatch clusterDown clusterShow clusterUp journeyRun ratchetCount
-    runPrepare runStart runTeardown runVerdict siteReset siteSave siteTake startingPointMake work worldDestroy
+    runPrepare runStart runTeardown runVerdict siteMake siteReset siteSave siteTake startingPointMake work worldDestroy
     worldRenew worldReset worldSweep
   `),
   Reports: named(`

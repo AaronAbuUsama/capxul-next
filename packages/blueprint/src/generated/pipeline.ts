@@ -16,6 +16,7 @@ import * as RunVerbsPrepare from "../things/run/verbs/prepare.ts";
 import * as RunVerbsStart from "../things/run/verbs/start.ts";
 import * as RunVerbsTeardown from "../things/run/verbs/teardown.ts";
 import * as RunVerbsVerdict from "../things/run/verbs/verdict.ts";
+import * as SiteVerbsMake from "../things/site/verbs/make.ts";
 import * as SiteVerbsReset from "../things/site/verbs/reset.ts";
 import * as SiteVerbsSave from "../things/site/verbs/save.ts";
 import * as SiteVerbsTake from "../things/site/verbs/take.ts";
@@ -39,7 +40,7 @@ export {
   NotCounted,
   LeftBehind,
 } from "../things/run/values.ts";
-export { TakeRefusal } from "../things/site/values.ts";
+export { TakeRefusal, SiteOrigin, MakeFallback } from "../things/site/values.ts";
 export { StartingPointName, PointStep } from "../things/starting-point/values.ts";
 export { checkCall } from "../things/check/verbs/call.ts";
 export { checkConfirm } from "../things/check/verbs/confirm.ts";
@@ -55,6 +56,7 @@ export { runPrepare } from "../things/run/verbs/prepare.ts";
 export { runStart } from "../things/run/verbs/start.ts";
 export { runTeardown } from "../things/run/verbs/teardown.ts";
 export { runVerdict } from "../things/run/verbs/verdict.ts";
+export { siteMake } from "../things/site/verbs/make.ts";
 export { siteReset } from "../things/site/verbs/reset.ts";
 export { siteSave } from "../things/site/verbs/save.ts";
 export { siteTake } from "../things/site/verbs/take.ts";
@@ -80,6 +82,7 @@ export const work = {
   "run.start": RunVerbsStart.runStart,
   "run.teardown": RunVerbsTeardown.runTeardown,
   "run.verdict": RunVerbsVerdict.runVerdict,
+  "site.make": SiteVerbsMake.siteMake,
   "site.reset": SiteVerbsReset.siteReset,
   "site.save": SiteVerbsSave.siteSave,
   "site.take": SiteVerbsTake.siteTake,
