@@ -21,7 +21,7 @@ import * as Redacted from "effect/Redacted";
 import { checkCall } from "../src/checks/checks.ts";
 import type { Call } from "../src/client.ts";
 import { flatSpans } from "../src/telemetry/flat.ts";
-import { appKeptOf, rowOf, tapTelemetryOf } from "../src/telemetry/kept.ts";
+import { appKeptOf, checkedOrPlumbing, rowOf, tapTelemetryOf } from "../src/telemetry/kept.ts";
 import { decodeTraces } from "../src/telemetry/otlp.ts";
 import type { SpanRow } from "../src/world/database.ts";
 import { OtherWorlds } from "../src/world/existing.ts";
@@ -199,4 +199,24 @@ test("parity's app.spans side reads a call at another world's endpoint in that w
     Arr.map(kept.spans, (span) => span.name),
     ["own", "theirs"],
   );
+});
+
+test("a starting world's call missing from the tap fails as plumbing, with no checks, never as nothing", async () => {
+  const call = callOf("0af7651916cd43dd8448eb211c80319c", "success");
+  const got = await Effect.runPromise(
+    checkedOrPlumbing([call], tapTelemetryOf(DATABASE, [call], QUICK)).pipe(Effect.provide(standIn([]))),
+  );
+  assert.deepEqual(got.checked, []);
+  assert.equal(got.plumbing.length, 1);
+  assert.match(got.plumbing[0]!, /^plumbing: .*the tap does not hold whole the trace of a call the api answered/);
+});
+
+test("a starting world's calls the tap holds are checked, and nothing is plumbing", async () => {
+  const made = await Effect.runPromise(oneCall);
+  const call = callOf(made.traceId, "refusal");
+  const got = await Effect.runPromise(
+    checkedOrPlumbing([call], tapTelemetryOf(DATABASE, [call], QUICK)).pipe(Effect.provide(standIn(made.rows))),
+  );
+  assert.deepEqual(got.plumbing, []);
+  assert.equal(got.checked.length, 1);
 });

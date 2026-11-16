@@ -73,7 +73,7 @@ export const declaredSteps: Unmigrated = {
   "packages/runner/src/worlds/ending.ts": 1,
   "packages/runner/src/worlds/hub.ts": 1,
   "packages/runner/src/worlds/makers.ts": 4,
-  "packages/runner/src/worlds/run.ts": 4,
+  "packages/runner/src/worlds/run.ts": 3,
   "packages/runner/src/worlds/starting.ts": 1,
   "packages/runner/src/worlds/teardown.ts": 1,
   "packages/runner/src/worlds/timing.ts": 1,
