@@ -39,7 +39,8 @@ Derived at each refresh, never typed:
 
 - **The plan** (milestones, steps, lanes) is declared in the blueprint and changed by pull request, as the roadmap's
   table is today. The roadmap's "Phases" and "Steps to the goal" tables are generated from it.
-- **The running state** (threads, asks, sitreps) lives on an orphan branch, `state`, as one JSON file per thing, the way
+- **The running state** (threads, asks, sitreps): replaced on 16 November 2026 by the logbook (`docs/decisions.md`,
+  "No `state` branch"; `docs/guides/logbook.md`). What follows was the proposal: it lives on an orphan branch, `state`, as one JSON file per thing, the way
   verdicts live on `proofs`. Each CLI verb validates against the generated schema, commits and pushes. No CI runs on
   it, `master` stays quiet, and git keeps the history. Any agent with git and the CLI can write it.
 - **Derived facts** are not stored anywhere but in the snapshot below.
