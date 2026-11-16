@@ -55,6 +55,15 @@ Clear the gate's rungs in order, stopping at the first that fails.
 - Logs: `check.gate.failed` (rung).
 - Budget: 180,000 ms, a target, provisional. Basis: docs/design/blueprint.md, part 3: 3 minutes for the job; `check` run 43710528109 on master took 2 min 39 s.
 
+### `check.isolation`
+
+Read a shared world's whole run, its events and its traces, so each journey's records can be checked as its own.
+
+- Payload: `world`.
+- Spans: `check.isolation.read` (database).
+- Logs: `check.isolation.leaked` (world, journey).
+- Budget: 5,000 ms, a target, provisional. Basis: a first guess: two reads of one world's database after the run, off the critical path.
+
 ### `check.watch`
 
 Run the generic checks and measures on what a deployed stage records; a measure that got worse is a finding.
