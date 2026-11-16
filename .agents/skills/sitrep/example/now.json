@@ -1,0 +1,261 @@
+{
+ "schema": 1,
+ "at": "2026-11-15T18:50:00Z",
+ "repo": "AaronAbuUsama/capxul-next",
+ "needsYou": [],
+ "master": {
+  "state": "green",
+  "label": "4c37d15",
+  "href": "https://github.com/AaronAbuUsama/capxul-next/actions/runs/43743627200"
+ },
+ "run": {
+  "minutes": 27,
+  "target": 5,
+  "state": "green",
+  "href": null
+ },
+ "spend": null,
+ "lanes": [
+  {
+   "id": "blueprint",
+   "name": "Blueprint 2b",
+   "state": "building",
+   "line": "Ratchets, telemetry names and the pipeline's things, into master",
+   "where": "Stage 2a landed at 17:38. The slice now carries 2b: the ratchet registry, the telemetry vocabulary and the pipeline's things, in one pull request into master.",
+   "next": "The slice's pull request into master passes its full run, then each journey's own cast.",
+   "steps": [
+    {
+     "id": "3.6",
+     "name": "The blueprint's format",
+     "state": "building"
+    },
+    {
+     "id": "3.8",
+     "name": "The glossary",
+     "state": "queued"
+    },
+    {
+     "id": "3.10",
+     "name": "Every format in the toolkit",
+     "state": "queued"
+    }
+   ],
+   "prs": [
+    {
+     "number": 319,
+     "title": "slice/blueprint into master",
+     "state": "draft"
+    },
+    {
+     "number": 339,
+     "title": "Each journey's own cast, declared once",
+     "state": "open"
+    },
+    {
+     "number": 323,
+     "title": "Stage 2 small follow-up",
+     "state": "draft"
+    }
+   ],
+   "lead": "https://claude.ai/code/session_01S8RF79VUFRRBGBDTzB485K"
+  },
+  {
+   "id": "run-time",
+   "name": "Speed",
+   "state": "building",
+   "line": "The run's plumbing, then journeys side by side · 27 to under 5 minutes",
+   "where": "A full run takes twenty-seven minutes, and almost all of it is waiting. The first landing, the run's plumbing, is in its pull request into master; builders work on journeys that can run side by side.",
+   "next": "Landing 1 into master: the run's plumbing.",
+   "gauge": {
+    "label": "Full run time",
+    "now": 27,
+    "target": 5,
+    "max": 50,
+    "unit": "min",
+    "note": "Projected after the plan: 4.5 to 5.5 minutes"
+   },
+   "steps": [
+    {
+     "id": "4.12",
+     "name": "The run's plumbing",
+     "state": "building"
+    },
+    {
+     "id": "4.11",
+     "name": "Journeys side-by-side safe",
+     "state": "building"
+    },
+    {
+     "id": "4.8",
+     "name": "One shared world",
+     "state": "queued"
+    }
+   ],
+   "prs": [
+    {
+     "number": 341,
+     "title": "slice/run-time into master, landing 1",
+     "state": "draft"
+    },
+    {
+     "number": 344,
+     "title": "Every journey says where it runs",
+     "state": "open"
+    },
+    {
+     "number": 345,
+     "title": "The reset's bundler check retries",
+     "state": "draft"
+    },
+    {
+     "number": 337,
+     "title": "Bench door: ready blank copies",
+     "state": "draft"
+    }
+   ],
+   "lead": "https://claude.ai/code/session_01S8RF7A5EFsECELJk2x94CG"
+  },
+  {
+   "id": "telemetry",
+   "name": "Telemetry",
+   "state": "building",
+   "line": "Every part's spans to Axiom",
+   "where": "Core, the runner, the world and the platform client export their spans. The runner exports to the staging collector in CI.",
+   "next": "The slice's pull request into master.",
+   "steps": [
+    {
+     "id": "4.4",
+     "name": "Telemetry is OpenTelemetry",
+     "state": "building"
+    },
+    {
+     "id": "4.7",
+     "name": "The pipeline instrumented",
+     "state": "building"
+    }
+   ],
+   "prs": [
+    {
+     "number": 317,
+     "title": "slice/telemetry into master",
+     "state": "draft"
+    },
+    {
+     "number": 346,
+     "title": "The runner exports from CI",
+     "state": "draft"
+    }
+   ],
+   "lead": "https://claude.ai/code/session_01S8RF7BnxXPJvTcMYQPWzPD"
+  },
+  {
+   "id": "docs",
+   "name": "Docs",
+   "state": "proving",
+   "line": "One set of docs, by progressive disclosure",
+   "where": "The docs rewrite is in its pull request into master, waiting on its full run.",
+   "next": "It merges, then links are repointed to where stage 2a moved things.",
+   "steps": [],
+   "prs": [
+    {
+     "number": 304,
+     "title": "slice/docs into master",
+     "state": "open"
+    }
+   ],
+   "lead": "https://claude.ai/code/session_01S8RF7D33sfKcWfHsnDPd8z"
+  },
+  {
+   "id": "placement",
+   "name": "Placement",
+   "state": "proving",
+   "line": "The api in Europe, next to its data",
+   "where": "The api now runs in Europe beside its database. The full run on the slice's pull request is the measurement.",
+   "next": "If the full run passes, the slice merges into master.",
+   "steps": [
+    {
+     "id": "4.10",
+     "name": "Core next to its data",
+     "state": "proving"
+    }
+   ],
+   "prs": [
+    {
+     "number": 318,
+     "title": "Place the api's Worker in Europe",
+     "state": "merged"
+    },
+    {
+     "number": 320,
+     "title": "slice/placement into master",
+     "state": "draft"
+    }
+   ],
+   "lead": null
+  }
+ ],
+ "landed": [
+  {
+   "at": "2026-11-15T17:53:20Z",
+   "title": "The run-time plan, with your decisions",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/316"
+  },
+  {
+   "at": "2026-11-15T17:38:27Z",
+   "title": "The whole blueprint in its new layout (stage 2a)",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/295"
+  },
+  {
+   "at": "2026-11-15T16:47:42Z",
+   "title": "The backlog routed from the triage",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/306"
+  },
+  {
+   "at": "2026-11-15T16:41:54Z",
+   "title": "The system map you agreed",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/307"
+  },
+  {
+   "at": "2026-11-15T16:09:06Z",
+   "title": "The world package in its agreed layout",
+   "href": "https://github.com/AaronAbuUsama/capxul-next/pull/300"
+  }
+ ],
+ "threads": [
+  {
+   "title": "🎼 Conductor",
+   "state": "active",
+   "href": "https://claude.ai/code/session_01S8RF7Ce7ysZNMXvaxLQkix"
+  },
+  {
+   "title": "🧭 Lead · blueprint",
+   "state": "active",
+   "href": "https://claude.ai/code/session_01S8RF79VUFRRBGBDTzB485K"
+  },
+  {
+   "title": "🧭 Lead · speed",
+   "state": "active",
+   "href": "https://claude.ai/code/session_01S8RF7A5EFsECELJk2x94CG"
+  },
+  {
+   "title": "🧭 Lead · telemetry",
+   "state": "active",
+   "href": "https://claude.ai/code/session_01S8RF7BnxXPJvTcMYQPWzPD"
+  },
+  {
+   "title": "🧭 Lead · docs",
+   "state": "active",
+   "href": "https://claude.ai/code/session_01S8RF7D33sfKcWfHsnDPd8z"
+  },
+  {
+   "title": "✍️ Author · journeys side by side",
+   "state": "active",
+   "href": "https://claude.ai/code/session_01S8RF79ozyx81cyXgaj9eUZ"
+  },
+  {
+   "title": "📐 Designer · the sitrep",
+   "state": "active",
+   "href": "https://claude.ai/code/session_01S8RF7CdntXG9ZAhQTJ6GA8"
+  }
+ ]
+}

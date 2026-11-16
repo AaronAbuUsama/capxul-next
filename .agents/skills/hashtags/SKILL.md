@@ -18,7 +18,7 @@ spoken part.
 | `#menu` | This table as a short list: each shortcut and what it gives back, one line each. |
 | `#threads` | Every active thread, one line each: `<emoji> [title](<link>)`, what it's doing, and what it waits on, if anything. Then the archived ones from today, on one line. |
 | `#waiting` | Only what waits on Aaron: each prompt or question, its thread's link, and your recommendation. Prompts to approve first, then decisions. |
-| `#sitrep` | Five lines (done, moving, waiting, next milestone, `master`'s state), and the sitrep page's link where your agent keeps one. |
+| `#sitrep` | The newest unheard spoken sitrep, then five lines (done, moving, waiting, next milestone, `master`'s state), then the sitrep page's link (the `sitrep` skill). |
 | `#landed` | What merged into `master` today, newest first: number, title, one line on what it means. |
 | `#next` | The critical path to the next milestone, step by step, with your estimate of when, and what could stretch it. |
 | `#decide` | Every open decision across the threads, batched, each with options and your recommendation, so Aaron can answer them in one reply. |
