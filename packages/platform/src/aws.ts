@@ -12,13 +12,12 @@ import * as Alchemy from "alchemy";
 import * as Output from "alchemy/Output";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
+import { STAGING_BENCH } from "./machines.ts";
 import { names } from "./stage.ts";
 import { userData } from "./user-data.ts";
 
 /** The one managed policy the machine's role carries; also the only one the CI role may attach (aws-policy.ts). */
 export const SSM_CORE_POLICY = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore";
-/** The machine's size: 2 vCPU and 8 GiB, room for MariaDB, Redis and a handful of sites (README, "Cost"). */
-export const DEFAULT_INSTANCE_TYPE = "t3.large";
 /** The data disk, in GiB: Docker's images, build cache and the bench's volumes. */
 export const DEFAULT_DATA_GB = 60;
 /** The device name the attachment asks for; Nitro machines show it under its volume id (user-data.ts). */
@@ -45,7 +44,6 @@ const typed = (instance: Effect.Effect<AWS.EC2.Instance, never, unknown>) =>
 export const hostSettings = Effect.all({
   // A pinned image: a newer one would replace the machine. bootstrap.sh resolves it once (PLATFORM_AMI_ID).
   amiId: Config.String("PLATFORM_AMI_ID"),
-  instanceType: Config.String("PLATFORM_INSTANCE_TYPE").pipe(Config.withDefault(DEFAULT_INSTANCE_TYPE)),
   dataGb: Config.Int("PLATFORM_DATA_GB").pipe(Config.withDefault(DEFAULT_DATA_GB)),
 });
 
@@ -97,7 +95,8 @@ export const BenchHost = Effect.gen(function* () {
   const machine = yield* typed(
     AWS.EC2.Instance("Machine", {
       imageId: settings.amiId,
-      instanceType: settings.instanceType,
+      // The machine STAGING_BENCH names (machines.ts), the one place it is chosen.
+      instanceType: STAGING_BENCH.host,
       subnetId,
       availabilityZone: zone,
       privateIpAddress: MACHINE_PRIVATE_IP,

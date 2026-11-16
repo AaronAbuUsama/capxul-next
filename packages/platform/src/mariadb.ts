@@ -6,6 +6,7 @@
 // place would read to find what changed, is lost each time its definition leaves the cache.
 import * as Arr from "effect/Array";
 import * as Rec from "effect/Record";
+import { MACHINES, STAGING_BENCH } from "./machines.ts";
 
 /** Tables of one site, measured (records/site-speed, Q2), with room for the apps' next migrations. */
 export const TABLES_PER_SITE = 1000;
@@ -13,8 +14,8 @@ export const TABLES_PER_SITE = 1000;
 /** How many sites' tables stay defined at once: the sites a bench of the planned size serves busily together. */
 export const SITES_KEPT = 20;
 
-/** The bench host: a t3.large, 8 GiB (src/aws.ts). */
-export const HOST_MEMORY_MIB = 8 * 1024;
+/** The bench host's memory, from its machine (machines.ts). */
+export const HOST_MEMORY_MIB = MACHINES[STAGING_BENCH.host].memoryGib.value * 1024;
 
 export const MARIADB_SETTINGS = {
   // Frappe's character set; the client's own choice is ignored so every connection writes utf8mb4.

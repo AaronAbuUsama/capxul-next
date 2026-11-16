@@ -36,7 +36,7 @@ from sites import (BENCH, BENCH_LOCK, CORE_ROLES, CORE_USER, DB_ROOT, FAST, Refu
 LABEL = "blank"
 WAIT_S = int(os.environ.get("DOOR_BLANK_WAIT_S", "900"))  # how long a company waits for a blank being made
 RETRY_S = int(os.environ.get("DOOR_BLANK_RETRY_S", "1800"))  # after a failed make, before another is tried
-IDLE_POLL_S = float(os.environ.get("DOOR_BLANK_IDLE_POLL_S", "2"))
+IDLE_POLL_S = 2.0  # how often a make waiting for BENCH_LOCK looks again
 _cond = threading.Condition()
 _state = {"making": False, "made_ms": None, "error": None, "failed_at": None, "steps": []}
 

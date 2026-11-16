@@ -7,7 +7,7 @@ roadmap's decision "Hosting" ([docs/roadmap.md](../../docs/roadmap.md), "What wa
 
 ## Its stacks
 
-- `CapxulBenchHost` (`host.run.ts`): the machine, a `t3.large` in its own VPC with no inbound rule, an encrypted data
+- `CapxulBenchHost` (`host.run.ts`): the machine (`src/machines.ts`, a `t3.large`) in its own VPC with no inbound rule, an encrypted data
   disk at `/var/lib/docker` that survives restarts, and a role that carries only SSM.
 - `CapxulPlatform` (`alchemy.run.ts`): through one Docker context, the bench (MariaDB, Redis, web, worker, scheduler),
   the site service, the tunnel and its connector, and two DNS names: the site service's and the wildcard for sites.

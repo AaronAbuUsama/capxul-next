@@ -53,7 +53,7 @@ POST   /world/save {"point"}          saves every site of the world to a point, 
 POST   /world/reset {"point"}         resets every site the point saved, in place, and the world's clock entry
 GET    /world/points                  the world's points
 DELETE /world/points/<point>          removes a point
-GET    /health                        {"ok": true, "app": <a hash of the apps the bench makes sites with>}
+GET    /health                        {"ok": true, "app": <a hash of the bench's apps>, "profile": <its machine>}
 GET    /world/jobs/<job>              a call run as a job: waits up to DOOR_JOB_WAIT_S, then the call's own answer, or
                                       202 while it runs (jobs.py)
 
@@ -219,7 +219,7 @@ class Door(BaseHTTPRequestHandler):
         route = (method, self.path)
         try:
             if route == ("GET", "/health"):
-                return self.answer(200, {"ok": True, "app": templates.app_version()})
+                return self.answer(200, {"ok": True, "app": templates.app_version(), "profile": pool.profile()})
             m = SITE_CALL.match(self.path)
             if m:
                 return self.site_call(method, m.group(1), m.group(2))

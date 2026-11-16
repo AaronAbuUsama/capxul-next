@@ -34,6 +34,18 @@ POOL_SIZE = int(os.environ.get("DOOR_POOL_SIZE", "2"))
 BLANK_POOL_MAX = 10
 BLANK_POOL_SIZE = max(0, min(int(os.environ.get("DOOR_BLANK_POOL_SIZE", "8")), BLANK_POOL_MAX))
 REFILL = threading.Lock()  # one pool copy is made at a time, bench-wide
+
+
+def _whole(name):
+    value = os.environ.get(name)
+    return int(value) if value and value.isdigit() else None
+
+
+def profile():
+    """The bench's machine as the deploy chose it (packages/platform, src/machines.ts), for `GET /health` and
+    `GET /templates`: its type, the company sites it makes at once, and its pool sizes. None where not given."""
+    return {"host_type": os.environ.get("BENCH_HOST_TYPE") or None, "sites_at_once": _whole("BENCH_SITES_AT_ONCE"),
+            "blank_pool": BLANK_POOL_SIZE, "company_pool": _whole("DOOR_COMPANY_POOL_SIZE")}
 _guard, _refilling = threading.Lock(), set()
 REFILLS = []  # the last 50 copies made, each with its time, for GET /templates
 
@@ -91,7 +103,8 @@ def list_templates():
         out.append({"template": name, "used_at": used, "idle_s": None if used is None else now - used, "sites": [
             {k: m.get(k) for k in ("label", "company", "made_from", "made_by", "made_at", "ms")} |
             {"pool_ready": len(ready_copies(name, m["label"]))} for m in template_sites(name)]})
-    return {"templates": out, "pool_size": POOL_SIZE, "blank_pool_size": BLANK_POOL_SIZE, "refills": REFILLS[-20:]}
+    return {"templates": out, "pool_size": POOL_SIZE, "blank_pool_size": BLANK_POOL_SIZE, "profile": profile(),
+            "refills": REFILLS[-20:]}
 
 
 def refill_soon(template):

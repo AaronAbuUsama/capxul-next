@@ -2,8 +2,14 @@
 
 Scaled from the measurements in [records/site-speed](../records/site-speed/README.md) (13 November 2026, a 4-CPU
 stand-in with the bench's process layout: 2 web workers), not measured on the bench host itself. The host in the plan
-is a `t3.large` (`src/aws.ts`): 2 vCPU and 8 GiB, burstable to a 30 % baseline per vCPU, so about 0.6 of a CPU
-sustained, and a 60 GiB data disk. How MariaDB is sized for it is the header of `src/mariadb.ts`.
+is a `t3.large`: 2 vCPU and 8 GiB, burstable to a 30 % baseline per vCPU, so about 0.6 of a CPU sustained, and a
+60 GiB data disk. How MariaDB is sized for it is the header of `src/mariadb.ts`.
+
+Each machine a bench may run on is declared once in `src/machines.ts`, with its caps (CPUs, memory, monthly cost, the
+company sites it makes at once, its pool sizes) and where each number comes from: a run, a record, or `estimate`.
+`STAGING_BENCH` there picks the staging bench's machine. The host's instance type, MariaDB's memory and the door's
+pool sizes are derived from it, and the door reports it as `profile` on `GET /health` and `GET /templates`, so a run
+caps its sites at once from it. Changing machines is a one-line change to `STAGING_BENCH`.
 
 ## Idle sites
 
