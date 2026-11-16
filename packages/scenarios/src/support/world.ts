@@ -158,6 +158,26 @@ export const ownCast = (world: View) =>
       : Arr.filter(world.cast, (each) => Arr.contains(castPeopleOf(journey.value), each.person)),
   );
 
+/**
+ * The companies world.show lists, as the journey running sees them: those under its own company's handle or a handle
+ * it names (`handles`) when a journey casts, so a shared world's other journeys founding beside it never show; every
+ * company otherwise.
+ */
+export const ownCompanies = (world: View, handles: ReadonlyArray<string> = []) =>
+  Effect.map(Effect.serviceOption(JourneyCast), (journey) =>
+    companiesOf(
+      Option.isNone(journey)
+        ? world
+        : {
+            ...world,
+            companies: Arr.filter(
+              world.companies,
+              (each) => each.handle === journey.value.company || Arr.contains(handles, each.handle),
+            ),
+          },
+    ),
+  );
+
 /** The world as the journey running sees it: its cast is the journey's own people (`ownCast`). */
 export const ownView = (world: View) => Effect.map(ownCast(world), (cast): View => ({ ...world, cast }));
 
