@@ -36,9 +36,12 @@ export const forkable = Effect.fn("platform.forkable")(function* (stage: string)
   return output.branch;
 }, Effect.mapError(failed));
 
-/** A branch of `parent` called `name`, with no compute; its id. Waits until Neon has finished making it. */
+/**
+ * A branch of `parent` called `name`, with no compute; its id. Waits until Neon has finished making it; `asked` runs
+ * once Neon has taken the request, before that wait, for what may run beside it (a snapshot's chain save).
+ */
 export const branchOf = Effect.fn("platform.branch")(
-  function* (parent: string, name: string) {
+  function* (parent: string, name: string, asked: Effect.Effect<void> = Effect.void) {
     const project = yield* projectId;
     const answer = yield* neon(
       HttpClientRequest.post(`${NEON}/projects/${project}/branches`).pipe(
@@ -46,6 +49,7 @@ export const branchOf = Effect.fn("platform.branch")(
       ),
     );
     const created = yield* Schema.decodeUnknownEffect(Created)(answer).pipe(Effect.mapError(failed));
+    yield* asked;
     // Neon's operations for it, looked at every 250 ms (src/parts/database/neon.ts).
     yield* finished(project, answer).pipe(Effect.mapError(failed));
     return created.branch.id;
