@@ -12,6 +12,7 @@ checks it).
 - [On-chain primitives and Frappe records: the mapping, and the decisions it needs](primitive-mapping.md). Status: open.
 - [Proof and telemetry](proof-and-telemetry.md). Status: agreed with Aaron, 15 November 2026 (`docs/roadmap.md`, decision "Proof and telemetry").
 - [The world run in under 10 minutes, and under 5: options from first principles](run-time.md). Status: agreed with Aaron, 15 November 2026; its decisions are in `docs/roadmap.md`.
+- [The sitrep: the conductor's state, declared by the blueprint](sitrep.md). Status: open.
 - [Why a world run takes 36 to 50 minutes, and how to make it shorter](speed.md). Status: superseded on 15 November 2026 by `docs/design/run-time.md`.
 - [The system map: where everything goes](system.md). Status: agreed with Aaron, 15 November 2026, from the explorer "System Map", with its fourteen choices as recommended (explorer: https://claude.ai/artifact/8itPtfNv7giHpfJRiCu3Rn, private to Aaron).
 - [Telemetry in the blueprint](telemetry-in-the-blueprint.md). Status: agreed with Aaron, 15 November 2026 (`docs/roadmap.md`, decision "Proof and telemetry"; `docs/design/blueprint.md`, part 12).
