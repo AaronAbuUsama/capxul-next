@@ -159,7 +159,7 @@ test("a save's sites step and its chain step overlap", { todo: UNTIL_BUILT }, as
   );
 });
 
-test("every 423 of Neon's is a world.create.branch.locked span", { todo: UNTIL_BUILT }, async () => {
+test("every 423 of Neon's is a world.create.branch.locked span", async () => {
   const outside = outsideOf(["alpha"], { neonLocked: 2 }, false);
   const { exit, ended } = await saving(outside, saveOf("alpha"), "10 seconds");
   assert.ok(Exit.isSuccess(exit), String(exit));
@@ -167,7 +167,7 @@ test("every 423 of Neon's is a world.create.branch.locked span", { todo: UNTIL_B
   assert.equal(Arr.filter(ended, (span) => span.name === createSpans.branchLocked.name).length, 2, "one span a wait");
 });
 
-test("no more than 2 of Neon's branch requests are in flight at once", { todo: UNTIL_BUILT }, async () => {
+test("no more than 2 of Neon's branch requests are in flight at once", async () => {
   const outside = outsideOf(["alpha", "beta", "gamma"], { neonHoldMs: 150 }, false);
   const { exit } = await saving(
     outside,
