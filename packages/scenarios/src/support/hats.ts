@@ -9,6 +9,7 @@ import { expect } from "../expectation.ts";
 import { mintedTo } from "./chain.ts";
 import { present, same } from "./expect.ts";
 import { castMember, whereOf, type View, type Who } from "./world.ts";
+import { steady } from "./steady.ts";
 
 /** The transaction `transaction` and the one hat it minted to `person`'s Safe. */
 export const mintedToPerson = (world: View, transaction: string, person: string, who: Who = {}) =>
@@ -16,7 +17,7 @@ export const mintedToPerson = (world: View, transaction: string, person: string,
     const capxul = yield* Capxul;
     const member = yield* castMember(world, person);
     const safe = yield* present(`${person}'s Safe`, member.safe);
-    const sent = yield* capxul.chain.transaction({ transaction }, whereOf(who));
+    const sent = yield* steady(capxul.chain).transaction({ transaction }, whereOf(who));
     const minted = mintedTo(world, sent.logs, safe);
     yield* same(`the hats ${transaction} minted to ${person}'s Safe`, minted.length, 1);
     const hat = yield* present(`the hat minted to ${person}'s Safe`, Option.getOrNull(Arr.head(minted)));
@@ -27,7 +28,7 @@ export const mintedToPerson = (world: View, transaction: string, person: string,
 export const wears = (world: View, hat: string, safe: string, block: number | null, who: Who = {}) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
-    return yield* capxul.chain.wears({ hats: world.contracts.hats, hat, wearer: safe, block }, whereOf(who));
+    return yield* steady(capxul.chain).wears({ hats: world.contracts.hats, hat, wearer: safe, block }, whereOf(who));
   });
 
 /**
@@ -44,7 +45,10 @@ export const nowWears = (
   Effect.gen(function* () {
     const capxul = yield* Capxul;
     const minted = yield* mintedToPerson(world, transaction, person, who);
-    const hat = yield* capxul.chain.hat({ hats: world.contracts.hats, hat: minted.hat, block: null }, whereOf(who));
+    const hat = yield* steady(capxul.chain).hat(
+      { hats: world.contracts.hats, hat: minted.hat, block: null },
+      whereOf(who),
+    );
     yield* same("the minted hat's details", hat.details, Values.OFFICER_HAT_DETAILS[permission]);
     yield* expect(
       !(yield* wears(world, minted.hat, minted.safe, minted.sent.block - 1, who)),

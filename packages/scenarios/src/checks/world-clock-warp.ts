@@ -9,6 +9,7 @@ import { addSeconds, millis, same, sameInstant } from "../support/expect.ts";
 import { entriesOfCall, operatorName, view, whereOf } from "../support/world.ts";
 import { nothingRecorded, worldBefore, type Before } from "./common.ts";
 import { check, checks, type Asked, type Check } from "./format.ts";
+import { steady } from "../support/steady.ts";
 
 /** Where the warp asked the clock to go, from the clock before it. */
 const targetOf = (asked: Asked<"world.clock.warp">, from: string): string =>
@@ -47,7 +48,7 @@ export const worldClockWarp = checks<"world.clock.warp", Before>({
       "the chain's head is at or after the new time",
       Effect.gen(function* () {
         const capxul = yield* Capxul;
-        const head = yield* capxul.chain.head({}, whereOf(asked.options));
+        const head = yield* steady(capxul.chain).head({}, whereOf(asked.options));
         yield* expect(
           millis(head.timestamp) >= millis(warped.clock.now),
           `the chain's head is at ${head.timestamp}, before the clock's ${warped.clock.now}`,

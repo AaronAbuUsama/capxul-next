@@ -13,6 +13,7 @@ import { isAddress, logsOf } from "./chain.ts";
 import { present, same, sameAddress, sameAmount } from "./expect.ts";
 import { peopleOf } from "./people.ts";
 import { ownCast, recordOf, textOf, whereOf, type View, type Who } from "./world.ts";
+import { steady } from "./steady.ts";
 
 export type Budget = typeof Budgets.Budget.Type;
 export type OnChain = NonNullable<Chain.ReadAnswer<"budget">>;
@@ -41,7 +42,7 @@ export const companySafeOf = (org: string, who: Who = {}) =>
 export const onChain = (world: View, budget: string, who: Who = {}, block: number | null = null) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
-    return yield* capxul.chain.budget({ budgets: world.contracts.budgets, budget, block }, whereOf(who));
+    return yield* steady(capxul.chain).budget({ budgets: world.contracts.budgets, budget, block }, whereOf(who));
   });
 
 /** Budget `budget`, which the chain must hold. */
@@ -60,7 +61,10 @@ export const holdersOf = (world: View, hat: string, who: Who = {}) =>
     for (const each of yield* ownCast(world))
       if (
         each.safe !== null &&
-        (yield* capxul.chain.wears({ hats: world.contracts.hats, hat, wearer: each.safe, block: null }, whereOf(who)))
+        (yield* steady(capxul.chain).wears(
+          { hats: world.contracts.hats, hat, wearer: each.safe, block: null },
+          whereOf(who),
+        ))
       )
         holders.push(each.person);
     return holders;
@@ -74,7 +78,7 @@ export const budgetsCreated = (world: View, logs: ReadonlyArray<Chain.Log>) =>
 export const madeFor = (world: View, safe: string, who: Who = {}) =>
   Effect.gen(function* () {
     const capxul = yield* Capxul;
-    const logs = yield* capxul.chain.logs(
+    const logs = yield* steady(capxul.chain).logs(
       { log: "BudgetCreated", address: world.contracts.budgets, fromBlock: null, toBlock: null },
       whereOf(who),
     );
