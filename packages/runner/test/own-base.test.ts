@@ -1,8 +1,7 @@
 // The starting world of a journey in a world of its own (worlds/own-base.ts; roadmap 4.8, the own-world track): a
 // `quota-full` journey needs no world to begin with, so none is made for it, and the owner's quota is filled to the
 // limit by its own steps. Against a stand-in client whose world.create answers until the owner holds the limit, then
-// refuses with WorldQuotaReached. Structural only, never about speed. Written first: the cases marked `todo` fail
-// against today's stand-in until the runner's builder lands the change, and are then made plain tests.
+// refuses with WorldQuotaReached. Structural only, never about speed.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { Errors, startingWorlds, World, type StartingWorld } from "@capxul/blueprint";
@@ -13,7 +12,6 @@ import * as Predicate from "effect/Predicate";
 import { ownBeginning } from "../src/worlds/own-base.ts";
 import type { Making } from "../src/worlds/makers.ts";
 
-const UNTIL_BUILT = "until the runner's builder lands the own-world track's base (worlds/own-base.ts)";
 const LIMIT = World.WORLD_LIMITS.liveWorldsPerOwner;
 const QUOTA = Errors.WorldQuotaReached.make({ owner: "op-first", live: LIMIT, limit: LIMIT });
 const NOTHING: Making = { facts: { operators: { first: "op-first", second: "op-second" }, calls: [] }, own: null };
@@ -51,30 +49,25 @@ const madeOwn = (world: StartingWorld) =>
     return { made, ran, answered };
   });
 
-test("a quota-full journey of its own world makes no fresh world", { todo: UNTIL_BUILT }, () =>
+test("a quota-full journey of its own world makes no fresh world", () =>
   Effect.runPromise(
     Effect.gen(function* () {
       const { ran } = yield* madeOwn(startingWorlds.quotaFull);
       assert.deepEqual(ran, [startingWorlds.quotaFull.name], "only quota-full's own steps ran: no fresh world first");
     }),
-  ),
-);
+  ));
 
-test(
-  "its making calls are the limit's successful world.create and one WorldQuotaReached, and `filled` is the limit",
-  { todo: UNTIL_BUILT },
-  () =>
-    Effect.runPromise(
-      Effect.gen(function* () {
-        const { made, answered } = yield* madeOwn(startingWorlds.quotaFull);
-        assert.deepEqual(answered, [...Arr.makeBy(LIMIT, () => "success"), QUOTA._tag]);
-        const filled = made.facts["filled"];
-        assert.ok(Arr.isArray(filled), "quota-full's facts name the worlds it filled");
-        assert.equal(filled.length, LIMIT, "filled equals the limit");
-        assert.equal(made.own, null, "it runs in no world of its own");
-      }),
-    ),
-);
+test("its making calls are the limit's successful world.create and one WorldQuotaReached, and `filled` is the limit", () =>
+  Effect.runPromise(
+    Effect.gen(function* () {
+      const { made, answered } = yield* madeOwn(startingWorlds.quotaFull);
+      assert.deepEqual(answered, [...Arr.makeBy(LIMIT, () => "success"), QUOTA._tag]);
+      const filled = made.facts["filled"];
+      assert.ok(Arr.isArray(filled), "quota-full's facts name the worlds it filled");
+      assert.equal(filled.length, LIMIT, "filled equals the limit");
+      assert.equal(made.own, null, "it runs in no world of its own");
+    }),
+  ));
 
 test("a starting world made from fresh still begins in a fresh world of its own", () =>
   Effect.runPromise(
