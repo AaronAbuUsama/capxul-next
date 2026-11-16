@@ -38,19 +38,21 @@ export interface KeptSpan {
   readonly roundTrip: boolean;
 }
 
-/** The envelope's words for how a span's work ended (the blueprint's `Envelope.Outcome`), in its declared order. */
-const [OK, REFUSED, ERROR, INTERRUPTED] = Envelope.Outcome.literals;
-
 /**
  * Each outcome Core keeps (an Exit's kind, as `app.spans` stores it), as the envelope's `capxul.outcome` says it: a
- * typed failure is a refusal, a defect is an error.
+ * typed failure is a refusal, a defect is an error. Each word is taken by name and checked by the compiler against the
+ * blueprint's `Envelope.Outcome`: a word it renames or drops fails here, and its order does not matter.
  */
-export const OUTCOME: Readonly<Record<SpanOutcome, typeof Envelope.Outcome.Type>> = {
-  success: OK,
-  failure: REFUSED,
-  defect: ERROR,
-  interrupted: INTERRUPTED,
-};
+export const OUTCOME = {
+  success: "ok",
+  failure: "refused",
+  defect: "error",
+  interrupted: "interrupted",
+} as const satisfies Readonly<Record<SpanOutcome, typeof Envelope.Outcome.Type>>;
+
+/** Every word of `Envelope.Outcome` is one Core stamps: a word the blueprint adds fails here until it is mapped. */
+type Unmapped = Exclude<typeof Envelope.Outcome.Type, (typeof OUTCOME)[SpanOutcome]>;
+export const EVERY_OUTCOME_MAPPED: [Unmapped] extends [never] ? true : never = true;
 
 export const outcomeOf = (exit: Exit.Exit<unknown, unknown>): SpanOutcome => {
   if (Exit.isSuccess(exit)) return "success";

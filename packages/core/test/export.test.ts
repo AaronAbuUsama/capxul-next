@@ -33,7 +33,7 @@ import {
   transport,
   type Signal,
 } from "../src/telemetry/export.ts";
-import { CallTracer, measured } from "../src/telemetry/spans.ts";
+import { CallTracer, measured, OUTCOME } from "../src/telemetry/spans.ts";
 
 // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- a declared Rpc names its middlewares by their own types, which the general `AnyWithProps` a middleware is handed cannot follow
 const rpc = Option.getOrThrow(Arr.head([...WorldRpcs.requests.values()])) as unknown as Rpc.AnyWithProps;
@@ -229,9 +229,9 @@ test("every exported span carries its outcome; a refusal leaves the status unset
   const [ok, refused, defect] = await Effect.runPromise(
     Effect.all([endedAs(steps), endedAs(Effect.fail("refused")), endedAs(Effect.die("broken"))]),
   );
-  assert.deepEqual(ok, { outcome: "ok", status: 1, kept: "success" });
-  assert.deepEqual(refused, { outcome: "refused", status: 0, kept: "failure" });
-  assert.deepEqual(defect, { outcome: "error", status: 2, kept: "defect" });
+  assert.deepEqual(ok, { outcome: OUTCOME.success, status: 1, kept: "success" });
+  assert.deepEqual(refused, { outcome: OUTCOME.failure, status: 0, kept: "failure" });
+  assert.deepEqual(defect, { outcome: OUTCOME.defect, status: 2, kept: "defect" });
   const { traces } = await Effect.runPromise(run(Headers.empty));
   for (const span of spansOf(traces))
     assert.ok(
