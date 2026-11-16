@@ -21,6 +21,7 @@ import * as Exit from "effect/Exit";
 import * as Order from "effect/Order";
 import * as Rec from "effect/Record";
 import * as Ref from "effect/Ref";
+import { castFor, JourneyCast, type JourneyKey } from "./cast.ts";
 import type { OperationChecks } from "./checks/format.ts";
 import type { Capxul, Failure, Given } from "./client.ts";
 import type { ExpectationFailed } from "./expectation.ts";
@@ -39,6 +40,11 @@ export interface Journey {
   readonly name: string;
   /** The story it tells, in one sentence. */
   readonly story: string;
+  /**
+   * Its key, unique among all journeys: the run casts its own people and company by it (cast.ts), so journeys side by
+   * side never share a person or a company. One of the blueprint's journey keys (`Cast.JOURNEY_KEYS`).
+   */
+  readonly key: JourneyKey;
   /**
    * Where it runs (roadmap step 4.11; docs/roadmap.md, "One shared world, every journey side by side"). `shared`: it
    * acts on its own company and people only, so it runs in the run's one shared world beside the others. `own`: it acts
@@ -104,11 +110,12 @@ export const journey = (
   declared: {
     readonly name: string;
     readonly story: string;
+    readonly key: JourneyKey;
     readonly world: "shared" | "own";
     readonly given: StartingWorld;
     readonly steps: Readonly<Record<string, StepOutline & { readonly index: number }>>;
   },
-  run: Effect.Effect<void, Failed, Needs | OperationChecks | Journal>,
+  run: Effect.Effect<void, Failed, Needs | OperationChecks | Journal | JourneyCast>,
 ): Declared => {
   const steps = Arr.sort(
     Rec.values(declared.steps),
@@ -117,6 +124,7 @@ export const journey = (
   return {
     name: declared.name,
     story: declared.story,
+    key: declared.key,
     world: declared.world,
     given: declared.given,
     outline: Arr.map(steps, (each) => ({ operation: each.operation, does: each.does })),
@@ -127,6 +135,7 @@ export const journey = (
       return yield* due === steps.length + 1 ? Effect.void : Effect.die(`the journey ended before step ${due}`);
     }).pipe(
       Effect.provideServiceEffect(Journal, Effect.all({ next: Ref.make(1), made: Ref.make<ReadonlyArray<Made>>([]) })),
+      Effect.provideServiceEffect(JourneyCast, castFor(declared.key)),
     ),
   };
 };

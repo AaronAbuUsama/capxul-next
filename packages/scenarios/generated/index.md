@@ -3,6 +3,21 @@
 
 One line per file, in what the file says of itself. The kinds of folder are in [README.md](../README.md).
 
+## `src/`
+
+- [`cast.ts`](../src/cast.ts): Each journey's own people and company (roadmap step 4.11, "a cast per journey").
+- [`client.ts`](../src/client.ts): What a journey is handed: a typed client of Capxul, one function per blueprint operation, which calls a world's Core through its door.
+- [`coverage.ts`](../src/coverage.ts): Where each claim of claims.md is checked now that scenarios are journeys (docs/roadmap.md, 14 November 2026): in the checks of an operation (src/checks/), which run on every call of it in every journey, and in the steps of the journeys that call it the way the claim says.
+- [`domain.ts`](../src/domain.ts): The format of one domain's scenarios: one file of domains/ for each domain of the blueprint (packages/blueprint, src/domains.ts), holding the checks of each of its operations, the journeys it leads and where each claim of its operations is checked.
+- [`domains.ts`](../src/domains.ts): Every domain's scenarios, each a file of domains/ (domain.ts): its operations' checks, its journeys and its claims' places.
+- [`door.ts`](../src/door.ts): The package's door: the journeys, how one is declared, the client it is handed and the runner's ear.
+- [`expectation.ts`](../src/expectation.ts): How a journey says what it expects: `expect`, the failure it fails with, and `given`, the facts of the starting world it was handed.
+- [`journal.ts`](../src/journal.ts): What a journey keeps while it runs, and what it tells the runner.
+- [`journey.ts`](../src/journey.ts): How a journey is declared.
+- [`registry.ts`](../src/registry.ts): Every journey the runner runs, in order: each domain's (domains.ts), domain by domain, each with every operation's checks.
+- [`said.ts`](../src/said.ts): A failure in words, for a run record: a typed failure with its tag and every field it carries; anything else in Effect's words, without stack frames.
+- [`tries.ts`](../src/tries.ts): How a step calls its operation.
+
 ## `src/checks/`
 
 - [`all.ts`](../src/checks/all.ts): Every operation's checks, by name: one set each, written once (one file of this folder), gathered from each domain's scenarios (../domains.ts).
@@ -37,20 +52,6 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 - [`world-snapshot-restore.ts`](../src/checks/world-snapshot-restore.ts): The checks of every world.snapshot.restore (claims.md, world.snapshot.restore 1 to 5, world.show 1, record.export 1): a restore makes a separate world, owned by the caller, at a door of its own, holding the source's cast, companies and record up to the snapshot, then its own world_created naming its parent, and leaves the source untouched; a restore that cannot be made is refused and makes nothing.
 - [`world-snapshot-save.ts`](../src/checks/world-snapshot-save.ts): The checks of every world.snapshot.save (claims.md, world.snapshot.save 1 to 3): a snapshot holds the world's record position, clock and companies and leaves the world untouched but for its one snapshot_saved; a name already saved, a caller who is not the owner and a world that does not exist are refused, and the record gains nothing.
 
-## `src/`
-
-- [`client.ts`](../src/client.ts): What a journey is handed: a typed client of Capxul, one function per blueprint operation, which calls a world's Core through its door.
-- [`coverage.ts`](../src/coverage.ts): Where each claim of claims.md is checked now that scenarios are journeys (docs/roadmap.md, 14 November 2026): in the checks of an operation (src/checks/), which run on every call of it in every journey, and in the steps of the journeys that call it the way the claim says.
-- [`domain.ts`](../src/domain.ts): The format of one domain's scenarios: one file of domains/ for each domain of the blueprint (packages/blueprint, src/domains.ts), holding the checks of each of its operations, the journeys it leads and where each claim of its operations is checked.
-- [`domains.ts`](../src/domains.ts): Every domain's scenarios, each a file of domains/ (domain.ts): its operations' checks, its journeys and its claims' places.
-- [`door.ts`](../src/door.ts): The package's door: the journeys, how one is declared, the client it is handed and the runner's ear.
-- [`expectation.ts`](../src/expectation.ts): How a journey says what it expects: `expect`, the failure it fails with, and `given`, the facts of the starting world it was handed.
-- [`journal.ts`](../src/journal.ts): What a journey keeps while it runs, and what it tells the runner.
-- [`journey.ts`](../src/journey.ts): How a journey is declared.
-- [`registry.ts`](../src/registry.ts): Every journey the runner runs, in order: each domain's (domains.ts), domain by domain, each with every operation's checks.
-- [`said.ts`](../src/said.ts): A failure in words, for a run record: a typed failure with its tag and every field it carries; anything else in Effect's words, without stack frames.
-- [`tries.ts`](../src/tries.ts): How a step calls its operation.
-
 ## `src/domains/`
 
 - [`approvals.ts`](../src/domains/approvals.ts): The scenarios of the blueprint's domain "approvals" (giving a signature an operation asked for): the checks of each of its operations, the journeys it leads (none yet), and where each claim of its operations is checked (../domain.ts).
@@ -83,7 +84,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 - [`budgets.ts`](../src/support/budgets.ts): Reading a company's budgets on the world's chain through its door (packages/blueprint, src/common/chain/reads.ts): looks that the budgets operations' checks and the journey "give sam a budget at Northwind" share.
 - [`chain.ts`](../src/support/chain.ts): Reading a world's chain through its door (packages/blueprint, src/common/chain/reads.ts): balances of the world's USDC, the hats a transaction minted, and the payments the Payments contract sent.
 - [`expect.ts`](../src/support/expect.ts): How a scenario reads an answer: the refusal a call must fail with, the kind of success it must answer, and comparisons whose failures say what was seen.
-- [`founding.ts`](../src/support/founding.ts): Founding Northwind as the starting world `founded` describes it: dana founds it with eli as a Director, threshold 2, members sam and pat, and 1,000 USDC of her capital.
+- [`founding.ts`](../src/support/founding.ts): Founding Northwind as the starting world `founded` describes it, with the journey's own cast: dana founds it with eli as a Director, threshold 2, members sam and pat, and 1,000 USDC of her capital.
 - [`hats.ts`](../src/support/hats.ts): The officer hat a grant's execution minted: read from the transaction its last signature sent, through the door a look at that world goes.
 - [`inventory.ts`](../src/support/inventory.ts): Reading what an operator has on the platform: their worlds and a world's snapshots, as looks.
 - [`names.ts`](../src/support/names.ts): The names the blueprint declares, as a journey writes them: `named["doc.create"]`, `named["InsufficientBalance"]`, `named["Held"]`.
