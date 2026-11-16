@@ -47,7 +47,7 @@ and gated only by that command.
 
 | Ratchet | What its list holds | Count | Closes in |
 | --- | --- | --- | --- |
-| R1 Raw schemas | Raw schemas outside values files, machines and listed edges, as findings of capxul/owned-values. | 667 | 3.3 |
+| R1 Raw schemas | Raw schemas outside values files, machines and listed edges, as findings of capxul/owned-values. | 666 | 3.3 |
 | R2 Names typed as strings | Declared names retyped as strings outside the blueprint, as findings of capxul/declared-names. | 743 | 3.3 |
 | R3 Rows not decoded | Stored rows cast to hand-written types instead of decoded, as findings of capxul/decoded-rows. | 38 | 3.3 |
 | R4 Lifecycles not machines | Things with a lifecycle not yet declared as a machine (site, approval, world, budget among them). | not yet counted (C.1) | C.1 (was 7.3) |

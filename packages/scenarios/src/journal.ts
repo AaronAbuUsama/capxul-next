@@ -43,6 +43,11 @@ export class Steps extends Context.Service<
     readonly tried: (step: number, tried: Tried) => Effect.Effect<void>;
     /** `failure` is why the step failed, in words; null when it did not. */
     readonly end: (step: number, failure: string | null) => Effect.Effect<void>;
+    /**
+     * A read sent again because its connection dropped (support/steady.ts), in words: the runner keeps it on the step
+     * it was made in, so a run record says how often it happens. Left out, nothing is kept.
+     */
+    readonly resent?: (what: string) => Effect.Effect<void>;
   }
 >()("@capxul/scenarios/journal/Steps") {}
 

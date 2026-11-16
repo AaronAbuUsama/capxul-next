@@ -30,6 +30,8 @@ export interface Heard {
   readonly startedMs: number;
   readonly endedMs: number | null;
   readonly tries: ReadonlyArray<Tried>;
+  /** Each read sent again in it because its connection dropped, in words. */
+  readonly resent: ReadonlyArray<string>;
   /** Why it failed, in the journey's words; null while it runs and when it did not. */
   readonly failure: string | null;
 }
@@ -75,13 +77,22 @@ const heardSteps = (
       yield* Ref.set(open, Option.some(span));
       yield* Ref.update(heard, (all) => [
         ...all,
-        { step, outline, from, to: null, startedMs, endedMs: null, tries: [], failure: null },
+        { step, outline, from, to: null, startedMs, endedMs: null, tries: [], resent: [], failure: null },
       ]);
     }),
   tried: (step, tried) =>
     Ref.update(heard, (all) =>
       Arr.map(all, (each) => (each.step === step ? { ...each, tries: [...each.tries, tried] } : each)),
     ),
+  // A resend is kept on the step still open, or on the last step heard when none is.
+  resent: (what) =>
+    Ref.update(heard, (all) => {
+      const at = Option.getOrElse(
+        Arr.findLastIndex(all, (each) => each.endedMs === null),
+        () => all.length - 1,
+      );
+      return Arr.map(all, (each, index) => (index === at ? { ...each, resent: [...each.resent, what] } : each));
+    }),
   end: (step, failure) =>
     Effect.gen(function* () {
       const to = (yield* Ref.get(log)).length;
@@ -97,7 +108,10 @@ const heardSteps = (
     }),
 });
 
-const CheckOutcome = Schema.Struct({ says: Schema.String, passed: Schema.Boolean, detail: Schema.String });
+/** Words a run record keeps as written: what a check says, what it saw, what was sent again. */
+const Words = Schema.String;
+
+const CheckOutcome = Schema.Struct({ says: Words, passed: Schema.Boolean, detail: Words });
 
 const Try = Schema.Struct({
   operation: Schema.String,
@@ -125,6 +139,8 @@ export const StepResult = Schema.Struct({
   failure: Schema.NullOr(Schema.String),
   /** Each call of its operation the step made, with what it expected and what its operation's checks found. */
   tries: Schema.Array(Try),
+  /** Each read it sent again because its connection dropped (scenarios' support/steady.ts); left out when none. */
+  resent: Words.pipe(Schema.Array, Schema.optional),
   /** Every call it made (its tries, its waits and what it and its checks read), by place in the record's `calls`, from 1. */
   calls: Schema.Array(Schema.Finite),
   /** How long it took, from its beginning to its end. */
@@ -185,6 +201,7 @@ export const stepsOf = (
       outcome: failures.length === 0 && it.to !== null ? "passed" : "failed",
       failure: failures.length === 0 ? (it.to === null ? "it did not end" : null) : Arr.join(failures, "\n"),
       tries: it.tries,
+      ...(it.resent.length === 0 ? {} : { resent: it.resent }),
       calls: indexes,
       ms: it.endedMs === null ? null : it.endedMs - it.startedMs,
     };
