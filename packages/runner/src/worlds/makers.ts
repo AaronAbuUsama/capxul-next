@@ -71,7 +71,6 @@ const must = <A, E, R>(what: string, call: Effect.Effect<A, E, R>) =>
 
 const frozenNow = { mode: "frozen", startAt: null } as const;
 
-/** `quota-full`: the operator creates private worlds until the platform refuses one for the quota. */
 /** A create that died, not refused: a fault of the infrastructure under the world, tried again a few times. */
 const DEATHS_ALLOWED = 3;
 
@@ -82,8 +81,9 @@ const died = (exits: ReadonlyArray<Exit.Exit<unknown, unknown>>) =>
 
 /**
  * `quota-full`: the operator creates private worlds until the platform refuses one for the quota. As many as the
- * limit are asked for at once, three at a time; then, unless one was refused, one more at a time until one is. A
- * create that dies is tried again, up to `DEATHS_ALLOWED` times in all.
+ * limit are asked for in one wave, all at once; then, unless one was refused, one more at a time until one is. Made
+ * from `nothing` with no world of its own (own-base.ts), the wave fills the quota and the next create is the refusal.
+ * A create that dies is tried again, up to `DEATHS_ALLOWED` times in all.
  */
 const quotaFull: Steps = (making) =>
   Effect.gen(function* () {
@@ -96,9 +96,7 @@ const quotaFull: Steps = (making) =>
     const first = yield* Effect.forEach(
       Arr.makeBy(World.WORLD_LIMITS.liveWorldsPerOwner, () => null),
       () => once,
-      {
-        concurrency: 3,
-      },
+      { concurrency: World.WORLD_LIMITS.liveWorldsPerOwner },
     );
     let tried = first;
     while (!refused(tried) && died(tried) <= DEATHS_ALLOWED) tried = [...tried, yield* once];

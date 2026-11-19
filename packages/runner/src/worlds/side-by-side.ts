@@ -27,6 +27,7 @@ import { companyMakers } from "./company.ts";
 import type { Making } from "./makers.ts";
 import { JourneyMaking, nothingOf, recorder, targetOf, type MakingCall, type Needs } from "./making.ts";
 import { operatorsOf, ofTheRun } from "./operators.ts";
+import { ownBeginning } from "./own-base.ts";
 import { placesOf, type Places } from "./places.ts";
 import { Platform, accountOfJourney } from "./platform.ts";
 import { destroyStrays } from "./teardown.ts";
@@ -110,15 +111,16 @@ export const sideBySideOf = (settings: Settings, platformUrl: string, places: Pl
                     const own = Option.filter(journey, (each) => each.world === "own");
                     return Option.match(own, {
                       onNone: () => Effect.flatMap(sharedWorld, (base) => build(run, world, base, name, holds)),
-                      // Through the journey's own platform (`around`), from `nothing` as its own operators see it.
+                      // Through the journey's own platform (`around`), from `nothing` as its own operators see it, a
+                      // fresh world of its own first only when its starting world is made on one (own-base.ts).
                       onSome: (each) =>
-                        Effect.flatMap(Effect.service(Platform), (platform) => {
-                          const by = recorder(targetOf(settings, platform.url), made);
-                          const mine = nothingOf(operatorsOf(settings, each.key));
-                          return Effect.flatMap(stepsOf(startingWorlds.fresh), (steps) =>
-                            by(startingWorlds.fresh, steps, mine),
-                          ).pipe(Effect.flatMap((base) => build(by, world, base, name, holds)));
-                        }),
+                        Effect.flatMap(Effect.service(Platform), (platform) =>
+                          ownBeginning(
+                            world,
+                            nothingOf(operatorsOf(settings, each.key)),
+                            recorder(targetOf(settings, platform.url), made),
+                          ).pipe(foundsCompany(world) && !holds ? places.sites.held(name, 1) : (effect) => effect),
+                        ),
                     });
                   });
 

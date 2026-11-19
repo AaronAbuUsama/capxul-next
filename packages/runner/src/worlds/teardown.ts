@@ -163,3 +163,31 @@ export const takeDown = (
         )
       : Effect.map(takeDownWorlds(ones, timings), (done) => done.failed),
   );
+
+/** A world the run takes down, and the world it was restored from, when it was restored (`world.snapshot.restore`). */
+export interface Doomed {
+  readonly stage: string;
+  readonly from: string | null;
+}
+
+/**
+ * Destroys `worlds` with `destroy` (roadmap 4.8, the own-world track's teardown): a world restored from another goes
+ * before its source, whose branch it forks; worlds unrelated to each other go together, at most `atOnce` at a time.
+ * Every one is tried; answers each that was not destroyed, with why.
+ *
+ * The seam test/teardown-order.test.ts drives, written first. What is here is today's order, a stand-in: one at a
+ * time, the newest first. The runner's builder replaces it, and the run's take-down uses it.
+ */
+export const destroyInOrder = (
+  worlds: ReadonlyArray<Doomed>,
+  destroy: (stage: string) => Effect.Effect<void, RunnerFailure>,
+  _atOnce: number,
+): Effect.Effect<ReadonlyArray<string>> =>
+  Effect.map(
+    Effect.forEach(Arr.reverse(worlds), (world) =>
+      Effect.map(Effect.exit(destroy(world.stage)), (gone) =>
+        Exit.isSuccess(gone) ? [] : [`${world.stage}: ${describe(gone.cause)}`],
+      ),
+    ),
+    Arr.flatten,
+  );
