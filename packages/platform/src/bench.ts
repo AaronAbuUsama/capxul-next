@@ -13,6 +13,7 @@ import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Str from "effect/String";
+import { machineEnvironment, STAGING_BENCH } from "./machines.ts";
 import { MARIADB_COMMAND } from "./mariadb.ts";
 import { names } from "./stage.ts";
 
@@ -176,6 +177,8 @@ export const Bench = (context: Docker.Context) =>
         PLATFORM_DOMAIN: n.domain,
         DOOR_PORT: `${DOOR_PORT}`,
         WEB_URL: `http://${n.container("web")}:${WEB_PORT}`,
+        // Its pool sizes and the profile it reports, from the bench's machine (machines.ts).
+        ...machineEnvironment(STAGING_BENCH.host),
       },
       ports: [{ external: `127.0.0.1:${doorLocalPort}`, internal: DOOR_PORT }],
       volumes: sitesMount,

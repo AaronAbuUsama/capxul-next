@@ -22,6 +22,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 - [`drift.ts`](../src/drift.ts): The platform's drift check: what the pinned Alchemy sees, plus the one thing it cannot.
 - [`edge.ts`](../src/edge.ts): The platform's way in from the internet: one remotely-managed Cloudflare Tunnel, its ingress configuration, the connector (cloudflared) running as a container on the platform's host, and the platform's DNS names.
 - [`host.ts`](../src/host.ts): The one place the platform stack names the machine the bench runs on.
+- [`machines.ts`](../src/machines.ts): The machines a bench may run on, each declared once with its limits (Aaron, 16 November 2026).
 - [`mariadb.ts`](../src/mariadb.ts): How the bench's MariaDB is started: its character set, and caches sized for many sites instead of MariaDB's defaults.
 - [`names.ts`](../src/names.ts): Every name the platform gives a resource, derived from the stage.
 - [`run-drift.ts`](../src/run-drift.ts): Entry: checks one platform stage for drift (src/drift.ts), prints the report as JSON, writes it to the record file when one is named, and exits 0 when it is clean, 2 when it drifted, and 1 when the check itself failed.

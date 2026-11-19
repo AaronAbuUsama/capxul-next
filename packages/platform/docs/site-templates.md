@@ -19,6 +19,21 @@ was decided on 13 November 2026"); the calls are in [site-service.md](site-servi
   installed and no company, kept warm in a pool of `DOOR_BLANK_POOL_SIZE` (default 8, at most 10: one for each company a run founds at once in
   its shared world, roadmap 4.8; about 110 MiB of disk each), so `POST /sites` starts a company's site from a copy
   instead of building it from nothing.
+- **Ready company copies** (`door/company.py`, roadmap 4.8): every company a run founds has the same name and wizard
+  inputs, so the bench keeps one company template per app fingerprint and inputs, `co-<app>-<inputs hash>`: a blank
+  copy with the setup wizard already run, kept warm in a pool of `DOOR_COMPANY_POOL_SIZE` (default 8, at most 10).
+  `POST /sites` takes a ready copy (or copies the template, about 5 s, with the pool empty) and only joins it to the
+  world, so no wizard runs on the run's path. The door learns which names to keep warm from the `POST /sites` it is
+  asked (`companies.json`); nothing is configured. The first company of a name falls back to the blank, then to a
+  site made from nothing, never worse than before. `GET /sites/<site>`'s `made_from` says which, in the blueprint's
+  words: `how` a `SiteOrigin` (company pool, company copy, blank pool, blank copy, from nothing) and `fell_back` a
+  `MakeFallback` (no company template, company pool empty, no blank) or null; each fallback is also a
+  `site.make.fell_back` step. Templates of other apps, or unused for 7
+  days, go at the door's start. The template's fiscal year is the door's UTC year, the wizard's the site's: the two
+  differ only around New Year, when a company may fall back to the blank once.
+- **Quiet refills**: a company or blank copy, and a company template, is made only once the bench has had no
+  `POST /sites`, claim or restore for `DOOR_REFILL_QUIET_S` (default 60 s), one at a time, so a run's own sites go
+  first.
 
 ## Saving and resetting a world's sites in place
 
@@ -50,7 +65,7 @@ or Frappe's own 60 s cache of a site config.
 | Take, save, reset or removal of a site | that site's lock and one of `DOOR_FAST_SLOTS` (default 4) | Different sites, of one world or many, run at once, up to 4; the same site's calls queue |
 | A site template made, a take with the pool empty, a refill, a sweep of that template | the site template's lock | Copies from one site template are made one after another; takes from the pool do not wait for them; a sweep passes over a site template whose lock is held |
 | Refill | one bench-wide refill lock | One pool copy is made at a time |
-| A site made from nothing or restored, a blank made, `bench backup` | `BENCH_LOCK` | One at a time across the bench, each off the request's path; takes, saves, resets and removals of ready sites do not wait for them |
+| A site made from nothing or restored, a blank or company template made, `bench backup` | `BENCH_LOCK` | One at a time across the bench, each off the request's path; takes, saves, resets and removals of ready sites do not wait for them |
 | Registry changes, quota checks | `REGISTRY_LOCK` | Held for milliseconds |
 
 Site templates are the bench's, not a world's: any valid token may make one, sweep them or remove one by name. Tokens

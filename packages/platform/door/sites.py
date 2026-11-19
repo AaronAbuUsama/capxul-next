@@ -148,15 +148,61 @@ def make_core_user(site, key, secret):
     return round((time.monotonic() - t0) * 1000)
 
 
-def build(site, world, company, key, secret):
-    """Makes the site from the bench's blank (blank.py) when there is one; otherwise from nothing under BENCH_LOCK, and
-    from the blank after all if one was made while this waited for the bench."""
-    import blank
+# How a company's site was made, in the blueprint's words (site/values.ts): `made_from` is {template, how, fell_back},
+# `how` one of its SiteOrigin values ("company pool", "company copy", "blank pool", "blank copy", "from nothing") and
+# `fell_back` a MakeFallback reason or None; each fallback is also the step FELL_BACK (`Pipeline.siteMake`'s log). A site made from nothing gets its `made_from`
+# only once it is ready or failed: while it is made, an entry with none tells a removal to wait for BENCH_LOCK.
+FELL_BACK = "site.make.fell_back"
 
+
+def fell_back_of(site):
+    """The last fallback the site's entry records, or None: what `made_from.fell_back` says."""
+    reasons = [s.get("reason") for s in (read_entry(site) or {}).get("steps") or [] if s.get("step") == FELL_BACK]
+    return reasons[-1] if reasons else None
+
+
+def earlier_steps(site):
+    """The steps the site's entry holds already (a `fell_back` step), which a make adds its own to."""
+    return list((read_entry(site) or {}).get("steps") or [])
+
+
+def fallback_step(site, reason):
+    """The step that says why the site was not made the faster way: "no company template", "company pool empty" or
+    "no blank" (the blueprint's MakeFallback, logged as `site.make.fell_back`)."""
+    print(f"door: {site} fell back: {reason}", flush=True)
+    return {"step": FELL_BACK, "reason": reason, "ms": 0}
+
+
+def fell_back(site, reason):
+    """Records a fallback step on the site's entry."""
+    step = fallback_step(site, reason)
+    with REGISTRY_LOCK:
+        entry = read_entry(site) or {"site": site}
+        entry["steps"] = [*(entry.get("steps") or []), step]
+        write_entry(entry)
+
+
+def build(site, world, company, key, secret):
+    """Makes the site from a ready copy of the company's template (company.py) when the bench keeps one for this
+    company; otherwise from the bench's blank (blank.py); otherwise from nothing under BENCH_LOCK, and from the blank
+    after all if one was made while this waited for the bench. Never worse than the blank alone."""
+    import blank
+    import company as companies
+
+    if companies.make(site, world, company, key, secret):
+        return
+    fell_back(site, "no company template")
+    companies.make_site_template_soon(companies.inputs(company))
     while not blank.make(site, world, company, key, secret):
         with BENCH_LOCK:
             if not blank.usable():
+                fell_back(site, "no blank")
                 return _from_nothing(site, world, company, key, secret)
+
+
+def _nothing(site):
+    """`made_from` of a site made from nothing: given only once it is ready or failed (FELL_BACK, above)."""
+    return {"template": None, "how": "from nothing", "fell_back": fell_back_of(site)}
 
 
 def _from_nothing(site, world, company, key, secret):
@@ -172,7 +218,7 @@ def _from_nothing(site, world, company, key, secret):
         ("enable scheduler", ["--site", site, "enable-scheduler"]),
         ("join world", ["--site", site, "execute", "capxul.clock.join_world", "--kwargs", json.dumps({"world": world})]),
     ]
-    steps, t0 = [], time.monotonic()
+    steps, t0 = earlier_steps(site), time.monotonic()
     try:  # BENCH_LOCK is held by build
         for name, args in plan:
             if (read_entry(site) or {}).get("state") != "creating":
@@ -182,11 +228,12 @@ def _from_nothing(site, world, company, key, secret):
             update_entry(site, steps=steps)
             print(f"door: {site} {name} {ms} ms", flush=True)
         steps.append({"step": "core user", "ms": make_core_user(site, key, secret)})
-        update_entry(site, state="ready", steps=steps, ms=round((time.monotonic() - t0) * 1000))
+        update_entry(site, state="ready", steps=steps, ms=round((time.monotonic() - t0) * 1000),
+                     made_from=_nothing(site))
         print(f"door: {site} ready", flush=True)
     except Exception as e:  # noqa: BLE001 -- a site that could not be made says why; nothing else is told
         detail = e.detail if isinstance(e, Refused) else repr(e)
-        update_entry(site, state="failed", steps=steps, error=detail[-600:])
+        update_entry(site, state="failed", steps=steps, error=detail[-600:], made_from=_nothing(site))
         print(f"door: {site} failed: {detail[-300:]}", flush=True)
 
 

@@ -30,27 +30,32 @@ import time
 import db
 import pool
 import templates
-from sites import (BENCH, BENCH_LOCK, CORE_ROLES, CORE_USER, DB_ROOT, FAST, Refused, bench, drop_database, read_entry,
-                   site_lock, update_entry)
+from sites import (BENCH, BENCH_LOCK, CORE_ROLES, CORE_USER, DB_ROOT, FAST, Refused, bench, drop_database,
+                   earlier_steps, fell_back_of, read_entry, site_lock, update_entry)
 
 LABEL = "blank"
-WAIT_S = int(os.environ.get("DOOR_BLANK_WAIT_S", "900"))  # how long a company waits for a blank being made
+WAIT_S = 900  # how long a company waits for a blank being made
 RETRY_S = int(os.environ.get("DOOR_BLANK_RETRY_S", "1800"))  # after a failed make, before another is tried
-IDLE_POLL_S = float(os.environ.get("DOOR_BLANK_IDLE_POLL_S", "2"))
+IDLE_POLL_S = 2.0  # how often a make waiting for BENCH_LOCK looks again
 _cond = threading.Condition()
 _state = {"making": False, "made_ms": None, "error": None, "failed_at": None, "steps": []}
 
-# The site's company and its world, in one Python process of the bench (capxul/boot.py arms the world's clock in it).
-# The key and secret reach it through its environment, never its arguments. Prints its steps as one JSON line.
-CONFIGURE_SCRIPT = """
+# One Python process of the bench (capxul/boot.py arms the world's clock in it), put together from the parts below: the
+# blank path runs WIZARD_SCRIPT then JOIN_SCRIPT, a company template (company.py) WIZARD_SCRIPT alone, a company copy
+# JOIN_SCRIPT alone. The key and secret reach it through its environment, never its arguments. Prints its steps as one
+# JSON line.
+START_SCRIPT = """
 import os, json, time, frappe
 steps, t0 = [], [time.monotonic()]
 def step(name):
     steps.append({"step": name, "ms": round((time.monotonic() - t0[0]) * 1000)}); t0[0] = time.monotonic()
 frappe.init(site=os.environ["SITE"], sites_path="."); frappe.connect(); frappe.set_user("Administrator")
 step("frappe started")
-from capxul import clock, setup
-setup.run_wizard(os.environ["COMPANY"], "USD", "United Kingdom")
+"""
+# The company's setup wizard, then every app's after_migrate hooks (what the build's `migrate` after the wizard ran).
+WIZARD_SCRIPT = """
+from capxul import setup
+setup.run_wizard(os.environ["COMPANY"], os.environ["CURRENCY"], os.environ["COUNTRY"])
 step("setup wizard")
 frappe.flags.in_migrate = True
 for hook in frappe.get_hooks("after_migrate"):
@@ -58,6 +63,10 @@ for hook in frappe.get_hooks("after_migrate"):
 frappe.flags.in_migrate = False
 frappe.db.commit()
 step("after_migrate hooks")
+"""
+# The site joined to its world, Core's API user with the world's key and secret, and the scheduler on.
+JOIN_SCRIPT = """
+from capxul import clock
 clock.join_world(os.environ["WORLD"])
 step("join world")
 frappe.flags.in_install = "capxul"
@@ -74,8 +83,12 @@ step("core user")
 from frappe.utils.scheduler import enable_scheduler
 enable_scheduler(); frappe.db.commit(); frappe.clear_cache()
 step("enable scheduler")
+"""
+END_SCRIPT = """
 print(json.dumps(steps))
 """
+# The wizard's inputs other than the company: every company a run founds is in these (capxul/setup.py, run_wizard).
+CURRENCY, COUNTRY = "USD", "United Kingdom"
 
 
 def name():
@@ -195,14 +208,14 @@ def make(site, world, company, key, secret):
     if not _wait_for_one():
         return False
     update_entry(site, made_from={"template": blank})
-    steps, t0, dest = [], time.monotonic(), f"{BENCH}/sites/{site}"
+    steps, t0, dest = earlier_steps(site), time.monotonic(), f"{BENCH}/sites/{site}"
     with site_lock(site), FAST:
         if (read_entry(site) or {}).get("state") != "creating":
             return True  # removed while it waited: nothing to make
         try:
             s0 = time.monotonic()
             if pool.take(blank, LABEL, dest):
-                how, step = "pool", "blank copy taken from the pool"
+                how, step = "blank pool", "blank copy taken from the pool"
             else:
                 with templates.template_lock(blank):
                     metas = templates.template_sites(blank)
@@ -210,13 +223,14 @@ def make(site, world, company, key, secret):
                         update_entry(site, made_from=None)
                         return False
                     pool.copy_site(metas[0]["db"], metas[0]["folder"], dest)
-                how, step = "copy", "copied from the blank (pool empty)"
+                how, step = "blank copy", "copied from the blank (pool empty)"
             steps.append({"step": step, "ms": db.ms_since(s0)})
             s0 = time.monotonic()
             steps.append({"step": "own encryption key" if own_key(dest) else "blank's encryption key kept",
                           "ms": db.ms_since(s0)})
             steps.extend(configure(site, world, company, key, secret))
-            update_entry(site, state="ready", steps=steps, ms=db.ms_since(t0), made_from={"template": blank, "how": how})
+            update_entry(site, state="ready", steps=steps, ms=db.ms_since(t0),
+                         made_from={"template": blank, "how": how, "fell_back": fell_back_of(site)})
             print(f"door: {site} made from {blank} ({how}) in {db.ms_since(t0)} ms", flush=True)
         except Exception as e:  # noqa: BLE001 -- a site that could not be made says why; DELETE removes it
             detail = e.detail if isinstance(e, Refused) else repr(e)
@@ -240,9 +254,15 @@ def own_key(folder):
 
 def configure(site, world, company, key, secret):
     """The company's wizard, the apps' after_migrate hooks, the world, the API user and the scheduler: their steps."""
-    env = {**os.environ, "SITE": site, "WORLD": world, "COMPANY": company, "CORE_USER": CORE_USER,
-           "CORE_ROLES": ",".join(CORE_ROLES), "CORE_KEY": key, "CORE_SECRET": secret}
-    out = subprocess.run([f"{BENCH}/env/bin/python", "-c", CONFIGURE_SCRIPT], cwd=f"{BENCH}/sites",
+    return run_script(site, (WIZARD_SCRIPT, JOIN_SCRIPT), company=company, world=world, key=key, secret=secret)
+
+
+def run_script(site, parts, company="", world="", key="", secret=""):
+    """Runs the parts (WIZARD_SCRIPT, JOIN_SCRIPT) on `sites/<site>` in one bench process; answers their steps."""
+    env = {**os.environ, "SITE": site, "WORLD": world, "COMPANY": company, "CURRENCY": CURRENCY, "COUNTRY": COUNTRY,
+           "CORE_USER": CORE_USER, "CORE_ROLES": ",".join(CORE_ROLES), "CORE_KEY": key, "CORE_SECRET": secret}
+    script = "".join((START_SCRIPT, *parts, END_SCRIPT))
+    out = subprocess.run([f"{BENCH}/env/bin/python", "-c", script], cwd=f"{BENCH}/sites",
                          capture_output=True, text=True, timeout=600, env=env)
     if out.returncode != 0:
         raise Refused(500, "bench-failed", f"configure: {(out.stderr or out.stdout)[-600:]}")

@@ -66,6 +66,7 @@ def claim_world(c, body):
     if not SECRET.match(key) or not SECRET.match(secret):
         raise Refused(400, "credential-invalid", "api_key and api_secret: 10 to 64 letters and digits")
     clock = _clock_of(body)
+    pool.touch()  # the door's own refills wait for the run's sites
     # Marked used before any work, so a sweep that has not begun keeps the template (templates.py).
     metas = templates.claimable(template)
     if not metas:

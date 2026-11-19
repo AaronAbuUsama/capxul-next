@@ -35,6 +35,7 @@ TEMPLATE = re.compile(r"^[a-z][a-z0-9-]{0,39}$")
 TEMPLATES = f"{REGISTRY}/templates"
 MAKING = ".making"  # a template being made: renamed into place once whole
 BLANK = "blank-"  # the door's own blank company templates (blank.py): no world makes, claims or sweeps one
+COMPANY = "co-"  # the door's own company templates (company.py): the same
 MIN_IDLE_S = int(os.environ.get("DOOR_TEMPLATE_MIN_IDLE_S", "3600"))
 _template_locks, _locks_guard = {}, threading.Lock()
 _app_version = []
@@ -52,9 +53,11 @@ def name_of(template):
 
 
 def worlds_name(template):
-    """A name a world may make or claim: any template's but the door's own blanks."""
+    """A name a world may make or claim: any template's but the door's own blanks and company templates."""
     if name_of(template).startswith(BLANK):
         raise Refused(400, "template-reserved", f"{BLANK}… names the door's blank company templates")
+    if template.startswith(COMPANY):
+        raise Refused(400, "template-reserved", f"{COMPANY}… names the door's company templates")
     return template
 
 
@@ -240,8 +243,8 @@ def sweep(c, body):
     dry, now = body.get("dry_run") is True, int(time.time())
     removed, kept, busy = [], [], []
     for template in names():
-        if template.startswith(BLANK):  # the door's own: one of another fingerprint goes at the door's start
-            kept.append({"template": template, "idle_s": None, "blank": True})
+        if template.startswith((BLANK, COMPANY)):  # the door's own: blank.py and company.py remove them at its start
+            kept.append({"template": template, "idle_s": None, "door": True, "blank": template.startswith(BLANK)})
             continue
         lock = template_lock(template)
         if not lock.acquire(blocking=False):
