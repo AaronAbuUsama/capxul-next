@@ -10,6 +10,7 @@ One line per file, in what the file says of itself. The kinds of folder are in [
 ## `src/`
 
 - [`chain-journey.ts`](../src/chain-journey.ts): The chain operations' journey through a world `world create` made (`./run.sh chain --world=<name>`): org.create founds northwind as dana, dana's and eli's signatures of the setup send it, a grant of manage-books to sam is proposed and executed the same way, and the chain is read back through the world's door after each landing.
+- [`chosen.ts`](../src/chosen.ts): Which journeys a run of `./run.sh scenarios` runs: those named on its command line; else those `RUNNER_JOURNEYS` names, comma separated; else every registered journey.
 - [`client.ts`](../src/client.ts): The scenarios' `Capxul` for one stage: the SDK's client (`Sdk.layer(Capxul)`) at the stage's two doors, with every call recorded for the checks.
 - [`collector-env.entry.ts`](../src/collector-env.entry.ts): Entry, for a CI job's step (roadmap 4.7): finds the staging collector and mints the run's token from the shared state, as the runner does for itself (src/telemetry/export.ts, `collectorFound`), and hands them to the job's later steps through GitHub's `GITHUB_ENV` file, as OpenTelemetry's standard settings (OTEL_EXPORTER_OTLP_ENDPOINT, and OTEL_EXPORTER_OTLP_HEADERS with the token).
 - [`door.ts`](../src/door.ts): The package's door.
