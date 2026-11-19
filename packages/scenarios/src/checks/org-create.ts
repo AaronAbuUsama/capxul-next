@@ -13,6 +13,7 @@ import { castMember, company, ownCompanies, view, whereOf } from "../support/wor
 import { callerIn, callerOf, namesCaller, nothingRecorded, worldBefore, type Before } from "./common.ts";
 import { check, checks, type Asked, type Check } from "./format.ts";
 import { steady } from "../support/steady.ts";
+import { logsSoFar } from "../support/scans.ts";
 
 type Asking = Asked<"org.create">;
 
@@ -116,10 +117,7 @@ export const orgCreate = checks<"org.create", Before>({
           const contracts = before.world.contracts;
           // Companies House runs the minter's `mint` by delegatecall (CompanySafeMinter.sol refuses a plain call), so
           // the log is Companies House's own, not the minter's.
-          const logs = yield* steady(capxul.chain).logs(
-            { log: "CompanySafeMinted", address: contracts.companiesHouse, fromBlock: null, toBlock: null },
-            where,
-          );
+          const logs = yield* logsSoFar("CompanySafeMinted", contracts.companiesHouse, where);
           const minted = Arr.filter(logsOf(logs, "CompanySafeMinted"), (log) => isAddress(log.safe, founded.safe));
           yield* same(
             "the CompanySafeMinted logs naming the company Safe",

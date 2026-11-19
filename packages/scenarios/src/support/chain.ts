@@ -8,6 +8,7 @@ import * as Str from "effect/String";
 import { Capxul } from "../client.ts";
 import { whereOf, type View, type Who } from "./world.ts";
 import { steady } from "./steady.ts";
+import { logsSoFar } from "./scans.ts";
 
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -39,21 +40,13 @@ export const mintedTo = (world: View, logs: ReadonlyArray<Log>, wearer: string) 
 /** Every PaymentSent of the world's Payments contract carrying `paymentId`, through the door `who` names. */
 export const paymentsSent = (world: View, paymentId: string, who: Who = {}) =>
   Effect.gen(function* () {
-    const capxul = yield* Capxul;
-    const logs = yield* steady(capxul.chain).logs(
-      { log: "PaymentSent", address: world.contracts.payments, fromBlock: null, toBlock: null },
-      whereOf(who),
-    );
+    const logs = yield* logsSoFar("PaymentSent", world.contracts.payments, who);
     return Arr.filter(logsOf(logs, "PaymentSent"), (log) => log.paymentId === paymentId);
   });
 
 /** Every company Safe Companies House minted for company `org` (an Organization's id), through the endpoint `who` names. */
 export const companySafesOf = (org: string, who: Who = {}) =>
   Effect.gen(function* () {
-    const capxul = yield* Capxul;
-    const logs = yield* steady(capxul.chain).logs(
-      { log: "CompanySafeMinted", address: null, fromBlock: null, toBlock: null },
-      whereOf(who),
-    );
+    const logs = yield* logsSoFar("CompanySafeMinted", null, who);
     return Arr.filter(logsOf(logs, "CompanySafeMinted"), (log) => log.company === org);
   });
